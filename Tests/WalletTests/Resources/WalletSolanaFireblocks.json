@@ -1,0 +1,14 @@
+{
+  "type": "smart",
+  "chainType": "solana",
+  "config": {
+    "adminSigner": {
+      "type": "api-key",
+      "address": "DHQgLgfheQbTMnMc6GrnqGxQ4sL9zAazyWWE9GJ1LUWq",
+      "locator": "solana-fireblocks-custodial:DHQgLgfheQbTMnMc6GrnqGxQ4sL9zAazyWWE9GJ1LUWq"
+    }
+  },
+  "address": "8ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",
+  "linkedUser": "email:franfernandeztoro@gmail.com",
+  "createdAt": "2025-05-15T08:51:54.429Z"
+}

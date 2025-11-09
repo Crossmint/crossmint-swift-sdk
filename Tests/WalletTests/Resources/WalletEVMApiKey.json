@@ -1,0 +1,14 @@
+{
+  "type": "smart",
+  "chainType": "evm",
+  "config": {
+    "adminSigner": {
+      "type": "api-key",
+      "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "locator": "api-key:0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+    }
+  },
+  "address": "0xABCDEF1234567890ABCDEF1234567890ABCDEF12",
+  "linkedUser": "email:admin@example.com",
+  "createdAt": "2025-08-21T10:00:00.000Z"
+}

@@ -1,0 +1,25 @@
+{
+  "userId": "fran@paella.dev",
+  "smartContractWalletAddress": "0xe9a353699Cb655265B633b03479890f9ACDF0Bd0",
+  "kernelVersion": "0.3.1",
+  "entryPointVersion": "v0.7",
+  "signers": [
+    {
+      "_id": "000000000000000000000000",
+      "abstractWalletId": "000000000000000000000000",
+      "signerData": {
+        "type": "passkeys",
+        "pubKeyX": "53974445517478826529511626494808493056716472585867467274057723945542198688292",
+        "pubKeyY": "95992374220708497472363050084829585264656015540354474091056129332958175065018",
+        "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+        "validatorContractVersion": "0.0.2",
+        "validatorAddress": "0xbA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd",
+        "authenticatorIdHash": "0x6259a593ea72aefd501c220d754bbe5ede46d02e0611709c815b1807d0474db8",
+        "authenticatorId": "i16I1qQWzGH-Ctu2rBaCqY-d",
+        "passkeyName": "fran@paella.dev",
+        "domain": "placeholder",
+        "passkeyServerUrl": "placeholder"
+      }
+    }
+  ]
+}

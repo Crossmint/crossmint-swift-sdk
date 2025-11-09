@@ -1,0 +1,14 @@
+{
+  "type": "smart",
+  "chainType": "solana",
+  "config": {
+    "adminSigner": {
+      "type": "email",
+      "email": "solana.user@example.com",
+      "locator": "email:solana.user@example.com"
+    }
+  },
+  "address": "7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",
+  "linkedUser": "email:solana.user@example.com",
+  "createdAt": "2025-08-21T11:30:00.000Z"
+}

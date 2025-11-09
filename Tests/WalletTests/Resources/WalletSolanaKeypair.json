@@ -1,0 +1,15 @@
+{
+    "chainType": "solana",
+    "type": "smart",
+    "config": {
+        "adminSigner": {
+            "type": "external-wallet",
+            "address": "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc",
+            "locator": "external-wallet:EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+        },
+        "delegatedSigners": []
+    },
+    "address": "HbwJ5Fghqy5yrap2sgwmqhHfQ6YrBfdKn4QiefAv5giq",
+    "owner": "email:fran@paella.dev",
+    "createdAt": "2025-07-01T11:07:52.442Z"
+}

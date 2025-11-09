@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "4E3410E1-3153-4702-B508-CE56773309E4",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SmartWalletTests",
+        "name" : "SmartWalletTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CrossmintServiceTests",
+        "name" : "CrossmintServiceTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "TestsUtils",
+        "name" : "TestsUtils"
+      }
+    }
+  ],
+  "version" : 1
+}

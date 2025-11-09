@@ -1,0 +1,20 @@
+{
+  "type": "smart",
+  "chainType": "evm",
+  "config": {
+    "adminSigner": {
+      "type": "passkey",
+      "id": "i16I1qQWzGH-Ctu2rBaCqY-e",
+      "name": "someone@paella.dev",
+      "publicKey": {
+        "x": "63974445517478826529511626494808493056716472585867467274057723945542198688292",
+        "y": "65992374220708497472363050084829585264656015540354474091056129332958175065018"
+      },
+      "validatorContractVersion": "0.0.2",
+      "locator": "evm-passkey:i16I1qQWzGH-Ctu2rBaCqY-e"
+    }
+  },
+  "address": "0xe8a353699Cb655265B633b03479890f9ACDF0Bd0",
+  "linkedUser": "email:someone@paella.dev",
+  "createdAt": "2025-02-25T12:05:15.455Z"
+}

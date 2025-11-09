@@ -1,0 +1,16 @@
+{
+  "userId": "fran@paella.dev",
+  "smartContractWalletAddress": "0x26Ca6fdA5E2c71A8E24e75eC40b897e2a5053515",
+  "kernelVersion": "0.3.1",
+  "entryPointVersion": "v0.7",
+  "signers": [
+    {
+      "_id": "000000000000000000000000",
+      "abstractWalletId": "000000000000000000000000",
+      "signerData": {
+        "type": "eoa",
+        "eoaAddress": "0x20112298f0fb356fb914fb00548b2c86083126cc"
+      }
+    }
+  ]
+}
