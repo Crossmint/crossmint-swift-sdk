@@ -99,7 +99,7 @@ public struct CrossmintEmbeddedCheckout: View {
         }
         
         if let recipient = recipient {
-            queryParams.append("recipient=\(try jsonToURLParam(recipient.toDictionary()))")
+            throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing recipient is not yet implemented")
         }
         
         if let appearance = appearance {
