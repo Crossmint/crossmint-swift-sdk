@@ -22,6 +22,12 @@ let package = Package(
                 "CrossmintClient"
 //                "PaymentsUI"
             ]
+        ),
+        .library(
+            name: "CrossmintCheckout",
+            targets: [
+                "Checkout"
+            ]
         )
     ],
     dependencies: [
@@ -142,6 +148,11 @@ let package = Package(
         ),
         .target(
             name: "Web",
+            dependencies: baseDependencies,
+            plugins: basePlugins
+        ),
+        .target(
+            name: "Checkout",
             dependencies: baseDependencies,
             plugins: basePlugins
         ),
