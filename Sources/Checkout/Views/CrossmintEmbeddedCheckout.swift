@@ -91,7 +91,7 @@ public struct CrossmintEmbeddedCheckout: View {
         }
         
         if let lineItems = lineItems {
-            queryParams.append("lineItems=\(try jsonToURLParam(lineItems.toDictionary()))")
+            throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing lineItems is not yet implemented")
         }
         
         if let payment = payment {
