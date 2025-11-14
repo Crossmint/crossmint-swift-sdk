@@ -17,9 +17,6 @@ public struct CrossmintEmbeddedCheckout: View {
     private let appearance: CheckoutAppearance?
     private let environment: CheckoutEnvironment
     
-    @State private var checkoutUrl: String?
-    @State private var errorMessage: String?
-    
     public init(
         orderId: String? = nil,
         clientSecret: String? = nil,
@@ -41,34 +38,23 @@ public struct CrossmintEmbeddedCheckout: View {
     }
     
     public var body: some View {
-        Group {
-            if let error = errorMessage {
-                VStack(spacing: 20) {
-                    Text("Error")
-                        .font(.headline)
-                    Text(error)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                }
-            } else if let url = checkoutUrl {
-                CheckoutWebView(url: url)
-            } else {
-                ProgressView("Loading checkout...")
+        switch checkoutUrlResult {
+        case .success(let url):
+            CheckoutWebView(url: url)
+        case .failure(let error):
+            VStack(spacing: 20) {
+                Text("Error")
+                    .font(.headline)
+                Text(error.localizedDescription)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding()
             }
-        }
-        .task {
-            await loadCheckout()
         }
     }
     
-    private func loadCheckout() async {
-        do {
-            let url = try generateCheckoutUrl()
-            checkoutUrl = url
-        } catch {
-            errorMessage = "Failed to load checkout: \(error.localizedDescription)"
-        }
+    private var checkoutUrlResult: Result<String, Error> {
+        Result { try generateCheckoutUrl() }
     }
     
     private func generateCheckoutUrl() throws -> String {
