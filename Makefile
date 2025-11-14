@@ -77,6 +77,8 @@ test:
 
 # CI sanity check and test running
 ci-test:
+	@echo "Resolving dependencies..."
+	$(SWIFT) package resolve
 	@echo "Checking if lint-fix would produce changes..."
 	git diff --quiet || { echo "Working copy has uncommitted changes. Please commit or stash them first."; exit 1; }
 	$(SWIFT) package plugin --allow-writing-to-package-directory swiftlint --fix
