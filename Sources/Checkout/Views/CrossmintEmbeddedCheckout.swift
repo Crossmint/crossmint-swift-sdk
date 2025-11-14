@@ -62,6 +62,7 @@ public struct CrossmintEmbeddedCheckout: View {
             ? "https://www.crossmint.com/sdk/2024-03-05/embedded-checkout"
             : "https://staging.crossmint.com/sdk/2024-03-05/embedded-checkout"
         
+        // TODO: Fetch SDK version dynamically
         let sdkMetadata = ["name": "@crossmint/client-sdk-swift", "version": "1.0.0"]
         
         var queryParams = [
