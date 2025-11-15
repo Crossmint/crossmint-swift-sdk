@@ -1,0 +1,15 @@
+{
+    "chainType": "evm",
+    "type": "smart",
+    "config": {
+        "adminSigner": {
+            "type": "external-wallet",
+            "address": "0x1234567890123456789012345678901234567890",
+            "locator": "external-wallet:0x1234567890123456789012345678901234567890"
+        },
+        "delegatedSigners": []
+    },
+    "address": "0x1C677d7cc4760e47fe025622Aed141CcE47BC867",
+    "owner": "email:fran@paella.dev",
+    "createdAt": "2025-08-12T09:09:20.360Z"
+}

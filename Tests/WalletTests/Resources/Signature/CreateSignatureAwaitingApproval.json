@@ -1,0 +1,62 @@
+{
+  "id": "93694d0f-74df-4541-a655-86dc8ccb176c",
+  "type": "typed-data",
+  "chainType": "evm",
+  "walletType": "smart",
+  "status": "awaiting-approval",
+  "params": {
+    "typedData": {
+      "domain": {
+        "name": "Ether Mail",
+        "version": "1",
+        "chainId": 1,
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+      },
+      "types": {
+        "Mail": [
+          {
+            "name": "contents",
+            "type": "string"
+          }
+        ],
+        "Person": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "wallet",
+            "type": "address"
+          }
+        ]
+      },
+      "primaryType": "Mail",
+      "message": {
+        "from": null,
+        "contents": "Hello, Bob!",
+        "to": null
+      }
+    },
+    "chain": "base-sepolia",
+    "signer": {
+      "type": "passkey",
+      "id": "v-Qxh--c2nOkUyBYJHRaXCwSOJw",
+      "locator": "passkey:v-Qxh--c2nOkUyBYJHRaXCwSOJw"
+    },
+    "isSmartWalletSignature": true
+  },
+  "approvals": {
+    "pending": [
+      {
+        "signer": {
+          "type": "passkey",
+          "id": "v-Qxh--c2nOkUyBYJHRaXCwSOJw",
+          "locator": "passkey:v-Qxh--c2nOkUyBYJHRaXCwSOJw"
+        },
+        "message": "0x849a233d43cc67e60b07bf5623e0901d0ab2a706d07821e78c2e60ec7bbc5a19"
+      }
+    ],
+    "submitted": []
+  },
+  "createdAt": "2025-08-15T14:49:51.071Z"
+}

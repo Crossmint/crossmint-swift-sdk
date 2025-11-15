@@ -1,0 +1,14 @@
+{
+  "type": "smart",
+  "chainType": "evm",
+  "config": {
+    "adminSigner": {
+      "type": "phone",
+      "phone": "+14155552671",
+      "locator": "phone:+14155552671"
+    }
+  },
+  "address": "0xFEDCBA0987654321FEDCBA0987654321FEDCBA09",
+  "linkedUser": "phoneNumber:+14155552671",
+  "createdAt": "2025-08-21T12:00:00.000Z"
+}

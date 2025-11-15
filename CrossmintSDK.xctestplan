@@ -1,0 +1,59 @@
+{
+  "configurations" : [
+    {
+      "id" : "D5674AFA-547D-4078-84D6-493CEEF5A2DD",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PaymentTests",
+        "name" : "PaymentTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "WebTests",
+        "name" : "WebTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CrossmintCommonTypesTests",
+        "name" : "CrossmintCommonTypesTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "WalletTests",
+        "name" : "WalletTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CrossmintServiceTests",
+        "name" : "CrossmintServiceTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "UtilsTests",
+        "name" : "UtilsTests"
+      }
+    }
+  ],
+  "version" : 1
+}

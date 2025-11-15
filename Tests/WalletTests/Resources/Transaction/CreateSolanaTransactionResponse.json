@@ -1,0 +1,45 @@
+{
+  "chainType": "solana",
+  "walletType": "smart",
+  "params": {
+    "transaction": "AXGuKpKt4zxavCq2dHNexivchTXKoEQMBmqr6ipcF4QPfTXJRJcBLhsCgcLRjBsfV44G4atgoq9NWffk27AvpPf17SMGx1iUcy5jcjJoB6s3oK89gBDibnS1KX4qt4MxF6u3aNc5V3V7TiPNPgNDpg2MWH4fwmAp2qwhswdXjvQqwU6iPfT5sPrH5uGVCjBuVbfT9Qrm24u7yw5jCoMEqBtFp1CbZQYYaNQGJuXpo1Tkqnru2uFESE6KVRYQ4UproQPEuJcdnXh7DPd6GNcEdeCf997cC1ZYZYUcSy19usTvPpYmrFGiRacwPQ8GfNYZES6rxgQMRxaiNem5nuzVH9841e39wpzbCw4FkZ1LnrNM9A8QaR7JMVRsbXZFLJB",
+    "signer": {
+      "type": "external-wallet",
+      "address": "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc",
+      "locator": "external-wallet:EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+    },
+    "feeConfig": {
+      "feePayer": "crossmint",
+      "amount": "15001"
+    }
+  },
+  "onChain": {
+    "transaction": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL3sAv6CWkTt91UJEy4qJswoewHkL8teS4d85SfkZzzUx72nczVA1vPALp4n9KP5aLou6pKk2gqn7Rr6PmUXM9ui4zyU75jxCrfNnZxrgCLzEoQ1Z6tsJua3ZKtcEPDir6cHxvNtPGAoWRY3pV3GH4YTfoT2eEiVoME9Wv4G9zPBXzRu8PzggbH6Kie68UdxJgSjsrCpQ9zWZjfxH8epX96RtFFc9kJ3dTUw86PS9g16n68aJeApjGijCUKadwWQBFbsrhnaH9n2caeP13LunmowEvdpD4wqNK1pFeGfpcvoVBMh51i54fyZt38ic4NLQL1YQeFv5JHU4pqBoUQk2WrvXMzxpAgekdunfgDiFDazCfKznW1j3Je2K6KsHZysKvTQGJgQu8gBp29kRRg9Gjrg3RoqoYMmxUWwFo1NwNcCWqyQ7YiYJmJjG9bYNVipB9NCaWrq2rxoaMeysn1kUB9djZrWmwoHVoYGLiVBS6Xfdxc7uwpHbTaCgo7TAZE3XVE438kGfvpYprRhpPQjruCjhKWab5BFTSriyKV7n6H5Pu5xJfMGbU7tutWShpa9zFnXNxrEtvqPEjgTjt49d89J3uEq8VuCK5BAaeZPzR9hbMAeFDZFAUFjpU93yfhMwT4iHvZhqtNuB57vZH32wz2Eq98jvmzd4XSLPMDgxRB6K9",
+    "lastValidBlockHeight": 389278945
+  },
+  "id": "f662d74d-8790-4dbe-8865-93916b39d3d6",
+  "status": "awaiting-approval",
+  "approvals": {
+    "pending": [
+      {
+        "signer": {
+          "type": "external-wallet",
+          "address": "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc",
+          "locator": "external-wallet:EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+        },
+        "message": "3ScRUqvpU4ZEHKD23XBxWargqNCPoxhQagfjCYXefxcTmejFQxhdJYCynsCCrsGX8cq9DMaeRTUfGzAEPChsHhmavcHR7GdTbUbeAZtrek3Kvf6ZfkJYXU9sGB3SQcK7yLykQr6FYrsJPZiq5GUqH6Ry2KS13UqQP59csVYb2s5nMHJQbeKDgb8jpLcjLjCAR1YBeDfGzcKseuSRB7vb1AUktE1ZoUKUWYe4CzdsKX8d3Ht3Vmuk3mh519bNd7tW2DWwvTRtJPty1NnAP3rkV7BfMXp4PYgS7rqDpo9t7RhnG4uiYSa95jNLKjxC87q8Fw3vRFDcwie4vUckcrjyZEGXi61rx7egA2XVZpk2GdFm8jZrTFpef5uXqrSXGTUq6B5MeJKRarQ9V6EJThw7zejnsMPVF6n3KJJkbPWTz4qKbpq3q6fALUHYEwFXPgEMVo8uZM8mgEhAVsFobQLW8AwUAx5bACivnWyyc9pEo6CEjn7cRuoo11kVQQaeBH"
+      }
+    ],
+    "submitted": [],
+    "required": 1
+  },
+  "createdAt": "2025-08-15T14:29:34.133Z",
+  "sendParams": {
+    "token": "solana:sol",
+    "params": {
+      "amount": "0.5",
+      "recipient": "address:HbwJ5Fghqy5yrap2sgwmqhHfQ6YrBfdKn4QiefAv5giq:solana",
+      "recipientAddress": "HbwJ5Fghqy5yrap2sgwmqhHfQ6YrBfdKn4QiefAv5giq"
+    }
+  }
+}
