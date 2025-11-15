@@ -57,7 +57,6 @@ struct CheckoutWebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .clear
         
-        context.coordinator.webView = webView
         webView.navigationDelegate = context.coordinator
         
         if let url = URL(string: url) {
@@ -73,16 +72,6 @@ struct CheckoutWebView: UIViewRepresentable {
         Coordinator()
     }
     
-    class Coordinator: NSObject, WKNavigationDelegate {
-        var webView: WKWebView?
-        
-        func webView(
-            _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
-            decisionHandler(.allow)
-        }
-    }
+    class Coordinator: NSObject, WKNavigationDelegate {}
 }
 
