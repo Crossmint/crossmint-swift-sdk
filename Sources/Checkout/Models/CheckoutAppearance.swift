@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Base Styles
 
-public struct CheckoutFontStyle {
+public struct CheckoutFontStyle: Codable {
     public let family: String?
     public let size: String?
     public let weight: String?
@@ -23,17 +23,9 @@ public struct CheckoutFontStyle {
         self.size = size
         self.weight = weight
     }
-    
-    func toDictionary() -> [String: String] {
-        var dict: [String: String] = [:]
-        if let family = family { dict["family"] = family }
-        if let size = size { dict["size"] = size }
-        if let weight = weight { dict["weight"] = weight }
-        return dict
-    }
 }
 
-public struct CheckoutColorStyle {
+public struct CheckoutColorStyle: Codable {
     public let text: String?
     public let background: String?
     public let border: String?
@@ -53,65 +45,35 @@ public struct CheckoutColorStyle {
         self.boxShadow = boxShadow
         self.placeholder = placeholder
     }
-    
-    func toDictionary() -> [String: String] {
-        var dict: [String: String] = [:]
-        if let text = text { dict["text"] = text }
-        if let background = background { dict["background"] = background }
-        if let border = border { dict["border"] = border }
-        if let boxShadow = boxShadow { dict["boxShadow"] = boxShadow }
-        if let placeholder = placeholder { dict["placeholder"] = placeholder }
-        return dict
-    }
 }
 
-public struct CheckoutStateStyle {
+public struct CheckoutStateStyle: Codable {
     public let colors: CheckoutColorStyle?
     
     public init(colors: CheckoutColorStyle? = nil) {
         self.colors = colors
     }
-    
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let colors = colors, !colors.toDictionary().isEmpty {
-            dict["colors"] = colors.toDictionary()
-        }
-        return dict
-    }
 }
 
 // MARK: - UI Element Rules
 
-public struct CheckoutDestinationInputRule {
+public struct CheckoutDestinationInputRule: Codable {
     public let display: String?
     
     public init(display: String? = nil) {
         self.display = display
     }
-    
-    func toDictionary() -> [String: String] {
-        var dict: [String: String] = [:]
-        if let display = display { dict["display"] = display }
-        return dict
-    }
 }
 
-public struct CheckoutReceiptEmailInputRule {
+public struct CheckoutReceiptEmailInputRule: Codable {
     public let display: String?
     
     public init(display: String? = nil) {
         self.display = display
     }
-    
-    func toDictionary() -> [String: String] {
-        var dict: [String: String] = [:]
-        if let display = display { dict["display"] = display }
-        return dict
-    }
 }
 
-public struct CheckoutLabelRule {
+public struct CheckoutLabelRule: Codable {
     public let font: CheckoutFontStyle?
     public let colors: CheckoutColorStyle?
     
@@ -122,20 +84,9 @@ public struct CheckoutLabelRule {
         self.font = font
         self.colors = colors
     }
-    
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let font = font, !font.toDictionary().isEmpty {
-            dict["font"] = font.toDictionary()
-        }
-        if let colors = colors, !colors.toDictionary().isEmpty {
-            dict["colors"] = colors.toDictionary()
-        }
-        return dict
-    }
 }
 
-public struct CheckoutInputRule {
+public struct CheckoutInputRule: Codable {
     public let borderRadius: String?
     public let font: CheckoutFontStyle?
     public let colors: CheckoutColorStyle?
@@ -155,27 +106,9 @@ public struct CheckoutInputRule {
         self.hover = hover
         self.focus = focus
     }
-    
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let borderRadius = borderRadius { dict["borderRadius"] = borderRadius }
-        if let font = font, !font.toDictionary().isEmpty {
-            dict["font"] = font.toDictionary()
-        }
-        if let colors = colors, !colors.toDictionary().isEmpty {
-            dict["colors"] = colors.toDictionary()
-        }
-        if let hover = hover, !hover.toDictionary().isEmpty {
-            dict["hover"] = hover.toDictionary()
-        }
-        if let focus = focus, !focus.toDictionary().isEmpty {
-            dict["focus"] = focus.toDictionary()
-        }
-        return dict
-    }
 }
 
-public struct CheckoutTabRule {
+public struct CheckoutTabRule: Codable {
     public let borderRadius: String?
     public let font: CheckoutFontStyle?
     public let colors: CheckoutColorStyle?
@@ -195,27 +128,9 @@ public struct CheckoutTabRule {
         self.hover = hover
         self.selected = selected
     }
-    
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let borderRadius = borderRadius { dict["borderRadius"] = borderRadius }
-        if let font = font, !font.toDictionary().isEmpty {
-            dict["font"] = font.toDictionary()
-        }
-        if let colors = colors, !colors.toDictionary().isEmpty {
-            dict["colors"] = colors.toDictionary()
-        }
-        if let hover = hover, !hover.toDictionary().isEmpty {
-            dict["hover"] = hover.toDictionary()
-        }
-        if let selected = selected, !selected.toDictionary().isEmpty {
-            dict["selected"] = selected.toDictionary()
-        }
-        return dict
-    }
 }
 
-public struct CheckoutPrimaryButtonRule {
+public struct CheckoutPrimaryButtonRule: Codable {
     public let borderRadius: String?
     public let font: CheckoutFontStyle?
     public let colors: CheckoutColorStyle?
@@ -235,35 +150,26 @@ public struct CheckoutPrimaryButtonRule {
         self.hover = hover
         self.disabled = disabled
     }
-    
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let borderRadius = borderRadius { dict["borderRadius"] = borderRadius }
-        if let font = font, !font.toDictionary().isEmpty {
-            dict["font"] = font.toDictionary()
-        }
-        if let colors = colors, !colors.toDictionary().isEmpty {
-            dict["colors"] = colors.toDictionary()
-        }
-        if let hover = hover, !hover.toDictionary().isEmpty {
-            dict["hover"] = hover.toDictionary()
-        }
-        if let disabled = disabled, !disabled.toDictionary().isEmpty {
-            dict["disabled"] = disabled.toDictionary()
-        }
-        return dict
-    }
 }
 
 // MARK: - Appearance Rules
 
-public struct CheckoutAppearanceRules {
+public struct CheckoutAppearanceRules: Codable {
     public let destinationInput: CheckoutDestinationInputRule?
     public let receiptEmailInput: CheckoutReceiptEmailInputRule?
     public let label: CheckoutLabelRule?
     public let input: CheckoutInputRule?
     public let tab: CheckoutTabRule?
     public let primaryButton: CheckoutPrimaryButtonRule?
+    
+    enum CodingKeys: String, CodingKey {
+        case destinationInput = "DestinationInput"
+        case receiptEmailInput = "ReceiptEmailInput"
+        case label = "Label"
+        case input = "Input"
+        case tab = "Tab"
+        case primaryButton = "PrimaryButton"
+    }
     
     public init(
         destinationInput: CheckoutDestinationInputRule? = nil,
@@ -280,46 +186,15 @@ public struct CheckoutAppearanceRules {
         self.tab = tab
         self.primaryButton = primaryButton
     }
-    
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let destinationInput = destinationInput, !destinationInput.toDictionary().isEmpty {
-            dict["DestinationInput"] = destinationInput.toDictionary()
-        }
-        if let receiptEmailInput = receiptEmailInput, !receiptEmailInput.toDictionary().isEmpty {
-            dict["ReceiptEmailInput"] = receiptEmailInput.toDictionary()
-        }
-        if let label = label, !label.toDictionary().isEmpty {
-            dict["Label"] = label.toDictionary()
-        }
-        if let input = input, !input.toDictionary().isEmpty {
-            dict["Input"] = input.toDictionary()
-        }
-        if let tab = tab, !tab.toDictionary().isEmpty {
-            dict["Tab"] = tab.toDictionary()
-        }
-        if let primaryButton = primaryButton, !primaryButton.toDictionary().isEmpty {
-            dict["PrimaryButton"] = primaryButton.toDictionary()
-        }
-        return dict
-    }
 }
 
 // MARK: - Appearance
 
-public struct CheckoutAppearance {
+public struct CheckoutAppearance: Codable {
     public let rules: CheckoutAppearanceRules?
     
     public init(rules: CheckoutAppearanceRules? = nil) {
         self.rules = rules
-    }
-    
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let rules = rules, !rules.toDictionary().isEmpty {
-            dict["rules"] = rules.toDictionary()
-        }
-        return dict
     }
 }
 

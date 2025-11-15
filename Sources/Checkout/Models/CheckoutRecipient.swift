@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct CheckoutRecipient {
+public struct CheckoutRecipient: Codable {
     public let walletAddress: String?
     public let email: String?
     
@@ -17,13 +17,6 @@ public struct CheckoutRecipient {
     ) {
         self.walletAddress = walletAddress
         self.email = email
-    }
-    
-    func toDictionary() -> [String: String] {
-        var dict: [String: String] = [:]
-        if let wallet = walletAddress { dict["walletAddress"] = wallet }
-        if let email = email { dict["email"] = email }
-        return dict
     }
 }
 

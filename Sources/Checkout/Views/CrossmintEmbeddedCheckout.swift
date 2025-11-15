@@ -58,23 +58,26 @@ public struct CrossmintEmbeddedCheckout: View {
     }
     
     private func generateCheckoutUrl() throws -> String {
-        let baseUrl = environment == .production
+        let baseUrlString = environment == .production
             ? "https://www.crossmint.com/sdk/2024-03-05/embedded-checkout"
             : "https://staging.crossmint.com/sdk/2024-03-05/embedded-checkout"
         
+        guard var components = URLComponents(string: baseUrlString) else {
+            throw CheckoutError.invalidConfiguration("Invalid base URL")
+        }
+        
+        var queryItems: [URLQueryItem] = []
+        
         // TODO: Fetch SDK version dynamically
         let sdkMetadata = ["name": "@crossmint/client-sdk-swift", "version": "1.0.0"]
-        
-        var queryParams = [
-            "sdkMetadata=\(try jsonToURLParam(sdkMetadata))"
-        ]
+        queryItems.append(URLQueryItem(name: "sdkMetadata", value: try encodeToJSON(sdkMetadata)))
         
         if let orderId = orderId {
-            queryParams.append("orderId=\(orderId)")
+            queryItems.append(URLQueryItem(name: "orderId", value: orderId))
         }
         
         if let clientSecret = clientSecret {
-            queryParams.append("clientSecret=\(clientSecret)")
+            queryItems.append(URLQueryItem(name: "clientSecret", value: clientSecret))
         }
         
         if let lineItems = lineItems {
@@ -82,7 +85,7 @@ public struct CrossmintEmbeddedCheckout: View {
         }
         
         if let payment = payment {
-            queryParams.append("payment=\(try jsonToURLParam(payment.toDictionary()))")
+            queryItems.append(URLQueryItem(name: "payment", value: try encodeToJSON(payment)))
         }
         
         if let recipient = recipient {
@@ -90,26 +93,27 @@ public struct CrossmintEmbeddedCheckout: View {
         }
         
         if let appearance = appearance {
-            let appearanceDict = appearance.toDictionary()
-            if !appearanceDict.isEmpty {
-                queryParams.append("appearance=\(try jsonToURLParam(appearanceDict))")
-            }
+            queryItems.append(URLQueryItem(name: "appearance", value: try encodeToJSON(appearance)))
         }
         
-        let url = "\(baseUrl)?" + queryParams.joined(separator: "&")
+        components.queryItems = queryItems
+        
+        guard let url = components.url?.absoluteString else {
+            throw CheckoutError.invalidConfiguration("Failed to construct URL")
+        }
+        
+        print("Checkout URL: \(url)")
         return url
     }
     
-    private func jsonToURLParam(_ object: Any) throws -> String {
-        let data = try JSONSerialization.data(withJSONObject: object, options: [.withoutEscapingSlashes])
-        let json = String(data: data, encoding: .utf8)!
-        return encodeQueryValue(json)
-    }
-    
-    private func encodeQueryValue(_ value: String) -> String {
-        var allowed = CharacterSet.urlQueryAllowed
-        allowed.remove(charactersIn: "+")
-        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    private func encodeToJSON<T: Encodable>(_ value: T) throws -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.withoutEscapingSlashes]
+        let data = try encoder.encode(value)
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw CheckoutError.invalidConfiguration("Failed to encode JSON")
+        }
+        return json
     }
 }
 
