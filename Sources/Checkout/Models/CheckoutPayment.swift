@@ -62,7 +62,7 @@ public struct CheckoutFiatPayment: Codable {
 // MARK: - Payment
 
 public struct CheckoutPayment: Codable {
-    public enum Method: String {
+    public enum Method: String, Codable {
         case crypto
         case fiat
     }
@@ -76,7 +76,7 @@ public struct CheckoutPayment: Codable {
         crypto: CheckoutCryptoPayment,
         fiat: CheckoutFiatPayment,
         receiptEmail: String? = nil,
-        defaultMethod: String? = nil
+        defaultMethod: Method? = nil
     ) {
         self.crypto = crypto
         self.fiat = fiat
