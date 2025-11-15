@@ -62,10 +62,15 @@ public struct CheckoutFiatPayment: Codable {
 // MARK: - Payment
 
 public struct CheckoutPayment: Codable {
+    public enum Method: String {
+        case crypto
+        case fiat
+    }
+    
     public let crypto: CheckoutCryptoPayment
     public let fiat: CheckoutFiatPayment
     public let receiptEmail: String?
-    public let defaultMethod: String? // "fiat" or "crypto"
+    public let defaultMethod: Method?
     
     public init(
         crypto: CheckoutCryptoPayment,
