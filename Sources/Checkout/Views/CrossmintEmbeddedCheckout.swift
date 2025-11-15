@@ -58,11 +58,19 @@ public struct CrossmintEmbeddedCheckout: View {
     }
     
     private func generateCheckoutUrl() throws -> String {
-        let baseUrlString = environment == .production
-            ? "https://www.crossmint.com/sdk/2024-03-05/embedded-checkout"
-            : "https://staging.crossmint.com/sdk/2024-03-05/embedded-checkout"
+        // TODO: Implement lineItems and recipient
+        if lineItems != nil {
+            throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing lineItems is not yet implemented")
+        }
         
-        guard var components = URLComponents(string: baseUrlString) else {
+        if recipient != nil {
+            throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing recipient is not yet implemented")
+        }
+        
+        let domain = environment == .production ? "www" : "staging"
+        let baseUrl = "https://\(domain).crossmint.com/sdk/2024-03-05/embedded-checkout"
+        
+        guard var components = URLComponents(string: baseUrl) else {
             throw CheckoutError.invalidConfiguration("Invalid base URL")
         }
         
@@ -70,7 +78,7 @@ public struct CrossmintEmbeddedCheckout: View {
         
         // TODO: Fetch SDK version dynamically
         let sdkMetadata = ["name": "@crossmint/client-sdk-swift", "version": "1.0.0"]
-        queryItems.append(URLQueryItem(name: "sdkMetadata", value: try encodeToJSON(sdkMetadata)))
+        queryItems.append(URLQueryItem(name: "sdkMetadata", value: try sdkMetadata.toJSON()))
         
         if let orderId = orderId {
             queryItems.append(URLQueryItem(name: "orderId", value: orderId))
@@ -80,20 +88,12 @@ public struct CrossmintEmbeddedCheckout: View {
             queryItems.append(URLQueryItem(name: "clientSecret", value: clientSecret))
         }
         
-        if let lineItems = lineItems {
-            throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing lineItems is not yet implemented")
-        }
-        
         if let payment = payment {
-            queryItems.append(URLQueryItem(name: "payment", value: try encodeToJSON(payment)))
-        }
-        
-        if let recipient = recipient {
-            throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing recipient is not yet implemented")
+            queryItems.append(URLQueryItem(name: "payment", value: try payment.toJSON()))
         }
         
         if let appearance = appearance {
-            queryItems.append(URLQueryItem(name: "appearance", value: try encodeToJSON(appearance)))
+            queryItems.append(URLQueryItem(name: "appearance", value: try appearance.toJSON()))
         }
         
         components.queryItems = queryItems
@@ -102,23 +102,26 @@ public struct CrossmintEmbeddedCheckout: View {
             throw CheckoutError.invalidConfiguration("Failed to construct URL")
         }
         
-        print("Checkout URL: \(url)")
         return url
-    }
-    
-    private func encodeToJSON<T: Encodable>(_ value: T) throws -> String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.withoutEscapingSlashes]
-        let data = try encoder.encode(value)
-        guard let json = String(data: data, encoding: .utf8) else {
-            throw CheckoutError.invalidConfiguration("Failed to encode JSON")
-        }
-        return json
     }
 }
 
 public enum CheckoutEnvironment {
     case staging
     case production
+}
+
+// MARK: - Encodable Extension
+
+extension Encodable {
+    func toJSON() throws -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.withoutEscapingSlashes]
+        let data = try encoder.encode(self)
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw CheckoutError.invalidConfiguration("Failed to encode JSON")
+        }
+        return json
+    }
 }
 
