@@ -14,18 +14,48 @@ struct CheckoutWebView: UIViewRepresentable {
     
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        
+        // Media playback
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        config.applicationNameForUserAgent = "Crossmint"
         
-        let osVersion = UIDevice.current.systemVersion.replacingOccurrences(of: ".", with: "_")
-        let safariVersion = String(Int(Double(UIDevice.current.systemVersion) ?? 0) / 2)
-        let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS \(osVersion) like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/\(safariVersion).0 Mobile/15E148 Safari/604.1"
+        // Enable Apple Pay and other payment methods
+        #if !targetEnvironment(simulator)
+        config.preferences.javaScriptEnabled = true
+        #endif
+        
+        // Inject viewport meta tag to prevent zooming
+        let viewportScript = """
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        """
+        let userScript = WKUserScript(
+            source: viewportScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        config.userContentController.addUserScript(userScript)
+        
+        // Set content mode
         config.defaultWebpagePreferences.preferredContentMode = .mobile
+        config.applicationNameForUserAgent = "CrossmintSDK"
         
         let webView = WKWebView(frame: .zero, configuration: config)
-        webView.customUserAgent = userAgent
+        
+        // Disable scrolling and bouncing
         webView.scrollView.isScrollEnabled = false
+        webView.scrollView.bounces = false
+        webView.scrollView.alwaysBounceVertical = false
+        webView.scrollView.alwaysBounceHorizontal = false
+        
+        // Enable multiple touch for payment forms
+        webView.isMultipleTouchEnabled = true
+        
+        // Set background
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
         
         context.coordinator.webView = webView
         webView.navigationDelegate = context.coordinator
