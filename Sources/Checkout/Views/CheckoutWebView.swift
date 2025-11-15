@@ -19,9 +19,6 @@ struct CheckoutWebView: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         
-        // Enable Apple Pay and other payment methods
-        config.preferences.javaScriptEnabled = true
-        
         // Inject viewport meta tag to prevent zooming
         let viewportScript = """
         var meta = document.createElement('meta');
