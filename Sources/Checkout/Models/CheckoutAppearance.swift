@@ -13,7 +13,7 @@ public struct CheckoutFontStyle: Codable {
     public let family: String?
     public let size: String?
     public let weight: String?
-    
+
     public init(
         family: String? = nil,
         size: String? = nil,
@@ -31,7 +31,7 @@ public struct CheckoutColorStyle: Codable {
     public let border: String?
     public let boxShadow: String?
     public let placeholder: String?
-    
+
     public init(
         text: String? = nil,
         background: String? = nil,
@@ -49,7 +49,7 @@ public struct CheckoutColorStyle: Codable {
 
 public struct CheckoutStateStyle: Codable {
     public let colors: CheckoutColorStyle?
-    
+
     public init(colors: CheckoutColorStyle? = nil) {
         self.colors = colors
     }
@@ -59,7 +59,7 @@ public struct CheckoutStateStyle: Codable {
 
 public struct CheckoutDestinationInputRule: Codable {
     public let display: String?
-    
+
     public init(display: String? = nil) {
         self.display = display
     }
@@ -67,7 +67,7 @@ public struct CheckoutDestinationInputRule: Codable {
 
 public struct CheckoutReceiptEmailInputRule: Codable {
     public let display: String?
-    
+
     public init(display: String? = nil) {
         self.display = display
     }
@@ -76,7 +76,7 @@ public struct CheckoutReceiptEmailInputRule: Codable {
 public struct CheckoutLabelRule: Codable {
     public let font: CheckoutFontStyle?
     public let colors: CheckoutColorStyle?
-    
+
     public init(
         font: CheckoutFontStyle? = nil,
         colors: CheckoutColorStyle? = nil
@@ -92,7 +92,7 @@ public struct CheckoutInputRule: Codable {
     public let colors: CheckoutColorStyle?
     public let hover: CheckoutStateStyle?
     public let focus: CheckoutStateStyle?
-    
+
     public init(
         borderRadius: String? = nil,
         font: CheckoutFontStyle? = nil,
@@ -114,7 +114,7 @@ public struct CheckoutTabRule: Codable {
     public let colors: CheckoutColorStyle?
     public let hover: CheckoutStateStyle?
     public let selected: CheckoutStateStyle?
-    
+
     public init(
         borderRadius: String? = nil,
         font: CheckoutFontStyle? = nil,
@@ -136,7 +136,7 @@ public struct CheckoutPrimaryButtonRule: Codable {
     public let colors: CheckoutColorStyle?
     public let hover: CheckoutStateStyle?
     public let disabled: CheckoutStateStyle?
-    
+
     public init(
         borderRadius: String? = nil,
         font: CheckoutFontStyle? = nil,
@@ -161,7 +161,7 @@ public struct CheckoutAppearanceRules: Codable {
     public let input: CheckoutInputRule?
     public let tab: CheckoutTabRule?
     public let primaryButton: CheckoutPrimaryButtonRule?
-    
+
     enum CodingKeys: String, CodingKey {
         case destinationInput = "DestinationInput"
         case receiptEmailInput = "ReceiptEmailInput"
@@ -170,7 +170,7 @@ public struct CheckoutAppearanceRules: Codable {
         case tab = "Tab"
         case primaryButton = "PrimaryButton"
     }
-    
+
     public init(
         destinationInput: CheckoutDestinationInputRule? = nil,
         receiptEmailInput: CheckoutReceiptEmailInputRule? = nil,
@@ -192,9 +192,8 @@ public struct CheckoutAppearanceRules: Codable {
 
 public struct CheckoutAppearance: Codable {
     public let rules: CheckoutAppearanceRules?
-    
+
     public init(rules: CheckoutAppearanceRules? = nil) {
         self.rules = rules
     }
 }
-

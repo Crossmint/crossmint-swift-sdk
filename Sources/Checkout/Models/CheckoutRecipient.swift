@@ -10,7 +10,7 @@ import Foundation
 public struct CheckoutRecipient: Codable {
     public let walletAddress: String?
     public let email: String?
-    
+
     public init(
         walletAddress: String? = nil,
         email: String? = nil
@@ -19,4 +19,3 @@ public struct CheckoutRecipient: Codable {
         self.email = email
     }
 }
-

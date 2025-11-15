@@ -13,7 +13,7 @@ public struct CheckoutCryptoPayment: Codable {
     public let enabled: Bool
     public let defaultChain: String?
     public let defaultCurrency: String?
-    
+
     public init(
         enabled: Bool,
         defaultChain: String? = nil,
@@ -31,7 +31,7 @@ public struct CheckoutAllowedMethods: Codable {
     public let googlePay: Bool?
     public let applePay: Bool?
     public let card: Bool?
-    
+
     public init(
         googlePay: Bool? = true,
         applePay: Bool? = true,
@@ -47,7 +47,7 @@ public struct CheckoutFiatPayment: Codable {
     public let enabled: Bool
     public let defaultCurrency: String?
     public let allowedMethods: CheckoutAllowedMethods?
-    
+
     public init(
         enabled: Bool,
         defaultCurrency: String? = nil,
@@ -66,12 +66,12 @@ public struct CheckoutPayment: Codable {
         case crypto
         case fiat
     }
-    
+
     public let crypto: CheckoutCryptoPayment
     public let fiat: CheckoutFiatPayment
     public let receiptEmail: String?
     public let defaultMethod: Method?
-    
+
     public init(
         crypto: CheckoutCryptoPayment,
         fiat: CheckoutFiatPayment,
@@ -84,4 +84,3 @@ public struct CheckoutPayment: Codable {
         self.defaultMethod = defaultMethod
     }
 }
-

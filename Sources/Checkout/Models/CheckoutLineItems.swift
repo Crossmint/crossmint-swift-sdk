@@ -13,7 +13,7 @@ public struct CheckoutLineItems: Codable {
     public let collectionLocator: String?
     public let executionParameters: [String: AnyCodable]?
     public let callData: [String: AnyCodable]?
-    
+
     public init(
         tokenLocator: String? = nil,
         collectionLocator: String? = nil,
@@ -26,4 +26,3 @@ public struct CheckoutLineItems: Codable {
         self.callData = callData
     }
 }
-

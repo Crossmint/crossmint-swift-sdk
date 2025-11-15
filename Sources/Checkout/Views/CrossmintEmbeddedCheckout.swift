@@ -16,7 +16,7 @@ public struct CrossmintEmbeddedCheckout: View {
     private let apiKey: String?
     private let appearance: CheckoutAppearance?
     private let environment: CheckoutEnvironment
-    
+
     public init(
         orderId: String? = nil,
         clientSecret: String? = nil,
@@ -36,7 +36,7 @@ public struct CrossmintEmbeddedCheckout: View {
         self.appearance = appearance
         self.environment = environment
     }
-    
+
     public var body: some View {
         switch checkoutUrlResult {
         case .success(let url):
@@ -52,56 +52,56 @@ public struct CrossmintEmbeddedCheckout: View {
             }
         }
     }
-    
+
     private var checkoutUrlResult: Result<String, Error> {
         Result { try generateCheckoutUrl() }
     }
-    
+
     private func generateCheckoutUrl() throws -> String {
         // TODO: Implement lineItems and recipient
         if lineItems != nil {
             throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing lineItems is not yet implemented")
         }
-        
+
         if recipient != nil {
             throw CheckoutError.notImplemented("Crossmint Checkout SDK: passing recipient is not yet implemented")
         }
-        
+
         let domain = environment == .production ? "www" : "staging"
         let baseUrl = "https://\(domain).crossmint.com/sdk/2024-03-05/embedded-checkout"
-        
+
         guard var components = URLComponents(string: baseUrl) else {
             throw CheckoutError.invalidConfiguration("Invalid base URL")
         }
-        
+
         var queryItems: [URLQueryItem] = []
-        
+
         // TODO: Fetch SDK version dynamically
         let sdkMetadata = ["name": "@crossmint/client-sdk-swift", "version": "1.0.0"]
         queryItems.append(URLQueryItem(name: "sdkMetadata", value: try sdkMetadata.toJSON()))
-        
+
         if let orderId = orderId {
             queryItems.append(URLQueryItem(name: "orderId", value: orderId))
         }
-        
+
         if let clientSecret = clientSecret {
             queryItems.append(URLQueryItem(name: "clientSecret", value: clientSecret))
         }
-        
+
         if let payment = payment {
             queryItems.append(URLQueryItem(name: "payment", value: try payment.toJSON()))
         }
-        
+
         if let appearance = appearance {
             queryItems.append(URLQueryItem(name: "appearance", value: try appearance.toJSON()))
         }
-        
+
         components.queryItems = queryItems
-        
+
         guard let url = components.url?.absoluteString else {
             throw CheckoutError.invalidConfiguration("Failed to construct URL")
         }
-        
+
         return url
     }
 }
@@ -124,4 +124,3 @@ extension Encodable {
         return json
     }
 }
-
