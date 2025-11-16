@@ -159,6 +159,7 @@ public class WebViewMessageHandler {
             if let continuation = messageListeners[id] {
                 messageListeners.removeValue(forKey: id)
                 messagePredicates.removeValue(forKey: id)
+                Logger.web.error("Timed out waiting for message \(type)")
                 continuation.resume(throwing: WebViewError.timeout)
             }
         }

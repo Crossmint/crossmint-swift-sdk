@@ -35,6 +35,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     public weak var webView: WKWebView?
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
     public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
+    
     private var loadedContent: CrossmintWebViewContent?
     private var isPageLoaded = false
     private let messageHandler = WebViewMessageHandler()
@@ -49,6 +50,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
     public func loadURL(_ url: URL) async throws {
         guard let webView = webView else {
+            
             throw WebViewError.webViewNotAvailable
         }
 
@@ -94,6 +96,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     @discardableResult
     public func sendMessage<T: WebViewMessage>(_ message: T) async throws(WebViewError) -> Any? {
         guard let webView = webView else {
+            Logger.web.error("Error sending message to frame: webView unavailable")
             throw WebViewError.webViewNotAvailable
         }
 
@@ -101,17 +104,20 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         do {
             messageData = try JSONEncoder().encode(message)
         } catch {
+            Logger.web.error("Error sending message to frame: failed to encode message \(error)")
             throw WebViewError.encodingError
         }
 
         // If page is not loaded yet, queue the message
         if messageHandler.queueMessage(messageData) {
+            Logger.web.info("Frame not yet loaded, enqueuing message")
             return nil
         }
 
         do {
             return try await executeJavaScript(messageData, in: webView)
         } catch {
+            Logger.web.error("Error sending message: javascript execution failed \(error)")
             throw .javascriptEvaluationError
         }
     }
@@ -149,7 +155,10 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     }
 
     private func processPendingMessages() {
-        guard let webView = webView else { return }
+        guard let webView = webView else {
+            Logger.web.warn("Could not process pending messages: webview not available")
+            return
+        }
 
         Task { @MainActor in
             let messages = messageHandler.getPendingMessages()

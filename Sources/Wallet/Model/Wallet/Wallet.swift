@@ -267,14 +267,14 @@ open class Wallet: @unchecked Sendable {
                 case .cancelled:
                     throw .userCancelled
                 default:
-                    throw .transactionSigningFailed
+                    throw .transactionSigningFailed(error)
                 }
             case .signingFailed,
                     .invalidAddress,
                     .invalidEmail,
                     .invalidSigner,
                     .notStarted:
-                throw .transactionSigningFailed
+                throw .transactionSigningFailed(error)
             }
         }
 

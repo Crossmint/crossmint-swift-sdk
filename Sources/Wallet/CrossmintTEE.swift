@@ -3,6 +3,10 @@ import Combine
 import Logger
 import Web
 
+extension Logger {
+    static let tee = Logger(category: "TEE")
+}
+
 @MainActor
 public final class CrossmintTEE: ObservableObject {
     public private(set) static var shared: CrossmintTEE?
@@ -54,20 +58,21 @@ public final class CrossmintTEE: ObservableObject {
         }
 
         let response = try await self.getStatusResponse(jwt: jwt)
-
         switch response.status {
         case .success:
             guard let signerStatus = response.signerStatus else {
-                throw .generic("Invalid status")
+                Logger.tee.debug("Frame returned successful status response without signer: \(response)")
+                throw .generic("Signer status missing from response")
             }
             switch signerStatus {
             case .newDevice:
-                let onboardingStatus = try await startOnboarding(
+                let onboardingResponse = try await startOnboarding(
                     jwt: jwt,
                     authId: try await getAuthId()
-                ).status
+                )
 
-                guard onboardingStatus == .success else {
+                guard onboardingResponse.status == .success else {
+                    Logger.tee.error("Received onboarding response error: \(onboardingResponse.errorMessage ?? "")")
                     throw .generic("Invalid NCS status")
                 }
 
@@ -83,7 +88,7 @@ public final class CrossmintTEE: ObservableObject {
                         encoding: encoding)
                 ).stringValue
             case .ready:
-                Logger.auth.info("Is ready, and this is the repsonse: \(response)")
+                Logger.tee.info("Is ready, and this is the repsonse: \(response)")
                 return try await sign(
                     .init(
                         jwt: jwt,
@@ -174,6 +179,7 @@ public final class CrossmintTEE: ObservableObject {
 
             return getStatusResponse
         } catch {
+            Logger.tee.error("Failed to get status from frame. Error: \(error)")
             throw .generic("Failed to get status response")
         }
     }
@@ -191,6 +197,7 @@ public final class CrossmintTEE: ObservableObject {
 
             return response
         } catch {
+            Logger.tee.error("Failed to onboard: \(error)")
             throw .generic("Failed to start onboarding")
         }
     }
@@ -200,7 +207,6 @@ public final class CrossmintTEE: ObservableObject {
             try await webProxy.sendMessage(
                 CompleteOnboardingRequest(jwt: jwt, apiKey: apiKey, otp: otpCode)
             )
-
             let response = try await webProxy.waitForMessage(
                 ofType: CompleteOnboardingResponse.self,
                 timeout: 10.0
@@ -208,6 +214,7 @@ public final class CrossmintTEE: ObservableObject {
 
             return response
         } catch {
+            Logger.tee.info("Failed to validate OTP \(error)")
             throw .generic("Failed to complete onboarding")
         }
     }
@@ -228,6 +235,7 @@ public final class CrossmintTEE: ObservableObject {
         } catch CrossmintTEE.Error.userCancelled {
             throw .userCancelled
         } catch {
+            Logger.tee.error("Unknown error waiting for OTP: \(error.localizedDescription)")
             throw .generic("Unknown error happened: \(error.localizedDescription)")
         }
     }
@@ -237,17 +245,18 @@ public final class CrossmintTEE: ObservableObject {
     ) async throws(Error) -> String {
         do {
             _ = try await webProxy.sendMessage(request)
-
             let response = try await webProxy.waitForMessage(
                 ofType: NonCustodialSignResponse.self,
                 timeout: 5.0
             )
 
             guard let bytes = response.signature?.bytes, !bytes.isEmpty else {
+                Logger.tee.error("Error signing: frame returned empty signature")
                 throw Error.invalidSignature
             }
             return bytes
         } catch {
+            Logger.tee.error("Error signing: \(error)")
             if let crossmintError = error as? CrossmintTEE.Error {
                 throw crossmintError
             }

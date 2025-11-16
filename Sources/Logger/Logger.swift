@@ -2,7 +2,7 @@
 import Utils
 
 public struct Logger: Sendable {
-    public nonisolated(unsafe) static var level: OSLogType = .debug
+    public nonisolated(unsafe) static var level: OSLogType = .fault
     
     private let osLogger: OSLog
     private let subsystem: String
@@ -26,6 +26,7 @@ public struct Logger: Sendable {
             print("❌ [\(subsystem)] \(message)")
         }
         
+        guard Logger.level != .fault else { return }
         os_log(.error, log: osLogger, "%{public}@", message)
     }
 
@@ -34,15 +35,16 @@ public struct Logger: Sendable {
             print("ℹ️ [\(subsystem)] \(message)")
         }
 
-        guard [.info, .debug].contains(Logger.level) else { return }
+        guard [.debug, .info].contains(Logger.level) else { return }
         os_log(.info, log: osLogger, "%{public}@", message)
     }
 
     public func warn(_ message: String) {
-        os_log(.default, log: osLogger, "%{public}@", message)
-
         if isRunningInPlayground() {
             print("⚠️ [\(subsystem)] \(message)")
         }
+
+        guard [.debug, .info, .default].contains(Logger.level) else { return }
+        os_log(.default, log: osLogger, "%{public}@", message)
     }
 }
