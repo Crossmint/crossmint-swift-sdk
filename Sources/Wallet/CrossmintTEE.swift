@@ -53,7 +53,7 @@ public final class CrossmintTEE: ObservableObject {
         guard isHandshakeCompleted else { throw Error.handshakeRequired }
 
         guard let jwt = await auth.jwt else {
-            Logger.auth.warn("JWT is missing")
+            Logger.tee.warn("JWT is missing")
             throw .jwtRequired
         }
 
@@ -119,20 +119,35 @@ public final class CrossmintTEE: ObservableObject {
             throw .urlNotAvailable
         }
 
+        isHandshakeCompleted = false
+
         try await tryHandshake(maxAttempts: 3)
     }
 
     private func tryHandshake(maxAttempts: Int) async throws(Error) {
-        for _ in 0..<maxAttempts {
+        var delay: TimeInterval = 1.0
+        let maxDelay: TimeInterval = 10.0
+        let backoffFactor: TimeInterval = 2.0
+
+        for attempt in 0..<maxAttempts {
             do {
-                try await performHandshake(timeout: 2.0)
+                Logger.tee.info("🤝 Handshake attempt \(attempt + 1)/\(maxAttempts) (timeout: \(delay)s)")
+                try await performHandshake(timeout: delay)
+                Logger.tee.info("✅ Handshake successful")
                 return
             } catch CrossmintTEE.Error.timeout {
-                continue
+                Logger.tee.warn("⏱️ Handshake attempt \(attempt + 1) timed out after \(delay)s")
+                if attempt < maxAttempts - 1 {
+                    delay = min(delay * backoffFactor, maxDelay)
+                    Logger.tee.info("⏳ Retrying in \(delay)s...")
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
             } catch {
+                Logger.tee.error("❌ Handshake failed with error: \(error)")
                 throw error
             }
         }
+        Logger.tee.error("❌ Handshake failed after \(maxAttempts) attempts")
         throw Error.handshakeFailed
     }
 
@@ -170,17 +185,20 @@ public final class CrossmintTEE: ObservableObject {
 
     private func getStatusResponse(jwt: String) async throws(Error) -> GetStatusResponse {
         do {
+            Logger.tee.info("📤 Sending get-status request to frame")
             try await webProxy.sendMessage(GetStatusRequest(jwt: jwt, apiKey: apiKey))
 
+            Logger.tee.info("⏳ Waiting for get-status response (timeout: 10s)")
             let getStatusResponse = try await webProxy.waitForMessage(
                 ofType: GetStatusResponse.self,
                 timeout: 10.0
             )
 
+            Logger.tee.info("✅ Received get-status response: \(getStatusResponse.signerStatus?.rawValue ?? "unknown")")
             return getStatusResponse
         } catch {
-            Logger.tee.error("Failed to get status from frame. Error: \(error)")
-            throw .generic("Failed to get status response")
+            Logger.tee.error("❌ Failed to get status response: \(error)")
+            throw .generic("Failed to get status response: \(error)")
         }
     }
 

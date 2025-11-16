@@ -238,6 +238,17 @@ extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
         navigationContinuation?.resume(throwing: WebViewError.navigationFailed(error))
         navigationContinuation = nil
     }
+
+    public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        Logger.web.error("⚠️ WebView process was terminated by iOS (likely memory pressure)")
+        isPageLoaded = false
+        Task { @MainActor in
+            messageHandler.reset()
+        }
+
+        navigationContinuation?.resume(throwing: WebViewError.webViewProcessTerminated)
+        navigationContinuation = nil
+    }
 }
 
 extension DefaultWebViewCommunicationProxy: WebViewMessageHandlerDelegate {
