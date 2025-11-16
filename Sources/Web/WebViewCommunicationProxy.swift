@@ -1,6 +1,6 @@
+import Foundation
 import Logger
 import WebKit
-import Foundation
 
 @MainActor
 public protocol WebViewCommunicationProxy: AnyObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -40,12 +40,12 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     private var isPageLoaded = false
     private let messageHandler = WebViewMessageHandler()
     private var navigationContinuation: CheckedContinuation<Void, Error>?
-    
+
     private var lastURL: URL?
     private var autoRestoreAttempts = 0
     private let maxAutoRestoreAttempts = 3
     private var lastRestoreAttemptTime: Date?
-    private let restoreCircuitBreakerWindow: TimeInterval = 60.0 // 60 seconds
+    private let restoreCircuitBreakerWindow: TimeInterval = 60.0
 
     public override init() {
         super.init()
