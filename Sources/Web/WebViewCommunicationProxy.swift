@@ -40,6 +40,12 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     private var isPageLoaded = false
     private let messageHandler = WebViewMessageHandler()
     private var navigationContinuation: CheckedContinuation<Void, Error>?
+    
+    private var lastURL: URL?
+    private var autoRestoreAttempts = 0
+    private let maxAutoRestoreAttempts = 3
+    private var lastRestoreAttemptTime: Date?
+    private let restoreCircuitBreakerWindow: TimeInterval = 60.0 // 60 seconds
 
     public override init() {
         super.init()
@@ -59,7 +65,8 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
             return
         }
 
-        // Cancel any existing navigation continuation
+        lastURL = url
+
         navigationContinuation?.resume(throwing: CancellationError())
         navigationContinuation = nil
 
@@ -201,12 +208,13 @@ extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Logger.web.info("Webview finished loading")
         isPageLoaded = true
+        autoRestoreAttempts = 0
+        lastRestoreAttemptTime = nil
         Task { @MainActor in
             messageHandler.setReady(true)
         }
         processPendingMessages()
 
-        // Resume any waiting navigation continuation
         navigationContinuation?.resume()
         navigationContinuation = nil
     }
@@ -248,6 +256,45 @@ extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
 
         navigationContinuation?.resume(throwing: WebViewError.webViewProcessTerminated)
         navigationContinuation = nil
+
+        attemptAutoRestore(webView)
+    }
+
+    private func attemptAutoRestore(_ webView: WKWebView) {
+        guard let lastURL = lastURL else {
+            Logger.web.warn("⚠️ Cannot auto-restore: no URL to restore")
+            return
+        }
+
+        let now = Date()
+        if let lastAttempt = lastRestoreAttemptTime,
+           now.timeIntervalSince(lastAttempt) < restoreCircuitBreakerWindow {
+            if autoRestoreAttempts >= maxAutoRestoreAttempts {
+                Logger.web.error("❌ Circuit breaker triggered: \(autoRestoreAttempts) restore attempts within \(restoreCircuitBreakerWindow)s window. Stopping auto-restore.")
+                return
+            }
+        } else {
+            autoRestoreAttempts = 0
+        }
+
+        autoRestoreAttempts += 1
+        lastRestoreAttemptTime = now
+
+        let delay = min(pow(2.0, Double(autoRestoreAttempts - 1)), 4.0)
+        let jitter = Double.random(in: 0...0.5)
+        let totalDelay = delay + jitter
+
+        Logger.web.info("🔄 Attempting auto-restore \(autoRestoreAttempts)/\(maxAutoRestoreAttempts) after \(String(format: "%.1f", totalDelay))s")
+
+        Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: UInt64(totalDelay * 1_000_000_000))
+                Logger.web.info("🔄 Reloading WebView at \(lastURL.absoluteString)")
+                webView.reload()
+            } catch {
+                Logger.web.warn("⚠️ Auto-restore sleep interrupted: \(error)")
+            }
+        }
     }
 }
 
