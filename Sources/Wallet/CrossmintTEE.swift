@@ -140,11 +140,20 @@ public final class CrossmintTEE: ObservableObject {
                 if attempt < maxAttempts - 1 {
                     delay = min(delay * backoffFactor, maxDelay)
                     Logger.tee.info("⏳ Retrying in \(delay)s...")
-                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    do {
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    } catch is CancellationError {
+                        Logger.tee.warn("⚠️ Retry sleep cancelled")
+                        throw .generic("Handshake retry interrupted")
+                    } catch {
+                        Logger.tee.warn("⚠️ Retry sleep failed: \(error)")
+                        throw .generic("Handshake retry failed: \(error)")
+                    }
                 }
             } catch {
-                Logger.tee.error("❌ Handshake failed with error: \(error)")
-                throw error
+                let teeError = (error as? CrossmintTEE.Error) ?? .generic("Handshake failed: \(error)")
+                Logger.tee.error("❌ Handshake failed with error: \(teeError)")
+                throw teeError
             }
         }
         Logger.tee.error("❌ Handshake failed after \(maxAttempts) attempts")
