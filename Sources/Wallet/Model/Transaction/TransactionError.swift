@@ -11,7 +11,7 @@ public enum TransactionError: ServiceError {
     case transactionSigningFailedNoSigner
     case transactionSigningFailedNoMessage
     case transactionSigningFailedInvalidKey
-    case transactionSigningFailed
+    case transactionSigningFailed(Error)
     case transactionGeneric(String)
 
     public var errorMessage: String {
