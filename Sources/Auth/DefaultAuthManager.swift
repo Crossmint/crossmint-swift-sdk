@@ -1,7 +1,7 @@
 import Logger
 import SecureStorage
 
-public actor DefaultAuthManager: AuthManager {
+public actor DefaultAuthManager: OTPAuthManager {
     private let authService: AuthService
     private let secureStorage: SecureStorage
     private var otpAuthenticationStatus: OTPAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
@@ -114,9 +114,12 @@ public actor DefaultAuthManager: AuthManager {
         }
 
         do {
-            try await authService.logout(LogoutRequest(refresh: secret))
+            if !secret.isEmpty {
+                try await authService.logout(LogoutRequest(refresh: secret))
+            }
             secureStorage.clear()
             otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
+            _authenticationStatus = .nonAuthenticated
             return otpAuthenticationStatus
         } catch {
             Logger.auth.error("Error while logging out: \(error.localizedDescription)")
@@ -127,6 +130,16 @@ public actor DefaultAuthManager: AuthManager {
     public func reset() async -> OTPAuthenticationStatus {
         otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
         return otpAuthenticationStatus
+    }
+
+    public func setJWT(_ jwt: String) async {
+        let authStatus = AuthenticationStatus.authenticated(
+            email: "",
+            jwt: jwt,
+            secret: ""
+        )
+        otpAuthenticationStatus = .authenticationStatus(authStatus)
+        _authenticationStatus = authStatus
     }
 
     private func startEmailValidation(email: String) async throws(AuthError) -> OTPAuthenticationStatus {
