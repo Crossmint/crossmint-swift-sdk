@@ -26,7 +26,7 @@ actor MockAuthManager: AuthManager {
         }
     }
 
-    func setJWT(_ jwt: String?) {
+    func setJWT(_ jwt: String) async {
         _jwt = jwt
     }
 
