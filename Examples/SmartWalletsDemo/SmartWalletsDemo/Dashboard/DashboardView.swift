@@ -20,9 +20,11 @@ struct DashboardView: View {
     @State private var isShaking: Bool = false
     private let hapticFeedback = UINotificationFeedbackGenerator()
 
-    private var authManager: AuthManager {
-        sdk.authManager
-    }
+    // Use this instead of the email signer to enable Passkeys signing.
+    private let passkeySigner: EVMSigners = .passkey(
+        name: "<email to send the otp code>",
+        host: "wallets-ios.demos-crossmint.com"
+    )
 
     enum Tab {
         case balance, transfer, nft
@@ -233,23 +235,10 @@ struct DashboardView: View {
     }
 
     private func obtainOrCreateWallet(_ updateLoadingStatus: Bool = false) async {
-        guard let email = await authManager.email else {
-            await MainActor.run {
-                if updateLoadingStatus {
-                    creatingWallet = false
-                }
-                showAlert(with: "There was a problem creating the wallet.\nLogout and try again.")
-            }
-            return
-        }
-
         do {
             let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
                 chain: .baseSepolia,
-                signer: .passkey(
-                    name: email,
-                    host: "wallets-ios.demos-crossmint.com"
-                )
+                signer: .email
             )
 
             await MainActor.run {

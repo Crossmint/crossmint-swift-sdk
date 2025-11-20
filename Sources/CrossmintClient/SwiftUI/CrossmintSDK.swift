@@ -34,7 +34,7 @@ final public class CrossmintSDK: ObservableObject {
     public let authManager: AuthManager
     public let crossmintService: CrossmintService
 
-    let crossmintTEE: CrossmintTEE
+    public let crossmintTEE: CrossmintTEE
 
     public var isProductionEnvironment: Bool {
         crossmintService.isProductionEnvironment

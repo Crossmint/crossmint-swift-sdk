@@ -19,6 +19,8 @@ struct TransferDashboardView: View {
     @State private var showTokenSelectionMenu: Bool = false
     @State private var isSendingTransaction: Bool = false
 
+    @State private var nonCustodialSignerCallback: NonCustodialSignerCallback?
+
     private let evmBlockchain: EVMChain = .baseSepolia
 
     var body: some View {
@@ -110,6 +112,17 @@ struct TransferDashboardView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(UIColor.systemBackground))
+        .crossmintNonCustodialSigners(sdk, presentingCallback: $nonCustodialSignerCallback)
+        .sheet(item: $nonCustodialSignerCallback) { callback in
+            OTPValidatorView(nonCustodialSignerCallback: callback)
+        }
+        /*
+         These two lines above could be replaced with if the sheet is good enough to render the OTP view:
+         
+        .crossmintNonCustodialSignersSheet(sdk, otpView: { callback in
+            OTPValidatorView(nonCustodialSignerCallback: callback)
+        })
+         */
         .onChange(of: balances) { _, newValue in
             if let newValue {
                 // Collect all available tokens with balance
