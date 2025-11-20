@@ -2,7 +2,6 @@ import SwiftUI
 import CrossmintClient
 import Wallet
 
-// swiftlint:disable:next type_body_length
 struct DashboardView: View {
     @EnvironmentObject var sdk: CrossmintSDK
 
