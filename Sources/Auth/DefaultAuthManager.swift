@@ -133,6 +133,7 @@ public actor DefaultAuthManager: AuthManager {
     }
 
     public func setJWT(_ jwt: String) async {
+        jwtRefreshTimer?.invalidate()
         let authStatus = AuthenticationStatus.authenticated(
             email: "",
             jwt: jwt,
