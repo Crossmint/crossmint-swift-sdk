@@ -78,10 +78,3 @@ struct OTPValidatorView: NonCustodialSignerCallbackView {
         showAlert = true
     }
 }
-
-#Preview {
-    OTPValidatorView(
-        nonCustodialSignerCallback: NonCustodialSignerCallback.noOp
-    )
-    .environmentObject(CrossmintSDK.shared)
-}

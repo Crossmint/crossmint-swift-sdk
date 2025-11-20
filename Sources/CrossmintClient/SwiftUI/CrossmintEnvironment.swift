@@ -11,13 +11,10 @@ extension View {
     public func crossmintEnvironmentObject(
         _ sdk: CrossmintSDK
     ) -> some View {
-        ZStack {
-            self.environmentObject(sdk)
-        }.onAppear {
-            Logger.sdk.info("Initializing the environment without non-custodial signers setup. This might cause trouble if a signer of that type is required later on.")
-        }
+        self.environmentObject(sdk)
     }
 
+    @available(*, deprecated, message: "Use the view modifier on the view that will be requiring non-custodial signing operations.")
     public func crossmintEnvironmentObject<NCSView: NonCustodialSignerCallbackView>(
         _ sdk: CrossmintSDK,
         @ViewBuilder ncsViewBuilder: (NonCustodialSignerCallback) -> NCSView

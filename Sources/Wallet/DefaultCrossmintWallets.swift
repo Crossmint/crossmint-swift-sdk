@@ -67,17 +67,6 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             throw .walletGeneric("Unknown wallet chain")
         }
 
-        do {
-            try await (signer as? any EmailSigner)?.load()
-        } catch {
-            Logger.smartWallet.warn(
-                """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
-"""
-            )
-        }
-
         return wallet
     }
 

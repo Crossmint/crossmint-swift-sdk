@@ -1,4 +1,7 @@
-public struct NonCustodialSignerCallback {
+import Foundation
+
+public struct NonCustodialSignerCallback: Identifiable {
+    public let id = UUID()
     public let otpCode: (String) -> Void
     public let otpCancelled: () -> Void
 

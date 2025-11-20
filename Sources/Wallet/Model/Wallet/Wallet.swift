@@ -229,6 +229,11 @@ open class Wallet: @unchecked Sendable {
                 )
             }
         }
+
+        if let email = config.adminSigner as? any EmailSigner {
+            try? await email.load()
+            updatedSigner = email
+        }
         return updatedSigner
     }
 
