@@ -1,5 +1,25 @@
 import SwiftUI
 
+private struct HiddenEmailSignersView: View {
+    private var crossmintTEE: CrossmintTEE
+
+    init(crossmintTEE: CrossmintTEE) {
+        self.crossmintTEE = crossmintTEE
+    }
+
+    var body: some View {
+        EmailSignersView(
+            webViewCommunicationProxy: crossmintTEE.webProxy
+        )
+        .frame(width: 1, height: 1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        .task {
+            try? await crossmintTEE.load()
+        }
+    }
+}
+
 private struct CrossmintNonCustodialSignerViewModifier: ViewModifier {
     @ObservedObject private var crossmintTEE: CrossmintTEE
     @Binding private var presentingCallback: NonCustodialSignerCallback?
@@ -11,15 +31,7 @@ private struct CrossmintNonCustodialSignerViewModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         ZStack {
-            EmailSignersView(
-                webViewCommunicationProxy: crossmintTEE.webProxy
-            )
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .task {
-                try? await crossmintTEE.load()
-            }
-
+            HiddenEmailSignersView(crossmintTEE: crossmintTEE)
             content
         }
         .onChange(of: crossmintTEE.isOTPRequired) { newValue in
@@ -45,17 +57,7 @@ private struct CrossmintNonCustodialSignerSheetModifier<OTPView: NonCustodialSig
 
     func body(content: Content) -> some View {
         ZStack {
-            EmailSignersView(
-                webViewCommunicationProxy: crossmintTEE.webProxy
-            )
-            // Keep the web view "hidden"
-            .frame(width: 1, height: 1)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .task {
-                try? await crossmintTEE.load()
-            }
-
+            HiddenEmailSignersView(crossmintTEE: crossmintTEE)
             content
         }
         .onChange(of: crossmintTEE.isOTPRequired) { newValue in
