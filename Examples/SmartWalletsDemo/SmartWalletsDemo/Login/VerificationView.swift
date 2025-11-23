@@ -156,5 +156,4 @@ struct VerificationView: View {
         email: "example@email.com",
         emailId: "sample-id"
     )
-    .environmentObject(CrossmintSDK.shared)
 }

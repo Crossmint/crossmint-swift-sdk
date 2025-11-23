@@ -148,5 +148,5 @@ struct SplashScreen: View {
 }
 
 #Preview {
-    SplashScreen().environmentObject(CrossmintSDK.shared)
+    SplashScreen()
 }

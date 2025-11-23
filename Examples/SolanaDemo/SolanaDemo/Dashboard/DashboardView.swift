@@ -318,5 +318,4 @@ struct TabButton: View {
 #Preview {
     DashboardView(
         authenticationStatus: .constant(.authenticated(email: "some", jwt: "some", secret: "some")))
-    .environmentObject(CrossmintSDK.shared)
 }

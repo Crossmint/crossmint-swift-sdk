@@ -137,5 +137,4 @@ extension View {
 
 #Preview {
     SignInView(authenticationStatus: .constant(nil))
-        .environmentObject(CrossmintSDK.shared)
 }

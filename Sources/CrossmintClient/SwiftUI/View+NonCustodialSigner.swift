@@ -35,7 +35,7 @@ private struct HiddenEmailSignersView: View {
         EmailSignersView(
             webViewCommunicationProxy: crossmintTEE.webProxy
         )
-        .frame(width: 20, height: 20)
+        .frame(width: 20, height: 20) // 1x1 WebViews may be throttled, so give some margin
         .allowsHitTesting(false)
         .accessibilityHidden(true)
         .task {
