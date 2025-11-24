@@ -85,12 +85,6 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         chain.isValid(isProductionEnvironment: smartWalletService.isProductionEnvironment)
     }
 
-    private func getEffectiveSigner(
-        or signer: any Signer
-    ) async throws(SignerError) -> any Signer {
-        signer
-    }
-
     private func initializeSigner(
         _ effectiveSigner: any Signer
     ) async throws(WalletError) {
@@ -121,18 +115,14 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         walletType: WalletType,
         options: WalletOptions?
     ) async throws(WalletError) -> WalletApiModel {
-        guard let effectiveSigner: any Signer = try? await getEffectiveSigner(or: signer) else {
-            throw .walletGeneric("Invalid signer")
-        }
-
-        try await initializeSigner(effectiveSigner)
+        try await initializeSigner(signer)
 
         options?.experimentalCallbacks.onWalletCreationStart()
         let walletApiModel = try await smartWalletService.createWallet(
             CreateWalletParams(
                 chainType: chainType,
                 type: walletType,
-                config: .init(adminSigner: await effectiveSigner.adminSigner)
+                config: .init(adminSigner: await signer.adminSigner)
             )
         )
 
