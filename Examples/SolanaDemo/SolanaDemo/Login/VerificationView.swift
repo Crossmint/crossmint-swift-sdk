@@ -83,7 +83,10 @@ struct VerificationView: View {
         isVerifying = true
         Task {
             do {
-                let status = try await authManager.otpAuthentication(
+                guard let defaultAuthManager = authManager as? DefaultAuthManager else {
+                    throw AuthManagerError.unknown("DefaultAuthManager required for OTP authentication")
+                }
+                let status = try await defaultAuthManager.otpAuthentication(
                     email: email,
                     code: verificationCode,
                     forceRefresh: false
@@ -115,7 +118,10 @@ struct VerificationView: View {
     private func resendCode() {
         Task {
             do {
-                let status = try await authManager.otpAuthentication(
+                guard let defaultAuthManager = authManager as? DefaultAuthManager else {
+                    throw AuthManagerError.unknown("DefaultAuthManager required for OTP authentication")
+                }
+                let status = try await defaultAuthManager.otpAuthentication(
                     email: email,
                     code: nil,
                     forceRefresh: true
@@ -137,7 +143,9 @@ struct VerificationView: View {
         }
 
         Task {
-            _ = await authManager.reset()
+            if let defaultAuthManager = authManager as? DefaultAuthManager {
+                _ = await defaultAuthManager.reset()
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
                 authenticationStatus = .nonAuthenticated
             }

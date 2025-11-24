@@ -233,7 +233,8 @@ struct DashboardView: View {
     }
 
     private func obtainOrCreateWallet(_ updateLoadingStatus: Bool = false) async {
-        guard let email = await authManager.email else {
+        guard let defaultAuthManager = authManager as? DefaultAuthManager,
+              let email = await defaultAuthManager.email else {
             await MainActor.run {
                 if updateLoadingStatus {
                     creatingWallet = false
@@ -263,11 +264,15 @@ struct DashboardView: View {
                 if updateLoadingStatus {
                     creatingWallet = false
                 }
-                switch error {
-                case .walletCreationCancelled:
-                    break
-                default:
-                    showAlert(with: error.errorMessage)
+                if let walletError = error as? WalletError {
+                    switch walletError {
+                    case .walletCreationCancelled:
+                        break
+                    default:
+                        showAlert(with: walletError.errorMessage)
+                    }
+                } else {
+                    showAlert(with: "Error: \(error)")
                 }
             }
         }

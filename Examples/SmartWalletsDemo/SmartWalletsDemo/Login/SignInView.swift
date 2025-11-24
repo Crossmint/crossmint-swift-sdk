@@ -98,7 +98,10 @@ struct SignInView: View {
         isSigningIn = true
         Task {
             do {
-                let status = try await authManager.otpAuthentication(
+                guard let defaultAuthManager = authManager as? DefaultAuthManager else {
+                    throw AuthManagerError.unknown("DefaultAuthManager required for OTP authentication")
+                }
+                let status = try await defaultAuthManager.otpAuthentication(
                     email: email,
                     code: nil,
                     forceRefresh: false
