@@ -67,12 +67,8 @@ final public class CrossmintSDK: ObservableObject {
         self.init()
     }
 
-    private init(apiKey: String? = nil, authManager: AuthManager? = nil) {
-        if let apiKey {
-            sdk = CrossmintClient.sdk(key: apiKey, authManager: authManager)
-        } else {
-            sdk = NoOpCrossmintClientSDK()
-        }
+    private init(apiKey: String, authManager: AuthManager? = nil) {
+        sdk = CrossmintClient.sdk(key: apiKey, authManager: authManager)
         let authManager = sdk.authManager
         self.crossmintWallets = sdk.crossmintWallets()
         self.authManager = authManager
@@ -80,7 +76,7 @@ final public class CrossmintSDK: ObservableObject {
         self.crossmintTEE = CrossmintTEE.start(
             auth: authManager,
             webProxy: DefaultWebViewCommunicationProxy(),
-            apiKey: apiKey ?? "",
+            apiKey: apiKey,
             isProductionEnvironment: sdk.crossmintService.isProductionEnvironment
         )
     }
