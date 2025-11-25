@@ -3,10 +3,6 @@ import Logger
 import Auth
 
 public actor CrossmintClient {
-    public enum Error: Swift.Error {
-        case invalidApiKey(String)
-    }
-
     private static let lock = NSLock()
     nonisolated(unsafe) private static var shared: ClientSDK?
 
