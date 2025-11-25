@@ -26,25 +26,15 @@ public actor CrossmintClient {
                 apiKey = try ApiKey(key: key)
             } catch {
                 Logger.sdk.error("Invalid API key")
-                let instance = NoOpCrossmintClientSDK()
-                shared = instance
-                return instance
+                fatalError("Invalid Crossmint API key provided: \(key)")
             }
 
             guard apiKey.type == .client else {
                 Logger.sdk.error("API key is not a client key")
-                let instance = NoOpCrossmintClientSDK()
-                shared = instance
-                return instance
+                fatalError("API key must be a client key, not a server key")
             }
 
-            let instance: CrossmintClientSDK
-            if let authManager {
-                instance = CrossmintClientSDK(apiKey: apiKey, authManager: authManager)
-            } else {
-                instance = CrossmintClientSDK(apiKey: apiKey)
-            }
-
+            let instance = CrossmintClientSDK(apiKey: apiKey, authManager: authManager)
             shared = instance
             return instance
         }
