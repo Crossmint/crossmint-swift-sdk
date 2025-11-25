@@ -3,6 +3,10 @@ import CrossmintService
 import SecureStorage
 
 public actor CrossmintAuthManager: AuthManager {
+    enum Errors: Error {
+        case noBundleIdFound
+    }
+
     private let authService: AuthService
     private let secureStorage: SecureStorage
     private var otpAuthenticationStatus: OTPAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
@@ -39,10 +43,13 @@ public actor CrossmintAuthManager: AuthManager {
         self.authService = authService
         self.secureStorage = secureStorage
     }
-    
+
     public init(apiKey apiKeyString: String) throws {
         let apiKey = try ApiKey(key: apiKeyString)
-        let bundleId = Bundle.main.bundleIdentifier!
+        guard let bundleId = Bundle.main.bundleIdentifier else {
+            throw Errors.noBundleIdFound
+        }
+
         let secureStorage = KeychainSecureStorage(bundleId: bundleId)
         let crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId)
         self.init(
