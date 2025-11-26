@@ -6,7 +6,7 @@ public actor CrossmintClient {
     public enum Error: Swift.Error {
         case invalidApiKeyType
     }
-    
+
     private static let lock = NSLock()
     nonisolated(unsafe) private static var shared: ClientSDK?
 
