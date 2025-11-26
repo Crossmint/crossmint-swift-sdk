@@ -62,23 +62,28 @@ final public class CrossmintSDK: ObservableObject {
                 self.init(apiKey: apiKey)
                 return
             }
-            Logger.client.error("Starting non operational SDK because no API key was provided.")
         #endif
-        self.init()
+        Logger.client.error("Crossmint SDK requires an API key")
+        fatalError("Crossmint SDK requires an API key. Please call CrossmintSDK.shared(apiKey:) before accessing CrossmintSDK.shared")
     }
 
     private init(apiKey: String, authManager: AuthManager? = nil) {
-        sdk = CrossmintClient.sdk(key: apiKey, authManager: authManager)
-        let authManager = sdk.authManager
-        self.crossmintWallets = sdk.crossmintWallets()
-        self.authManager = authManager
-        self.crossmintService = sdk.crossmintService
-        self.crossmintTEE = CrossmintTEE.start(
-            auth: authManager,
-            webProxy: DefaultWebViewCommunicationProxy(),
-            apiKey: apiKey,
-            isProductionEnvironment: sdk.crossmintService.isProductionEnvironment
-        )
+        do {
+            sdk = try CrossmintClient.sdk(key: apiKey, authManager: authManager)
+            let authManager = sdk.authManager
+            self.crossmintWallets = sdk.crossmintWallets()
+            self.authManager = authManager
+            self.crossmintService = sdk.crossmintService
+            self.crossmintTEE = CrossmintTEE.start(
+                auth: authManager,
+                webProxy: DefaultWebViewCommunicationProxy(),
+                apiKey: apiKey,
+                isProductionEnvironment: sdk.crossmintService.isProductionEnvironment
+            )
+        } catch {
+            Logger.client.error("Invalid Crossmint API key provided: \(error)")
+            fatalError("Invalid Crossmint API key provided. Please verify your API key is a valid client key.")
+        }
     }
 
     public func logout() async throws {

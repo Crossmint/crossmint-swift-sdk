@@ -3,6 +3,10 @@ import Logger
 import Auth
 
 public actor CrossmintClient {
+    public enum Error: Swift.Error {
+        case invalidApiKeyType
+    }
+    
     private static let lock = NSLock()
     nonisolated(unsafe) private static var shared: ClientSDK?
 
@@ -12,22 +16,17 @@ public actor CrossmintClient {
         self.apiKey = apiKey
     }
 
-    public static func sdk(key: String, authManager: AuthManager? = nil) -> ClientSDK {
+    public static func sdk(key: String, authManager: AuthManager? = nil) throws -> ClientSDK {
         lock.lock()
         defer { lock.unlock() }
 
         guard let shared else {
             let apiKey: ApiKey
-            do {
-                apiKey = try ApiKey(key: key)
-            } catch {
-                Logger.sdk.error("Invalid API key: \(error)")
-                fatalError("Invalid Crossmint API key provided: \(key)")
-            }
+            apiKey = try ApiKey(key: key)
 
             guard apiKey.type == .client else {
                 Logger.sdk.error("API key is not a client key")
-                fatalError("API key must be a client key, not a server key")
+                throw Error.invalidApiKeyType
             }
 
             let instance = CrossmintClientSDK(apiKey: apiKey, authManager: authManager)
