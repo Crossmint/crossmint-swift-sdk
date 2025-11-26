@@ -6,6 +6,7 @@ import Auth
 
 @Suite("CrossmintTEE Tests")
 @MainActor
+// swiftlint:disable:next type_body_length
 struct CrossmintTEETests {
     @MainActor
     struct TestFixture {
