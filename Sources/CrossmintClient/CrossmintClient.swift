@@ -21,7 +21,7 @@ public actor CrossmintClient {
             do {
                 apiKey = try ApiKey(key: key)
             } catch {
-                Logger.sdk.error("Invalid API key")
+                Logger.sdk.error("Invalid API key: \(error)")
                 fatalError("Invalid Crossmint API key provided: \(key)")
             }
 
