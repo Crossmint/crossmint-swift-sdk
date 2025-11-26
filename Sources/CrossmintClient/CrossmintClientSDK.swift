@@ -16,7 +16,7 @@ public final class CrossmintClientSDK: ClientSDK, Sendable {
         self.apiKey = apiKey
 
         guard let bundleId = Bundle.main.bundleIdentifier else {
-            Logger.sdk.error("Bundle identifier is required for Crossmint SDK to function properly")
+            Logger.sdk.error("Failed to initialize CrossmintClientSDK due to Bundle.main.bundleIdentifier being nil")
             fatalError("Bundle identifier is required for Crossmint SDK to function properly")
         }
 
