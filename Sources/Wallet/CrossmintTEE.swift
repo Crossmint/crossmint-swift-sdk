@@ -21,11 +21,30 @@ public final class CrossmintTEE: ObservableObject {
         case urlNotAvailable
         case userCancelled
         case invalidSignature
+        case queueTimeout
     }
+
+    private enum HandshakeState {
+        case idle
+        case inProgress
+        case completed
+        case failed(CrossmintTEE.Error)
+    }
+
+    private struct PendingSignRequest {
+        let id: UUID
+        let transaction: String
+        let keyType: String
+        let encoding: String
+        let callback: (Result<String, CrossmintTEE.Error>) -> Void
+        let timeoutTask: Task<Void, Never>
+    }
+
     public let webProxy: WebViewCommunicationProxy
 
     private let url: URL
-    private var isHandshakeCompleted = false
+    private var handshakeState: HandshakeState = .idle
+    private var signRequestQueue: [PendingSignRequest] = []
     private let auth: AuthManager
     private let apiKey: String
     public var email: String?
@@ -40,8 +59,11 @@ public final class CrossmintTEE: ObservableObject {
         isProductionEnvironment: Bool
     ) {
         self.webProxy = webProxy
-        // swiftlint:disable:next force_unwrapping
-        self.url = isProductionEnvironment ? URL(string: "https://signers.crossmint.com")! : URL(string: "https://staging.signers.crossmint.com")!
+        // swiftlint:disable force_unwrapping
+        self.url = isProductionEnvironment
+            ? URL(string: "https://signers.crossmint.com")!
+            : URL(string: "https://staging.signers.crossmint.com")!
+        // swiftlint:enable force_unwrapping
         self.auth = auth
         self.apiKey = apiKey
     }
@@ -51,14 +73,38 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
-        guard isHandshakeCompleted else { throw Error.handshakeRequired }
+        if case .completed = handshakeState {
+            return try await executeSignTransaction(
+                transaction: transaction,
+                keyType: keyType,
+                encoding: encoding
+            )
+        }
 
+        switch handshakeState {
+        case .idle, .failed:
+            handshakeState = .idle
+            Task {
+                try? await load()
+            }
+        case .inProgress, .completed:
+            break
+        }
+
+        return try await queueSignRequest(transaction: transaction, keyType: keyType, encoding: encoding)
+    }
+
+    private func executeSignTransaction(
+        transaction: String,
+        keyType: String,
+        encoding: String
+    ) async throws(Error) -> String {
         guard let jwt = await auth.jwt else {
             Logger.auth.warn("JWT is missing")
             throw .jwtRequired
         }
 
-        let response = try await self.getStatusResponse(jwt: jwt)
+        let response = try await self.tryGetStatus(jwt: jwt, maxAttempts: 3)
         switch response.status {
         case .success:
             guard let signerStatus = response.signerStatus else {
@@ -105,18 +151,53 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     public func resetState() {
-        isHandshakeCompleted = false
+        handshakeState = .idle
+        failAllQueuedRequests(with: .generic("State was reset"))
         webProxy.resetLoadedContent()
     }
 
     public func load() async throws(Error) {
-        do {
-            try await webProxy.loadURL(url)
-        } catch {
-            throw .urlNotAvailable
+        switch handshakeState {
+        case .inProgress:
+            while case .inProgress = handshakeState {
+                do {
+                    try await Task.sleep(nanoseconds: 100_000_000)
+                } catch {
+                    throw Error.generic("Task was cancelled")
+                }
+            }
+            if case .failed(let error) = handshakeState {
+                throw error
+            }
+            return
+        case .completed:
+            return
+        case .idle, .failed:
+            break
         }
 
-        try await tryHandshake(maxAttempts: 3)
+        handshakeState = .inProgress
+
+        do {
+            do {
+                try await webProxy.loadURL(url)
+            } catch {
+                throw Error.urlNotAvailable
+            }
+
+            try await tryHandshake(maxAttempts: 3)
+            handshakeState = .completed
+            await processNextQueuedRequest()
+        } catch let teeError as CrossmintTEE.Error {
+            handshakeState = .failed(teeError)
+            failAllQueuedRequests(with: teeError)
+            throw teeError
+        } catch {
+            let genericError = Error.generic("Handshake failed: \(error.localizedDescription)")
+            handshakeState = .failed(genericError)
+            failAllQueuedRequests(with: genericError)
+            throw genericError
+        }
     }
 
     private func tryHandshake(maxAttempts: Int) async throws(Error) {
@@ -133,9 +214,24 @@ public final class CrossmintTEE: ObservableObject {
         throw Error.handshakeFailed
     }
 
-    private func performHandshake(timeout: TimeInterval = 5.0) async throws(Error) {
-        guard !isHandshakeCompleted else { return }
+    private func tryGetStatus(jwt: String, maxAttempts: Int) async throws(Error) -> GetStatusResponse {
+        for attempt in 0..<maxAttempts {
+            do {
+                return try await getStatusResponse(jwt: jwt)
+            } catch Error.generic(let message) where message.contains("Failed to get status response") {
+                if attempt < maxAttempts - 1 {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    continue
+                }
+                throw Error.generic(message)
+            } catch {
+                throw error
+            }
+        }
+        throw Error.generic("Failed to get status after \(maxAttempts) attempts")
+    }
 
+    private func performHandshake(timeout: TimeInterval = 5.0) async throws(Error) {
         let randomVerificationId = randomString(length: 10)
 
         do {
@@ -151,8 +247,6 @@ public final class CrossmintTEE: ObservableObject {
             try await webProxy.sendMessage(
                 HandshakeComplete(requestVerificationId: handshakeResponse.data.requestVerificationId)
             )
-
-            isHandshakeCompleted = true
         } catch WebViewError.timeout {
             throw Error.timeout
         } catch {
@@ -288,5 +382,99 @@ public final class CrossmintTEE: ObservableObject {
         )
         CrossmintTEE.shared = instance
         return instance
+    }
+}
+
+extension CrossmintTEE {
+    fileprivate func queueSignRequest(
+        transaction: String,
+        keyType: String,
+        encoding: String
+    ) async throws(Error) -> String {
+        let requestId = UUID()
+
+        do {
+            return try await withTaskCancellationHandler {
+                try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<String, Swift.Error>) in
+                    let timeoutTask = createTimeoutTask(requestId: requestId)
+
+                    let pendingRequest = PendingSignRequest(
+                        id: requestId,
+                        transaction: transaction,
+                        keyType: keyType,
+                        encoding: encoding,
+                        callback: { result in
+                            switch result {
+                            case .success(let value):
+                                continuation.resume(returning: value)
+                            case .failure(let error):
+                                continuation.resume(throwing: error)
+                            }
+                        },
+                        timeoutTask: timeoutTask
+                    )
+                    signRequestQueue.append(pendingRequest)
+                }
+            } onCancel: {
+                Task { @MainActor in
+                    self.resumeSignRequest(id: requestId, with: .failure(.generic("Task was cancelled")))
+                }
+            }
+        } catch let error as CrossmintTEE.Error {
+            throw error
+        } catch {
+            throw .generic("Unexpected error: \(error.localizedDescription)")
+        }
+    }
+
+    fileprivate func createTimeoutTask(requestId: UUID) -> Task<Void, Never> {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            if !Task.isCancelled {
+                resumeSignRequest(id: requestId, with: .failure(.queueTimeout))
+            }
+        }
+    }
+
+    fileprivate func resumeSignRequest(
+        id: UUID,
+        with result: Result<String, CrossmintTEE.Error>
+    ) {
+        guard let index = signRequestQueue.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+
+        let request = signRequestQueue.remove(at: index)
+        request.timeoutTask.cancel()
+        request.callback(result)
+    }
+
+    fileprivate func processNextQueuedRequest() async {
+        guard !signRequestQueue.isEmpty else { return }
+        guard case .completed = handshakeState else { return }
+
+        let request = signRequestQueue.removeFirst()
+        request.timeoutTask.cancel()
+
+        do {
+            let result = try await executeSignTransaction(
+                transaction: request.transaction,
+                keyType: request.keyType,
+                encoding: request.encoding
+            )
+            request.callback(.success(result))
+        } catch {
+            request.callback(.failure(error))
+        }
+
+        await processNextQueuedRequest()
+    }
+
+    fileprivate func failAllQueuedRequests(with error: CrossmintTEE.Error) {
+        while !signRequestQueue.isEmpty {
+            let request = signRequestQueue.removeFirst()
+            request.timeoutTask.cancel()
+            request.callback(.failure(error))
+        }
     }
 }

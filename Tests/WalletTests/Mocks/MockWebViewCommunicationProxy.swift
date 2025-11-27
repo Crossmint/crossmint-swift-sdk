@@ -94,6 +94,12 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
         return sentMessages.compactMap { $0 as? T }
     }
 
+    func clearResponse<T: WebViewMessage>(for messageType: T.Type) {
+        let typeName = String(describing: messageType)
+        waitResponses.removeValue(forKey: typeName)
+        waitDelays.removeValue(forKey: typeName)
+    }
+
     // MARK: - WKScriptMessageHandler
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
