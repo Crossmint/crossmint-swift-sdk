@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
+import Logger
 
 open class Wallet: @unchecked Sendable {
     public var address: String {
@@ -325,14 +326,39 @@ open class Wallet: @unchecked Sendable {
                 // If sleep fails, continue with the loop
             }
 
-            guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
-                .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
-            ).toDomain(withService: smartWalletService) else {
-                throw .transactionGeneric("Unknown error")
-            }
+            do {
+                guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
+                    .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
+                ).toDomain(withService: smartWalletService) else {
+                    throw TransactionError.transactionGeneric("Unknown error")
+                }
 
-            updatedTransaction = fetchedTransaction
+                updatedTransaction = fetchedTransaction
+            } catch {
+                guard let transactionError = error as? TransactionError else {
+                    throw TransactionError.transactionGeneric("Unknown error")
+                }
+                
+                switch transactionError {
+                case .serviceError(let crossmintServiceError):
+                    if case .invalidApiKey = crossmintServiceError {
+                        Logger.smartWallet.warn(
+                            """
+Transaction polling skipped due to insufficient API key permissions.
+Transaction was submitted successfully but status cannot be verified.
+Transaction ID: \(updatedTransaction.id)
+"""
+                        )
+                        return updatedTransaction
+                    } else {
+                        throw transactionError
+                    }
+                default:
+                    throw transactionError
+                }
+            }
         }
+        
         return updatedTransaction
     }
 
