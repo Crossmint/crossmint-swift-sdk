@@ -166,7 +166,28 @@ open class Wallet: @unchecked Sendable {
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
-        return try await pollWithApiKeyErrorHandling(transaction: signedTransaction)
+
+        do {
+            return try await pollTransactionWhilePending(transaction: signedTransaction)
+        } catch {
+            switch error {
+            case .serviceError(let crossmintServiceError):
+                if case .invalidApiKey = crossmintServiceError {
+                    Logger.smartWallet.warn(
+                        """
+Transaction polling skipped due to insufficient API key permissions.
+Transaction was submitted successfully but status cannot be verified.
+Transaction ID: \(createdTransaction?.id ?? "unknown")
+"""
+                    )
+                    return createdTransaction
+                } else {
+                    throw error
+                }
+            default:
+                throw error
+            }
+        }
     }
 
     internal func transferTokenAndPollWhilePending(
@@ -183,14 +204,14 @@ open class Wallet: @unchecked Sendable {
         ).toDomain(withService: smartWalletService)
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
-        return try await pollWithApiKeyErrorHandling(transaction: signedTransaction)
+        return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
     internal func signAndPollWhilePending(
         _ transaction: Transaction?
     ) async throws(TransactionError) -> Transaction? {
         let signedTransaction = try await signTransactionIfRequired(transaction)
-        return try await pollWithApiKeyErrorHandling(transaction: signedTransaction)
+        return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
     internal func getTransferTokenLocator(
@@ -335,36 +356,6 @@ open class Wallet: @unchecked Sendable {
         }
 
         return updatedTransaction
-    }
-
-    private func pollWithApiKeyErrorHandling(
-        transaction: Transaction?
-    ) async throws(TransactionError) -> Transaction? {
-        do {
-            return try await pollTransactionWhilePending(transaction: transaction)
-        } catch {
-            guard let transactionError = error as? TransactionError else {
-                throw TransactionError.transactionGeneric("Unknown error")
-            }
-
-            switch transactionError {
-            case .serviceError(let crossmintServiceError):
-                if case .invalidApiKey = crossmintServiceError {
-                    Logger.smartWallet.warn(
-                        """
-Transaction polling skipped due to insufficient API key permissions.
-Transaction was submitted successfully but status cannot be verified.
-Transaction ID: \(transaction?.id ?? "unknown")
-"""
-                    )
-                    return transaction
-                } else {
-                    throw transactionError
-                }
-            default:
-                throw transactionError
-            }
-        }
     }
 
     private func getNativeToken(_ chain: AnyChain) -> CryptoCurrency {
