@@ -166,9 +166,7 @@ open class Wallet: @unchecked Sendable {
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
-        let completedTransaction = try await pollTransactionWhilePending(transaction: signedTransaction)
-
-        return completedTransaction
+        return try await pollWithApiKeyErrorHandling(transaction: signedTransaction)
     }
 
     internal func transferTokenAndPollWhilePending(
@@ -184,14 +182,15 @@ open class Wallet: @unchecked Sendable {
             amount: amount
         ).toDomain(withService: smartWalletService)
 
-        return try await signAndPollWhilePending(createdTransaction)
+        let signedTransaction = try await signTransactionIfRequired(createdTransaction)
+        return try await pollWithApiKeyErrorHandling(transaction: signedTransaction)
     }
 
     internal func signAndPollWhilePending(
         _ transaction: Transaction?
     ) async throws(TransactionError) -> Transaction? {
         let signedTransaction = try await signTransactionIfRequired(transaction)
-        return try await pollTransactionWhilePending(transaction: signedTransaction)
+        return try await pollWithApiKeyErrorHandling(transaction: signedTransaction)
     }
 
     internal func getTransferTokenLocator(
@@ -326,40 +325,46 @@ open class Wallet: @unchecked Sendable {
                 // If sleep fails, continue with the loop
             }
 
-            do {
-                guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
-                    .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
-                ).toDomain(withService: smartWalletService) else {
-                    throw TransactionError.transactionGeneric("Unknown error")
-                }
-
-                updatedTransaction = fetchedTransaction
-            } catch {
-                guard let transactionError = error as? TransactionError else {
-                    throw TransactionError.transactionGeneric("Unknown error")
-                }
-
-                switch transactionError {
-                case .serviceError(let crossmintServiceError):
-                    if case .invalidApiKey = crossmintServiceError {
-                        Logger.smartWallet.warn(
-                            """
-Transaction polling skipped due to insufficient API key permissions.
-Transaction was submitted successfully but status cannot be verified.
-Transaction ID: \(updatedTransaction.id)
-"""
-                        )
-                        return updatedTransaction
-                    } else {
-                        throw transactionError
-                    }
-                default:
-                    throw transactionError
-                }
+            guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
+                .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
+            ).toDomain(withService: smartWalletService) else {
+                throw TransactionError.transactionGeneric("Unknown error")
             }
+
+            updatedTransaction = fetchedTransaction
         }
 
         return updatedTransaction
+    }
+
+    private func pollWithApiKeyErrorHandling(
+        transaction: Transaction?
+    ) async throws(TransactionError) -> Transaction? {
+        do {
+            return try await pollTransactionWhilePending(transaction: transaction)
+        } catch {
+            guard let transactionError = error as? TransactionError else {
+                throw TransactionError.transactionGeneric("Unknown error")
+            }
+
+            switch transactionError {
+            case .serviceError(let crossmintServiceError):
+                if case .invalidApiKey = crossmintServiceError {
+                    Logger.smartWallet.warn(
+                        """
+Transaction polling skipped due to insufficient API key permissions.
+Transaction was submitted successfully but status cannot be verified.
+Transaction ID: \(transaction?.id ?? "unknown")
+"""
+                    )
+                    return transaction
+                } else {
+                    throw transactionError
+                }
+            default:
+                throw transactionError
+            }
+        }
     }
 
     private func getNativeToken(_ chain: AnyChain) -> CryptoCurrency {
