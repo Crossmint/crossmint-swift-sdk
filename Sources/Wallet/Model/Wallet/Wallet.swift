@@ -338,7 +338,7 @@ open class Wallet: @unchecked Sendable {
                 guard let transactionError = error as? TransactionError else {
                     throw TransactionError.transactionGeneric("Unknown error")
                 }
-                
+
                 switch transactionError {
                 case .serviceError(let crossmintServiceError):
                     if case .invalidApiKey = crossmintServiceError {
@@ -358,7 +358,7 @@ Transaction ID: \(updatedTransaction.id)
                 }
             }
         }
-        
+
         return updatedTransaction
     }
 
