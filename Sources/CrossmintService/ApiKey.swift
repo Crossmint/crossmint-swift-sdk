@@ -1,4 +1,4 @@
-enum Environment: String {
+public enum Environment: String, Sendable {
     case development
     case staging
     case production
@@ -29,7 +29,7 @@ public struct ApiKey: Sendable {
 
     public let key: String
     public let type: `Type`
-    let environment: Environment
+    public let environment: Environment
 
     public init(key: String) throws(ApiKey.Error) {
         guard !ApiKey.isOldAPIKey(key: key) else {
