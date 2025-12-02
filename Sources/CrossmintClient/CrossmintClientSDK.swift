@@ -15,15 +15,14 @@ public final class CrossmintClientSDK: ClientSDK, Sendable {
     init(apiKey: ApiKey, authManager: AuthManager? = nil) {
         self.apiKey = apiKey
 
-        if let bundleId = Bundle.main.bundleIdentifier {
-            secureStorage = KeychainSecureStorage(bundleId: bundleId)
-            secureWalletStorage = KeychainSecureWalletStorage(bundleId: bundleId)
-            crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId)
-        } else {
-            secureStorage = NoOpSecureStorage()
-            secureWalletStorage = NoOpSecureWalletStorage()
-            crossmintService = NoOpCrossmintService()
+        guard let bundleId = Bundle.main.bundleIdentifier else {
+            Logger.sdk.error("Failed to initialize CrossmintClientSDK due to Bundle.main.bundleIdentifier being nil")
+            fatalError("Bundle identifier is required for Crossmint SDK to function properly")
         }
+
+        secureStorage = KeychainSecureStorage(bundleId: bundleId)
+        secureWalletStorage = KeychainSecureWalletStorage(bundleId: bundleId)
+        crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId)
 
         if let authManager {
             self.authManager = authManager
