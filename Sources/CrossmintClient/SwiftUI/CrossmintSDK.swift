@@ -9,6 +9,8 @@ import Utils
 @_exported import Wallet
 import Web
 
+@MainActor var instances = 0
+
 @MainActor
 final public class CrossmintSDK: ObservableObject {
     nonisolated(unsafe) private static var _shared: CrossmintSDK?
@@ -27,6 +29,10 @@ final public class CrossmintSDK: ObservableObject {
         authManager: AuthManager? = nil,
         logLevel: OSLogType = .default
     ) -> CrossmintSDK {
+        if let existing = _shared {
+            return existing
+        }
+        
         Logger.level = logLevel
         let newInstance = CrossmintSDK(apiKey: apiKey, authManager: authManager)
         _shared = newInstance
@@ -68,6 +74,11 @@ final public class CrossmintSDK: ObservableObject {
     }
 
     private init(apiKey: String? = nil, authManager: AuthManager? = nil) {
+        instances += 1
+        if (instances > 1) {
+            Logger.sdk.error("Multiple SDK instances created, behaviour is undefined")
+        }
+        
         if let apiKey {
             sdk = CrossmintClient.sdk(key: apiKey, authManager: authManager)
         } else {
@@ -87,5 +98,11 @@ final public class CrossmintSDK: ObservableObject {
 
     public func logout() async throws {
         crossmintTEE.resetState()
+    }
+    
+    deinit {
+        Task { @MainActor in
+            instances -= 1
+        }
     }
 }

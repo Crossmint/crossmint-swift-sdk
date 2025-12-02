@@ -7,6 +7,8 @@ extension Logger {
     static let tee = Logger(category: "TEE")
 }
 
+@MainActor var instances = 0
+
 @MainActor
 public final class CrossmintTEE: ObservableObject {
     public private(set) static var shared: CrossmintTEE?
@@ -58,6 +60,11 @@ public final class CrossmintTEE: ObservableObject {
         apiKey: String,
         isProductionEnvironment: Bool
     ) {
+        instances += 1
+        if (instances > 1) {
+            Logger.tee.error("Multiple TEE instances created. Behaviour is undefined")
+        }
+        
         self.webProxy = webProxy
         // swiftlint:disable force_unwrapping
         self.url = isProductionEnvironment
@@ -66,6 +73,12 @@ public final class CrossmintTEE: ObservableObject {
         // swiftlint:enable force_unwrapping
         self.auth = auth
         self.apiKey = apiKey
+    }
+    
+    deinit {
+        Task { @MainActor in
+            instances -= 1
+        }
     }
 
     public func signTransaction(
