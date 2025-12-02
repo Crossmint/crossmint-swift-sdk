@@ -274,6 +274,10 @@ struct DashboardView: View {
     }
 
     private func logout() {
+        Task {
+            try? await crossmintAuthManager.logout()
+        }
+
         withAnimation(AnimationConstants.easeInOut()) {
             opacity = 0
         }
