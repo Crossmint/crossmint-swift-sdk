@@ -12,11 +12,14 @@ import DatadogLogs
 final class DataDogLoggerProvider: LoggerProvider {
     private let logger: LoggerProtocol
     private let service: String
-    
-    private var isDataDogInitialized: Bool = false
+
+    private nonisolated(unsafe) static var isDataDogInitialized: Bool = false
 
     init(service: String, clientToken: String, environment: String) {
         self.service = service
+
+        Self.setupDataDogIfNeeded(clientToken: clientToken, environment: environment)
+
         logger = DatadogLogs.Logger.create(
             with: .init(
                 name: service,
@@ -25,10 +28,9 @@ final class DataDogLoggerProvider: LoggerProvider {
                 remoteSampleRate: 100
             )
         )
-        self.setupDataDog(clientToken: clientToken, environment: environment)
     }
 
-    private func setupDataDog(clientToken: String, environment: String) {
+    private static func setupDataDogIfNeeded(clientToken: String, environment: String) {
         guard !isDataDogInitialized else { return }
 
         Datadog.initialize(
