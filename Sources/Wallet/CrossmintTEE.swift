@@ -20,6 +20,7 @@ public final class CrossmintTEE: ObservableObject {
         case authMissing
         case urlNotAvailable
         case userCancelled
+        case newerSignatureRequested
         case invalidSignature
         case queueTimeout
     }
@@ -320,11 +321,14 @@ public final class CrossmintTEE: ObservableObject {
     private func waitForOTP() async throws(Error) -> String {
         do {
             return try await withCheckedThrowingContinuation { continuation in
+                self.otpContinuation?.resume(throwing: Error.newerSignatureRequested)
                 self.otpContinuation = continuation
                 self.isOTPRequired = true
             }
         } catch CrossmintTEE.Error.userCancelled {
             throw .userCancelled
+        } catch Error.newerSignatureRequested {
+            throw .newerSignatureRequested
         } catch {
             Logger.tee.error("Unknown error waiting for OTP: \(error.localizedDescription)")
             throw .generic("Unknown error happened: \(error.localizedDescription)")
