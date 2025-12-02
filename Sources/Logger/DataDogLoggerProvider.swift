@@ -36,7 +36,8 @@ final class DataDogLoggerProvider: LoggerProvider {
         Datadog.initialize(
                 with: Datadog.Configuration(
                     clientToken: clientToken,
-                    env: environment
+                    env: environment,
+                    service: "crossmint-ios-sdk"
                 ),
                 trackingConsent: .granted
             )
