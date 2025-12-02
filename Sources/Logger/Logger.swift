@@ -15,7 +15,11 @@ public struct Logger: Sendable {
         
         providers = [
             OSLoggerProvider(category: category),
-            DataDogLoggerProvider(service: category, clientToken: "token", environment: "staging")
+            DataDogLoggerProvider(
+                service: category,
+                clientToken: DataDogConfig.clientToken,
+                environment: DataDogConfig.environment
+            )
         ]
     }
 
