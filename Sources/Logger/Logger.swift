@@ -2,7 +2,7 @@
 import Utils
 
 public struct Logger: Sendable {
-    
+
     private nonisolated(unsafe) let providers: [LoggerProvider]
     public nonisolated(unsafe) static var level: OSLogType = .fault
 
@@ -12,7 +12,7 @@ public struct Logger: Sendable {
     public init(category: String) {
         self.subsystem = "CrossmintSDK"
         self.osLogger = OSLog(subsystem: subsystem, category: category)
-        
+
         providers = [
             OSLoggerProvider(category: category),
             DataDogLoggerProvider(
