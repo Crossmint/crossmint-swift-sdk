@@ -2,6 +2,8 @@
 import Utils
 
 public struct Logger: Sendable {
+    
+    private nonisolated(unsafe) let providers: [LoggerProvider]
     public nonisolated(unsafe) static var level: OSLogType = .fault
 
     private let osLogger: OSLog
@@ -10,41 +12,38 @@ public struct Logger: Sendable {
     public init(category: String) {
         self.subsystem = "CrossmintSDK"
         self.osLogger = OSLog(subsystem: subsystem, category: category)
+        
+        providers = [
+            OSLoggerProvider(category: category),
+            DataDogLoggerProvider(service: category, clientToken: "token", environment: "staging")
+        ]
     }
 
     public func debug(_ message: String) {
-        if isRunningInPlayground() {
-            print("🔍 [\(subsystem)] \(message)")
-        }
-
         guard Logger.level == .debug else { return }
-        os_log(.debug, log: osLogger, "%{public}@", message)
+        for provider in providers {
+            provider.debug(message, attributes: nil)
+        }
     }
 
     public func error(_ message: String) {
-        if isRunningInPlayground() {
-            print("❌ [\(subsystem)] \(message)")
-        }
-
         guard Logger.level != .fault else { return }
-        os_log(.error, log: osLogger, "%{public}@", message)
+        for provider in providers {
+            provider.error(message, attributes: nil)
+        }
     }
 
     public func info(_ message: String) {
-        if isRunningInPlayground() {
-            print("ℹ️ [\(subsystem)] \(message)")
-        }
-
         guard [.debug, .info].contains(Logger.level) else { return }
-        os_log(.info, log: osLogger, "%{public}@", message)
+        for provider in providers {
+            provider.info(message, attributes: nil)
+        }
     }
 
     public func warn(_ message: String) {
-        if isRunningInPlayground() {
-            print("⚠️ [\(subsystem)] \(message)")
-        }
-
         guard [.debug, .info, .default].contains(Logger.level) else { return }
-        os_log(.default, log: osLogger, "%{public}@", message)
+        for provider in providers {
+            provider.warn(message, attributes: nil)
+        }
     }
 }
