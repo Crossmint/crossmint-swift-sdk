@@ -10,7 +10,7 @@ public class WebViewMessageHandler {
 
     private var messageListeners: [UUID: CheckedContinuation<any WebViewMessage, Error>] = [:]
     private var messagePredicates: [UUID: @Sendable (any WebViewMessage) -> Bool] = [:]
-    private var pendingMessages: [Data] = []
+    private var pendingMessages: [any WebViewMessage] = []
     private var isReady = false
 
     // Message buffer configuration
@@ -121,15 +121,16 @@ public class WebViewMessageHandler {
         }
     }
 
-    public func queueMessage(_ messageData: Data) -> Bool {
+    public func queueMessage<Message: WebViewMessage>(_ messageData: Message) -> Bool {
         if !isReady {
+            Logger.web.debug("Enqueuing message \(Message.messageType)")
             pendingMessages.append(messageData)
             return true
         }
         return false
     }
 
-    public func getPendingMessages() -> [Data] {
+    public func getPendingMessages() -> [any WebViewMessage] {
         let messages = pendingMessages
         pendingMessages.removeAll()
         return messages
