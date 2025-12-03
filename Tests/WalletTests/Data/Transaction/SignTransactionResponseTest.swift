@@ -13,7 +13,7 @@ struct SignTransactionResponseTest {
         )
 
         #expect(response.status == .pending)
-        #expect(response.approvals.pending.isEmpty)
-        #expect(response.approvals.submitted.count == 1)
+        #expect(response.approvals?.pending.isEmpty == true)
+        #expect(response.approvals?.submitted.count == 1)
     }
 }
