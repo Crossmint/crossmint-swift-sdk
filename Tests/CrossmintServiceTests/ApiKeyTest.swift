@@ -39,7 +39,7 @@ struct ApiKeyTest {
 }
 
 private extension ApiKeyEnvironmentPrefix {
-    var expectedEnvironment: Environment {
+    var expectedEnvironment: CrossmintEnvironment {
         return switch self {
         case .development:
                 .development

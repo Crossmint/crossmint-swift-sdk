@@ -29,6 +29,8 @@ public actor CrossmintClient {
                 throw Error.invalidApiKeyType
             }
 
+            DataDogConfig.configure(environment: apiKey.environment.rawValue)
+
             let instance = CrossmintClientSDK(apiKey: apiKey, authManager: authManager)
             shared = instance
             return instance
