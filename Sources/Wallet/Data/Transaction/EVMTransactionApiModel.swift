@@ -100,7 +100,7 @@ public struct EVMTransactionApiModel: TransactionApiModel {
     public let params: Params
     public let walletType: WalletType
     public let createdAt: Date
-    public let approvals: Approvals
+    public let approvals: Approvals?
     public let error: TransactionErrorApiModel?
 
     public func toDomain(withService service: SmartWalletService) -> Transaction? {
@@ -112,7 +112,7 @@ public struct EVMTransactionApiModel: TransactionApiModel {
             params: params.toDomain,
             walletType: walletType,
             createdAt: createdAt,
-            approvals: approvals.toDomain,
+            approvals: approvals?.toDomain,
             error: error?.toDomain
         )
     }
