@@ -10,13 +10,9 @@ import Foundation
 public enum DataDogConfig {
     static let clientToken = "pub946d87ea0c2cc02431c15e9446f776fc"
 
-    private nonisolated(unsafe) static var _environment: String = "production"
-
-    static var environment: String {
-        _environment
-    }
+    private(set) nonisolated(unsafe) static var environment: String = "production"
 
     public static func configure(environment: String) {
-        _environment = environment
+        self.environment = environment
     }
 }
