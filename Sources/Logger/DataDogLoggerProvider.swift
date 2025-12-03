@@ -34,13 +34,13 @@ final class DataDogLoggerProvider: LoggerProvider {
         guard !isDataDogInitialized else { return }
 
         Datadog.initialize(
-                with: Datadog.Configuration(
-                    clientToken: clientToken,
-                    env: environment,
-                    service: "crossmint-ios-sdk"
-                ),
-                trackingConsent: .granted
-            )
+            with: Datadog.Configuration(
+                clientToken: clientToken,
+                env: environment,
+                service: "crossmint-ios-sdk"
+            ),
+            trackingConsent: .granted
+        )
 
         Logs.enable()
 
