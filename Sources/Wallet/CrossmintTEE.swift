@@ -61,10 +61,10 @@ public final class CrossmintTEE: ObservableObject {
         isProductionEnvironment: Bool
     ) {
         teeInstances += 1
-        if (teeInstances > 1) {
+        if teeInstances > 1 {
             Logger.tee.error("Multiple TEE instances created. Behaviour is undefined")
         }
-        
+
         self.webProxy = webProxy
         // swiftlint:disable force_unwrapping
         self.url = isProductionEnvironment
@@ -74,7 +74,7 @@ public final class CrossmintTEE: ObservableObject {
         self.auth = auth
         self.apiKey = apiKey
     }
-    
+
     deinit {
         Task { @MainActor in
             teeInstances -= 1

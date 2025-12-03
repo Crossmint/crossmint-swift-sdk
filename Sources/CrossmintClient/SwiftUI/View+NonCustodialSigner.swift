@@ -11,12 +11,12 @@ final class InstanceTracker: ObservableObject, Sendable {
         self.instance = name
         Task { @MainActor in
             instanceTrackers[instance, default: []].append(self)
-            if (instanceTrackers[instance, default: []].count > 1) {
+            if instanceTrackers[instance, default: []].count > 1 {
                 Logger.sdk.error("More than one instance of \(instance) created at a time. Behaviour is undefined.")
             }
         }
     }
-    
+
     deinit {
         Task { @MainActor [instance] in
             instanceTrackers[instance]?.popLast()
