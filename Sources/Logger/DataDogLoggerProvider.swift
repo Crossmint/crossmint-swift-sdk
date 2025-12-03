@@ -11,7 +11,7 @@ import DatadogLogs
 
 final class DataDogLoggerProvider: LoggerProvider {
     private nonisolated(unsafe) static var isDataDogInitialized: Bool = false
-    
+
     private let logger: LoggerProtocol
     private let service: String
 
