@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol LoggerProvider {
+protocol LoggerProvider: Sendable {
     func debug(_ message: String, attributes: [String: Encodable]?)
     func error(_ message: String, attributes: [String: Encodable]?)
     func info(_ message: String, attributes: [String: Encodable]?)

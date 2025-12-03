@@ -8,7 +8,7 @@
 import Foundation
 import OSLog
 
-public class OSLoggerProvider: LoggerProvider {
+public final class OSLoggerProvider: LoggerProvider {
     private let osLogger: OSLog
     private let subsystem: String
 

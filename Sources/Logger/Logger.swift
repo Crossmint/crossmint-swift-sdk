@@ -3,7 +3,7 @@ import Utils
 
 public struct Logger: Sendable {
 
-    private nonisolated(unsafe) let providers: [LoggerProvider]
+    private let providers: [LoggerProvider]
     public nonisolated(unsafe) static var level: OSLogType = .fault
 
     private let osLogger: OSLog
