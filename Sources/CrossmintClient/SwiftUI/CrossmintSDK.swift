@@ -9,7 +9,7 @@ import Utils
 @_exported import Wallet
 import Web
 
-@MainActor var instances = 0
+@MainActor private var sdkInstances = 0
 
 @MainActor
 final public class CrossmintSDK: ObservableObject {
@@ -74,8 +74,8 @@ final public class CrossmintSDK: ObservableObject {
     }
 
     private init(apiKey: String? = nil, authManager: AuthManager? = nil) {
-        instances += 1
-        if (instances > 1) {
+        sdkInstances += 1
+        if (sdkInstances > 1) {
             Logger.sdk.error("Multiple SDK instances created, behaviour is undefined")
         }
         
@@ -102,7 +102,7 @@ final public class CrossmintSDK: ObservableObject {
     
     deinit {
         Task { @MainActor in
-            instances -= 1
+            sdkInstances -= 1
         }
     }
 }

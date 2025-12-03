@@ -7,7 +7,7 @@ extension Logger {
     static let tee = Logger(category: "TEE")
 }
 
-@MainActor var instances = 0
+@MainActor private var teeInstances = 0
 
 @MainActor
 public final class CrossmintTEE: ObservableObject {
@@ -60,8 +60,8 @@ public final class CrossmintTEE: ObservableObject {
         apiKey: String,
         isProductionEnvironment: Bool
     ) {
-        instances += 1
-        if (instances > 1) {
+        teeInstances += 1
+        if (teeInstances > 1) {
             Logger.tee.error("Multiple TEE instances created. Behaviour is undefined")
         }
         
@@ -77,7 +77,7 @@ public final class CrossmintTEE: ObservableObject {
     
     deinit {
         Task { @MainActor in
-            instances -= 1
+            teeInstances -= 1
         }
     }
 
