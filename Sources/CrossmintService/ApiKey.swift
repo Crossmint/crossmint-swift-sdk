@@ -1,4 +1,4 @@
-enum Environment: String {
+public enum CrossmintEnvironment: String, Sendable {
     case development
     case staging
     case production
@@ -29,7 +29,7 @@ public struct ApiKey: Sendable {
 
     public let key: String
     public let type: `Type`
-    let environment: Environment
+    public let environment: CrossmintEnvironment
 
     public init(key: String) throws(ApiKey.Error) {
         guard !ApiKey.isOldAPIKey(key: key) else {
@@ -47,7 +47,7 @@ public struct ApiKey: Sendable {
         type = origin == .client ? .client : .server
 
         guard let environmentPrefix = ApiKey.getEnvironment(forKey: key),
-              let environment = Environment(rawValue: environmentPrefix.rawValue) else {
+              let environment = CrossmintEnvironment(rawValue: environmentPrefix.rawValue) else {
             throw ApiKey.Error.invalidEnviromentKey
         }
 

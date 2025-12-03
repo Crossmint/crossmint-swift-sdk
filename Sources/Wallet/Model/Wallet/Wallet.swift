@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
+import Logger
 
 open class Wallet: @unchecked Sendable {
     public var address: String {
@@ -165,9 +166,28 @@ open class Wallet: @unchecked Sendable {
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
-        let completedTransaction = try await pollTransactionWhilePending(transaction: signedTransaction)
 
-        return completedTransaction
+        do {
+            return try await pollTransactionWhilePending(transaction: signedTransaction)
+        } catch {
+            switch error {
+            case .serviceError(let crossmintServiceError):
+                if case .invalidApiKey = crossmintServiceError {
+                    Logger.smartWallet.warn(
+                        """
+Transaction polling skipped due to insufficient API key permissions.
+Transaction was submitted successfully but status cannot be verified.
+Transaction ID: \(createdTransaction?.id ?? "unknown")
+"""
+                    )
+                    return createdTransaction
+                } else {
+                    throw error
+                }
+            default:
+                throw error
+            }
+        }
     }
 
     internal func transferTokenAndPollWhilePending(
@@ -183,7 +203,8 @@ open class Wallet: @unchecked Sendable {
             amount: amount
         ).toDomain(withService: smartWalletService)
 
-        return try await signAndPollWhilePending(createdTransaction)
+        let signedTransaction = try await signTransactionIfRequired(createdTransaction)
+        return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
     internal func signAndPollWhilePending(
@@ -328,11 +349,12 @@ open class Wallet: @unchecked Sendable {
             guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
             ).toDomain(withService: smartWalletService) else {
-                throw .transactionGeneric("Unknown error")
+                throw TransactionError.transactionGeneric("Unknown error")
             }
 
             updatedTransaction = fetchedTransaction
         }
+
         return updatedTransaction
     }
 

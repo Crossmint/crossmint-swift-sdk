@@ -4,7 +4,7 @@ import Auth
 
 public actor CrossmintClient {
     public enum Error: Swift.Error {
-        case invalidApiKey(String)
+        case invalidApiKeyType
     }
 
     private static let lock = NSLock()
@@ -16,35 +16,22 @@ public actor CrossmintClient {
         self.apiKey = apiKey
     }
 
-    public static func sdk(key: String, authManager: AuthManager? = nil) -> ClientSDK {
+    public static func sdk(key: String, authManager: AuthManager? = nil) throws -> ClientSDK {
         lock.lock()
         defer { lock.unlock() }
 
         guard let shared else {
             let apiKey: ApiKey
-            do {
-                apiKey = try ApiKey(key: key)
-            } catch {
-                Logger.sdk.error("Invalid API key")
-                let instance = NoOpCrossmintClientSDK()
-                shared = instance
-                return instance
-            }
+            apiKey = try ApiKey(key: key)
 
             guard apiKey.type == .client else {
                 Logger.sdk.error("API key is not a client key")
-                let instance = NoOpCrossmintClientSDK()
-                shared = instance
-                return instance
+                throw Error.invalidApiKeyType
             }
 
-            let instance: CrossmintClientSDK
-            if let authManager {
-                instance = CrossmintClientSDK(apiKey: apiKey, authManager: authManager)
-            } else {
-                instance = CrossmintClientSDK(apiKey: apiKey)
-            }
+            DataDogConfig.configure(environment: apiKey.environment.rawValue)
 
+            let instance = CrossmintClientSDK(apiKey: apiKey, authManager: authManager)
             shared = instance
             return instance
         }
