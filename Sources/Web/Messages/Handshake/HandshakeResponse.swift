@@ -1,7 +1,7 @@
 public struct HandshakeResponse: WebViewMessage {
     public static let messageType = "handshakeResponse"
 
-    public struct Data: Codable, Sendable {
+    public struct Data: Codable, Equatable, Sendable {
         public let requestVerificationId: String
     }
     public let event: String

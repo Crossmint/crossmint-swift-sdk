@@ -1,13 +1,13 @@
 public struct StartOnboardingRequest: WebViewMessage {
     public static let messageType = "request:start-onboarding"
 
-    public struct AuthData: Codable, Sendable {
+    public struct AuthData: Codable, Equatable, Sendable {
         public let jwt: String
         public let apiKey: String
     }
 
-    public struct RequestData: Codable, Sendable {
-        public struct Data: Codable, Sendable {
+    public struct RequestData: Codable, Equatable, Sendable {
+        public struct Data: Codable, Equatable, Sendable {
             public let authId: String
         }
         public let authData: AuthData

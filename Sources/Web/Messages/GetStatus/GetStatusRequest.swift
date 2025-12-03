@@ -1,12 +1,12 @@
 public struct GetStatusRequest: WebViewMessage {
     public static let messageType = "request:get-status"
 
-    public struct AuthData: Codable, Sendable {
+    public struct AuthData: Codable, Equatable, Sendable {
         public let jwt: String
         public let apiKey: String
     }
 
-    public struct RequestData: Codable, Sendable {
+    public struct RequestData: Codable, Equatable, Sendable {
         public let authData: AuthData
     }
 

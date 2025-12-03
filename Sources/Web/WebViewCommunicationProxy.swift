@@ -109,7 +109,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         }
 
         // If page is not loaded yet, queue the message
-        if messageHandler.queueMessage(messageData) {
+        if messageHandler.queueMessage(message) {
             Logger.web.info("Frame not yet loaded, enqueuing message")
             return nil
         }
@@ -162,8 +162,10 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
         Task { @MainActor in
             let messages = messageHandler.getPendingMessages()
-            for messageData in messages {
+            for message in messages {
+                Logger.web.debug("Processing queued message \(type(of: message).messageType)")
                 do {
+                    let messageData = try JSONEncoder().encode(message)
                     _ = try await executeJavaScript(messageData, in: webView)
                 } catch {
                     Logger.web.error("Error processing pending message: \(error)")

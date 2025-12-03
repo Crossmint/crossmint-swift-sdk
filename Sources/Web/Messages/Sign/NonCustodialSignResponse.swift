@@ -1,7 +1,7 @@
 public struct NonCustodialSignResponse: WebViewMessage {
     public static let messageType = "response:sign"
 
-    public struct ResponseData: Codable, Sendable {
+    public struct ResponseData: Codable, Equatable, Sendable {
         public let status: ResponseStatus
         public let signature: PublicKey?
         public let publicKey: PublicKey?
