@@ -207,7 +207,7 @@ struct WebViewMessageHandlerTests {
         let handler = WebViewMessageHandler()
         handler.setReady(false)
 
-        let messageData = Data("test message".utf8)
+        let messageData = GetStatusRequest(jwt: "jwt", apiKey: "apikey")
 
         let queued = handler.queueMessage(messageData)
 
@@ -215,7 +215,7 @@ struct WebViewMessageHandlerTests {
 
         let pendingMessages = handler.getPendingMessages()
         #expect(pendingMessages.count == 1)
-        #expect(pendingMessages.first == messageData)
+        #expect(pendingMessages.first as? GetStatusRequest == messageData)
     }
 
     @Test("Don't queue messages when ready")
@@ -223,7 +223,7 @@ struct WebViewMessageHandlerTests {
         let handler = WebViewMessageHandler()
         handler.setReady(true)
 
-        let messageData = Data("test message".utf8)
+        let messageData = GetStatusRequest(jwt: "jwt", apiKey: "apikey")
 
         let queued = handler.queueMessage(messageData)
 
@@ -238,7 +238,7 @@ struct WebViewMessageHandlerTests {
         let handler = WebViewMessageHandler()
         handler.setReady(false)
 
-        let messageData = Data("test message".utf8)
+        let messageData = GetStatusRequest(jwt: "jwt", apiKey: "apikey")
         _ = handler.queueMessage(messageData)
 
         handler.setReady(false)
@@ -341,7 +341,7 @@ struct WebViewMessageHandlerTests {
         handler.setReady(true)
 
         handler.setReady(false)
-        let messageData = Data("test message".utf8)
+        let messageData = GetStatusRequest(jwt: "jwt", apiKey: "apikey")
         _ = handler.queueMessage(messageData)
 
         let expectation = Task {
