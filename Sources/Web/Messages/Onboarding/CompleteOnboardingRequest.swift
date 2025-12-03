@@ -1,14 +1,14 @@
 public struct CompleteOnboardingRequest: WebViewMessage {
     public static let messageType = "request:complete-onboarding"
 
-    public struct AuthData: Codable, Sendable {
+    public struct AuthData: Codable, Equatable, Sendable {
         public let jwt: String
         public let apiKey: String
     }
 
-    public struct RequestData: Codable, Sendable {
-        public struct Data: Codable, Sendable {
-            public struct OnboardingAuthenticationData: Codable, Sendable {
+    public struct RequestData: Codable, Equatable, Sendable {
+        public struct Data: Codable, Equatable, Sendable {
+            public struct OnboardingAuthenticationData: Codable, Equatable, Sendable {
                 public let encryptedOtp: String
             }
 

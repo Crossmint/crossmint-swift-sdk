@@ -1,7 +1,7 @@
 public struct CompleteOnboardingResponse: WebViewMessage {
     public static let messageType = "response:complete-onboarding"
 
-    public struct ResponseData: Codable, Sendable {
+    public struct ResponseData: Codable, Equatable, Sendable {
         let status: ResponseStatus
         let signerStatus: SignerStatus?
         let publicKeys: PublicKeys?

@@ -3,17 +3,17 @@ import Utils
 public struct GetStatusResponse: WebViewMessage {
     public static let messageType = "response:get-status"
 
-    public enum ResponseData: Codable, Sendable {
+    public enum ResponseData: Codable, Equatable, Sendable {
         case basic(BasicResponseData)
         case withPublicKeys(PublicKeysResponseData)
 
-        public struct BasicResponseData: Codable, Sendable {
+        public struct BasicResponseData: Codable, Equatable, Sendable {
             let status: ResponseStatus
             let signerStatus: SignerStatus?
             let error: String?
         }
 
-        public struct PublicKeysResponseData: Codable, Sendable {
+        public struct PublicKeysResponseData: Codable, Equatable, Sendable {
             let status: ResponseStatus
             let signerStatus: SignerStatus
             let publicKeys: PublicKeys
