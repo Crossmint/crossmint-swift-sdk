@@ -19,7 +19,7 @@ public struct DefaultRequestBuilder: RequestBuilder {
         }
         components.path += endpoint.path
         components.queryItems = endpoint.queryItems
-       
+
         components.percentEncodedQuery = components.percentEncodedQuery?
           .replacingOccurrences(of: "+", with: "%2B")
 
