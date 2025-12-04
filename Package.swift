@@ -162,6 +162,13 @@ let package = Package(
             dependencies: baseDependencies,
             plugins: basePlugins
         ),
+        .target(
+            name: "Cryptography",
+            dependencies: baseDependencies + [
+                .product(name: "secp256k1", package: "swift-secp256k1")
+            ],
+            plugins: basePlugins
+        ),
         //
         // MARK: - Tests
         //
@@ -228,6 +235,14 @@ let package = Package(
             name: "WebTests",
             dependencies: [
                 "Web",
+                "TestsUtils"
+            ],
+            plugins: basePlugins
+        ),
+        .testTarget(
+            name: "CryptographyTests",
+            dependencies: [
+                "Cryptography",
                 "TestsUtils"
             ],
             plugins: basePlugins
