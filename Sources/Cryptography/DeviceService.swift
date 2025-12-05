@@ -36,7 +36,6 @@ public enum DeviceServiceError: Error, Equatable {
 
 public actor DeviceService {
     private static let identityStorageKey = "crossmint-identity-key"
-
     private let userDefaults: UserDefaults
 
     public init(userDefaults: UserDefaults = .standard) {
