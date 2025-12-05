@@ -44,6 +44,12 @@ public struct CrossmintWebView: UIViewRepresentable {
     }
 
     public func makeUIView(context: Context) -> WKWebView {
+        if let existingWebView = webViewCommunicationProxy.webView {
+            webViewCommunicationProxy.onWebViewMessage = onWebViewMessage
+            webViewCommunicationProxy.onUnknownMessage = onUnknownMessage
+            return existingWebView
+        }
+
         let configuration = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
 
@@ -74,5 +80,7 @@ public struct CrossmintWebView: UIViewRepresentable {
     }
 
     public func updateUIView(_ webView: WKWebView, context: Context) {
+        webViewCommunicationProxy.onWebViewMessage = onWebViewMessage
+        webViewCommunicationProxy.onUnknownMessage = onUnknownMessage
     }
 }
