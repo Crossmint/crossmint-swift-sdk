@@ -21,12 +21,20 @@ public enum DstackVerifierError: Error, Equatable {
 }
 
 public struct DstackVerifier: TEEQuoteVerifier, Sendable {
+    private static let defaultPhalaApiURL = URL(
+        string: "https://cloud-api.phala.com/crossmint/attestations/verify"
+    )
+
     private let phalaApiURL: URL
 
-    public init(
-        phalaApiURL: URL = URL(string: "https://cloud-api.phala.com/crossmint/attestations/verify")!
-    ) {
-        self.phalaApiURL = phalaApiURL
+    public init(phalaApiURL: URL? = nil) {
+        if let url = phalaApiURL {
+            self.phalaApiURL = url
+        } else if let defaultURL = Self.defaultPhalaApiURL {
+            self.phalaApiURL = defaultURL
+        } else {
+            fatalError("Invalid default Phala API URL")
+        }
     }
 
     public func verifyTEEReportAndExtractTD(quote: String) async throws -> TEEReportData {

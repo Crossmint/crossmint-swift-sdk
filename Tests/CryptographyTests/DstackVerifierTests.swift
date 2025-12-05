@@ -11,7 +11,7 @@ final class DstackVerifierTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let decoder = JSONDecoder()
         let body = try decoder.decode(PhalaQuoteBody.self, from: data)
 
@@ -32,7 +32,7 @@ final class DstackVerifierTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let decoder = JSONDecoder()
         let response = try decoder.decode(PhalaQuoteResponse.self, from: data)
 
@@ -54,7 +54,7 @@ final class DstackVerifierTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let decoder = JSONDecoder()
         let response = try decoder.decode(PhalaQuoteResponse.self, from: data)
 
@@ -85,8 +85,8 @@ final class DstackVerifierTests: XCTestCase {
         XCTAssertNotNil(verifier)
     }
 
-    func testDstackVerifierCustomURL() {
-        let customURL = URL(string: "https://custom.api.com/verify")!
+    func testDstackVerifierCustomURL() throws {
+        let customURL = try XCTUnwrap(URL(string: "https://custom.api.com/verify"))
         let verifier = DstackVerifier(phalaApiURL: customURL)
         XCTAssertNotNil(verifier)
     }

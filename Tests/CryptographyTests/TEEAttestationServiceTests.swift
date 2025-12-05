@@ -35,7 +35,7 @@ final class TEEAttestationServiceTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let decoder = JSONDecoder()
         let response = try decoder.decode(AttestationResponse.self, from: data)
 
@@ -70,10 +70,11 @@ final class TEEAttestationServiceTests: XCTestCase {
         }
     }
 
-    func testTEEAttestationServiceInitialization() async {
+    func testTEEAttestationServiceInitialization() async throws {
         let verifier = MockTEEQuoteVerifier()
+        let apiURL = try XCTUnwrap(URL(string: "https://example.com"))
         let service = TEEAttestationService(
-            apiBaseURL: URL(string: "https://example.com")!,
+            apiBaseURL: apiURL,
             verifier: verifier
         )
 
