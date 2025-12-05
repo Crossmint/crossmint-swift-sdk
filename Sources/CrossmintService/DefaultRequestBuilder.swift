@@ -14,13 +14,8 @@ public struct DefaultRequestBuilder: RequestBuilder {
         andAppIdentifier appIdentifier: String
     ) throws(RequestBuilderError) -> URLRequest {
         let baseUrl = try getApiBaseURL(forApiKey: key)
-        guard var components = URLComponents(url: baseUrl, resolvingAgainstBaseURL: true) else {
-            throw .invalidURL
-        }
-        components.path += endpoint.path
-        components.queryItems = endpoint.queryItems
-
-        guard let componentsUrl = components.url else {
+        let queryParams = endpoint.queryItems.urlSearchQuery
+        guard let componentsUrl = URL(string: "\(baseUrl)/\(endpoint.path)\(queryParams)") else {
             throw .invalidURL
         }
         var request = URLRequest(url: componentsUrl)
@@ -51,5 +46,35 @@ public struct DefaultRequestBuilder: RequestBuilder {
             "X-API-KEY": key.key,
             "X-APP-IDENTIFIER": appIdentifier
         ].merging((whitelistedDomainHack.map { ["Origin": $0] } ?? [:])) { _, new in new }
+    }
+}
+
+private extension Array where Element == URLQueryItem {
+    // Join items as name=value pairs separated by '&'
+    // For nil values, URLSearchParams serializes as name=
+    var urlSearchQuery: String {
+        guard !isEmpty else {
+            return ""
+        }
+        return "?" + map { item in
+            let name = item.name.formURLEncoded
+            let value = item.value?.formURLEncoded ?? ""
+            return "\(name)=\(value)"
+        }
+        .joined(separator: "&")
+    }
+}
+
+private extension String {
+    // Encode a single name or value using application/x-www-form-urlencoded rules:
+    // - Alphanumerics and -._~ are left as-is
+    // - Space becomes '+'
+    // - '+' (and everything else outside the unreserved set) becomes percent-encoded
+    var formURLEncoded: String {
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+        let encoded = addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        // Convert encoded spaces (%20) to '+', matching URLSearchParams
+        return encoded.replacingOccurrences(of: "%20", with: "+")
     }
 }
