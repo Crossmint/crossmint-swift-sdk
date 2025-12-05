@@ -32,7 +32,8 @@ extension WebViewCommunicationProxy {
 public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScriptMessageHandler, WebViewCommunicationProxy {
     public let name = "crossmintMessageHandler"
 
-    public weak var webView: WKWebView?
+    public var webView: WKWebView?
+
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
     public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
 
@@ -46,6 +47,12 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         Task { @MainActor in
             messageHandler.setDelegate(self)
         }
+    }
+
+    deinit {
+        webView?.navigationDelegate = nil
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: name)
+        webView = nil
     }
 
     public func loadURL(_ url: URL) async throws {
