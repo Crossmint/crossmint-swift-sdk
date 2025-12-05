@@ -1,5 +1,7 @@
+import CrossmintService
 import CryptoKit
 import Foundation
+import Http
 
 public struct AttestationResponse: Codable, Sendable {
     public let publicKey: String
@@ -24,13 +26,54 @@ public struct TEEReportData: Sendable {
     public let rtMr3: String
 }
 
-public enum TEEAttestationError: Error, Equatable {
+public enum TEEAttestationEndpoint {
+    case getAttestation(headers: [String: String] = [:])
+
+    var endpoint: Endpoint {
+        switch self {
+        case .getAttestation(let headers):
+            return Endpoint(
+                path: "/ncs/v1/attestation",
+                method: .get,
+                headers: headers
+            )
+        }
+    }
+}
+
+public enum TEEAttestationError: Error, Equatable, ServiceError {
     case notInitialized
     case attestationFetchFailed(String)
     case verificationFailed(String)
     case invalidPublicKey
     case publicKeyImportFailed
     case attestationExpired
+
+    public static func fromServiceError(_ error: CrossmintServiceError) -> TEEAttestationError {
+        .attestationFetchFailed(error.errorMessage)
+    }
+
+    public static func fromNetworkError(_ error: NetworkError) -> TEEAttestationError {
+        let message = error.serviceErrorMessage ?? error.localizedDescription
+        return .attestationFetchFailed(message)
+    }
+
+    public var errorMessage: String {
+        switch self {
+        case .notInitialized:
+            return "TEE attestation service has not been initialized"
+        case .attestationFetchFailed(let message):
+            return "Failed to fetch TEE attestation: \(message)"
+        case .verificationFailed(let message):
+            return "TEE verification failed: \(message)"
+        case .invalidPublicKey:
+            return "Invalid TEE public key"
+        case .publicKeyImportFailed:
+            return "Failed to import TEE public key"
+        case .attestationExpired:
+            return "TEE attestation has expired"
+        }
+    }
 }
 
 public protocol TEEQuoteVerifier: Sendable {
@@ -38,15 +81,15 @@ public protocol TEEQuoteVerifier: Sendable {
 }
 
 public actor TEEAttestationService {
-    private let apiBaseURL: URL
+    private let service: CrossmintService
     private let verifier: TEEQuoteVerifier
     private var publicKey: P256.KeyAgreement.PublicKey?
 
     private static let teeReportDataPrefix = "app-data:"
     private static let teeReportExpiryMs: Int = 24 * 60 * 60 * 1000
 
-    public init(apiBaseURL: URL, verifier: TEEQuoteVerifier) {
-        self.apiBaseURL = apiBaseURL
+    public init(service: CrossmintService, verifier: TEEQuoteVerifier) {
+        self.service = service
         self.verifier = verifier
     }
 
@@ -72,21 +115,16 @@ public actor TEEAttestationService {
     }
 
     private func fetchAttestation() async throws -> AttestationResponse {
-        let url = apiBaseURL.appendingPathComponent("attestation")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw TEEAttestationError.attestationFetchFailed("HTTP request failed")
+        do {
+            return try await service.executeRequest(
+                TEEAttestationEndpoint.getAttestation().endpoint,
+                errorType: TEEAttestationError.self
+            )
+        } catch let error as TEEAttestationError {
+            throw error
+        } catch {
+            throw TEEAttestationError.attestationFetchFailed(error.localizedDescription)
         }
-
-        let decoder = JSONDecoder()
-        return try decoder.decode(AttestationResponse.self, from: data)
     }
 
     private func verifyTEEPublicKey(

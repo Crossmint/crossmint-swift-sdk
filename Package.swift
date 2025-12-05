@@ -165,7 +165,9 @@ let package = Package(
         .target(
             name: "Cryptography",
             dependencies: baseDependencies + [
-                .product(name: "secp256k1", package: "swift-secp256k1")
+                .product(name: "secp256k1", package: "swift-secp256k1"),
+                "CrossmintService",
+                "Http"
             ],
             plugins: basePlugins
         ),

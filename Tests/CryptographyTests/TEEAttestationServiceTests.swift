@@ -1,7 +1,71 @@
 import CryptoKit
 @testable import Cryptography
+@testable import CrossmintService
 import Foundation
+import Http
 import XCTest
+
+final class MockCrossmintService: CrossmintService, @unchecked Sendable {
+    var responseToReturn: Any?
+    var errorToThrow: Error?
+    var lastEndpoint: Endpoint?
+
+    var isProductionEnvironment: Bool = true
+
+    func executeRequest<T, E>(
+        _ endpoint: Endpoint,
+        errorType: E.Type,
+        _ transform: (NetworkError) -> E?
+    ) async throws(E) -> T where T: Decodable, E: ServiceError {
+        lastEndpoint = endpoint
+        if let error = errorToThrow {
+            if let typedError = error as? E {
+                throw typedError
+            }
+            throw E.fromServiceError(.unknown)
+        }
+        guard let response = responseToReturn as? T else {
+            throw E.fromServiceError(.invalidData("No response configured"))
+        }
+        return response
+    }
+
+    func executeRequest<E>(
+        _ endpoint: Endpoint,
+        errorType: E.Type,
+        _ transform: (NetworkError) -> E?
+    ) async throws(E) where E: ServiceError {
+        lastEndpoint = endpoint
+        if let error = errorToThrow {
+            if let typedError = error as? E {
+                throw typedError
+            }
+            throw E.fromServiceError(.unknown)
+        }
+    }
+
+    func executeRequestForRawData<E>(
+        _ endpoint: Endpoint,
+        errorType: E.Type,
+        _ transform: (NetworkError) -> E?
+    ) async throws(E) -> Data where E: ServiceError {
+        lastEndpoint = endpoint
+        if let error = errorToThrow {
+            if let typedError = error as? E {
+                throw typedError
+            }
+            throw E.fromServiceError(.unknown)
+        }
+        return Data()
+    }
+
+    func getApiBaseURL() throws(CrossmintServiceError) -> URL {
+        guard let url = URL(string: "https://staging.crossmint.com/api") else {
+            throw .invalidURL
+        }
+        return url
+    }
+}
 
 final class MockTEEQuoteVerifier: TEEQuoteVerifier, @unchecked Sendable {
     var shouldSucceed = true
@@ -72,20 +136,39 @@ final class TEEAttestationServiceTests: XCTestCase {
 
     func testTEEAttestationServiceInitialization() async throws {
         let verifier = MockTEEQuoteVerifier()
-        let apiURL = try XCTUnwrap(URL(string: "https://example.com"))
-        let service = TEEAttestationService(
-            apiBaseURL: apiURL,
+        let mockService = MockCrossmintService()
+        let attestationService = TEEAttestationService(
+            service: mockService,
             verifier: verifier
         )
 
         do {
-            _ = try await service.getAttestedPublicKey()
+            _ = try await attestationService.getAttestedPublicKey()
             XCTFail("Expected error for uninitialized service")
         } catch TEEAttestationError.notInitialized {
             // Expected
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
+    }
+
+    func testTEEAttestationEndpointPath() {
+        let endpoint = TEEAttestationEndpoint.getAttestation().endpoint
+        XCTAssertEqual(endpoint.path, "/ncs/v1/attestation")
+        XCTAssertEqual(endpoint.method, .get)
+    }
+
+    func testTEEAttestationErrorMessages() {
+        XCTAssertEqual(
+            TEEAttestationError.notInitialized.errorMessage,
+            "TEE attestation service has not been initialized"
+        )
+        XCTAssertTrue(
+            TEEAttestationError.attestationFetchFailed("test").errorMessage.contains("test")
+        )
+        XCTAssertTrue(
+            TEEAttestationError.verificationFailed("reason").errorMessage.contains("reason")
+        )
     }
 
     func testTEEAttestationErrorEquality() {
