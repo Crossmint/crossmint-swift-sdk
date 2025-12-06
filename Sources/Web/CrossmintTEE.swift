@@ -1,7 +1,6 @@
 import Auth
 import Combine
 import Logger
-import Web
 
 extension Logger {
     static let tee = Logger(category: "TEE")

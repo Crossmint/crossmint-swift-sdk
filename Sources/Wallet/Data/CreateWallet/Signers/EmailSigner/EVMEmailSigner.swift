@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
+import Web
 
 public final class EVMEmailSigner: EmailSigner, Sendable {
     public typealias AdminType = EmailSignerData
