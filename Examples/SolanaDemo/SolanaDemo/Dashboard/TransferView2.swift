@@ -1,12 +1,19 @@
+//
+//  TransferView2.swift
+//  SolanaDemo
+//
+//  Created by Austin Feight on 12/1/25.
+//
+
 import BigInt
 import Combine
 import CrossmintClient
 import SwiftUI
 
-struct TransferDashboardView: View {
+struct TransferView2: View {
     let wallet: Wallet
 
-    private let sdk: CrossmintSDK = CrossmintSDK.shared(apiKey: crossmintApiKey, authManager: FirebaseAuthManager(), logLevel: .debug)
+    private let sdk: CrossmintSDK = .shared
     @EnvironmentObject var alertViewModel: AlertViewModel
 
     @Binding var balances: Balances?
@@ -14,7 +21,7 @@ struct TransferDashboardView: View {
     @State private var selectedToken: CryptoCurrency?
     @State private var amount: String = "0"
     @State private var recipientWallet: String = ""
-    @State private var availableTokens: [CryptoCurrency] = []
+    @State private var availableTokens: [CryptoCurrency] = [.usdc]
     @State private var showTokenSelectionMenu: Bool = false
     @State private var isSendingTransaction: Bool = false
 
@@ -102,15 +109,6 @@ struct TransferDashboardView: View {
                 isLoading: isSendingTransaction,
                 isDisabled: amount.isEmpty || recipientWallet.isEmpty || selectedToken == nil
             )
-            
-            Spacer()
-            
-            NavigationLink {
-                TransferView2(wallet: wallet, balances: $balances)
-                    .environmentObject(alertViewModel)
-            } label: {
-                Text("Next")
-            }
         }
         .padding(.top, 16)
         .padding()
@@ -122,7 +120,7 @@ struct TransferDashboardView: View {
                 selectedToken = availableTokens.first
             }
         })
-        .crossmintNonCustodialSigner(CrossmintSDK.shared(apiKey: crossmintApiKey, authManager: FirebaseAuthManager(), logLevel: .debug))
+//        .crossmintNonCustodialSigner(CrossmintSDK.shared)
     }
 
     private func triggerTransaction() async {

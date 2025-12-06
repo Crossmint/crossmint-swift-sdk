@@ -12,10 +12,7 @@ struct BalanceDashboardView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
 
-    private let tokens: [SolanaSupportedToken] = [.sol]
-    private var tokensAsCryptoCurrency: [CryptoCurrency] {
-        tokens.compactMap(\.asCryptoCurrency)
-    }
+    private let tokens: [CryptoCurrency] = [.usdc]
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -106,7 +103,7 @@ struct BalanceDashboardView: View {
                 if balances.isEmpty {
                     noBalancesView
                 } else {
-                    ForEach(tokensAsCryptoCurrency, id: \.name) { currency in
+                    ForEach(tokens, id: \.name) { currency in
                         if let chainBalance = balances[currency] {
                             WalletBalanceEntryView(currency: currency, balance: chainBalance)
                                 .background(Color.white)
@@ -129,9 +126,7 @@ struct BalanceDashboardView: View {
 
         Task {
             do {
-                let fetchedBalances = try await wallet.balance(
-                    of: tokens.compactMap({ $0.asCryptoCurrency })
-                )
+                let fetchedBalances = try await wallet.balance(of: tokens)
 
                 await MainActor.run {
                     balances = fetchedBalances.nonZeroBalances()
