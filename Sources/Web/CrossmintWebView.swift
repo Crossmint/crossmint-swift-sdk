@@ -3,7 +3,7 @@ import SwiftUI
 import WebKit
 
 public struct CrossmintWebView: UIViewRepresentable {
-    public let content: CrossmintWebViewContent?
+    public let content: URL?
     public let onWebViewMessage: (any WebViewMessage) -> Void
     public let onUnknownMessage: (String, Data) -> Void
     public let webViewCommunicationProxy: any WebViewCommunicationProxy
@@ -27,11 +27,11 @@ public struct CrossmintWebView: UIViewRepresentable {
         onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
         onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }
     ) {
-        self.init(content: .url(url), webViewCommunicationProxy: webViewCommunicationProxy, onWebViewMessage: onWebViewMessage, onUnknownMessage: onUnknownMessage)
+        self.init(content: url, webViewCommunicationProxy: webViewCommunicationProxy, onWebViewMessage: onWebViewMessage, onUnknownMessage: onUnknownMessage)
     }
 
     public init(
-        content: CrossmintWebViewContent? = nil,
+        content: URL? = nil,
         webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil,
         onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
         onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }

@@ -36,7 +36,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
     public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
 
-    private var loadedContent: CrossmintWebViewContent?
+    private var loadedContent: URL?
     private var isPageLoaded = false
     private let messageHandler = WebViewMessageHandler()
     private var navigationContinuation: CheckedContinuation<Void, Error>?
@@ -65,7 +65,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
         try await withCheckedThrowingContinuation { continuation in
             navigationContinuation = continuation
-            loadContent(.url(url), in: webView)
+            loadContent(url, in: webView)
         }
     }
 
@@ -77,7 +77,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         }
     }
 
-    public func loadContent(_ content: CrossmintWebViewContent) {
+    public func loadContent(_ content: URL) {
         guard let webView = webView else { return }
         loadContent(content, in: webView)
     }
@@ -172,28 +172,22 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         }
     }
 
-    private func loadContent(_ content: CrossmintWebViewContent, in webView: WKWebView) {
+    private func loadContent(_ content: URL, in webView: WKWebView) {
         loadedContent = content
         isPageLoaded = false
         Task { @MainActor in
             messageHandler.reset()
         }
 
-        switch content {
-        case .url(let url):
-            webView.load(URLRequest(url: url))
-        }
+        webView.load(URLRequest(url: content))
     }
 
     private func requiresLoading(forUrl url: URL) -> Bool {
         guard let loadedContent else {
             return true
         }
-
-        switch loadedContent {
-        case .url(let loadedUrl):
-            return loadedUrl != url
-        }
+        
+        return loadedContent != url
     }
 }
 
