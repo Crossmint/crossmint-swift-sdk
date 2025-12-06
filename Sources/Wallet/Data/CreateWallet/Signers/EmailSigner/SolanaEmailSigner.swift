@@ -1,4 +1,5 @@
 import CrossmintCommonTypes
+import Web
 
 public final class SolanaEmailSigner: EmailSigner, Sendable {
 

@@ -26,6 +26,7 @@ public struct CrossmintWebView: UIViewRepresentable {
     }
 
     public func makeUIView(context: Context) -> WKWebView {
+        tee.resetState()
         let configuration = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
 
@@ -56,5 +57,6 @@ public struct CrossmintWebView: UIViewRepresentable {
     }
 
     public func updateUIView(_ webView: WKWebView, context: Context) {
+        
     }
 }

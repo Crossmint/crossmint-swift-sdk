@@ -1,3 +1,5 @@
+import Web
+
 @available(*, deprecated, message: "Use EVMSigners or SolanaSigners for type-safe chain compatibility")
 public enum Signers: Sendable {
     case solanaEmailSigner(email: String)
