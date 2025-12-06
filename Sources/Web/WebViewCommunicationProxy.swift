@@ -186,7 +186,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         guard let loadedContent else {
             return true
         }
-        
+
         return loadedContent != url
     }
 }
