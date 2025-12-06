@@ -4,42 +4,30 @@ import WebKit
 
 public struct CrossmintWebView: UIViewRepresentable {
     public let content: CrossmintWebViewContent?
-    public let onWebViewMessage: (any WebViewMessage) -> Void
-    public let onUnknownMessage: (String, Data) -> Void
     public let webViewCommunicationProxy: any WebViewCommunicationProxy
     private let bundleId: String?
 
     public init(
-        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil,
-        onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
-        onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }
+        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil
     ) {
         self.content = nil
         self.webViewCommunicationProxy = webViewCommunicationProxy ?? DefaultWebViewCommunicationProxy()
-        self.onWebViewMessage = onWebViewMessage
-        self.onUnknownMessage = onUnknownMessage
         self.bundleId = Bundle.main.bundleIdentifier
     }
 
     public init(
         url: URL,
-        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil,
-        onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
-        onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }
+        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil
     ) {
-        self.init(content: .url(url), webViewCommunicationProxy: webViewCommunicationProxy, onWebViewMessage: onWebViewMessage, onUnknownMessage: onUnknownMessage)
+        self.init(content: .url(url), webViewCommunicationProxy: webViewCommunicationProxy)
     }
 
     public init(
         content: CrossmintWebViewContent? = nil,
-        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil,
-        onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
-        onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }
+        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil
     ) {
         self.content = content
         self.webViewCommunicationProxy = webViewCommunicationProxy ?? DefaultWebViewCommunicationProxy()
-        self.onWebViewMessage = onWebViewMessage
-        self.onUnknownMessage = onUnknownMessage
         self.bundleId = Bundle.main.bundleIdentifier
     }
 
@@ -66,8 +54,6 @@ public struct CrossmintWebView: UIViewRepresentable {
         }
 #endif
         webViewCommunicationProxy.webView = webView
-        webViewCommunicationProxy.onWebViewMessage = onWebViewMessage
-        webViewCommunicationProxy.onUnknownMessage = onUnknownMessage
         webViewCommunicationProxy.resetLoadedContent()
 
         return webView

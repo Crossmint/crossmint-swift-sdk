@@ -18,15 +18,9 @@ public class WebViewMessageHandler {
     private let bufferTTL: TimeInterval = 30.0 // 30 seconds
     private let maxBufferSize = 100
 
-    private weak var delegate: WebViewMessageHandlerDelegate?
-
     public init() {
         // Register all known message types
         WebViewMessageRegistry.registerDefaultTypes()
-    }
-
-    public func setDelegate(_ delegate: WebViewMessageHandlerDelegate?) {
-        self.delegate = delegate
     }
 
     public func setReady(_ ready: Bool) {
@@ -78,12 +72,8 @@ public class WebViewMessageHandler {
                     }
                 }
             }
-
-            delegate?.handleWebViewMessage(decodedMessage)
         } else {
-            // Log unknown message before delegating
             Logger.web.warn("Unknown message type: \(messageTypeInfo), data: \(String(data: messageData, encoding: .utf8) ?? "nil")")
-            delegate?.handleUnknownMessage(messageTypeInfo, data: messageData)
         }
     }
 

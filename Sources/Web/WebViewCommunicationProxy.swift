@@ -6,8 +6,6 @@ import Foundation
 public protocol WebViewCommunicationProxy: AnyObject, WKNavigationDelegate, WKScriptMessageHandler {
     var name: String { get }
     var webView: WKWebView? { get set }
-    var onWebViewMessage: (any WebViewMessage) -> Void { get set }
-    var onUnknownMessage: (String, Data) -> Void { get set }
 
     func loadURL(_ url: URL) async throws
     func resetLoadedContent()
@@ -33,20 +31,11 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     public let name = "crossmintMessageHandler"
 
     public weak var webView: WKWebView?
-    public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
-    public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
 
     private var loadedContent: CrossmintWebViewContent?
     private var isPageLoaded = false
     private let messageHandler = WebViewMessageHandler()
     private var navigationContinuation: CheckedContinuation<Void, Error>?
-
-    public override init() {
-        super.init()
-        Task { @MainActor in
-            messageHandler.setDelegate(self)
-        }
-    }
 
     public func loadURL(_ url: URL) async throws {
         guard let webView = webView else {
@@ -237,19 +226,5 @@ extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
         // Resume any waiting navigation continuation with error
         navigationContinuation?.resume(throwing: WebViewError.navigationFailed(error))
         navigationContinuation = nil
-    }
-}
-
-extension DefaultWebViewCommunicationProxy: WebViewMessageHandlerDelegate {
-    public nonisolated func handleWebViewMessage<T: WebViewMessage>(_ message: T) {
-        Task { @MainActor in
-            onWebViewMessage(message)
-        }
-    }
-
-    public nonisolated func handleUnknownMessage(_ messageType: String, data: Data) {
-        Task { @MainActor in
-            onUnknownMessage(messageType, data)
-        }
     }
 }
