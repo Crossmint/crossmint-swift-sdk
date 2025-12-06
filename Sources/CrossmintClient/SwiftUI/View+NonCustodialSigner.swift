@@ -2,6 +2,7 @@ import AuthUI
 import Logger
 import SwiftUI
 import Wallet
+import Web
 
 @MainActor var instanceTrackers: [String: Int] = [:]
 
@@ -55,7 +56,7 @@ private struct HiddenEmailSignersView: View {
     }
 
     var body: some View {
-        EmailSignersView(
+        CrossmintWebView(
             webViewCommunicationProxy: crossmintTEE.webProxy
         )
         .frame(width: 20, height: 20) // 1x1 WebViews may be throttled, so give some margin
