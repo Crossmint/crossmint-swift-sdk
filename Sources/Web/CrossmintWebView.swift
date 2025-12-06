@@ -7,7 +7,7 @@ public struct CrossmintWebView: UIViewRepresentable {
     public let onWebViewMessage: (any WebViewMessage) -> Void
     public let onUnknownMessage: (String, Data) -> Void
     public let tee: CrossmintTEE
-    
+
     private let bundleId: String?
     private var webViewCommunicationProxy: WebViewCommunicationProxy {
         return tee.webProxy
@@ -28,7 +28,7 @@ public struct CrossmintWebView: UIViewRepresentable {
     public func makeUIView(context: Context) -> WKWebView {
         tee.resetState()
         Task { @MainActor in try? await tee.load() }
-        
+
         let configuration = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
 
