@@ -1,4 +1,3 @@
-import AuthUI
 import Logger
 import SwiftUI
 import Wallet
