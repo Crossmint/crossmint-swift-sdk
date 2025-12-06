@@ -1,4 +1,4 @@
-import Auth
+import CrossmintAuth
 @_exported import AuthUI
 import Combine
 @_exported import CrossmintCommonTypes

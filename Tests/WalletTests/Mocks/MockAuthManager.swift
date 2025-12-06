@@ -1,5 +1,5 @@
 import Foundation
-import Auth
+import CrossmintAuth
 @testable import Wallet
 
 actor MockAuthManager: AuthManager {
