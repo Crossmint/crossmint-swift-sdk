@@ -1,6 +1,5 @@
 import Foundation
 import Auth
-@testable import Wallet
 
 actor MockAuthManager: AuthManager {
     private var _jwt: String?

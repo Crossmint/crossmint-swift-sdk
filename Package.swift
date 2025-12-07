@@ -148,7 +148,7 @@ let package = Package(
         ),
         .target(
             name: "Web",
-            dependencies: baseDependencies,
+            dependencies: baseDependencies + ["Auth"],
             plugins: basePlugins
         ),
         .target(
@@ -222,7 +222,8 @@ let package = Package(
             name: "WebTests",
             dependencies: [
                 "Web",
-                "TestsUtils"
+                "TestsUtils",
+                "Auth"
             ],
             plugins: basePlugins
         ),

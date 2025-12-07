@@ -55,9 +55,7 @@ private struct HiddenEmailSignersView: View {
     }
 
     var body: some View {
-        CrossmintWebView(
-            webViewCommunicationProxy: crossmintTEE.webProxy
-        )
+        CrossmintWebView(tee: crossmintTEE)
         .frame(width: 20, height: 20) // 1x1 WebViews may be throttled, so give some margin
         .allowsHitTesting(false)
         .accessibilityHidden(true)

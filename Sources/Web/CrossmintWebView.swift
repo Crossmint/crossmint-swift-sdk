@@ -6,44 +6,29 @@ public struct CrossmintWebView: UIViewRepresentable {
     public let content: URL?
     public let onWebViewMessage: (any WebViewMessage) -> Void
     public let onUnknownMessage: (String, Data) -> Void
-    public let webViewCommunicationProxy: any WebViewCommunicationProxy
+    public let tee: CrossmintTEE
+
     private let bundleId: String?
+    private var webViewCommunicationProxy: WebViewCommunicationProxy {
+        return tee.webProxy
+    }
 
     public init(
-        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil,
+        tee: CrossmintTEE,
         onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
         onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }
     ) {
         self.content = nil
-        self.webViewCommunicationProxy = webViewCommunicationProxy ?? DefaultWebViewCommunicationProxy()
-        self.onWebViewMessage = onWebViewMessage
-        self.onUnknownMessage = onUnknownMessage
-        self.bundleId = Bundle.main.bundleIdentifier
-    }
-
-    public init(
-        url: URL,
-        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil,
-        onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
-        onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }
-    ) {
-        self.init(content: url, webViewCommunicationProxy: webViewCommunicationProxy, onWebViewMessage: onWebViewMessage, onUnknownMessage: onUnknownMessage)
-    }
-
-    public init(
-        content: URL? = nil,
-        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil,
-        onWebViewMessage: @escaping (any WebViewMessage) -> Void = { _ in },
-        onUnknownMessage: @escaping (String, Data) -> Void = { _, _ in }
-    ) {
-        self.content = content
-        self.webViewCommunicationProxy = webViewCommunicationProxy ?? DefaultWebViewCommunicationProxy()
+        self.tee = tee
         self.onWebViewMessage = onWebViewMessage
         self.onUnknownMessage = onUnknownMessage
         self.bundleId = Bundle.main.bundleIdentifier
     }
 
     public func makeUIView(context: Context) -> WKWebView {
+        tee.resetState()
+        Task { @MainActor in try? await tee.load() }
+
         let configuration = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
 
