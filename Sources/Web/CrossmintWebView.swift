@@ -3,7 +3,7 @@ import SwiftUI
 import WebKit
 
 public struct CrossmintWebView: UIViewRepresentable {
-    public let content: CrossmintWebViewContent?
+    public let content: URL?
     public let webViewCommunicationProxy: any WebViewCommunicationProxy
     private let bundleId: String?
 
@@ -16,14 +16,7 @@ public struct CrossmintWebView: UIViewRepresentable {
     }
 
     public init(
-        url: URL,
-        webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil
-    ) {
-        self.init(content: .url(url), webViewCommunicationProxy: webViewCommunicationProxy)
-    }
-
-    public init(
-        content: CrossmintWebViewContent? = nil,
+        content: URL? = nil,
         webViewCommunicationProxy: (any WebViewCommunicationProxy)? = nil
     ) {
         self.content = content
