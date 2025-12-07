@@ -1,6 +1,5 @@
 import Foundation
 import Web
-@testable import Wallet
 
 enum CrossmintTEETestHelpers {
 

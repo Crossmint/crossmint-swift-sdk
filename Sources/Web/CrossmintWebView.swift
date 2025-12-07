@@ -3,7 +3,7 @@ import SwiftUI
 import WebKit
 
 public struct CrossmintWebView: UIViewRepresentable {
-    public let content: CrossmintWebViewContent?
+    public let content: URL?
     public let onWebViewMessage: (any WebViewMessage) -> Void
     public let onUnknownMessage: (String, Data) -> Void
     public let tee: CrossmintTEE

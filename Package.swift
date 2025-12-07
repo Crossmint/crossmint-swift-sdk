@@ -50,7 +50,6 @@ let package = Package(
                 "CrossmintService",
                 "Wallet",
                 "Auth",
-                "AuthUI",
                 "CrossmintCommonTypes",
 //                "Payments",
                 "SecureStorage"
@@ -110,12 +109,7 @@ let package = Package(
         ),
         .target(
             name: "Auth",
-            dependencies: baseDependencies + ["CrossmintService", "SecureStorage", "Web"],
-            plugins: basePlugins
-        ),
-        .target(
-            name: "AuthUI",
-            dependencies: baseDependencies + ["Web"],
+            dependencies: baseDependencies + ["CrossmintService", "SecureStorage"],
             plugins: basePlugins
         ),
         .target(
@@ -154,7 +148,7 @@ let package = Package(
         ),
         .target(
             name: "Web",
-            dependencies: baseDependencies,
+            dependencies: baseDependencies + ["Auth"],
             plugins: basePlugins
         ),
         .target(
@@ -228,7 +222,8 @@ let package = Package(
             name: "WebTests",
             dependencies: [
                 "Web",
-                "TestsUtils"
+                "TestsUtils",
+                "Auth"
             ],
             plugins: basePlugins
         ),
