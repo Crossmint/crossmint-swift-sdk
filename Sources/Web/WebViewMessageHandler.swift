@@ -99,6 +99,7 @@ public class WebViewMessageHandler {
 
     private func extractMessageType(from data: Data) -> String? {
         guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+            Logger.web.warn("Failed to deserialize message data as JSON dictionary")
             return nil
         }
 

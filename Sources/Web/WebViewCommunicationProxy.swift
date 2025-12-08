@@ -87,7 +87,10 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     }
 
     public func loadContent(_ content: URL) {
-        guard let webView = webView else { return }
+        guard let webView = webView else {
+            Logger.web.warn("Cannot load content: webView is nil")
+            return
+        }
         loadContent(content, in: webView)
     }
 
@@ -95,7 +98,10 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         _ userContentController: WKUserContentController,
         didReceive message: WKScriptMessage
     ) {
-        guard message.name == name else { return }
+        guard message.name == name else {
+            Logger.web.debug("Received message with unexpected name: \(message.name), expected: \(name)")
+            return
+        }
 
         Task { @MainActor in
             messageHandler.processIncomingMessage(message.body)
@@ -154,6 +160,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     @MainActor
     private func executeJavaScript(_ messageData: Data, in webView: WKWebView) async throws -> Any? {
         guard let jsonString = String(data: messageData, encoding: .utf8) else {
+            Logger.web.error("Failed to encode message data to UTF-8 string")
             throw WebViewError.encodingError
         }
 

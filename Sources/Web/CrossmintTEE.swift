@@ -395,6 +395,7 @@ public final class CrossmintTEE: ObservableObject {
 
     private func getAuthId() throws(Error) -> String {
         guard let email = email else {
+            Logger.tee.error("Email is missing, cannot create authId")
             throw .authMissing
         }
         return "email:\(email)"
@@ -544,6 +545,7 @@ extension CrossmintTEE {
         with result: Result<String, CrossmintTEE.Error>
     ) {
         guard let index = signRequestQueue.firstIndex(where: { $0.id == id }) else {
+            Logger.tee.warn("Attempted to resume sign request \(id) but it was not found in queue")
             return
         }
 
