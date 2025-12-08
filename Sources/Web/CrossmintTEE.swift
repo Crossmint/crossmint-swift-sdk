@@ -1,7 +1,6 @@
 import CrossmintAuth
 import Combine
 import Logger
-import Web
 
 extension Logger {
     static let tee = Logger(category: "TEE")
@@ -279,7 +278,7 @@ public final class CrossmintTEE: ObservableObject {
 
             let getStatusResponse = try await webProxy.waitForMessage(
                 ofType: GetStatusResponse.self,
-                timeout: 10.0
+                timeout: 20.0
             )
 
             return getStatusResponse
@@ -297,7 +296,7 @@ public final class CrossmintTEE: ObservableObject {
 
             let response = try await webProxy.waitForMessage(
                 ofType: StartOnboardingResponse.self,
-                timeout: 10.0
+                timeout: 20.0
             )
 
             return response
@@ -314,7 +313,7 @@ public final class CrossmintTEE: ObservableObject {
             )
             let response = try await webProxy.waitForMessage(
                 ofType: CompleteOnboardingResponse.self,
-                timeout: 10.0
+                timeout: 20.0
             )
 
             return response
@@ -355,7 +354,7 @@ public final class CrossmintTEE: ObservableObject {
             _ = try await webProxy.sendMessage(request)
             let response = try await webProxy.waitForMessage(
                 ofType: NonCustodialSignResponse.self,
-                timeout: 5.0
+                timeout: 10.0
             )
 
             guard let bytes = response.signature?.bytes, !bytes.isEmpty else {

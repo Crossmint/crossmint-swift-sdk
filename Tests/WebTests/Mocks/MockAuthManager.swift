@@ -1,6 +1,5 @@
 import Foundation
 import CrossmintAuth
-@testable import Wallet
 
 actor MockAuthManager: AuthManager {
     private var _jwt: String?

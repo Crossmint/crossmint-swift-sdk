@@ -1,3 +1,5 @@
+import Web
+
 public enum EmailSignerError: Error {
     case nonAvailable
     case teeNotStarted

@@ -1,8 +1,7 @@
+import CrossmintAuth
 import Foundation
 import Testing
-import Web
-import CrossmintAuth
-@testable import Wallet
+@testable import Web
 
 @Suite("CrossmintTEE Tests")
 @MainActor

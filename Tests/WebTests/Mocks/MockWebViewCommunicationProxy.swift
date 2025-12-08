@@ -1,7 +1,6 @@
 import Foundation
 import WebKit
 import Web
-@testable import Wallet
 
 @MainActor
 final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
