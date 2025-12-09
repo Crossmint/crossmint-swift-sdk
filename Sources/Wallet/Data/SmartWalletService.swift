@@ -57,4 +57,9 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
         _ signatureId: String,
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel
+
+    func getTransfer(
+        transactionId: String,
+        chainType: String
+    ) async throws(TransactionError) -> any TransactionApiModel
 }

@@ -302,6 +302,24 @@ public final class DefaultSmartWalletService: SmartWalletService {
         }
     }
 
+    public func getTransfer(
+        transactionId: String,
+        chainType: String
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        // Use a placeholder token locator since it's not needed for this endpoint
+        let tokenLocator = "ethereum:eth"
+        let endpoint = Endpoint(
+            path: "/2025-06-09/wallets/me:\(chainType)/tokens/\(tokenLocator)/transfers/\(transactionId)",
+            method: .get,
+            headers: await authHeaders
+        )
+
+        return try await executeTransactionRequest(
+            endpoint: endpoint,
+            mapping: ChainType(rawValue: chainType).mappingType
+        )
+    }
+
     private func executeTransactionRequest<T: WalletTypeTransactionMapping>(
         endpoint: Endpoint,
         mapping: T.Type
