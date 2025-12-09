@@ -23,5 +23,8 @@ force_unwrapping:
 line_length:
   ignores_comments: true
 
+file_length:
+  ignore_comment_only_lines: true
+
 nesting:
   type_level: 4
