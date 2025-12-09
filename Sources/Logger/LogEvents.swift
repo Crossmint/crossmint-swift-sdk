@@ -125,4 +125,65 @@ public enum LogEvents {
 
     /// Missing email for authId
     public static let getAuthIdError = "signer.getAuthId.error"
+
+    // MARK: - Wallet Factory Events
+
+    /// Getting or creating wallet
+    public static let walletGetOrCreateStart = "wallet.getOrCreate.start"
+
+    /// Found existing wallet
+    public static let walletGetOrCreateExisting = "wallet.getOrCreate.existing"
+
+    /// Creating new wallet
+    public static let walletGetOrCreateCreating = "wallet.getOrCreate.creating"
+
+    /// Getting wallet
+    public static let walletGetStart = "wallet.get.start"
+
+    /// Wallet not found
+    public static let walletGetNotFound = "wallet.get.notFound"
+
+    /// Wallet retrieved successfully
+    public static let walletGetSuccess = "wallet.get.success"
+
+    /// Creating wallet
+    public static let walletCreateStart = "wallet.create.start"
+
+    /// Wallet creation failed
+    public static let walletCreateError = "wallet.create.error"
+
+    /// Wallet created successfully
+    public static let walletCreateSuccess = "wallet.create.success"
+
+    // MARK: - Wallet Operation Events
+
+    /// Starting send transaction
+    public static let walletSendStart = "wallet.send.start"
+
+    /// Transaction prepared
+    public static let walletSendPrepared = "wallet.send.prepared"
+
+    /// Send completed successfully
+    public static let walletSendSuccess = "wallet.send.success"
+
+    /// Send failed
+    public static let walletSendError = "wallet.send.error"
+
+    /// Getting wallet balances
+    public static let walletBalancesStart = "wallet.balances.start"
+
+    /// Balances retrieved successfully
+    public static let walletBalancesSuccess = "wallet.balances.success"
+
+    /// Failed to get balances
+    public static let walletBalancesError = "wallet.balances.error"
+
+    /// Starting staging fund
+    public static let walletStagingFundStart = "wallet.stagingFund.start"
+
+    /// Staging fund completed
+    public static let walletStagingFundSuccess = "wallet.stagingFund.success"
+
+    /// Staging fund failed
+    public static let walletStagingFundError = "wallet.stagingFund.error"
 }
