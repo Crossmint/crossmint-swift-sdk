@@ -121,7 +121,7 @@ public final class CrossmintTEE: ObservableObject {
         switch response.status {
         case .success:
             guard let signerStatus = response.signerStatus else {
-                Logger.tee.error("signer.getStatus.error", attributes: [
+                Logger.tee.error(LogEvents.getStatusError, attributes: [
                     "error": "Status response missing signerStatus field"
                 ])
                 throw .generic("Signer status missing from response")
@@ -134,7 +134,7 @@ public final class CrossmintTEE: ObservableObject {
                 )
 
                 guard onboardingResponse.status == .success else {
-                    Logger.tee.error("signer.onboarding.error", attributes: [
+                    Logger.tee.error(LogEvents.onboardingError, attributes: [
                         "error": onboardingResponse.errorMessage ?? "Unknown error"
                     ])
                     throw .generic("Invalid NCS status")
@@ -162,7 +162,7 @@ public final class CrossmintTEE: ObservableObject {
                 ).stringValue
             }
         case .error:
-            Logger.tee.error("signer.getStatus.error", attributes: [
+            Logger.tee.error(LogEvents.getStatusError, attributes: [
                 "error": response.errorMessage ?? "Unknown error"
             ])
             throw .generic(response.errorMessage ?? "Unknown error")
@@ -170,11 +170,11 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     public func resetState() {
-        Logger.tee.debug("signer.resetState.start")
+        Logger.tee.debug(LogEvents.resetStateStart)
         handshakeState = .idle
         failAllQueuedRequests(with: .generic("State was reset"))
         webProxy.resetLoadedContent()
-        Logger.tee.debug("signer.resetState.success")
+        Logger.tee.debug(LogEvents.resetStateSuccess)
     }
 
     public func load() async throws(Error) {
@@ -184,7 +184,7 @@ public final class CrossmintTEE: ObservableObject {
                 do {
                     try await Task.sleep(nanoseconds: 100_000_000)
                 } catch {
-                    Logger.tee.error("signer.load.error", attributes: [
+                    Logger.tee.error(LogEvents.loadError, attributes: [
                         "error": "Task was cancelled"
                     ])
                     throw Error.generic("Task was cancelled")
@@ -206,7 +206,7 @@ public final class CrossmintTEE: ObservableObject {
             do {
                 try await webProxy.loadURL(url)
             } catch {
-                Logger.tee.error("signer.load.error", attributes: [
+                Logger.tee.error(LogEvents.loadError, attributes: [
                     "error": "Failed to load TEE URL: \(error)"
                 ])
                 throw Error.urlNotAvailable
@@ -234,7 +234,7 @@ public final class CrossmintTEE: ObservableObject {
                 return
             } catch CrossmintTEE.Error.timeout {
                 if attempt < maxAttempts {
-                    Logger.tee.info("signer.handshake.retry", attributes: [
+                    Logger.tee.info(LogEvents.handshakeRetry, attributes: [
                         "handshake.attempt": "\(attempt)",
                         "handshake.maxAttempts": "\(maxAttempts)"
                     ])
@@ -244,7 +244,7 @@ public final class CrossmintTEE: ObservableObject {
                 throw error
             }
         }
-        Logger.tee.error("signer.handshake.error", attributes: [
+        Logger.tee.error(LogEvents.handshakeError, attributes: [
             "error": "Failed after \(maxAttempts) attempts"
         ])
         throw Error.handshakeFailed
@@ -257,7 +257,7 @@ public final class CrossmintTEE: ObservableObject {
                 return response
             } catch Error.generic(let message) where message.contains("Failed to get status response") {
                 if attempt < maxAttempts {
-                    Logger.tee.info("signer.getStatus.retry", attributes: [
+                    Logger.tee.info(LogEvents.getStatusRetry, attributes: [
                         "signer.attempt": "\(attempt)",
                         "signer.maxAttempts": "\(maxAttempts)",
                         "signer.delayMs": "500"
@@ -265,18 +265,18 @@ public final class CrossmintTEE: ObservableObject {
                     try? await Task.sleep(nanoseconds: 500_000_000)
                     continue
                 }
-                Logger.tee.error("signer.getStatus.error", attributes: [
+                Logger.tee.error(LogEvents.getStatusError, attributes: [
                     "error": message
                 ])
                 throw Error.generic(message)
             } catch {
-                Logger.tee.error("signer.getStatus.error", attributes: [
+                Logger.tee.error(LogEvents.getStatusError, attributes: [
                     "error": "\(error)"
                 ])
                 throw error
             }
         }
-        Logger.tee.error("signer.getStatus.error", attributes: [
+        Logger.tee.error(LogEvents.getStatusError, attributes: [
             "error": "Failed after \(maxAttempts) attempts"
         ])
         throw Error.generic("Failed to get status after \(maxAttempts) attempts")
@@ -284,7 +284,7 @@ public final class CrossmintTEE: ObservableObject {
 
     private func performHandshake(timeout: TimeInterval = 5.0) async throws(Error) {
         let randomVerificationId = randomString(length: 10)
-        Logger.tee.debug("signer.handshake.start", attributes: [
+        Logger.tee.debug(LogEvents.handshakeStart, attributes: [
             "handshake.verificationId": randomVerificationId,
             "handshake.timeout": "\(timeout)"
         ])
@@ -303,16 +303,16 @@ public final class CrossmintTEE: ObservableObject {
                 HandshakeComplete(requestVerificationId: handshakeResponse.data.requestVerificationId)
             )
 
-            Logger.tee.debug("signer.handshake.success", attributes: [
+            Logger.tee.debug(LogEvents.handshakeSuccess, attributes: [
                 "handshake.verificationId": handshakeResponse.data.requestVerificationId
             ])
         } catch WebViewError.timeout {
-            Logger.tee.error("signer.handshake.error", attributes: [
+            Logger.tee.error(LogEvents.handshakeError, attributes: [
                 "error": "Timeout after \(timeout)s"
             ])
             throw Error.timeout
         } catch {
-            Logger.tee.error("signer.handshake.error", attributes: [
+            Logger.tee.error(LogEvents.handshakeError, attributes: [
                 "error": "\(error)"
             ])
             throw Error.handshakeFailed
@@ -325,7 +325,7 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     private func getStatusResponse(jwt: String) async throws(Error) -> GetStatusResponse {
-        Logger.tee.debug("signer.getStatus.start")
+        Logger.tee.debug(LogEvents.getStatusStart)
 
         do {
             try await webProxy.sendMessage(GetStatusRequest(jwt: jwt, apiKey: apiKey))
@@ -335,14 +335,14 @@ public final class CrossmintTEE: ObservableObject {
                 timeout: 20.0
             )
 
-            Logger.tee.debug("signer.getStatus.success", attributes: [
+            Logger.tee.debug(LogEvents.getStatusSuccess, attributes: [
                 "signer.status": "\(getStatusResponse.status)",
                 "signer.signerStatus": getStatusResponse.signerStatus?.rawValue ?? "nil"
             ])
 
             return getStatusResponse
         } catch {
-            Logger.tee.error("signer.getStatus.error", attributes: [
+            Logger.tee.error(LogEvents.getStatusError, attributes: [
                 "error": "\(error)"
             ])
             throw .generic("Failed to get status response")
@@ -350,7 +350,7 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     private func startOnboarding(jwt: String, authId: String) async throws(Error) -> StartOnboardingResponse {
-        Logger.tee.debug("signer.onboarding.start", attributes: [
+        Logger.tee.debug(LogEvents.onboardingStart, attributes: [
             "onboarding.authId": authId
         ])
 
@@ -364,13 +364,13 @@ public final class CrossmintTEE: ObservableObject {
                 timeout: 20.0
             )
 
-            Logger.tee.debug("signer.onboarding.success", attributes: [
+            Logger.tee.debug(LogEvents.onboardingSuccess, attributes: [
                 "onboarding.status": "\(response.status)"
             ])
 
             return response
         } catch {
-            Logger.tee.error("signer.onboarding.error", attributes: [
+            Logger.tee.error(LogEvents.onboardingError, attributes: [
                 "error": "\(error)"
             ])
             throw .generic("Failed to start onboarding")
@@ -378,7 +378,7 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     private func validate(otpCode: String, jwt: String) async throws(Error) -> CompleteOnboardingResponse {
-        Logger.tee.debug("signer.onboarding.complete.start")
+        Logger.tee.debug(LogEvents.onboardingCompleteStart)
 
         do {
             try await webProxy.sendMessage(
@@ -390,13 +390,13 @@ public final class CrossmintTEE: ObservableObject {
                 timeout: 20.0
             )
 
-            Logger.tee.debug("signer.onboarding.complete.success", attributes: [
+            Logger.tee.debug(LogEvents.onboardingCompleteSuccess, attributes: [
                 "onboarding.status": "\(response.status)"
             ])
 
             return response
         } catch {
-            Logger.tee.error("signer.onboarding.complete.error", attributes: [
+            Logger.tee.error(LogEvents.onboardingCompleteError, attributes: [
                 "error": "\(error)"
             ])
             throw .generic("Failed to complete onboarding")
@@ -405,7 +405,7 @@ public final class CrossmintTEE: ObservableObject {
 
     private func getAuthId() throws(Error) -> String {
         guard let email = email else {
-            Logger.tee.error("signer.getAuthId.error", attributes: [
+            Logger.tee.error(LogEvents.getAuthIdError, attributes: [
                 "error": "Email is missing"
             ])
             throw .authMissing
@@ -414,23 +414,23 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     private func waitForOTP() async throws(Error) -> String {
-        Logger.tee.debug("signer.otp.wait")
+        Logger.tee.debug(LogEvents.otpWait)
         do {
             let otp = try await withCheckedThrowingContinuation { continuation in
                 self.otpContinuation?.resume(throwing: Error.newerSignatureRequested)
                 self.otpContinuation = continuation
                 self.isOTPRequired = true
             }
-            Logger.tee.debug("signer.otp.received")
+            Logger.tee.debug(LogEvents.otpReceived)
             return otp
         } catch CrossmintTEE.Error.userCancelled {
-            Logger.tee.warn("signer.otp.cancelled")
+            Logger.tee.warn(LogEvents.otpCancelled)
             throw .userCancelled
         } catch Error.newerSignatureRequested {
-            Logger.tee.warn("signer.otp.superseded")
+            Logger.tee.warn(LogEvents.otpSuperseded)
             throw .newerSignatureRequested
         } catch {
-            Logger.tee.error("signer.otp.error", attributes: [
+            Logger.tee.error(LogEvents.otpError, attributes: [
                 "error": "\(error.localizedDescription)"
             ])
             throw .generic("Unknown error happened: \(error.localizedDescription)")
@@ -440,7 +440,7 @@ public final class CrossmintTEE: ObservableObject {
     private func sign(
         _ request: NonCustodialSignRequest
     ) async throws(Error) -> String {
-        Logger.tee.debug("signer.sign.start", attributes: [
+        Logger.tee.debug(LogEvents.signStart, attributes: [
             "sign.keyType": request.data.data.keyType,
             "sign.encoding": request.data.data.encoding
         ])
@@ -454,18 +454,18 @@ public final class CrossmintTEE: ObservableObject {
             )
 
             guard let bytes = response.signature?.bytes, !bytes.isEmpty else {
-                Logger.tee.error("signer.sign.error", attributes: [
+                Logger.tee.error(LogEvents.signError, attributes: [
                     "error": "Empty signature returned from frame"
                 ])
                 throw Error.invalidSignature
             }
 
-            Logger.tee.debug("signer.sign.success", attributes: [
+            Logger.tee.debug(LogEvents.signSuccess, attributes: [
                 "sign.signatureLength": "\(bytes.count)"
             ])
             return bytes
         } catch {
-            Logger.tee.error("signer.sign.error", attributes: [
+            Logger.tee.error(LogEvents.signError, attributes: [
                 "error": "\(error)"
             ])
             if let crossmintError = error as? CrossmintTEE.Error {
@@ -476,14 +476,14 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     public func provideOTP(_ code: String) {
-        Logger.tee.debug("signer.otp.provided")
+        Logger.tee.debug(LogEvents.otpProvided)
         otpContinuation?.resume(returning: code)
         otpContinuation = nil
         isOTPRequired = false
     }
 
     public func cancelOTP() {
-        Logger.tee.debug("signer.otp.userCancelled")
+        Logger.tee.debug(LogEvents.otpUserCancelled)
         otpContinuation?.resume(throwing: CrossmintTEE.Error.userCancelled)
         otpContinuation = nil
         isOTPRequired = false
@@ -514,7 +514,7 @@ extension CrossmintTEE {
         encoding: String
     ) async throws(Error) -> String {
         let requestId = UUID()
-        Logger.tee.debug("signer.queue.enqueue", attributes: [
+        Logger.tee.debug(LogEvents.queueEnqueue, attributes: [
             "queue.requestId": requestId.uuidString,
             "queue.size": "\(signRequestQueue.count)"
         ])
@@ -543,20 +543,20 @@ extension CrossmintTEE {
                 }
             } onCancel: {
                 Task { @MainActor in
-                    Logger.tee.warn("signer.queue.cancelled", attributes: [
+                    Logger.tee.warn(LogEvents.queueCancelled, attributes: [
                         "queue.requestId": requestId.uuidString
                     ])
                     self.resumeSignRequest(id: requestId, with: .failure(.generic("Task was cancelled")))
                 }
             }
         } catch let error as CrossmintTEE.Error {
-            Logger.tee.error("signer.queue.error", attributes: [
+            Logger.tee.error(LogEvents.queueError, attributes: [
                 "queue.requestId": requestId.uuidString,
                 "error": "\(error)"
             ])
             throw error
         } catch {
-            Logger.tee.error("signer.queue.error", attributes: [
+            Logger.tee.error(LogEvents.queueError, attributes: [
                 "queue.requestId": requestId.uuidString,
                 "error": "\(error.localizedDescription)"
             ])
@@ -578,7 +578,7 @@ extension CrossmintTEE {
         with result: Result<String, CrossmintTEE.Error>
     ) {
         guard let index = signRequestQueue.firstIndex(where: { $0.id == id }) else {
-            Logger.tee.warn("signer.queue.resume.error", attributes: [
+            Logger.tee.warn(LogEvents.queueResumeError, attributes: [
                 "queue.requestId": id.uuidString,
                 "error": "Request not found in queue"
             ])
@@ -595,14 +595,14 @@ extension CrossmintTEE {
             return
         }
         guard case .completed = handshakeState else {
-            Logger.tee.warn("signer.queue.process.error", attributes: [
+            Logger.tee.warn(LogEvents.queueProcessError, attributes: [
                 "error": "Handshake not completed"
             ])
             return
         }
 
         let request = signRequestQueue.removeFirst()
-        Logger.tee.debug("signer.queue.process", attributes: [
+        Logger.tee.debug(LogEvents.queueProcess, attributes: [
             "queue.requestId": request.id.uuidString,
             "queue.remainingSize": "\(signRequestQueue.count)"
         ])
@@ -614,12 +614,12 @@ extension CrossmintTEE {
                 keyType: request.keyType,
                 encoding: request.encoding
             )
-            Logger.tee.debug("signer.queue.process.success", attributes: [
+            Logger.tee.debug(LogEvents.queueProcessSuccess, attributes: [
                 "queue.requestId": request.id.uuidString
             ])
             request.callback(.success(result))
         } catch {
-            Logger.tee.error("signer.queue.process.error", attributes: [
+            Logger.tee.error(LogEvents.queueProcessError, attributes: [
                 "queue.requestId": request.id.uuidString,
                 "error": "\(error)"
             ])
@@ -635,7 +635,7 @@ extension CrossmintTEE {
         }
 
         let queueSize = signRequestQueue.count
-        Logger.tee.warn("signer.queue.failAll", attributes: [
+        Logger.tee.warn(LogEvents.queueFailAll, attributes: [
             "queue.count": "\(queueSize)",
             "error": "\(error)"
         ])
