@@ -20,6 +20,9 @@ force_try:
 force_unwrapping:
   severity: error
 
+line_length:
+  ignores_comments: true
+
 nesting:
   type_level: 4     
   statement_level: 4
