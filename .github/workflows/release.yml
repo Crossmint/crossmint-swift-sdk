@@ -50,6 +50,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
+    - name: Run tests
+      run: |
+        make ci-test
+
+    - name: Run SwiftLint
+      run: make lint
+
     - name: Update SDK version in code
       run: |
         VERSION="${{ inputs.version }}"
@@ -64,28 +71,17 @@ jobs:
         echo "✅ Updated SDKVersion.swift to version $VERSION"
         cat Sources/Utils/SDKVersion.swift
 
-    - name: Run tests
-      run: |
-        make ci-test
-
-    - name: Run SwiftLint
-      run: make lint
-
     - name: Configure Git
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Commit version bump
+    - name: Commit version bump and create tag
       run: |
         git add Sources/Utils/SDKVersion.swift
         git commit -m "chore: bump version to ${{ inputs.version }}"
-
-    - name: Create and push tag
-      run: |
         git tag "${{ inputs.version }}"
-        git push origin main
-        git push origin "${{ inputs.version }}"
+        git push origin main --tags
 
     - name: Create GitHub Release
       env:
