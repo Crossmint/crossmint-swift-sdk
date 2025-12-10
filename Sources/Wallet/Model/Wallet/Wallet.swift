@@ -47,11 +47,28 @@ open class Wallet: @unchecked Sendable {
     }
 
     public func approve(transactionId id: String) async throws(TransactionError) -> Transaction {
-        let transaction = try await self.transaction(withId: id)
-        guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
-            throw .transactionGeneric("Unknown error")
+        Logger.smartWallet.info(LogEvents.walletApproveStart, attributes: [
+            "transactionId": id
+        ])
+
+        do {
+            let transaction = try await self.transaction(withId: id)
+            guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
+                throw .transactionGeneric("Unknown error")
+            }
+
+            Logger.smartWallet.info(LogEvents.walletApproveSuccessTransaction, attributes: [
+                "transactionId": signedTransaction.id
+            ])
+
+            return signedTransaction
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletApproveError, attributes: [
+                "transactionId": id,
+                "error": "\(error)"
+            ])
+            throw error
         }
-        return signedTransaction
     }
 
     @available(*, deprecated, renamed: "balances", message: "Use the balances(tokens) instead")
