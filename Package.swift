@@ -3,6 +3,7 @@
 import PackageDescription
 
 let basePlugins: [PackageDescription.Target.PluginUsage] = [
+    .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
 ]
 
 let baseDependencies: [PackageDescription.Target.Dependency] = [
