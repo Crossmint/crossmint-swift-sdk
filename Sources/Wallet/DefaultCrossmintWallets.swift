@@ -13,6 +13,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     ) {
         self.smartWalletService = service
         self.secureWalletStorage = secureWalletStorage
+
+        Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
 
     public func getOrCreateWallet(
