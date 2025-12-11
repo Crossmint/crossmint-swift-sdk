@@ -12,7 +12,7 @@ struct NFTDashboardView: View {
     @State private var hasMoreItems = true
     @State private var isFetchingMore = false
 
-    private let chain: Chain = .solana
+    private let chain: Chain = .baseSepolia
     private let nftsPerPage = 10
 
     var body: some View {

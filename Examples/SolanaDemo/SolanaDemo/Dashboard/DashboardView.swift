@@ -18,10 +18,6 @@ struct DashboardView: View {
     @State private var isShaking: Bool = false
     private let hapticFeedback = UINotificationFeedbackGenerator()
 
-    private var authManager: AuthManager {
-        sdk.authManager
-    }
-
     enum Tab {
         case balance, transfer, nft
     }
@@ -230,12 +226,13 @@ struct DashboardView: View {
 
     private func obtainOrCreateWallet(_ updateLoadingStatus: Bool = false) async {
         do {
-            guard let email = await crossmintAuthManager.email else {
-                throw WalletError.walletGeneric("Email not available")
-            }
+            let email = authManager.email
+//            guard let email = await crossmintAuthManager.email else {
+//                throw WalletError.walletGeneric("Email not available")
+//            }
 
             let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
-                chain: .solana,
+                chain: .baseSepolia,
                 signer: .email(email)
             )
             await MainActor.run {
@@ -275,11 +272,11 @@ struct DashboardView: View {
         Task {
             do {
                 _ = try await sdk.logout()
-                DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                    withAnimation(AnimationConstants.easeInOut()) {
-                        authenticationStatus = .nonAuthenticated
-                    }
-                }
+//                DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
+//                    withAnimation(AnimationConstants.easeInOut()) {
+//                        authenticationStatus = .nonAuthenticated
+//                    }
+//                }
             } catch {
                 withAnimation {
                     opacity = 1

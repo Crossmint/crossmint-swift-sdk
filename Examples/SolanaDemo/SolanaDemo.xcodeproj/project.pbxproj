@@ -16,6 +16,7 @@
 		AC0102052DD700000000003 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102042DD700000000003 /* CustomTextField.swift */; };
 		AC0102072DD800000000001 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102062DD800000000001 /* DashboardView.swift */; };
 		E52EB5192ED54AED004256E2 /* CrossmintAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52EB5182ED54AEB004256E2 /* CrossmintAuthManager.swift */; };
+		E5C981702EDEA023001667B0 /* TransferView2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C9816F2EDEA01C001667B0 /* TransferView2.swift */; };
 		EB49FDE22DC35C0D00BAAFEB /* CrossmintClientSDK in Frameworks */ = {isa = PBXBuildFile; productRef = EB49FDE12DC35C0D00BAAFEB /* CrossmintClientSDK */; };
 		EB72B92C2E3CFA2C002A668E /* OTPValidatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB72B92A2E3CFA2B002A668E /* OTPValidatorView.swift */; };
 		EB9BDDE22DC4CFBF003999C7 /* BalanceDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE12DC4CFBF003999C7 /* BalanceDashboardView.swift */; };
@@ -44,6 +45,7 @@
 		AC0102042DD700000000003 /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
 		AC0102062DD800000000001 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		E52EB5182ED54AEB004256E2 /* CrossmintAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossmintAuthManager.swift; sourceTree = "<group>"; };
+		E5C9816F2EDEA01C001667B0 /* TransferView2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferView2.swift; sourceTree = "<group>"; };
 		EB1EA11F2DC0F6550018C2C3 /* SolanaDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SolanaDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB72B92A2E3CFA2B002A668E /* OTPValidatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPValidatorView.swift; sourceTree = "<group>"; };
 		EB9BDDE12DC4CFBF003999C7 /* BalanceDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceDashboardView.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 		EB9BDDE72DC4D037003999C7 /* Dashboard */ = {
 			isa = PBXGroup;
 			children = (
+				E5C9816F2EDEA01C001667B0 /* TransferView2.swift */,
 				EBB46CD72DC8F8E00026AA88 /* AlertViewModel.swift */,
 				EB9BDDE52DC4CFE2003999C7 /* NFTDashboardView.swift */,
 				EB9BDDE32DC4CFCF003999C7 /* TransferDashboardView.swift */,
@@ -258,6 +261,7 @@
 				AC0102052DD700000000003 /* CustomTextField.swift in Sources */,
 				AC0102072DD800000000001 /* DashboardView.swift in Sources */,
 				EBB46CD82DC8F8E00026AA88 /* AlertViewModel.swift in Sources */,
+				E5C981702EDEA023001667B0 /* TransferView2.swift in Sources */,
 				EBEC0BD12DC39253000B59F1 /* PrimaryButton.swift in Sources */,
 				AC0101092DC600000000007 /* SplashScreen.swift in Sources */,
 				EB9BDDF02DC4E3F1003999C7 /* MiddleEllipsisText.swift in Sources */,
@@ -401,7 +405,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T7Q46ZFBCG;
+				DEVELOPMENT_TEAM = 4KG26Y879R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SolanaDemo/Info.plist;
@@ -438,7 +442,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T7Q46ZFBCG;
+				DEVELOPMENT_TEAM = 4KG26Y879R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SolanaDemo/Info.plist;

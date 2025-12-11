@@ -41,7 +41,7 @@ struct SplashScreen: View {
     @State private var showOTPView = false
 
     private var authManager: AuthManager {
-        CrossmintSDK.shared.authManager
+        CrossmintSDK.shared(apiKey: crossmintApiKey, authManager: FirebaseAuthManager(), logLevel: .debug).authManager
     }
 
     @ViewBuilder
@@ -110,12 +110,19 @@ struct SplashScreen: View {
                     case .authenticating:
                         EmptyView()
                     case .authenticated:
-                        DashboardView(authenticationStatus: $authenticationStatus)
-                            .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .move(edge: .trailing)),
-                                removal: .opacity.combined(with: .move(edge: .leading))
-                            ))
-                            .opacity(transitionOpacity)
+                            VStack {
+                                NavigationStack {
+                                    DashboardView(authenticationStatus: $authenticationStatus)
+                                        .transition(.asymmetric(
+                                            insertion: .opacity.combined(with: .move(edge: .trailing)),
+                                            removal: .opacity.combined(with: .move(edge: .leading))
+                                        ))
+                                        .opacity(transitionOpacity)
+                                }
+                                Button(action: { showOTPView = true }) {
+                                    Text("show otp")
+                                }
+                            }
                     }
                 }
             }
@@ -127,7 +134,7 @@ struct SplashScreen: View {
         .task {
             await authenticate()
         }
-        .onReceive(CrossmintSDK.shared.isOTPRequred) {
+        .onReceive(CrossmintSDK.shared(apiKey: crossmintApiKey, authManager: FirebaseAuthManager(), logLevel: .debug).isOTPRequred) {
             showOTPView = $0
         }
     }
@@ -137,7 +144,8 @@ struct SplashScreen: View {
         guard authenticationStatus == nil else { return }
         isLoading = true
         do {
-            authenticationStatus = try await crossmintAuthManager.authenticationStatus
+            authenticationStatus = try await .authenticated(email: "austin@paella.dev", jwt: authManager.jwt!, secret: "")
+//            authenticationStatus = try await crossmintAuthManager.authenticationStatus
         } catch {
             if case AuthError.signInRequired = error {
                 self.error = .invalidCredentialsStored
