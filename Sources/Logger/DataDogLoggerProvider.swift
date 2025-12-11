@@ -10,8 +10,6 @@ import DatadogCore
 import DatadogLogs
 
 final class DataDogLoggerProvider: LoggerProvider {
-    private nonisolated(unsafe) static var isDataDogInitialized: Bool = false
-
     private let logger: LoggerProtocol
     private let service: String
 
@@ -60,7 +58,7 @@ final class DataDogLoggerProvider: LoggerProvider {
     }
 
     private static func setupDataDogIfNeeded(clientToken: String, environment: String) {
-        guard !isDataDogInitialized else { return }
+        guard !DataDogConfig.isDataDogInitialized else { return }
 
         Datadog.initialize(
             with: Datadog.Configuration(
@@ -68,11 +66,11 @@ final class DataDogLoggerProvider: LoggerProvider {
                 env: environment,
                 service: "crossmint-ios-sdk"
             ),
-            trackingConsent: .granted
+            trackingConsent: DataDogConfig.datadogConsent(for: DataDogConfig.trackingConsent)
         )
 
         Logs.enable()
 
-        isDataDogInitialized = true
+        DataDogConfig.markDataDogInitialized()
     }
 }
