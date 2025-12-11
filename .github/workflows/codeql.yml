@@ -35,8 +35,7 @@ jobs:
       run: |
         xcodebuild build \
           -scheme CrossmintClientSDK \
-          -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.0' \
-          -arch arm64 \
+          -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1' \
           -skipPackagePluginValidation \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
