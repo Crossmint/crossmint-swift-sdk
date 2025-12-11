@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import DatadogCore
 
 /// Tracking consent states for remote logging (GDPR compliance)
 public enum TrackingConsent: Sendable {
