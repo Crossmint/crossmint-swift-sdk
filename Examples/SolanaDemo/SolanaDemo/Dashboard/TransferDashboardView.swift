@@ -115,11 +115,25 @@ struct TransferDashboardView: View {
             }
         })
         .onAppear {
+            idempotencyKeyTask?.cancel()
             startIdempotencyKeyRotation()
         }
         .onDisappear {
             idempotencyKeyTask?.cancel()
         }
+        .onChange(of: amount) { _, _ in
+            resetIdempotencyKey()
+        }
+        .onChange(of: recipientWallet) { _, _ in
+            resetIdempotencyKey()
+        }
+        .onChange(of: selectedToken) { _, _ in
+            resetIdempotencyKey()
+        }
+    }
+
+    private func resetIdempotencyKey() {
+        currentIdempotencyKey = UUID().uuidString
     }
 
     private func startIdempotencyKeyRotation() {
