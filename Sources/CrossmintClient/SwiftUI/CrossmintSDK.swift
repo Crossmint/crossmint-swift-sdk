@@ -2,7 +2,7 @@ import CrossmintAuth
 import Combine
 @_exported import CrossmintCommonTypes
 @_exported import CrossmintService
-import Logger
+@_exported import Logger
 import SwiftUI
 import Utils
 @_exported import Wallet
@@ -26,14 +26,15 @@ final public class CrossmintSDK: ObservableObject {
     public static func shared(
         apiKey: String,
         authManager: AuthManager? = nil,
-        logLevel: OSLogType = .default
+        logLevel: OSLogType = .default,
+        trackingConsent: TrackingConsent
     ) -> CrossmintSDK {
         if let existing = _shared {
             return existing
         }
 
         Logger.level = logLevel
-        let newInstance = CrossmintSDK(apiKey: apiKey, authManager: authManager)
+        let newInstance = CrossmintSDK(apiKey: apiKey, authManager: authManager, trackingConsent: trackingConsent)
         _shared = newInstance
         return newInstance
     }
@@ -64,7 +65,7 @@ final public class CrossmintSDK: ObservableObject {
         #if DEBUG
             if let apiKey = ProcessInfo.processInfo.environment["CROSSMINT_API_KEY"] {
                 Logger.client.info("Using API key from the environment variable.")
-                self.init(apiKey: apiKey)
+                self.init(apiKey: apiKey, trackingConsent: .notGranted)
                 return
             }
         #endif
@@ -72,11 +73,13 @@ final public class CrossmintSDK: ObservableObject {
         fatalError("Crossmint SDK requires an API key. Please call CrossmintSDK.shared(apiKey:) before accessing CrossmintSDK.shared")
     }
 
-    private init(apiKey: String, authManager: AuthManager? = nil) {
+    private init(apiKey: String, authManager: AuthManager? = nil, trackingConsent: TrackingConsent) {
         sdkInstances += 1
         if sdkInstances > 1 {
             Logger.sdk.error("Multiple SDK instances created, behaviour is undefined")
         }
+
+        DataDogConfig.setTrackingConsent(trackingConsent)
 
         do {
             sdk = try CrossmintClient.sdk(key: apiKey, authManager: authManager)
@@ -94,6 +97,15 @@ final public class CrossmintSDK: ObservableObject {
             Logger.client.error("Invalid Crossmint API key provided: \(error)")
             fatalError("Invalid Crossmint API key provided. Please verify your API key is a valid client key.")
         }
+    }
+
+    /// Sets or updates the tracking consent for remote logging
+    /// - Parameter consent: The new tracking consent state
+    /// - Note: When changing from pending to granted, all batched data will be sent.
+    ///         When changing from pending to notGranted, all batched data will be wiped.
+    ///         This only affects remote logs; local os.log entries will continue to be displayed.
+    public func setTrackingConsent(_ consent: TrackingConsent) {
+        DataDogConfig.setTrackingConsent(consent)
     }
 
     public func logout() async throws {
