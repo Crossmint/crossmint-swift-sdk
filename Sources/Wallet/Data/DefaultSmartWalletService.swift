@@ -257,7 +257,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
             )
 
             Logger.smartWallet.info(LogEvents.apiSendSuccess, attributes: [
-                "transactionId": result.id
+                "transactionId": "\(result.id)"
             ])
 
             return result

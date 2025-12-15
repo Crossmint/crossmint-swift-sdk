@@ -54,7 +54,7 @@ open class Wallet: @unchecked Sendable {
         do {
             let transaction = try await self.transaction(withId: id)
             guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
-                throw .transactionGeneric("Unknown error")
+                throw TransactionError.transactionGeneric("Unknown error")
             }
 
             Logger.smartWallet.info(LogEvents.walletApproveSuccessTransaction, attributes: [
@@ -67,7 +67,7 @@ open class Wallet: @unchecked Sendable {
                 "transactionId": id,
                 "error": "\(error)"
             ])
-            throw error
+            throw error as? TransactionError ?? .transactionGeneric("Unknown error")
         }
     }
 
@@ -231,7 +231,7 @@ open class Wallet: @unchecked Sendable {
             tokenLocator: tokenLocator.description,
             recipient: recipient.description,
             amount: amount
-        ) else { throw .transactionGeneric("Unknown error") }
+        ) else { throw TransactionError.transactionGeneric("Unknown error") }
 
         return transaction
     }
@@ -333,7 +333,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         guard let transaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: id, chainType: chain.chainType),
         ).toDomain(withService: smartWalletService) else {
-            throw .transactionGeneric("Unknown error")
+            throw TransactionError.transactionGeneric("Unknown error")
         }
         return transaction
     }

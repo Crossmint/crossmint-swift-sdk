@@ -93,7 +93,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
         Logger.smartWallet.info(LogEvents.evmSendTransactionSuccess, attributes: [
             "transactionId": completedTransaction.id,
-            "hash": completedTransaction.onChain?.txId ?? ""
+            "hash": completedTransaction.onChain.txId
         ])
 
         return completedTransaction.summary
@@ -135,7 +135,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             )
 
             guard let signature = extractSignature(from: completedSignature, for: signer) else {
-                throw .approvalFailed
+                throw SignatureError.approvalFailed
             }
 
             Logger.smartWallet.info(LogEvents.evmSignMessageSuccess, attributes: [
@@ -147,7 +147,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             Logger.smartWallet.error(LogEvents.evmSignMessageError, attributes: [
                 "error": "\(error)"
             ])
-            throw error
+            throw error as? SignatureError ?? .unknown
         }
     }
 
@@ -186,7 +186,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
             // Extract the signature from the completed response
             guard let signature = extractSignature(from: completedSignature, for: signer) else {
-                throw .approvalFailed
+                throw SignatureError.approvalFailed
             }
 
             Logger.smartWallet.info(LogEvents.evmSignTypedDataSuccess, attributes: [
@@ -198,7 +198,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             Logger.smartWallet.error(LogEvents.evmSignTypedDataError, attributes: [
                 "error": "\(error)"
             ])
-            throw error
+            throw error as? SignatureError ?? .unknown
         }
     }
 

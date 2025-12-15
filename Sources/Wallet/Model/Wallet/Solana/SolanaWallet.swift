@@ -72,7 +72,7 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
         Logger.smartWallet.info(LogEvents.solanaSendTransactionSuccess, attributes: [
             "transactionId": completedTransaction.id,
-            "hash": completedTransaction.onChain?.txId ?? ""
+            "hash": completedTransaction.onChain.txId
         ])
 
         return completedTransaction.summary
