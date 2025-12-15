@@ -222,7 +222,8 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: String,
         tokenLocator: String,
         recipient: String,
-        amount: String
+        amount: String,
+        idempotencyKey: String? = nil
     ) async throws(TransactionError) -> any TransactionApiModel {
         Logger.smartWallet.info(LogEvents.apiSendStart, attributes: [
             "walletLocator": "me:\(chainType)",
@@ -241,10 +242,12 @@ public final class DefaultSmartWalletService: SmartWalletService {
                 recipient: recipient,
                 amount: amount
             )
+            var headers = await authHeaders
+            headers["x-idempotency-key"] = idempotencyKey ?? UUID().uuidString
             let endpoint = Endpoint(
                 path: "/2025-06-09/wallets/me:\(chainType)/tokens/\(tokenLocator)/transfers",
                 method: .post,
-                headers: await authHeaders,
+                headers: headers,
                 body: try jsonCoder.encodeRequest(
                     body,
                     errorType: TransactionError.self
