@@ -26,12 +26,14 @@ final public class CrossmintSDK: ObservableObject {
     public static func shared(
         apiKey: String,
         authManager: AuthManager? = nil,
-        logLevel: LogLevel = .error
+        logLevel: LogLevel = .error,
+        loggingConsent: Bool = false
     ) -> CrossmintSDK {
         if let existing = _shared {
             return existing
         }
 
+        Logger.loggingConsent = loggingConsent
         Logger.level = logLevel
         let newInstance = CrossmintSDK(apiKey: apiKey, authManager: authManager)
         _shared = newInstance

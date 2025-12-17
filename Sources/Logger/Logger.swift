@@ -5,6 +5,7 @@ public struct Logger: Sendable {
 
     private let providers: [LoggerProvider]
     public nonisolated(unsafe) static var level: LogLevel = .error
+    public nonisolated(unsafe) static var loggingConsent: Bool = false
 
     private let osLogger: OSLog
     private let subsystem: String
@@ -13,14 +14,21 @@ public struct Logger: Sendable {
         self.subsystem = "CrossmintSDK"
         self.osLogger = OSLog(subsystem: subsystem, category: category)
 
-        providers = [
-            OSLoggerProvider(category: category),
-            DataDogLoggerProvider(
-                service: category,
-                clientToken: DataDogConfig.clientToken,
-                environment: DataDogConfig.environment
-            )
+        var loggerProviders: [LoggerProvider] = [
+            OSLoggerProvider(category: category)
         ]
+
+        if Logger.loggingConsent {
+            loggerProviders.append(
+                DataDogLoggerProvider(
+                    service: category,
+                    clientToken: DataDogConfig.clientToken,
+                    environment: DataDogConfig.environment
+                )
+            )
+        }
+
+        providers = loggerProviders
     }
 
     public func debug(_ message: String, attributes: [String: Encodable]? = nil) {
