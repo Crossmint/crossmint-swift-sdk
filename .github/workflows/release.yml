@@ -14,8 +14,8 @@ env:
 jobs:
   create-version-pr:
     name: Create Version Bump PR
-    # Only run if version input is provided (prevents validation failures on push)
-    if: github.event.inputs.version != ''
+    # Only run if manually triggered with version input
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-15
     permissions:
       contents: write
