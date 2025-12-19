@@ -1,4 +1,4 @@
-name: Release
+name: Create Version Bump PR
 
 on:
   workflow_dispatch:
@@ -12,11 +12,12 @@ env:
   DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
 
 jobs:
-  release:
-    name: Create Release
+  create-version-pr:
+    name: Create Version Bump PR
     runs-on: macos-15
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
     - uses: actions/checkout@v4
@@ -76,17 +77,29 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Commit version bump and create tag
+    - name: Create branch and commit
       run: |
+        BRANCH_NAME="release-${{ inputs.version }}"
+        git checkout -b "$BRANCH_NAME"
         git add Sources/Utils/SDKVersion.swift
         git commit -m "chore: bump version to ${{ inputs.version }}"
-        git tag "${{ inputs.version }}"
-        git push origin main --tags
+        git push origin "$BRANCH_NAME"
 
-    - name: Create GitHub Release
+    - name: Create Pull Request
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release create "${{ inputs.version }}" \
+        gh pr create \
           --title "Release ${{ inputs.version }}" \
-          --generate-notes
+          --body "$(cat <<'EOF'
+This PR bumps the SDK version to ${{ inputs.version }}.
+
+Once this PR is merged, a release will be automatically created.
+
+**Changes:**
+- Updated \`SDKVersion.swift\` to version ${{ inputs.version }}
+EOF
+)" \
+          --base main \
+          --head "release-${{ inputs.version }}" \
+          --label "release"
