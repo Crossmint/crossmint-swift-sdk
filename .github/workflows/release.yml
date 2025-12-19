@@ -85,19 +85,53 @@ jobs:
         git commit -m "chore: bump version to ${{ inputs.version }}"
         git push origin "$BRANCH_NAME"
 
+    - name: Generate changelog preview
+      id: changelog
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Get the latest tag
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+        if [ -z "$LATEST_TAG" ]; then
+          echo "No previous tags found, showing all commits"
+          CHANGELOG="## All Changes\n\n$(git log --pretty=format:'- %s (%h)' --reverse)"
+        else
+          echo "Generating changelog from $LATEST_TAG to HEAD"
+          # Use GitHub API to generate release notes
+          CHANGELOG=$(gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name="${{ inputs.version }}" \
+            -f target_commitish="release-${{ inputs.version }}" \
+            -f previous_tag_name="$LATEST_TAG" \
+            --jq '.body')
+        fi
+
+        # Save to file for PR body
+        echo "$CHANGELOG" > /tmp/changelog.md
+        echo "✅ Generated changelog preview"
+
     - name: Create Pull Request
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        CHANGELOG=$(cat /tmp/changelog.md)
+
         gh pr create \
           --title "Release ${{ inputs.version }}" \
-          --body "$(cat <<'EOF'
+          --body "$(cat <<EOF
 This PR bumps the SDK version to ${{ inputs.version }}.
 
 Once this PR is merged, a release will be automatically created.
 
-**Changes:**
+## Changes
 - Updated \`SDKVersion.swift\` to version ${{ inputs.version }}
+
+## Changelog Preview
+
+$CHANGELOG
 EOF
 )" \
           --base main \
