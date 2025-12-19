@@ -7,9 +7,6 @@ on:
         description: 'Version number (e.g., 0.0.8)'
         required: true
         type: string
-  push:
-    paths:
-      - '.github/workflows/this-file-does-not-exist.yml'
 
 env:
   DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
@@ -17,8 +14,6 @@ env:
 jobs:
   create-version-pr:
     name: Create Version Bump PR
-    # Only run if manually triggered with version input
-    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-15
     permissions:
       contents: write
