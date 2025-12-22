@@ -314,6 +314,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 return .tokenId(.evm(evmBlockchain, evmAddress), tokenId: tokenId)
             case .solana(let solanaAddress):
                 return .tokenId(.solana(solanaAddress), tokenId: tokenId)
+            case .stellar(let stellarAddress):
+                return .tokenId(.stellar(stellarAddress), tokenId: tokenId)
             }
         } else {
             switch blockchainAddress {
@@ -324,6 +326,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 return .address(.evm(evmBlockchain, evmAddress))
             case .solana(let solanaAddress):
                 return .address(.solana(solanaAddress))
+            case .stellar(let stellarAddress):
+                return .address(.stellar(stellarAddress))
             }
         }
     }
@@ -449,6 +453,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         switch chain.name {
         case SolanaChain.solana.name:
             return .sol
+        case StellarChain.stellar.name:
+            return .xlm
         default:
             return .eth
         }
