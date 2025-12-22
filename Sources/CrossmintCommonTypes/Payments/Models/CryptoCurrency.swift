@@ -28,6 +28,7 @@ public enum CryptoCurrency: Codable, Sendable, Hashable, Comparable, RangeExpres
     case wif
     case mother
     case sol
+    case xlm
     case ada
     case bnb
     case sui
@@ -117,6 +118,8 @@ public enum CryptoCurrency: Codable, Sendable, Hashable, Comparable, RangeExpres
             KnownCryptoCurrency.mother.rawValue
         case .sol:
             KnownCryptoCurrency.sol.rawValue
+        case .xlm:
+            KnownCryptoCurrency.xlm.rawValue
         case .ada:
             KnownCryptoCurrency.ada.rawValue
         case .bnb:
@@ -157,6 +160,7 @@ private enum KnownCryptoCurrency: String, CaseIterable {
     case wif
     case mother
     case sol
+    case xlm
     case ada
     case bnb
     case sui
@@ -190,6 +194,7 @@ private enum KnownCryptoCurrency: String, CaseIterable {
         case .wif: .wif
         case .mother: .mother
         case .sol: .sol
+        case .xlm: .xlm
         case .ada: .ada
         case .bnb: .bnb
         case .sui: .sui

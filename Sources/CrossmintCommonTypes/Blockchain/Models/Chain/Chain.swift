@@ -1,7 +1,7 @@
 public enum Chain: AnyChain, Equatable, Sendable, Hashable {
     public init(_ from: String) {
         let types: [any SpecificChain.Type] = [
-            EVMChain.self, SolanaChain.self
+            EVMChain.self, SolanaChain.self, StellarChain.self
         ]
 
         let firstMatchingTypeThatProducesAValidChain = types.compactMap { type in
@@ -73,6 +73,7 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
     case zoraSepolia
     case zenchainTestnet
 
+    case stellar
     case solana
 
     case unknown(name: String)
@@ -201,6 +202,8 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
             EVMChain.zoraSepolia
         case .zenchainTestnet:
             EVMChain.zenchainTestnet
+        case .stellar:
+            StellarChain.stellar
         case .solana:
             SolanaChain.solana
         case .unknown(name: let name):
@@ -238,6 +241,15 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
         rhs == lhs
     }
 
+    public static func == (lhs: Chain, rhs: StellarChain) -> Bool {
+        guard let stellarChain = lhs.specificChain as? StellarChain else { return false }
+        return stellarChain == rhs
+    }
+
+    public static func == (lhs: StellarChain, rhs: Chain) -> Bool {
+        rhs == lhs
+    }
+
     public static func != (lhs: Chain, rhs: EVMChain) -> Bool {
         !(lhs == rhs)
     }
@@ -251,6 +263,14 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
     }
 
     public static func != (lhs: SolanaChain, rhs: Chain) -> Bool {
+        !(rhs == lhs)
+    }
+
+    public static func != (lhs: Chain, rhs: StellarChain) -> Bool {
+        !(lhs == rhs)
+    }
+
+    public static func != (lhs: StellarChain, rhs: Chain) -> Bool {
         !(rhs == lhs)
     }
 }
