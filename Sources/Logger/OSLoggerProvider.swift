@@ -17,19 +17,19 @@ public final class OSLoggerProvider: LoggerProvider {
         self.osLogger = OSLog(subsystem: subsystem, category: category)
     }
 
-    func debug(_ message: String, attributes: [String: any Encodable]?) {
+    nonisolated func debug(_ message: String, attributes: [String: any Encodable]?) {
         os_log(.debug, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
-    func error(_ message: String, attributes: [String: any Encodable]?) {
+    nonisolated func error(_ message: String, attributes: [String: any Encodable]?) {
         os_log(.error, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
-    func info(_ message: String, attributes: [String: any Encodable]?) {
+    nonisolated func info(_ message: String, attributes: [String: any Encodable]?) {
         os_log(.info, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
-    func warn(_ message: String, attributes: [String: any Encodable]?) {
+    nonisolated func warn(_ message: String, attributes: [String: any Encodable]?) {
         os_log(.default, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
