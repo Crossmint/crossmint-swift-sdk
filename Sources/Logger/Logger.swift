@@ -50,4 +50,12 @@ public struct Logger: Sendable {
             provider.warn(message, attributes: attributes)
         }
     }
+
+    public func flush() async {
+        for provider in providers {
+            if let datadogProvider = provider as? DataDogLoggerProvider {
+                await datadogProvider.flush()
+            }
+        }
+    }
 }
