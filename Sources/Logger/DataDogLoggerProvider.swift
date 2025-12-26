@@ -35,7 +35,7 @@ actor DataDogLoggerProvider: LoggerProvider {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
-    
+
     private let serviceName = "crossmint-ios-sdk"
 
     // MARK: - Initialization
