@@ -225,15 +225,6 @@ actor DataDogLoggerProvider: LoggerProvider {
         return bytes.map { String(format: "%02x", $0) }.joined()
     }
 
-    // MARK: - Device Info
-    private struct DeviceInfo {
-        let hostname: String
-        let model: String
-        let osVersion: String
-        let osName: String
-    }
-
-
     // MARK: - Lifecycle Management
     private static func setupLifecycleObservers(provider: DataDogLoggerProvider) {
         #if canImport(UIKit)
@@ -256,18 +247,4 @@ actor DataDogLoggerProvider: LoggerProvider {
         }
         #endif
     }
-}
-
-// MARK: - Supporting Types
-private struct LogEntry {
-    let level: LogLevel
-    let message: String
-    let timestamp: String
-    let context: [String: Encodable]
-}
-
-/// Unsafe sendable wrapper for attribute dictionary
-/// This is safe because the dictionary is only read, never mutated across task boundaries
-private struct UnsafeSendableAttributes: @unchecked Sendable {
-    let value: [String: Encodable]?
 }
