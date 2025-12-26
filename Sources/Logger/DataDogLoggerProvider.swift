@@ -35,6 +35,8 @@ actor DataDogLoggerProvider: LoggerProvider {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
+    
+    private let serviceName = "crossmint-ios-sdk"
 
     // MARK: - Initialization
     init(service: String, clientToken: String, environment: String) {
@@ -179,10 +181,10 @@ actor DataDogLoggerProvider: LoggerProvider {
 
     private func formatLogForDataDog(_ entry: LogEntry) -> [String: Any] {
         var log: [String: Any] = [
-            "ddtags": "env:\(environment),service:crossmint-ios-sdk",
+            "ddtags": "env:\(environment),service:\(serviceName)",
             "hostname": deviceInfo.hostname,
             "message": entry.message,
-            "service": "crossmint-ios-sdk",
+            "service": serviceName,
             "status": mapLevelToStatus(entry.level),
             "timestamp": entry.timestamp,
             "dd-session_id": sessionId,
