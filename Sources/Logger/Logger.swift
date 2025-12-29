@@ -53,9 +53,7 @@ public struct Logger: Sendable {
 
     public func flush() async {
         for provider in providers {
-            if let datadogProvider = provider as? DataDogLoggerProvider {
-                await datadogProvider.flush()
-            }
+            await provider.flush()
         }
     }
 }
