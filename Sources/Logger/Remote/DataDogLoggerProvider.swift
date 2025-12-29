@@ -24,10 +24,7 @@ actor DataDogLoggerProvider: LoggerProvider {
     // MARK: - State
     private var batchQueue: [LogEntry] = []
     private var batchTask: Task<Void, Never>?
-    private let sessionId: String  // Equivalent to SPAN_ID in web SDK
-
-    // MARK: - Device Info (captured at init)
-    private let deviceInfo: DeviceInfo
+    private let sessionId: String
 
     // MARK: - Date Formatter (reused for performance)
     private nonisolated(unsafe) static let iso8601Formatter: ISO8601DateFormatter = {
@@ -47,14 +44,6 @@ actor DataDogLoggerProvider: LoggerProvider {
         let datadogUrl = "https://http-intake.logs.datadoghq.com/v1/input/\(clientToken)"
         let encodedUrl = datadogUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? datadogUrl
         self.intakeUrl = "https://telemetry.crossmint.com/dd?ddforward=\(encodedUrl)"
-
-        let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
-        self.deviceInfo = DeviceInfo(
-            hostname: bundleId,
-            model: "ios",
-            osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
-            osName: "ios"
-        )
 
         Self.setupLifecycleObservers(provider: self)
     }
@@ -180,30 +169,39 @@ actor DataDogLoggerProvider: LoggerProvider {
     }
 
     private func formatLogForDataDog(_ entry: LogEntry) -> [String: Any] {
+        let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
+
         var log: [String: Any] = [
             "ddtags": "env:\(environment),service:\(serviceName)",
-            "hostname": deviceInfo.hostname,
+            "hostname": bundleId,
             "message": entry.message,
             "service": serviceName,
             "status": mapLevelToStatus(entry.level),
             "timestamp": entry.timestamp,
             "dd-session_id": sessionId,
-            // Device info
-            "platform": "ios",
-            "sdk_version": SDKVersion.version,
-            "device_model": deviceInfo.model,
-            "os_version": deviceInfo.osVersion,
-            "os_name": deviceInfo.osName,
-            // Add category as a custom attribute for filtering
-            "logger_category": service
+            "logger_category": service,
+            "logger": [
+                "name": serviceName,
+                "version": SDKVersion.version,
+                "thread_name": Self.getThreadName()
+            ]
         ]
 
-        // Merge context attributes
         for (key, value) in entry.context {
             log[key] = value
         }
 
         return log
+    }
+
+    private static func getThreadName() -> String {
+        if Thread.isMainThread {
+            return "main"
+        }
+        if let name = Thread.current.name, !name.isEmpty {
+            return name
+        }
+        return "background"
     }
 
     private func mapLevelToStatus(_ level: LogLevel) -> String {
