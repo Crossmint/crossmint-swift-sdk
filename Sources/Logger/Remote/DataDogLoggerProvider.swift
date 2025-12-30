@@ -25,6 +25,7 @@ actor DataDogLoggerProvider: LoggerProvider {
     private var batchQueue: [LogEntry] = []
     private var batchTask: Task<Void, Never>?
     private let sessionId: String
+    private let deviceInfo: DeviceInfoCache
 
     // MARK: - Date Formatter (reused for performance)
     private nonisolated(unsafe) static let iso8601Formatter: ISO8601DateFormatter = {
@@ -40,6 +41,7 @@ actor DataDogLoggerProvider: LoggerProvider {
         self.service = service
         self.environment = environment
         self.sessionId = Self.generateSessionId()
+        self.deviceInfo = DeviceInfoCache.capture()
 
         let datadogUrl = "https://http-intake.logs.datadoghq.com/v1/input/\(clientToken)"
         let encodedUrl = datadogUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? datadogUrl
@@ -171,25 +173,50 @@ actor DataDogLoggerProvider: LoggerProvider {
     private func formatLogForDataDog(_ entry: LogEntry) -> [String: Any] {
         let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
 
-        var log: [String: Any] = [
-            "ddtags": "env:\(environment),service:\(serviceName)",
-            "hostname": bundleId,
-            "message": entry.message,
+        var attributes: [String: Any] = [
+            "date": entry.timestamp,
+            "os": [
+                "build": deviceInfo.osBuild,
+                "name": deviceInfo.osName,
+                "version": deviceInfo.osVersion
+            ],
+            "build_version": deviceInfo.appBuild,
             "service": serviceName,
-            "status": mapLevelToStatus(entry.level),
-            "timestamp": entry.timestamp,
-            "dd-session_id": sessionId,
-            "logger_category": service,
             "logger": [
-                "name": serviceName,
-                "version": SDKVersion.version,
-                "thread_name": Self.getThreadName()
-            ]
+                "thread_name": Self.getThreadName(),
+                "name": service,
+                "version": SDKVersion.version
+            ],
+            "version": deviceInfo.appVersion,
+            "platform": "ios",
+            "_dd": [
+                "device": [
+                    "name": deviceInfo.deviceName,
+                    "model": deviceInfo.model,
+                    "brand": "Apple",
+                    "architecture": deviceInfo.architecture
+                ]
+            ],
+            "status": mapLevelToStatus(entry.level)
         ]
 
         for (key, value) in entry.context {
-            log[key] = value
+            attributes[key] = value
         }
+
+        let log: [String: Any] = [
+            "timestamp": entry.timestamp,
+            "tags": [
+                "env:\(environment)",
+                "version:\(deviceInfo.appVersion)",
+                "source:ios"
+            ],
+            "service": serviceName,
+            "message": entry.message,
+            "hostname": bundleId,
+            "dd-session_id": sessionId,
+            "attributes": attributes
+        ]
 
         return log
     }
