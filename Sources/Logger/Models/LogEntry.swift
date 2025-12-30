@@ -5,7 +5,6 @@
 //  Created by Tomas Martins on 26/12/25.
 //
 
-
 struct LogEntry {
     let level: LogLevel
     let message: String
