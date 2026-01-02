@@ -19,6 +19,12 @@ public protocol CrossmintWallets: Sendable {
         signer: SolanaSigners,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
+
+    func getOrCreateWallet(
+        chain: StellarChain,
+        signer: StellarSigners,
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet
 }
 
 extension CrossmintWallets {
@@ -37,6 +43,18 @@ extension CrossmintWallets {
     public func getOrCreateWallet(
         chain: SolanaChain,
         signer: SolanaSigners,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        try await getOrCreateWallet(
+            chain: Chain(chain.name),
+            signer: signer.signer,
+            options: options
+        )
+    }
+
+    public func getOrCreateWallet(
+        chain: StellarChain,
+        signer: StellarSigners,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet {
         try await getOrCreateWallet(
