@@ -6,8 +6,10 @@
 //
 
 import Foundation
+import Network
 #if canImport(UIKit)
 @preconcurrency import UIKit
+import CoreTelephony
 #endif
 
 struct DeviceInfoCache: @unchecked Sendable {
@@ -19,6 +21,8 @@ struct DeviceInfoCache: @unchecked Sendable {
     let architecture: String
     let appVersion: String
     let appBuild: String
+    let networkConnectionType: String
+    let cellularTechnology: String?
 
     #if canImport(UIKit)
     private nonisolated(unsafe) static func getDeviceModel() -> String {
@@ -73,9 +77,69 @@ struct DeviceInfoCache: @unchecked Sendable {
         #endif
     }
 
+    private static func getNetworkConnectionType() -> String {
+        final class ConnectionTypeHolder: @unchecked Sendable {
+            var value: String = "unknown"
+        }
+
+        let pathMonitor = NWPathMonitor()
+        let semaphore = DispatchSemaphore(value: 0)
+        let holder = ConnectionTypeHolder()
+
+        pathMonitor.pathUpdateHandler = { path in
+            if path.usesInterfaceType(.wifi) {
+                holder.value = "wifi"
+            } else if path.usesInterfaceType(.cellular) {
+                holder.value = "cellular"
+            } else if path.usesInterfaceType(.wiredEthernet) {
+                holder.value = "ethernet"
+            } else if path.status == .satisfied {
+                holder.value = "other"
+            } else {
+                holder.value = "none"
+            }
+            semaphore.signal()
+        }
+
+        let queue = DispatchQueue(label: "com.crossmint.network-monitor")
+        pathMonitor.start(queue: queue)
+        _ = semaphore.wait(timeout: .now() + 0.1)
+        pathMonitor.cancel()
+
+        return holder.value
+    }
+
+    private static func getCellularTechnology() -> String? {
+        let networkInfo = CTTelephonyNetworkInfo()
+        guard let currentRadio = networkInfo.serviceCurrentRadioAccessTechnology?.values.first else {
+            return nil
+        }
+
+        switch currentRadio {
+        case CTRadioAccessTechnologyGPRS, CTRadioAccessTechnologyEdge:
+            return "2G"
+        case CTRadioAccessTechnologyWCDMA,
+             CTRadioAccessTechnologyHSDPA,
+             CTRadioAccessTechnologyHSUPA,
+             CTRadioAccessTechnologyCDMA1x,
+             CTRadioAccessTechnologyCDMAEVDORev0,
+             CTRadioAccessTechnologyCDMAEVDORevA,
+             CTRadioAccessTechnologyCDMAEVDORevB,
+             CTRadioAccessTechnologyeHRPD:
+            return "3G"
+        case CTRadioAccessTechnologyLTE:
+            return "4G"
+        case CTRadioAccessTechnologyNRNSA, CTRadioAccessTechnologyNR:
+            return "5G"
+        default:
+            return nil
+        }
+    }
+
     static func capture() -> DeviceInfoCache {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        let networkType = getNetworkConnectionType()
 
         return DeviceInfoCache(
             model: getDeviceModel(),
@@ -85,7 +149,9 @@ struct DeviceInfoCache: @unchecked Sendable {
             osBuild: getOSBuild(),
             architecture: getArchitecture(),
             appVersion: appVersion,
-            appBuild: appBuild
+            appBuild: appBuild,
+            networkConnectionType: networkType,
+            cellularTechnology: networkType == "cellular" ? getCellularTechnology() : nil
         )
     }
     #else

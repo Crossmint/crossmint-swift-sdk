@@ -200,6 +200,21 @@ actor DataDogLoggerProvider: LoggerProvider {
             "status": mapLevelToStatus(entry.level)
         ]
 
+        var networkInfo: [String: Any] = [
+            "client": [
+                "type": deviceInfo.networkConnectionType
+            ]
+        ]
+
+        if let cellularTech = deviceInfo.cellularTechnology {
+            if var client = networkInfo["client"] as? [String: Any] {
+                client["cellular_technology"] = cellularTech
+                networkInfo["client"] = client
+            }
+        }
+
+        attributes["network"] = networkInfo
+
         for (key, value) in entry.context {
             attributes[key] = value
         }
