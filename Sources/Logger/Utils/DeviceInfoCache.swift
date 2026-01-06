@@ -78,6 +78,9 @@ struct DeviceInfoCache: @unchecked Sendable {
     }
 
     private static func getNetworkConnectionType() -> String {
+        #if targetEnvironment(simulator)
+        return "unknown"
+        #else
         final class ConnectionTypeHolder: @unchecked Sendable {
             var value: String = "unknown"
         }
@@ -103,10 +106,11 @@ struct DeviceInfoCache: @unchecked Sendable {
 
         let queue = DispatchQueue(label: "com.crossmint.network-monitor")
         pathMonitor.start(queue: queue)
-        _ = semaphore.wait(timeout: .now() + 0.1)
+        let result = semaphore.wait(timeout: .now() + 0.1)
         pathMonitor.cancel()
 
-        return holder.value
+        return result == .success ? holder.value : "unknown"
+        #endif
     }
 
     private static func getCellularTechnology() -> String? {
