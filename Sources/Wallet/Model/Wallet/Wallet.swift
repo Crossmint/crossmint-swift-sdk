@@ -161,6 +161,8 @@ open class Wallet: @unchecked Sendable {
             transferTokenLocator = .currency(.evm(evmChain, token))
         } else if let solanaToken = SolanaSupportedToken.toSolanaSupportedToken(token) {
             transferTokenLocator = .currency(.solana(solanaToken))
+        } else if let stellarToken = StellarSupportedToken.toStellarSupportedToken(token) {
+            transferTokenLocator = .currency(.stellar(stellarToken))
         } else {
             Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
                 "error": "Transaction creation failed"
