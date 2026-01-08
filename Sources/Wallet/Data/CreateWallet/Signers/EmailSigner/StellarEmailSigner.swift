@@ -25,14 +25,12 @@ public final class StellarEmailSigner: EmailSigner, Sendable {
         }
     }
 
-    // Stellar uses ed25519 (like Solana)
     public var keyType: String {
         get async {
             "ed25519"
         }
     }
 
-    // Stellar uses strkey encoding (base32 with checksum)
     public var encoding: String {
         get async {
             "strkey"
