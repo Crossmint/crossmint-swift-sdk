@@ -11,8 +11,8 @@ public struct StellarAddress: BlockchainAddress {
     public private(set) var address: String
 
     public init(address: String) throws(BlockchainAddressError) {
-        // Stellar addresses: G (public key) or C (contract) + 55 alphanumeric = 56 total
-        guard address.range(of: "^[GC][A-Z0-9]{55}$", options: .regularExpression) != nil else {
+        // Stellar addresses: G (public key), C (contract) or M (muxed) + 55 alphanumeric = 56 total
+        guard address.range(of: "^[GCM][A-Z0-9]{55}$", options: .regularExpression) != nil else {
             throw BlockchainAddressError.invalidStellarAddress(
                 "Invalid Stellar address format: \(address)"
             )
