@@ -14,7 +14,7 @@ public enum EVMSigners: Sendable {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            EVMApiKeySigner()
+            ApiKeySigner()
         case let .email(email):
             EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .passkey(name, host):
@@ -31,7 +31,7 @@ public enum SolanaSigners: Sendable {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            SolanaApiKeySigner()
+            ApiKeySigner()
         case let .email(email):
             SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         }
@@ -46,7 +46,7 @@ public enum StellarSigners: Sendable {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            StellarApiKeySigner()
+            ApiKeySigner()
         case let .email(email):
             StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         }
