@@ -134,6 +134,29 @@ public enum CryptoCurrency: Codable, Sendable, Hashable, Comparable, RangeExpres
     }
 }
 
+// MARK: - Decimals
+extension CryptoCurrency {
+    public func getNumericPriceDecimalsPerCurrency(defaultValue: Int = 5) -> Int {
+        switch self {
+        case .eth: return defaultValue
+        case .sol: return 5
+        case .ada: return 4
+        case .usdc: return 2
+        default: return 6
+        }
+    }
+}
+
+// MARK: - Internal type
+/// Internal enum providing compiler-enforced updates for CryptoCurrency.
+///
+/// This pattern exists to maintain CaseIterable conformance while supporting the .unknown case:
+/// - Swift's auto-generated allCases doesn't work with associated values (.unknown(String))
+/// - When adding a new currency, the compiler enforces updating both the `currency` computed
+///   property (exhaustive switch) and indirectly the CryptoCurrency.name property
+/// - Provides automatic CaseIterable.allCases generation which maps to CryptoCurrency.allCases
+///
+/// Without this pattern, allCases would need manual maintenance with no compiler verification.
 private enum KnownCryptoCurrency: String, CaseIterable {
     case ape
     case eth
@@ -200,19 +223,6 @@ private enum KnownCryptoCurrency: String, CaseIterable {
         case .sui: .sui
         case .apt: .apt
         case .sfuel: .sfuel
-        }
-    }
-}
-
-// MARK: - Decimals
-extension CryptoCurrency {
-    public func getNumericPriceDecimalsPerCurrency(defaultValue: Int = 5) -> Int {
-        switch self {
-        case .eth: return defaultValue
-        case .sol: return 5
-        case .ada: return 4
-        case .usdc: return 2
-        default: return 6
         }
     }
 }
