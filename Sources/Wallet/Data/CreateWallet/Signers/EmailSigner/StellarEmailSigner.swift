@@ -57,8 +57,4 @@ public final class StellarEmailSigner: EmailSigner, Sendable {
             throw SignerError.invalidEmail
         }
     }
-
-    func processMessage(_ message: String) -> String {
-        message
-    }
 }

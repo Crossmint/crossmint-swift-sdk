@@ -51,8 +51,4 @@ public final class SolanaEmailSigner: EmailSigner, Sendable {
             throw SignerError.invalidEmail
         }
     }
-
-    func processMessage(_ message: String) -> String {
-        message
-    }
 }
