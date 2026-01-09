@@ -12,9 +12,9 @@ public enum Signers: Sendable {
     public var signer: any Signer {
         switch self {
         case .evmFireblocksSigner:
-            EVMApiKeySigner()
+            ApiKeySigner()
         case .solanaFireblocksSigner:
-            SolanaApiKeySigner()
+            ApiKeySigner()
         case let .solanaEmailSigner(email):
             SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .evmEmailSigner(email):

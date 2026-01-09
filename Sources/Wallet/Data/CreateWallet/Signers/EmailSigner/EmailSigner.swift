@@ -63,4 +63,7 @@ extension EmailSigner {
         }
     }
 
+    func processMessage(_ message: String) -> String {
+        message
+    }
 }

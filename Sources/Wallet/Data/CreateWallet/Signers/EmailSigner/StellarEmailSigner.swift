@@ -1,7 +1,14 @@
+//
+//  StellarEmailSigner.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 12/22/25.
+//
+
 import CrossmintCommonTypes
 import Web
 
-public final class SolanaEmailSigner: EmailSigner, Sendable {
+public final class StellarEmailSigner: EmailSigner, Sendable {
 
     public typealias AdminType = EmailSignerData
 
@@ -18,7 +25,6 @@ public final class SolanaEmailSigner: EmailSigner, Sendable {
         }
     }
 
-    // Hardcoded for Solana
     public var keyType: String {
         get async {
             "ed25519"
@@ -27,7 +33,7 @@ public final class SolanaEmailSigner: EmailSigner, Sendable {
 
     public var encoding: String {
         get async {
-            "base58"
+            "strkey"
         }
     }
 

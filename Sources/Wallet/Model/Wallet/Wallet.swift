@@ -161,6 +161,8 @@ open class Wallet: @unchecked Sendable {
             transferTokenLocator = .currency(.evm(evmChain, token))
         } else if let solanaToken = SolanaSupportedToken.toSolanaSupportedToken(token) {
             transferTokenLocator = .currency(.solana(solanaToken))
+        } else if let stellarToken = StellarSupportedToken.toStellarSupportedToken(token) {
+            transferTokenLocator = .currency(.stellar(stellarToken))
         } else {
             Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
                 "error": "Transaction creation failed"
@@ -314,6 +316,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 return .tokenId(.evm(evmBlockchain, evmAddress), tokenId: tokenId)
             case .solana(let solanaAddress):
                 return .tokenId(.solana(solanaAddress), tokenId: tokenId)
+            case .stellar(let stellarAddress):
+                return .tokenId(.stellar(stellarAddress), tokenId: tokenId)
             }
         } else {
             switch blockchainAddress {
@@ -324,6 +328,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 return .address(.evm(evmBlockchain, evmAddress))
             case .solana(let solanaAddress):
                 return .address(.solana(solanaAddress))
+            case .stellar(let stellarAddress):
+                return .address(.stellar(stellarAddress))
             }
         }
     }
@@ -449,6 +455,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         switch chain.name {
         case SolanaChain.solana.name:
             return .sol
+        case StellarChain.stellar.name:
+            return .xlm
         default:
             return .eth
         }

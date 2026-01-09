@@ -80,6 +80,18 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                 solanaChain: solanaChain,
                 onTransactionStart: options?.experimentalCallbacks.onTransactionStart
             )
+        case .stellar:
+            guard let stellarChain: StellarChain = StellarChain(chain.name) else {
+                throw WalletError.walletInvalidType("The wallet received is not compatible with Stellar")
+            }
+
+            wallet = try StellarWallet(
+                smartWalletService: smartWalletService,
+                signer: signer,
+                baseModel: walletApiModel,
+                stellarChain: stellarChain,
+                onTransactionStart: options?.experimentalCallbacks.onTransactionStart
+            )
         case .unknown:
             throw .walletGeneric("Unknown wallet chain")
         }
