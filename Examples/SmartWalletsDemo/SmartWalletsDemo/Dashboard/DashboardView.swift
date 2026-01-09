@@ -244,8 +244,8 @@ struct DashboardView: View {
 
         do {
             let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
-                chain: .baseSepolia,
-                signer: .email(email)
+                chain: EVMChain.baseSepolia,
+                signer: EVMSigners.email(email)
             )
 
             await MainActor.run {
