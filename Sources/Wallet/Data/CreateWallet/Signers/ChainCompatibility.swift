@@ -5,7 +5,7 @@ public protocol EVMCompatibleSigner: Sendable {}
 public protocol SolanaCompatibleSigner: Sendable {}
 public protocol StellarCompatibleSigner: Sendable {}
 
-public enum EVMSigners: Sendable {
+public enum EVMSigners: Sendable, SignerProvider {
     case email(String)
     case apiKey
     case passkey(name: String, host: String)
@@ -23,7 +23,7 @@ public enum EVMSigners: Sendable {
     }
 }
 
-public enum SolanaSigners: Sendable {
+public enum SolanaSigners: Sendable, SignerProvider {
     case email(String)
     case apiKey
 
@@ -38,10 +38,10 @@ public enum SolanaSigners: Sendable {
     }
 }
 
-public enum StellarSigners: Sendable {
+public enum StellarSigners: Sendable, SignerProvider {
     case email(String)
     case apiKey
-
+    
     @MainActor
     public var signer: any Signer {
         switch self {
