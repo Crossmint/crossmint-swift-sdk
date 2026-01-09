@@ -41,7 +41,7 @@ public enum SolanaSigners: Sendable, SignerProvider {
 public enum StellarSigners: Sendable, SignerProvider {
     case email(String)
     case apiKey
-    
+
     @MainActor
     public var signer: any Signer {
         switch self {
