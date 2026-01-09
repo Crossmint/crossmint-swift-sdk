@@ -39,7 +39,7 @@ extension CrossmintWallets {
     ) async throws(WalletError) -> Wallet {
         try await getOrCreateWallet(chain: chain, signer: signer, options: options)
     }
-    
+
     public func getOrCreateWallet<C: ChainWithSigners>(
         chain: C,
         signer: C.SpecificSigner,
