@@ -22,6 +22,7 @@ protocol EmailSigner: Signer {
     var keyType: String { get async }
     var encoding: String { get async }
     var email: String? { get async }
+    var isInitialized: Bool { get async }
 
     func load() async throws(EmailSignerError)
     func processMessage(_ message: String) -> String
@@ -65,5 +66,11 @@ extension EmailSigner {
 
     func processMessage(_ message: String) -> String {
         message
+    }
+
+    public func initialize(_ service: SmartWalletService?) async throws(SignerError) {
+        guard await isInitialized else {
+            throw SignerError.invalidEmail
+        }
     }
 }
