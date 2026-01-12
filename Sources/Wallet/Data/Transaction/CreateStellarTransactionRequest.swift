@@ -8,17 +8,18 @@
 import Foundation
 
 public struct CreateStellarTransactionRequest: TransactionRequest, Codable {
+    private enum CodingKeys: String, CodingKey {
+        case params
+    }
+
+    private struct Params: Codable {
+        let transaction: String
+    }
+
     public let transaction: String
 
     public init(transaction: String) {
         self.transaction = transaction
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-
-        let params = Params(transaction: transaction)
-        try container.encode(params, forKey: .params)
     }
 
     public init(from decoder: Decoder) throws {
@@ -28,11 +29,10 @@ public struct CreateStellarTransactionRequest: TransactionRequest, Codable {
         self.transaction = params.transaction
     }
 
-    private enum CodingKeys: String, CodingKey {
-        case params
-    }
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
 
-    private struct Params: Codable {
-        let transaction: String
+        let params = Params(transaction: transaction)
+        try container.encode(params, forKey: .params)
     }
 }
