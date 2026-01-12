@@ -273,6 +273,17 @@ public enum LogEvents {
     /// Solana: Transaction sent successfully
     public static let solanaSendTransactionSuccess = "solanaWallet.sendTransaction.success"
 
+    // MARK: - Stellar Wallet Events
+
+    /// Stellar: Starting send transaction
+    public static let stellarSendTransactionStart = "stellarWallet.sendTransaction.start"
+
+    /// Stellar: Transaction prepared
+    public static let stellarSendTransactionPrepared = "stellarWallet.sendTransaction.prepared"
+
+    /// Stellar: Transaction sent successfully
+    public static let stellarSendTransactionSuccess = "stellarWallet.sendTransaction.success"
+
     // MARK: - Wallet Approve Events
 
     /// Starting transaction/signature approval

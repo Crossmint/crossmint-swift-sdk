@@ -5,6 +5,7 @@ public enum TransferTokenLocator: CustomStringConvertible, Equatable, Hashable, 
      public enum CurrencyData: CustomStringConvertible, Equatable, Hashable, Encodable {
         case evm(EVMChain, CryptoCurrency)
         case solana(SolanaSupportedToken)
+        case stellar(StellarSupportedToken)
 
         public var description: String {
             switch self {
@@ -12,6 +13,8 @@ public enum TransferTokenLocator: CustomStringConvertible, Equatable, Hashable, 
                 return "\(chain.name):\(currency.name)"
             case .solana(let token):
                 return "\(Chain.solana.name):\(token.asCryptoCurrency.name)"
+            case .stellar(let token):
+                return "\(Chain.stellar.name):\(token.asCryptoCurrency.name)"
             }
         }
     }

@@ -3,6 +3,7 @@ import CrossmintCommonTypes
 public enum ChainAndAddress: CustomStringConvertible, Equatable, Hashable, Encodable {
     case evm(EVMChain, EVMAddress)
     case solana(SolanaAddress)
+    case stellar(StellarAddress)
 
     public var description: String {
         "\(chain.name):\(blockchainAddress.description)"
@@ -14,6 +15,8 @@ public enum ChainAndAddress: CustomStringConvertible, Equatable, Hashable, Encod
             evmChain.chain
         case .solana:
             Chain.solana
+        case .stellar:
+            Chain.stellar
         }
     }
 
@@ -22,6 +25,8 @@ public enum ChainAndAddress: CustomStringConvertible, Equatable, Hashable, Encod
         case .evm(_, let address):
             address
         case .solana(let address):
+            address
+        case .stellar(let address):
             address
         }
     }

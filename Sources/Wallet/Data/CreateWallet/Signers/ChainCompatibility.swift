@@ -3,8 +3,9 @@ import Web
 
 public protocol EVMCompatibleSigner: Sendable {}
 public protocol SolanaCompatibleSigner: Sendable {}
+public protocol StellarCompatibleSigner: Sendable {}
 
-public enum EVMSigners: Sendable {
+public enum EVMSigners: Sendable, SignerProvider {
     case email(String)
     case apiKey
     case passkey(name: String, host: String)
@@ -13,7 +14,7 @@ public enum EVMSigners: Sendable {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            EVMApiKeySigner()
+            ApiKeySigner()
         case let .email(email):
             EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .passkey(name, host):
@@ -22,7 +23,7 @@ public enum EVMSigners: Sendable {
     }
 }
 
-public enum SolanaSigners: Sendable {
+public enum SolanaSigners: Sendable, SignerProvider {
     case email(String)
     case apiKey
 
@@ -30,9 +31,24 @@ public enum SolanaSigners: Sendable {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            SolanaApiKeySigner()
+            ApiKeySigner()
         case let .email(email):
             SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
+        }
+    }
+}
+
+public enum StellarSigners: Sendable, SignerProvider {
+    case email(String)
+    case apiKey
+
+    @MainActor
+    public var signer: any Signer {
+        switch self {
+        case .apiKey:
+            ApiKeySigner()
+        case let .email(email):
+            StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         }
     }
 }
