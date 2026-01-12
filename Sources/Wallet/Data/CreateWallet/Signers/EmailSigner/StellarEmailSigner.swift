@@ -9,7 +9,6 @@ import CrossmintCommonTypes
 import Web
 
 public final class StellarEmailSigner: EmailSigner, Sendable {
-
     public typealias AdminType = EmailSignerData
 
     private let state = EmailSignerState()

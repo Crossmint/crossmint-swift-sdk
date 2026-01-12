@@ -6,6 +6,8 @@
 //
 
 public enum StellarChain: SpecificChain, Equatable {
+    case stellar
+
     public var chain: Chain {
         .stellar
     }
@@ -18,10 +20,6 @@ public enum StellarChain: SpecificChain, Equatable {
         "stellar"
     }
 
-    public func isValid(isProductionEnvironment: Bool) -> Bool {
-        true
-    }
-
     public init?(_ from: String) {
         if from.uppercased() != "STELLAR" {
             return nil
@@ -29,5 +27,7 @@ public enum StellarChain: SpecificChain, Equatable {
         self = .stellar
     }
 
-    case stellar
+    public func isValid(isProductionEnvironment: Bool) -> Bool {
+        true
+    }
 }
