@@ -38,16 +38,16 @@ public struct Transaction: Sendable, CustomStringConvertible {
     }
 
     public struct UserOperation: Sendable {
-        public let paymaster: String
-        public let paymasterVerificationGasLimit: String
+        public let paymaster: String?
+        public let paymasterVerificationGasLimit: String?
         public let preVerificationGas: String
         public let nonce: String
-        public let paymasterPostOpGasLimit: String
+        public let paymasterPostOpGasLimit: String?
         public let factoryData: String?
         public let factory: String?
         public let signature: String
         public let callGasLimit: String
-        public let paymasterData: String
+        public let paymasterData: String?
         public let verificationGasLimit: String
         public let maxFeePerGas: String
         public let sender: String
