@@ -34,8 +34,6 @@ struct SplashScreen: View {
         }
     }
 
-    private let sdk: CrossmintSDK = .shared
-
     @State private var isLoading: Bool = false
     @State private var authenticationStatus: AuthenticationStatus?
     @State private var transitionOpacity: Double = 0
@@ -43,7 +41,7 @@ struct SplashScreen: View {
     @State private var showOTPView = false
 
     private var authManager: AuthManager {
-        sdk.authManager
+        CrossmintSDK.shared.authManager
     }
 
     @ViewBuilder

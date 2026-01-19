@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
+import Logger
 
 open class Wallet: @unchecked Sendable {
     public var address: String {
@@ -46,11 +47,28 @@ open class Wallet: @unchecked Sendable {
     }
 
     public func approve(transactionId id: String) async throws(TransactionError) -> Transaction {
-        let transaction = try await self.transaction(withId: id)
-        guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
-            throw .transactionGeneric("Unknown error")
+        Logger.smartWallet.info(LogEvents.walletApproveStart, attributes: [
+            "transactionId": id
+        ])
+
+        do {
+            let transaction = try await self.transaction(withId: id)
+            guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
+                throw TransactionError.transactionGeneric("Unknown error")
+            }
+
+            Logger.smartWallet.info(LogEvents.walletApproveSuccessTransaction, attributes: [
+                "transactionId": signedTransaction.id
+            ])
+
+            return signedTransaction
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletApproveError, attributes: [
+                "transactionId": id,
+                "error": "\(error)"
+            ])
+            throw error as? TransactionError ?? .transactionGeneric("Unknown error")
         }
-        return signedTransaction
     }
 
     @available(*, deprecated, renamed: "balances", message: "Use the balances(tokens) instead")
@@ -70,34 +88,60 @@ open class Wallet: @unchecked Sendable {
         _ tokens: [CryptoCurrency] = [],
         _ chains: [Chain] = []
     ) async throws(WalletError) -> Balance {
-        let nativeToken = getNativeToken(chain)
-        let balances = try await smartWalletService.getBalance(
-            .init(
-                walletLocator: .address(blockchainAddress),
-                tokens: tokens + [nativeToken, .usdc],
-                chains: [chain] + chains
-            )
-        )
+        Logger.smartWallet.debug(LogEvents.walletBalancesStart)
 
-        return BalanceTransformer.transform(
-            from: balances,
-            nativeToken: nativeToken,
-            requestedTokens: tokens
-        )
+        do {
+            let nativeToken = getNativeToken(chain)
+            let balances = try await smartWalletService.getBalance(
+                .init(
+                    walletLocator: .address(blockchainAddress),
+                    tokens: tokens + [nativeToken, .usdc],
+                    chains: [chain] + chains
+                )
+            )
+
+            Logger.smartWallet.debug(LogEvents.walletBalancesSuccess)
+
+            return BalanceTransformer.transform(
+                from: balances,
+                nativeToken: nativeToken,
+                requestedTokens: tokens
+            )
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletBalancesError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
     }
 
     public func fund(
         token: CryptoCurrency,
         amount: Int
     ) async throws(WalletError) {
-        try await smartWalletService.fund(
-            .init(
-                token: token.name,
-                amount: amount,
-                chain: chain.name,
-                address: blockchainAddress
+        Logger.smartWallet.debug(LogEvents.walletStagingFundStart, attributes: [
+            "token": token.name,
+            "amount": "\(amount)",
+            "chain": chain.name
+        ])
+
+        do {
+            try await smartWalletService.fund(
+                .init(
+                    token: token.name,
+                    amount: amount,
+                    chain: chain.name,
+                    address: blockchainAddress
+                )
             )
-        )
+
+            Logger.smartWallet.debug(LogEvents.walletStagingFundSuccess)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletStagingFundError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
     }
 
     @available(*, deprecated, renamed: "send(_:_:_:)", message: "Use the new send method. This one will be removed.")
@@ -106,12 +150,21 @@ open class Wallet: @unchecked Sendable {
         recipient: TransferTokenRecipient,
         amount: String
     ) async throws(TransactionError) -> Transaction {
+        Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
+            "token": token.name,
+            "recipient": recipient.description,
+            "amount": amount
+        ])
+
         let transferTokenLocator: TransferTokenLocator
         if let evmChain = EVMChain(chain.name) {
             transferTokenLocator = .currency(.evm(evmChain, token))
         } else if let solanaToken = SolanaSupportedToken.toSolanaSupportedToken(token) {
             transferTokenLocator = .currency(.solana(solanaToken))
         } else {
+            Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
+                "error": "Transaction creation failed"
+            ])
             throw .transactionCreationFailed
         }
 
@@ -119,21 +172,54 @@ open class Wallet: @unchecked Sendable {
             tokenLocator: transferTokenLocator.description,
             recipient: recipient.description,
             amount: amount
-        ) else { throw .transactionGeneric("Unknown error") }
+        ) else {
+            Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
+                "error": "Unknown error"
+            ])
+            throw TransactionError.transactionGeneric("Unknown error")
+        }
+
+        Logger.smartWallet.debug(LogEvents.walletSendSuccess, attributes: [
+            "transactionId": transaction.id
+        ])
 
         return transaction
     }
 
+    /// Sends tokens to a recipient.
+    /// - Parameters:
+    ///   - walletLocator: The recipient wallet address
+    ///   - tokenLocator: Token identifier in format "{chain}:{token}" (e.g., "base-sepolia:eth", "solana:usdc")
+    ///   - amount: The amount to send as a decimal number
+    ///   - idempotencyKey: Optional unique key to prevent duplicate transaction creation. If not provided, a random UUID will be generated.
+    /// - Returns: A TransactionSummary containing the transaction details
     public func send(
         _ walletLocator: String,
         _ tokenLocator: String,
-        _ amount: Double
+        _ amount: Double,
+        idempotencyKey: String? = nil
     ) async throws(TransactionError) -> TransactionSummary {
+        Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
+            "recipient": walletLocator,
+            "tokenLocator": tokenLocator,
+            "amount": "\(amount)"
+        ])
+
         guard let transaction = try await transferTokenAndPollWhilePending(
             tokenLocator: tokenLocator,
             recipient: walletLocator,
-            amount: String(amount)
-        )?.toCompleted() else { throw .transactionGeneric("Unknown error") }
+            amount: String(amount),
+            idempotencyKey: idempotencyKey
+        )?.toCompleted() else {
+            Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
+                "error": "Unknown error"
+            ])
+            throw TransactionError.transactionGeneric("Unknown error")
+        }
+
+        Logger.smartWallet.debug(LogEvents.walletSendSuccess, attributes: [
+            "transactionId": transaction.id
+        ])
 
         return transaction.summary
     }
@@ -154,7 +240,7 @@ open class Wallet: @unchecked Sendable {
             tokenLocator: tokenLocator.description,
             recipient: recipient.description,
             amount: amount
-        ) else { throw .transactionGeneric("Unknown error") }
+        ) else { throw TransactionError.transactionGeneric("Unknown error") }
 
         return transaction
     }
@@ -165,25 +251,47 @@ open class Wallet: @unchecked Sendable {
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
-        let completedTransaction = try await pollTransactionWhilePending(transaction: signedTransaction)
 
-        return completedTransaction
+        do {
+            return try await pollTransactionWhilePending(transaction: signedTransaction)
+        } catch {
+            switch error {
+            case .serviceError(let crossmintServiceError):
+                if case .invalidApiKey = crossmintServiceError {
+                    Logger.smartWallet.warn(
+                        """
+Transaction polling skipped due to insufficient API key permissions.
+Transaction was submitted successfully but status cannot be verified.
+Transaction ID: \(createdTransaction?.id ?? "unknown")
+"""
+                    )
+                    return createdTransaction
+                } else {
+                    throw error
+                }
+            default:
+                throw error
+            }
+        }
     }
 
     internal func transferTokenAndPollWhilePending(
         tokenLocator: String,
         recipient: String,
-        amount: String
+        amount: String,
+        idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
         onTransactionStart?()
         let createdTransaction = try await smartWalletService.transferToken(
             chainType: chain.chainType.rawValue,
             tokenLocator: tokenLocator,
             recipient: recipient,
-            amount: amount
+            amount: amount,
+            idempotencyKey: idempotencyKey
         ).toDomain(withService: smartWalletService)
 
-        return try await signAndPollWhilePending(createdTransaction)
+        let signedTransaction = try await signTransactionIfRequired(createdTransaction)
+        return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
     internal func signAndPollWhilePending(
@@ -236,7 +344,7 @@ open class Wallet: @unchecked Sendable {
         guard let transaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: id, chainType: chain.chainType),
         ).toDomain(withService: smartWalletService) else {
-            throw .transactionGeneric("Unknown error")
+            throw TransactionError.transactionGeneric("Unknown error")
         }
         return transaction
     }
@@ -328,11 +436,12 @@ open class Wallet: @unchecked Sendable {
             guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
             ).toDomain(withService: smartWalletService) else {
-                throw .transactionGeneric("Unknown error")
+                throw TransactionError.transactionGeneric("Unknown error")
             }
 
             updatedTransaction = fetchedTransaction
         }
+
         return updatedTransaction
     }
 

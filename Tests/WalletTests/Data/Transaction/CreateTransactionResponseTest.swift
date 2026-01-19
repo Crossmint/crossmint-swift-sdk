@@ -13,7 +13,7 @@ struct CreateTransactionResponseTest {
         )
 
         #expect(response.status == .awaitingApproval)
-        #expect(response.approvals.pending.count == 1)
+        #expect(response.approvals?.pending.count == 1)
     }
 
     @Test("Parse Solana transaction state")

@@ -1,4 +1,5 @@
 import Foundation
+import Web
 
 public protocol EVMCompatibleSigner: Sendable {}
 public protocol SolanaCompatibleSigner: Sendable {}

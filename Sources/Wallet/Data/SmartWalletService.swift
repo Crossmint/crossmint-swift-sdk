@@ -1,4 +1,4 @@
-import Auth
+import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 
@@ -42,7 +42,8 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
         chainType: String,
         tokenLocator: String,
         recipient: String,
-        amount: String
+        amount: String,
+        idempotencyKey: String?
     ) async throws(TransactionError) -> any TransactionApiModel
 
     func createSignature(

@@ -2,7 +2,9 @@
 import Utils
 
 public struct Logger: Sendable {
-    public nonisolated(unsafe) static var level: OSLogType = .fault
+
+    private let providers: [LoggerProvider]
+    public nonisolated(unsafe) static var level: LogLevel = .error
 
     private let osLogger: OSLog
     private let subsystem: String
@@ -10,41 +12,48 @@ public struct Logger: Sendable {
     public init(category: String) {
         self.subsystem = "CrossmintSDK"
         self.osLogger = OSLog(subsystem: subsystem, category: category)
+
+        providers = [
+            OSLoggerProvider(category: category),
+            DataDogLoggerProvider(
+                service: category,
+                clientToken: DataDogConfig.clientToken,
+                environment: DataDogConfig.environment
+            )
+        ]
     }
 
-    public func debug(_ message: String) {
-        if isRunningInPlayground() {
-            print("🔍 [\(subsystem)] \(message)")
+    public func debug(_ message: String, attributes: [String: Encodable]? = nil) {
+        guard Logger.level.rawValue <= LogLevel.debug.rawValue else { return }
+        for provider in providers {
+            provider.debug(message, attributes: attributes)
         }
-
-        guard Logger.level == .debug else { return }
-        os_log(.debug, log: osLogger, "%{public}@", message)
     }
 
-    public func error(_ message: String) {
-        if isRunningInPlayground() {
-            print("❌ [\(subsystem)] \(message)")
+    public func error(_ message: String, attributes: [String: Encodable]? = nil) {
+        guard Logger.level.rawValue <= LogLevel.error.rawValue else { return }
+        for provider in providers {
+            provider.error(message, attributes: attributes)
         }
-
-        guard Logger.level != .fault else { return }
-        os_log(.error, log: osLogger, "%{public}@", message)
     }
 
-    public func info(_ message: String) {
-        if isRunningInPlayground() {
-            print("ℹ️ [\(subsystem)] \(message)")
+    public func info(_ message: String, attributes: [String: Encodable]? = nil) {
+        guard Logger.level.rawValue <= LogLevel.info.rawValue else { return }
+        for provider in providers {
+            provider.info(message, attributes: attributes)
         }
-
-        guard [.debug, .info].contains(Logger.level) else { return }
-        os_log(.info, log: osLogger, "%{public}@", message)
     }
 
-    public func warn(_ message: String) {
-        if isRunningInPlayground() {
-            print("⚠️ [\(subsystem)] \(message)")
+    public func warn(_ message: String, attributes: [String: Encodable]? = nil) {
+        guard Logger.level.rawValue <= LogLevel.warn.rawValue else { return }
+        for provider in providers {
+            provider.warn(message, attributes: attributes)
         }
+    }
 
-        guard [.debug, .info, .default].contains(Logger.level) else { return }
-        os_log(.default, log: osLogger, "%{public}@", message)
+    public func flush() async {
+        for provider in providers {
+            await provider.flush()
+        }
     }
 }

@@ -34,15 +34,14 @@ struct SplashScreen: View {
         }
     }
 
-    private let sdk: CrossmintSDK = .shared
-
     @State private var isLoading: Bool = false
     @State private var authenticationStatus: AuthenticationStatus?
     @State private var transitionOpacity: Double = 0
     @State private var error: Error?
+    @State private var showOTPView = false
 
     private var authManager: AuthManager {
-        sdk.authManager
+        CrossmintSDK.shared.authManager
     }
 
     @ViewBuilder
@@ -121,9 +120,15 @@ struct SplashScreen: View {
                 }
             }
             .animation(AnimationConstants.easeInOut(), value: authenticationStatus)
+            .sheet(isPresented: $showOTPView) {
+                OTPValidatorView()
+            }
         }
         .task {
             await authenticate()
+        }
+        .onReceive(CrossmintSDK.shared.isOTPRequred) {
+            showOTPView = $0
         }
     }
 

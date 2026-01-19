@@ -1,7 +1,29 @@
-import AuthUI
 import Logger
 import SwiftUI
 import Wallet
+import Web
+
+@MainActor var instanceTrackers: [String: Int] = [:]
+
+final class InstanceTracker: ObservableObject, Sendable {
+    let instance: String
+    init(name: String) {
+        self.instance = name
+
+        Task { @MainActor in
+            instanceTrackers[instance, default: 0] += 1
+            if instanceTrackers[instance, default: 0] > 1 {
+                Logger.sdk.error("More than one instance of \(instance) created at a time. Behaviour is undefined.")
+            }
+        }
+    }
+
+    deinit {
+        Task { @MainActor [instance] in
+            instanceTrackers[instance, default: 0] -= 1
+        }
+    }
+}
 
 extension View {
     public func crossmintNonCustodialSigner(_ sdk: CrossmintSDK) -> some View {
@@ -19,6 +41,7 @@ private struct CrossmintNonCustodialSignerViewModifier: ViewModifier {
     func body(content: Content) -> some View {
         ZStack {
             HiddenEmailSignersView(crossmintTEE: crossmintTEE)
+                .environmentObject(InstanceTracker(name: "HiddenEmailSignersView"))
             content
         }
     }
@@ -32,9 +55,7 @@ private struct HiddenEmailSignersView: View {
     }
 
     var body: some View {
-        EmailSignersView(
-            webViewCommunicationProxy: crossmintTEE.webProxy
-        )
+        CrossmintWebView(tee: crossmintTEE)
         .frame(width: 20, height: 20) // 1x1 WebViews may be throttled, so give some margin
         .allowsHitTesting(false)
         .accessibilityHidden(true)

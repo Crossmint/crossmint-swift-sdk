@@ -3,6 +3,7 @@
 import PackageDescription
 
 let basePlugins: [PackageDescription.Target.PluginUsage] = [
+    .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
 ]
 
 let baseDependencies: [PackageDescription.Target.Dependency] = [
@@ -37,7 +38,7 @@ let package = Package(
         .package(url: "https://github.com/bitflying/SwiftKeccak", exact: "0.1.2"),
         .package(url: "https://github.com/attaswift/BigInt", from: "5.4.0"),
         .package(url: "https://github.com/ekscrypto/SwiftEmailValidator", exact: "1.0.4"),
-        .package(url: "https://github.com/valpackett/SwiftCBOR", branch: "master"),
+        .package(url: "https://github.com/valpackett/SwiftCBOR", exact: "0.5.0"),
         // Plugins
         // If the Swiftlint version is updated, update the binary in the Makefile.
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", exact: "0.59.1")
@@ -48,11 +49,13 @@ let package = Package(
             dependencies: baseDependencies + [
                 "CrossmintService",
                 "Wallet",
-                "Auth",
-                "AuthUI",
+                "CrossmintAuth",
                 "CrossmintCommonTypes",
 //                "Payments",
                 "SecureStorage"
+            ],
+            resources: [
+                .process("PrivacyInfo.xcprivacy")
             ],
             plugins: basePlugins
         ),
@@ -83,7 +86,7 @@ let package = Package(
             dependencies: baseDependencies + [
                 "Http",
                 "CrossmintService",
-                "Auth",
+                "CrossmintAuth",
                 "CrossmintCommonTypes",
                 "SecureStorage",
                 "Passkeys",
@@ -103,13 +106,9 @@ let package = Package(
             plugins: basePlugins
         ),
         .target(
-            name: "Auth",
-            dependencies: baseDependencies + ["CrossmintService", "SecureStorage", "Web"],
-            plugins: basePlugins
-        ),
-        .target(
-            name: "AuthUI",
-            dependencies: baseDependencies + ["Web"],
+            name: "CrossmintAuth",
+            dependencies: baseDependencies + ["CrossmintService", "SecureStorage"],
+            path: "Sources/CrossmintAuth",
             plugins: basePlugins
         ),
         .target(
@@ -148,7 +147,7 @@ let package = Package(
         ),
         .target(
             name: "Web",
-            dependencies: baseDependencies,
+            dependencies: baseDependencies + ["CrossmintAuth"],
             plugins: basePlugins
         ),
         .target(
@@ -222,7 +221,8 @@ let package = Package(
             name: "WebTests",
             dependencies: [
                 "Web",
-                "TestsUtils"
+                "TestsUtils",
+                "CrossmintAuth"
             ],
             plugins: basePlugins
         ),

@@ -1,7 +1,6 @@
 import Foundation
 import WebKit
 import Web
-@testable import Wallet
 
 @MainActor
 final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
@@ -92,6 +91,12 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
 
     func sentMessages<T: WebViewMessage>(ofType type: T.Type) -> [T] {
         return sentMessages.compactMap { $0 as? T }
+    }
+
+    func clearResponse<T: WebViewMessage>(for messageType: T.Type) {
+        let typeName = String(describing: messageType)
+        waitResponses.removeValue(forKey: typeName)
+        waitDelays.removeValue(forKey: typeName)
     }
 
     // MARK: - WKScriptMessageHandler

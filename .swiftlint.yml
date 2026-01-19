@@ -8,7 +8,7 @@ disabled_rules: # rule identifiers turned on by default to exclude from running
 excluded: # case-sensitive paths to ignore during linting. Takes precedence over `included`
   - .build
 
-enabled_rules:
+opt_in_rules:
   - force_cast
   - force_try
   - force_unwrapping
@@ -20,6 +20,15 @@ force_try:
 force_unwrapping:
   severity: error
 
+line_length:
+  ignores_comments: true
+
+file_length:
+  ignore_comment_only_lines: true
+
 nesting:
-  type_level: 4     
-  statement_level: 4
+  type_level: 4
+
+type_body_length:
+  warning: 400
+  error: 500

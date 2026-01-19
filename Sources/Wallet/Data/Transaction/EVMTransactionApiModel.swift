@@ -20,16 +20,16 @@ public struct EVMTransactionApiModel: TransactionApiModel {
     }
 
     public struct UserOperation: Decodable {
-        public let paymaster: String
-        public let paymasterVerificationGasLimit: String
+        public let paymaster: String?
+        public let paymasterVerificationGasLimit: String?
         public let preVerificationGas: String
         public let nonce: String
-        public let paymasterPostOpGasLimit: String
+        public let paymasterPostOpGasLimit: String?
         public let factoryData: String?
         public let factory: String?
         public let signature: String
         public let callGasLimit: String
-        public let paymasterData: String
+        public let paymasterData: String?
         public let verificationGasLimit: String
         public let maxFeePerGas: String
         public let sender: String
@@ -100,7 +100,7 @@ public struct EVMTransactionApiModel: TransactionApiModel {
     public let params: Params
     public let walletType: WalletType
     public let createdAt: Date
-    public let approvals: Approvals
+    public let approvals: Approvals?
     public let error: TransactionErrorApiModel?
 
     public func toDomain(withService service: SmartWalletService) -> Transaction? {
@@ -112,7 +112,7 @@ public struct EVMTransactionApiModel: TransactionApiModel {
             params: params.toDomain,
             walletType: walletType,
             createdAt: createdAt,
-            approvals: approvals.toDomain,
+            approvals: approvals?.toDomain,
             error: error?.toDomain
         )
     }
