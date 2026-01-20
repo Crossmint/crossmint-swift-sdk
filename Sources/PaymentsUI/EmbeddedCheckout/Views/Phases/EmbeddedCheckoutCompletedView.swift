@@ -1,3 +1,4 @@
+// swiftlint:disable line_length
 import CrossmintService
 import Payments
 import SwiftUI
@@ -59,6 +60,7 @@ public struct EmbeddedCheckoutCompletedView: View {
                 "executionMode" : "exact-out",
                 "metadata" : {
                     "name" : "My nft",
+                    // swiftlint:disable:next line_length
                     "imageUrl" : "https://lh3.googleusercontent.com/K3jRCmDa1i11JfzUAegOk_LYwNFfbShz5ljBV8Prs4qSubHx437tO5M8KUaQ7A5JotzzNxW5N-PAp_H_8IuoCkWpmysGh31fFeEn=s1000",
                     "description" : "badd descre"
                 },
@@ -134,3 +136,4 @@ public struct EmbeddedCheckoutCompletedView: View {
         }
     }
 }
+// swiftlint:enable line_length

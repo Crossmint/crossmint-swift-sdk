@@ -1,3 +1,4 @@
+// swiftlint:disable line_length
 import CrossmintClient
 import Payments
 import PaymentsUI
@@ -255,3 +256,4 @@ public struct EmbeddedCompletedView: View {
         EmbeddedCheckoutCompletedView().environmentObject(orderManager)
     }
 }
+// swiftlint:enable line_length
