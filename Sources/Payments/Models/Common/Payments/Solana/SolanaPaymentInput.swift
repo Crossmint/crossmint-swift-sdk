@@ -1,7 +1,7 @@
 import CrossmintCommonTypes
 
 public enum SolanaPaymentMethod: String, Codable, Sendable {
-    case solana = "solana"
+    case solana
 }
 
 public struct SolanaPaymentInput: CommonPaymentInput {
