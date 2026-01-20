@@ -101,7 +101,9 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
 
     // MARK: - WKScriptMessageHandler
 
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    public func userContentController(
+        _ userContentController: WKUserContentController, didReceive message: WKScriptMessage
+    ) {
         // Mock implementation - not needed for tests
     }
 }

@@ -47,7 +47,8 @@ extension CheckoutComPaymentFormManager {
             else {
                 // TODO either throw or show global message
                 errorMessage =
-                    "[CheckoutComPaymentFormManager.makeComponent] Cannot retrieve payment session and payment session secret"
+                    "[CheckoutComPaymentFormManager.makeComponent] " +
+                    "Cannot retrieve payment session and payment session secret"
                 Logger.payments.error(errorMessage)
                 return
             }

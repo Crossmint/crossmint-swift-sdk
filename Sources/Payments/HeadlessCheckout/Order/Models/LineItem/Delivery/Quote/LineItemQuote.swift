@@ -68,7 +68,8 @@ public enum LineItemQuote: Codable, Sendable {
                 throw DecodingError.dataCorruptedError(
                     in: container,
                     debugDescription:
-                        "Cannot decode LineItemQuote: neither ExactOutLineItemQuote nor ExactInLineItemQuote could be decoded"
+                        "Cannot decode LineItemQuote: " +
+                        "neither ExactOutLineItemQuote nor ExactInLineItemQuote could be decoded"
                 )
             }
         }

@@ -16,8 +16,14 @@ struct EmbeddedCheckoutPhysicalAddressForm: View {
         let name = defaultAddress?.name
         let physicalAddressWithoutName = defaultAddress?.withoutName()
 
-        self._nameDebouncer = StateObject(wrappedValue: DebouncerViewModel<String>(initialValue: name ?? "", delay: 1))
-        self._addressWithoutNameDebouncer = StateObject(wrappedValue: DebouncerViewModel<PhysicalAddressWithoutName?>(initialValue: physicalAddressWithoutName, delay: 1))
+        self._nameDebouncer = StateObject(
+            wrappedValue: DebouncerViewModel<String>(initialValue: name ?? "", delay: 1)
+        )
+        self._addressWithoutNameDebouncer = StateObject(
+            wrappedValue: DebouncerViewModel<PhysicalAddressWithoutName?>(
+                initialValue: physicalAddressWithoutName, delay: 1
+            )
+        )
     }
 
     var body: some View {

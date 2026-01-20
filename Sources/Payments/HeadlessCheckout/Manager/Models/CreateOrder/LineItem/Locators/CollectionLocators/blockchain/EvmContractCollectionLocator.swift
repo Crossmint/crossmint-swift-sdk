@@ -4,7 +4,8 @@ import Utils
 // MARK: - Constants
 
 private let invalidBlockchainCollectionLocatorErrorMessage =
-    "Invalid blockchain collection locator. Expected: '<chain>:<contractAddress>' where chain is an EVM chain and contractAddress is a valid EVM address."
+    "Invalid blockchain collection locator. " +
+    "Expected: '<chain>:<contractAddress>' where chain is an EVM chain and contractAddress is a valid EVM address."
 
 // MARK: - EvmContractCollectionLocator
 

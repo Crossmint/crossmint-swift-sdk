@@ -81,7 +81,8 @@ final class CheckoutComAdapter: Sendable {
         )
 
         Logger.payments.debug(
-            "[CheckoutComAdapter.submitPayment] CheckoutComPaymentInput: \(checkoutComPaymentInput.json(prettyPrinted: true))"
+            "[CheckoutComAdapter.submitPayment] " +
+            "CheckoutComPaymentInput: \(checkoutComPaymentInput.json(prettyPrinted: true))"
         )
 
         let endpoint = CheckoutComEndpoint.submitPayment(

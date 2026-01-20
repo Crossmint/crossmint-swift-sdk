@@ -37,7 +37,10 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         }
     }
 
-    @available(*, deprecated, renamed: "sendTransaction(to:value:data:)", message: "Use the new sendTransaction method. This one will be removed.")
+    @available(
+        *, deprecated, renamed: "sendTransaction(to:value:data:)",
+        message: "Use the new sendTransaction method. This one will be removed."
+    )
     public func sendTransaction(
         to address: EVMAddress,
         data: String?,
@@ -202,7 +205,9 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         }
     }
 
-    private func createAndApproveSignature(request: CreateSignatureRequest) async throws(SignatureError) -> any SignatureApiModel {
+    private func createAndApproveSignature(
+        request: CreateSignatureRequest
+    ) async throws(SignatureError) -> any SignatureApiModel {
         let response = try await super.smartWalletService.createSignature(request)
 
         for pendingApproval in response.approvals.pending {

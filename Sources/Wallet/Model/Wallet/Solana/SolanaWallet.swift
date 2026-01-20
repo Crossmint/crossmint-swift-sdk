@@ -42,7 +42,10 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
         }
     }
 
-    @available(*, deprecated, renamed: "sendTransaction(transaction:)", message: "Use the new sendTransaction method. This one will be removed.")
+    @available(
+        *, deprecated, renamed: "sendTransaction(transaction:)",
+        message: "Use the new sendTransaction method. This one will be removed."
+    )
     public func sendTransaction(
         transaction: String
     ) async throws(TransactionError) -> Transaction {

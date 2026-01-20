@@ -33,7 +33,8 @@ struct EmbeddedCheckoutDestinationEmailOrWalletInput: View {
             )
         } catch {
             Logger.paymentsUI.error(
-                "[EmbeddedCheckoutDestinationEmailOrWalletInput.updateOrderRecipient] Error updating recipient: \(error)"
+                "[EmbeddedCheckoutDestinationEmailOrWalletInput.updateOrderRecipient] " +
+                "Error updating recipient: \(error)"
             )
         }
 
@@ -44,7 +45,8 @@ struct EmbeddedCheckoutDestinationEmailOrWalletInput: View {
 
     private func handleLiveEmailOrWalletChange(_ newValue: String) {
         Logger.paymentsUI.debug(
-            "[EmbeddedCheckoutDestinationEmailOrWalletInput.handleLiveEmailOrWalletChange] email or wallet text changed to: \(newValue)"
+            "[EmbeddedCheckoutDestinationEmailOrWalletInput.handleLiveEmailOrWalletChange] " +
+            "email or wallet text changed to: \(newValue)"
         )
 
         // Debouncing and updating the state
@@ -60,7 +62,8 @@ struct EmbeddedCheckoutDestinationEmailOrWalletInput: View {
         let value = destinationState.value
 
         Logger.paymentsUI.info(
-            "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateNewEmailOrWalletAndUpdateRecipient] Validating and updating recipient with value: \(value)"
+            "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateNewEmailOrWalletAndUpdateRecipient] " +
+            "Validating and updating recipient with value: \(value)"
         )
 
         // If it's empty, don't modify the state
@@ -72,7 +75,8 @@ struct EmbeddedCheckoutDestinationEmailOrWalletInput: View {
             Address.validateAddressAndReturnAddress(
                 value, chain: deliveryChain) {
             Logger.paymentsUI.debug(
-                "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateNewEmailOrWalletAndUpdateRecipient] valid wallet address: \(value)"
+                "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateNewEmailOrWalletAndUpdateRecipient] " +
+                "valid wallet address: \(value)"
             )
             await updateOrderRecipient(
                 newRecipient: RecipientInput.walletAddressWithOptionalPhysicalAddress(
@@ -83,7 +87,8 @@ struct EmbeddedCheckoutDestinationEmailOrWalletInput: View {
                 ))
         } else if isValidEmail(value) {
             Logger.paymentsUI.debug(
-                "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateNewEmailOrWalletAndUpdateRecipient] valid email: \(value)"
+                "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateNewEmailOrWalletAndUpdateRecipient] " +
+                "valid email: \(value)"
             )
             // TODO validate email
             await updateOrderRecipient(
@@ -99,7 +104,8 @@ struct EmbeddedCheckoutDestinationEmailOrWalletInput: View {
 
     private func validateEmailOrWalletAndShowErrors() {
         Logger.paymentsUI.debug(
-            "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateEmailOrWalletAndShowErrors] Validating email or wallet: \(inputText)"
+            "[EmbeddedCheckoutDestinationEmailOrWalletInput.validateEmailOrWalletAndShowErrors] " +
+            "Validating email or wallet: \(inputText)"
         )
 
         let emailOrWallet = inputText
@@ -143,7 +149,8 @@ struct EmbeddedCheckoutDestinationEmailOrWalletInput: View {
         }
         .onReceive(checkoutStateManager.$debouncedDestinationState) { debouncedState in
             Logger.paymentsUI.debug(
-                "[EmbeddedCheckoutDestinationEmailOrWalletInput.onReceive] Debounced state changed to: \(debouncedState.value)"
+                "[EmbeddedCheckoutDestinationEmailOrWalletInput.onReceive] " +
+                "Debounced state changed to: \(debouncedState.value)"
             )
 
             // Validate that the debounced state is the same as the current state so we don't update the recipient twice

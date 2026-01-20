@@ -6,7 +6,10 @@ struct EmbeddedCheckoutPhysicalAddressAutocomplete: View {
     let physicalAddressWithoutName: PhysicalAddressWithoutName
     let onAddressSelected: (PhysicalAddressWithoutName) -> Void
 
-    init(physicalAddressWithoutName: PhysicalAddressWithoutName, onAddressSelected: @escaping (PhysicalAddressWithoutName) -> Void) {
+    init(
+        physicalAddressWithoutName: PhysicalAddressWithoutName,
+        onAddressSelected: @escaping (PhysicalAddressWithoutName) -> Void
+    ) {
         self.physicalAddressWithoutName = physicalAddressWithoutName
         self.onAddressSelected = onAddressSelected
     }

@@ -311,10 +311,12 @@ public enum LogEvents {
     public static let walletAddDelegatedSignerPreparedSignature = "wallet.addDelegatedSigner.prepared (signature)"
 
     /// Delegated signer signature pending
-    public static let walletAddDelegatedSignerSuccessSignaturePending = "wallet.addDelegatedSigner.success (signature pending)"
+    public static let walletAddDelegatedSignerSuccessSignaturePending =
+        "wallet.addDelegatedSigner.success (signature pending)"
 
     /// Delegated signer signature complete
-    public static let walletAddDelegatedSignerSuccessSignatureComplete = "wallet.addDelegatedSigner.success (signature complete)"
+    public static let walletAddDelegatedSignerSuccessSignatureComplete =
+        "wallet.addDelegatedSigner.success (signature complete)"
 
     /// Delegated signer added successfully
     public static let walletAddDelegatedSignerSuccess = "wallet.addDelegatedSigner.success"
