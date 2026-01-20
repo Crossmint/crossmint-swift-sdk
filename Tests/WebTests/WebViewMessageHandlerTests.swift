@@ -5,7 +5,6 @@ import Testing
 
 @Suite("WebViewMessageHandler Tests")
 @MainActor
-// swiftlint:disable:next type_body_length
 struct WebViewMessageHandlerTests {
     final class MockWebViewMessageHandlerDelegate: WebViewMessageHandlerDelegate {
         var receivedMessages: [any WebViewMessage] = []
