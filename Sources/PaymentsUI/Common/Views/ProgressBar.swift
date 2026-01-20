@@ -15,8 +15,7 @@ struct ProgressBar: View {
                 startTime = Date()
                 progress = startingProgress
             }
-            .onReceive(Timer.publish(every: updateInterval, on: .main, in: .common).autoconnect()) {
-                currentTime in
+            .onReceive(Timer.publish(every: updateInterval, on: .main, in: .common).autoconnect()) { currentTime in
                 guard let startTime = startTime else { return }
 
                 let elapsedTime = currentTime.timeIntervalSince(startTime)
