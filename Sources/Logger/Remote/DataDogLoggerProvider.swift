@@ -170,6 +170,7 @@ actor DataDogLoggerProvider: LoggerProvider {
         return "\(message) \(attributeStrings)"
     }
 
+    // swiftlint:disable:next function_body_length
     private func formatLogForDataDog(_ entry: LogEntry) -> [String: Any] {
         let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
 
