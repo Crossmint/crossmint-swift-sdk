@@ -8,15 +8,9 @@ public protocol CrossmintWallets: Sendable {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
 
-    func getOrCreateWallet(
-        chain: EVMChain,
-        signer: EVMSigners,
-        options: WalletOptions?
-    ) async throws(WalletError) -> Wallet
-
-    func getOrCreateWallet(
-        chain: SolanaChain,
-        signer: SolanaSigners,
+    func getOrCreateWallet<C: ChainWithSigners>(
+        chain: C,
+        signer: C.SpecificSigner,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
 }
@@ -29,7 +23,7 @@ extension CrossmintWallets {
     ) async throws(WalletError) -> Wallet {
         try await getOrCreateWallet(
             chain: Chain(chain.name),
-            signer: signer.signer,
+            signer: await signer.signer,
             options: options
         )
     }
@@ -41,7 +35,31 @@ extension CrossmintWallets {
     ) async throws(WalletError) -> Wallet {
         try await getOrCreateWallet(
             chain: Chain(chain.name),
-            signer: signer.signer,
+            signer: await signer.signer,
+            options: options
+        )
+    }
+
+    public func getOrCreateWallet(
+        chain: StellarChain,
+        signer: StellarSigners,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        try await getOrCreateWallet(
+            chain: Chain(chain.name),
+            signer: await signer.signer,
+            options: options
+        )
+    }
+
+    public func getOrCreateWallet<C: ChainWithSigners>(
+        chain: C,
+        signer: C.SpecificSigner,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        try await getOrCreateWallet(
+            chain: Chain(chain.name),
+            signer: await signer.signer,
             options: options
         )
     }

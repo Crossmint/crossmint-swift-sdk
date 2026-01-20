@@ -20,6 +20,11 @@ public enum SolanaSmartWalletMapping: WalletTypeTransactionMapping {
     public static let chainType: ChainType = .solana
 }
 
+public enum StellarSmartWalletMapping: WalletTypeTransactionMapping {
+    public typealias APIModel = StellarTransactionApiModel
+    public static let chainType: ChainType = .stellar
+}
+
 public enum UnknownMapping: WalletTypeTransactionMapping {
     public typealias APIModel = UnknownApiTransaction
     public static let chainType: ChainType = .unknown

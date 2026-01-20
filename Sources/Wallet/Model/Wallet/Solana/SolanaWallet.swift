@@ -23,7 +23,7 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
         switch baseModel.config.adminSigner.type {
         case .apiKey:
-            effectiveSigner = SolanaApiKeySigner()
+            effectiveSigner = ApiKeySigner()
         default:
             break
         }
