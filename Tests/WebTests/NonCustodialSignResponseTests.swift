@@ -37,12 +37,14 @@ struct NonCustodialSignResponseTests {
 
         // Check signature
         let signature = try #require(response.signature)
-        #expect(signature.bytes == "286tF52C47NUK384m5uHmTpYxjMnXZHLTMjAJaChSKetckrYcAtnmBjybYMTXShN9H5yUV93XQEgJcsFrTyifQwE")
+        // swiftlint:disable:next line_length
+        let expectedSigBytes = "286tF52C47NUK384m5uHmTpYxjMnXZHLTMjAJaChSKetckrYcAtnmBjybYMTXShN9H5yUV93XQEgJcsFrTyifQwE"
+        #expect(signature.bytes == expectedSigBytes)
         #expect(signature.encoding == "base58")
         #expect(signature.keyType == "ed25519")
 
         // Check signature bytes convenience property
-        #expect(response.signatureBytes == "286tF52C47NUK384m5uHmTpYxjMnXZHLTMjAJaChSKetckrYcAtnmBjybYMTXShN9H5yUV93XQEgJcsFrTyifQwE")
+        #expect(response.signatureBytes == expectedSigBytes)
 
         // Check public key
         let publicKey = try #require(response.publicKey)

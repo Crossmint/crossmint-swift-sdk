@@ -122,6 +122,7 @@ struct BalancesTest {
     }
 
     @Test("Will parse different balances")
+    // swiftlint:disable:next function_body_length
     func willGetDifferentTokensFromTheBalanceResponse() async {
         let balances = getBalances("""
                 [

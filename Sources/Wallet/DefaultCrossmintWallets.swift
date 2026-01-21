@@ -17,6 +17,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
 
+    // swiftlint:disable:next function_body_length
     public func getOrCreateWallet(
         chain: Chain,
         signer: any Signer,

@@ -29,7 +29,8 @@ extension WebViewCommunicationProxy {
     }
 }
 
-public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScriptMessageHandler, WebViewCommunicationProxy {
+public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScriptMessageHandler,
+    WebViewCommunicationProxy {
     public let name = "crossmintMessageHandler"
 
     public weak var webView: WKWebView?

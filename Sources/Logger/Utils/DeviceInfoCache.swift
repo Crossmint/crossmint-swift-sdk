@@ -62,6 +62,7 @@ struct DeviceInfoCache: @unchecked Sendable {
         sysctlbyname("kern.osversion", nil, &size, nil, 0)
         var build = [UInt8](repeating: 0, count: size)
         sysctlbyname("kern.osversion", &build, &size, nil, 0)
+        // swiftlint:disable:next optional_data_string_conversion
         return String(decoding: build.prefix(while: { $0 != 0 }), as: UTF8.self)
     }
 

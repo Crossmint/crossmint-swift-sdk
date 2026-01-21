@@ -18,8 +18,7 @@ public enum TokenLocator: Codable, Sendable, CustomStringConvertible {
     ]
 
     public init(string value: String) throws(TokenLocatorError) {
-        let tokenLocator: TokenLocator? = TokenLocator.initializers.reduce(nil) {
-            result, initializer in
+        let tokenLocator: TokenLocator? = TokenLocator.initializers.reduce(nil) { result, initializer in
             guard result == nil else { return result }
             return initializer(value)
         }

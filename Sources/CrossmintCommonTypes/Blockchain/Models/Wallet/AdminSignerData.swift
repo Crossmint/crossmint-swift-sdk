@@ -50,7 +50,8 @@ public struct ExternalWalletSignerData: AdminSignerData {
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
                 in: container,
-                debugDescription: "Expected signer type to be \(AdminSignerDataType.externalWallet.rawValue) but found \(type)"
+                debugDescription:
+                    "Expected signer type to be \(AdminSignerDataType.externalWallet.rawValue) but found \(type)"
             )
         }
         self.address = try container.decode(String.self, forKey: .address)

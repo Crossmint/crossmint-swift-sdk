@@ -14,7 +14,8 @@ struct EmbeddedCheckoutExactInOrderFailedHeaderView: View {
             EmbeddedCheckoutOrderWarningContainerView(
                 title: "Order slippage exceeded",
                 description:
-                    "Your slippage limit was exceeded and we were unable to fulfill your order at the quoted amount. You have not been charged."
+                    "Your slippage limit was exceeded and we were unable to fulfill your order " +
+                    "at the quoted amount. You have not been charged."
             )
         }
     }

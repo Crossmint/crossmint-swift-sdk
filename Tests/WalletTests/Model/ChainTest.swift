@@ -230,8 +230,14 @@ struct ChainTest {
         "Test chains should equal corresponding EVMChain test variants"
     )
     func testChainsEqualCorrespondingEvmTestChains() async {
-        #expect(Chain.ethereumSepolia == EVMChain.ethereumSepolia, "Chain.ethereumSepolia should equal EVMChain.ethereumSepolia")
-        #expect(EVMChain.ethereumSepolia == Chain.ethereumSepolia, "EVMChain.ethereumSepolia should equal Chain.ethereumSepolia")
+        #expect(
+            Chain.ethereumSepolia == EVMChain.ethereumSepolia,
+            "Chain.ethereumSepolia should equal EVMChain.ethereumSepolia"
+        )
+        #expect(
+            EVMChain.ethereumSepolia == Chain.ethereumSepolia,
+            "EVMChain.ethereumSepolia should equal Chain.ethereumSepolia"
+        )
 
         #expect(Chain.polygonAmoy == EVMChain.polygonAmoy, "Chain.polygonAmoy should equal EVMChain.polygonAmoy")
         #expect(EVMChain.polygonAmoy == Chain.polygonAmoy, "EVMChain.polygonAmoy should equal Chain.polygonAmoy")
@@ -283,7 +289,9 @@ struct ChainTest {
         }
 
         guard let data = json.data(using: .utf8),
-                let chainResponse: ChainResponse = try? JSONDecoder().decode(ChainResponse.self, from: data) else { return nil }
+              let chainResponse: ChainResponse = try? JSONDecoder().decode(
+                ChainResponse.self, from: data
+              ) else { return nil }
         return chainResponse.chain
     }
 }

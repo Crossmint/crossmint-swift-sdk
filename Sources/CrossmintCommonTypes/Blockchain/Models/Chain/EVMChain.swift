@@ -1,4 +1,3 @@
-// swiftlint:disable:next type_body_length
 public enum EVMChain: SpecificChain, CaseIterable, Equatable {
     public init?(_ from: String) {
         guard let knownChain = Known(rawValue: from) else { return nil }

@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import CrossmintAuth
 import Combine
 import Logger
@@ -9,6 +10,7 @@ extension Logger {
 @MainActor private var teeInstances = 0
 
 @MainActor
+// swiftlint:disable:next type_body_length
 public final class CrossmintTEE: ObservableObject {
     public private(set) static var shared: CrossmintTEE?
 
@@ -107,6 +109,7 @@ public final class CrossmintTEE: ObservableObject {
         return try await queueSignRequest(transaction: transaction, keyType: keyType, encoding: encoding)
     }
 
+    // swiftlint:disable:next function_body_length
     private func executeSignTransaction(
         transaction: String,
         keyType: String,

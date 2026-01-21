@@ -227,7 +227,8 @@ public final class HeadlessCheckoutOrderManager: @unchecked Sendable, Authentica
         _ error: OrderError, message: String, checkoutOrderMethod: HeadlessCheckoutOrderMethod
     ) {
         Logger.payments.error(
-            "[HeadlessOrderManager.handleNetworkError] \(checkoutOrderMethod): message: \(message) failed with error: \(error)"
+            "[HeadlessOrderManager.handleNetworkError] \(checkoutOrderMethod): " +
+            "message: \(message) failed with error: \(error)"
         )
         checkoutStateManager.globalMessage = EmbeddedCheckoutGlobalMessage(
             message: error.errorMessage,
@@ -271,6 +272,7 @@ public final class HeadlessCheckoutOrderManager: @unchecked Sendable, Authentica
         pollingTimer = nil
     }
 
+    // swiftlint:disable:next function_body_length
     private func scheduleQuoteRefreshIfNeeded() {
         // Cancel any existing timer first
         cancelQuoteRefreshTimer()
@@ -320,7 +322,8 @@ public final class HeadlessCheckoutOrderManager: @unchecked Sendable, Authentica
                 // Check if a submission is in progress
                 if self.checkoutStateManager.submitInProgress {
                     Logger.payments.info(
-                        "[HeadlessOrderManager.scheduleQuoteRefreshIfNeeded] Order payment is being submitted, skipping refresh"
+                        "[HeadlessOrderManager.scheduleQuoteRefreshIfNeeded] " +
+                        "Order payment is being submitted, skipping refresh"
                     )
                     return
                 }
@@ -328,14 +331,15 @@ public final class HeadlessCheckoutOrderManager: @unchecked Sendable, Authentica
                 // Get the current order again to ensure it's still refreshable
                 guard let currentOrder = self.order, self.isRefreshableOrder(currentOrder) else {
                     Logger.payments.info(
-                        "[HeadlessOrderManager.scheduleQuoteRefreshIfNeeded] Order is no longer refreshable, skipping refresh"
+                        "[HeadlessOrderManager.scheduleQuoteRefreshIfNeeded] " +
+                        "Order is no longer refreshable, skipping refresh"
                     )
                     return
                 }
 
                 Logger.payments.info(
-                    // swiftlint:disable:next line_length
-                    "[HeadlessOrderManager.scheduleQuoteRefreshIfNeeded] Quote about to expire for order \(currentOrder.orderId), refreshing quote..."
+                    "[HeadlessOrderManager.scheduleQuoteRefreshIfNeeded] " +
+                    "Quote about to expire for order \(currentOrder.orderId), refreshing quote..."
                 )
 
                 // Perform the refresh

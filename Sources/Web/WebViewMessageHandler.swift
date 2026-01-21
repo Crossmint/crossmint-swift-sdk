@@ -37,7 +37,10 @@ public class WebViewMessageHandler {
     }
 
     public func reset() {
-        Logger.web.debug("reset() - Resetting message handler, clearing \(messageListeners.count) listeners, \(pendingMessages.count) pending messages, \(messageBuffer.count) buffered messages")
+        Logger.web.debug(
+            "reset() - Resetting message handler, clearing \(messageListeners.count) listeners, " +
+            "\(pendingMessages.count) pending messages, \(messageBuffer.count) buffered messages"
+        )
         isReady = false
         pendingMessages.removeAll()
         messageBuffer.removeAll()
@@ -83,7 +86,10 @@ public class WebViewMessageHandler {
             delegate?.handleWebViewMessage(decodedMessage)
         } else {
             // Log unknown message before delegating
-            Logger.web.warn("Unknown message type: \(messageTypeInfo), data: \(String(data: messageData, encoding: .utf8) ?? "nil")")
+            Logger.web.warn(
+                "Unknown message type: \(messageTypeInfo), " +
+                "data: \(String(data: messageData, encoding: .utf8) ?? "nil")"
+            )
             delegate?.handleUnknownMessage(messageTypeInfo, data: messageData)
         }
     }

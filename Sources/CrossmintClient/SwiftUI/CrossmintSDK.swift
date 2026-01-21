@@ -69,7 +69,10 @@ final public class CrossmintSDK: ObservableObject {
             }
         #endif
         Logger.client.error("Crossmint SDK requires an API key")
-        fatalError("Crossmint SDK requires an API key. Please call CrossmintSDK.shared(apiKey:) before accessing CrossmintSDK.shared")
+        fatalError(
+            "Crossmint SDK requires an API key. " +
+            "Please call CrossmintSDK.shared(apiKey:) before accessing CrossmintSDK.shared"
+        )
     }
 
     private init(apiKey: String, authManager: AuthManager? = nil) {

@@ -88,8 +88,9 @@ struct EmbeddedCheckoutGlobalMessageView: View {
         // Set up a new timer if timeout is specified
         if let timeout = message.timeout {
             let weakStateManager = checkoutStateManager
-            autoDismissTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) {
-                [weak weakStateManager] _ in
+            autoDismissTimer = Timer.scheduledTimer(
+                withTimeInterval: timeout, repeats: false
+            ) { [weak weakStateManager] _ in
                 DispatchQueue.main.async {
                     weakStateManager?.globalMessage = nil
                 }

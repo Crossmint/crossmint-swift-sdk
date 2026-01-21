@@ -3,7 +3,6 @@ import Foundation
 import Testing
 @testable import Wallet
 
-// swiftlint:disable:next type_body_length
 struct BalanceTransformerTest {
 
     // MARK: - Helper Methods
@@ -19,6 +18,7 @@ struct BalanceTransformerTest {
     // MARK: - Basic Functionality Tests
 
     @Test("Transform balances with all tokens present")
+    // swiftlint:disable:next function_body_length
     func testTransformWithAllTokensPresent() async {
         let balancesJson = """
         [
@@ -211,6 +211,7 @@ struct BalanceTransformerTest {
     }
 
     @Test("Transform balances with multiple tokens")
+    // swiftlint:disable:next function_body_length
     func testTransformWithMultipleTokens() async {
         let balancesJson = """
         [
@@ -301,6 +302,7 @@ struct BalanceTransformerTest {
     }
 
     @Test("Transform filters out duplicate native token and USDC from requested tokens")
+    // swiftlint:disable:next function_body_length
     func testTransformFiltersOutDuplicates() async {
         let balancesJson = """
         [
@@ -363,6 +365,7 @@ struct BalanceTransformerTest {
     }
 
     @Test("Transform handles unknown tokens")
+    // swiftlint:disable:next function_body_length
     func testTransformWithUnknownTokens() async {
         let balancesJson = """
         [

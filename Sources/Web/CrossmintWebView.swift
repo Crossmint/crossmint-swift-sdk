@@ -33,7 +33,9 @@ public struct CrossmintWebView: UIViewRepresentable {
         let userContentController = WKUserContentController()
 
         let communicationScript = WKUserScript(
-            source: CrossmintJavaScriptBridge.communicationScript(bundleID: bundleId, handlerName: webViewCommunicationProxy.name),
+            source: CrossmintJavaScriptBridge.communicationScript(
+                bundleID: bundleId, handlerName: webViewCommunicationProxy.name
+            ),
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         )

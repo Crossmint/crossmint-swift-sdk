@@ -25,7 +25,8 @@ struct CardPaymentMethodContentView: View {
 
     func validateDestination() -> Bool {
         Logger.paymentsUI.debug(
-            "[CardPaymentMethodContentView.validateDestination] Validating destination: \(checkoutStateManager.destinationState.value)"
+            "[CardPaymentMethodContentView.validateDestination] " +
+            "Validating destination: \(checkoutStateManager.destinationState.value)"
         )
 
         if !checkoutStateManager.isEditingDestination {

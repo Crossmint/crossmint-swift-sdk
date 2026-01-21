@@ -308,6 +308,7 @@ struct EIP712Tests {
     }
 
     @Test
+    // swiftlint:disable:next function_body_length
     func testRealWorldEtherMailExample() throws {
         let domain = EIP712.Domain(
             name: "Ether Mail",
@@ -406,6 +407,7 @@ struct EIP712Tests {
     }
 
     @Test
+    // swiftlint:disable:next function_body_length
     func testParseSignatureResponseWithNullValues() throws {
         // Test parsing the actual signature response JSON
         let response: TypedDataSignatureResponse = try GetFromFile.getModelFrom(

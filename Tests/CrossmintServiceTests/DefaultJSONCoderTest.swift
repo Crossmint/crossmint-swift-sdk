@@ -280,7 +280,10 @@ struct DefaultJSONCoderTest {
         let decodedModel: TestModelWithDate = try coder.decode(TestModelWithDate.self, from: encodedData)
 
         #expect(decodedModel.name == originalModel.name)
-        #expect(abs(decodedModel.createdAt.timeIntervalSince1970 - originalModel.createdAt.timeIntervalSince1970) < 0.001)
+        let timeDifference = abs(
+            decodedModel.createdAt.timeIntervalSince1970 - originalModel.createdAt.timeIntervalSince1970
+        )
+        #expect(timeDifference < 0.001)
     }
 
     @Test("Handles complex nested structures")

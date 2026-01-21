@@ -9,6 +9,7 @@ import Logger
 // MARK: - Callback Handlers
 
 extension CheckoutComPaymentFormManager {
+    // swiftlint:disable:next function_body_length
     func initialiseCallbacks() -> CheckoutComponents.Callbacks {
         .init(
             onReady: { paymentMethod in
@@ -44,7 +45,8 @@ extension CheckoutComPaymentFormManager {
                     let showingPayButton = await MainActor.run { self.showPayButton }
                     guard !showingPayButton else {
                         Logger.payments.info(
-                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] Showing checkout.com Flow element payment button. Skipping payment submission"
+                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] " +
+                            "Showing checkout.com Flow element payment button. Skipping payment submission"
                         )
                         return
                     }
@@ -54,7 +56,8 @@ extension CheckoutComPaymentFormManager {
 
                     guard let order = orderToProcess else {
                         Logger.payments.error(
-                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] Tokenized event received but no order to process"
+                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] " +
+                            "Tokenized event received but no order to process"
                         )
                         return
                     }
@@ -64,12 +67,14 @@ extension CheckoutComPaymentFormManager {
                             withToken: tokenDetails, forOrder: order)
 
                         Logger.payments.debug(
-                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] Payment response: \(paymentResponse.json(prettyPrinted: true))"
+                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] " +
+                            "Payment response: \(paymentResponse.json(prettyPrinted: true))"
                         )
                     } catch {
                         // TODO update global message state
                         Logger.payments.error(
-                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] Failed to submit payment: \(error.localizedDescription)"
+                            "[CheckoutComPaymentFormManager.CallbacksProvider.onTokenized] " +
+                            "Failed to submit payment: \(error.localizedDescription)"
                         )
                     }
                 }
@@ -95,7 +100,8 @@ extension CheckoutComPaymentFormManager {
 
     func handleOnSuccess(_ paymentMethod: CheckoutComponents.Describable, _ paymentId: String) {
         Logger.payments.info(
-            "[CheckoutComPaymentFormManager.CallbacksProvider.handleOnSuccess] Payment method: \(paymentMethod.name) ....> Payment Id: \(paymentId)"
+            "[CheckoutComPaymentFormManager.CallbacksProvider.handleOnSuccess] " +
+            "Payment method: \(paymentMethod.name) ....> Payment Id: \(paymentId)"
         )
         paymentSucceeded = true
         paymentID = paymentId
