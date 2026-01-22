@@ -46,6 +46,42 @@ open class Wallet: @unchecked Sendable {
         )
     }
 
+    /// Fetches the transfer history for this wallet.
+    ///
+    /// Returns a list of incoming and outgoing transfers for the specified tokens.
+    /// Use this method to display transaction history in your application.
+    ///
+    /// - Parameter tokens: The cryptocurrency tokens to fetch transfers for.
+    ///   Common values include `.eth`, `.usdc`, `.sol`, etc.
+    ///
+    /// - Returns: A ``TransferListResult`` containing the transfer events sorted
+    ///   by timestamp (most recent first).
+    ///
+    /// - Throws: ``WalletError`` if the request fails.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// // Fetch ETH and USDC transfers
+    /// let result = try await wallet.listTransfers(tokens: [.eth, .usdc])
+    ///
+    /// for transfer in result.transfers {
+    ///     let direction = transfer.isOutgoing(from: wallet.address) ? "Sent" : "Received"
+    ///     print("\(direction): \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
+    /// }
+    /// ```
+    public func listTransfers(
+        tokens: [CryptoCurrency]
+    ) async throws(WalletError) -> TransferListResult {
+        try await smartWalletService.listTransfers(
+            ListTransfersQueryParams(
+                walletLocator: .address(blockchainAddress),
+                chain: chain,
+                tokens: tokens
+            )
+        )
+    }
+
     public func approve(transactionId id: String) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletApproveStart, attributes: [
             "transactionId": id
