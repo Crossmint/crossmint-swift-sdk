@@ -371,6 +371,53 @@ public final class DefaultSmartWalletService: SmartWalletService {
         return response
     }
 
+    public func listTransfers(
+        _ params: ListTransfersQueryParams
+    ) async throws(WalletError) -> TransferListResult {
+        Logger.smartWallet.info(LogEvents.apiListTransfersStart, attributes: [
+            "walletLocator": params.walletLocator.value,
+            "chain": params.chain.name
+        ])
+
+        // The activity endpoint only requires the chain parameter
+        let queryItems: [URLQueryItem] = [
+            .init(name: "chain", value: params.chain.name)
+        ]
+
+        // Use the legacy activity endpoint which works with client-side JWT auth
+        // For client-side, use me:evm-smart-wallet or me:solana-smart-wallet
+        let walletTypeLocator = params.chain.chainType == .solana ? "solana-smart-wallet" : "evm-smart-wallet"
+
+        do {
+            let response: TransferListApiModel = try await crossmintService.executeRequest(
+                Endpoint(
+                    path: "/2022-06-09/wallets/me:\(walletTypeLocator)/activity",
+                    method: .get,
+                    headers: await authHeaders,
+                    queryItems: queryItems
+                ),
+                errorType: WalletError.self
+            )
+
+            let result = TransferListResult(
+                transfers: response.events.map { Transfer.map($0) },
+                nextCursor: nil,
+                previousCursor: nil
+            )
+
+            Logger.smartWallet.info(LogEvents.apiListTransfersSuccess, attributes: [
+                "count": "\(result.transfers.count)"
+            ])
+
+            return result
+        } catch {
+            Logger.smartWallet.warn(LogEvents.apiListTransfersError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
+    }
+
     public var authHeaders: [String: String] {
         get async {
             guard let jwt = await authManager.jwt else {
