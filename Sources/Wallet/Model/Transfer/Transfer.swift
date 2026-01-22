@@ -141,19 +141,29 @@ public struct Transfer: Sendable, Hashable, Equatable, Identifiable {
 // MARK: - Mapping
 
 extension Transfer {
-    static func map(_ apiModel: ActivityEventApiModel) -> Transfer {
-        let timestamp = Date(timeIntervalSince1970: apiModel.timestamp)
+    static func map(_ apiModel: TransferApiModel) -> Transfer {
+        let timestamp = Self.parseDate(apiModel.completedAt) ?? Date()
 
         return Transfer(
             type: apiModel.type,
-            fromAddress: apiModel.fromAddress,
-            toAddress: apiModel.toAddress,
-            transactionHash: apiModel.transactionHash,
-            tokenSymbol: apiModel.tokenSymbol,
-            amount: Decimal(string: apiModel.amount) ?? 0,
-            rawAmount: apiModel.amount,
+            fromAddress: apiModel.sender.address,
+            toAddress: apiModel.recipient.address,
+            transactionHash: apiModel.onChain?.txId ?? "",
+            tokenSymbol: apiModel.token.symbol,
+            amount: Decimal(string: apiModel.token.amount) ?? 0,
+            rawAmount: apiModel.token.amount,
             timestamp: timestamp,
-            mintHash: apiModel.mintHash
+            mintHash: nil
         )
+    }
+
+    private static func parseDate(_ dateString: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: dateString)
     }
 }

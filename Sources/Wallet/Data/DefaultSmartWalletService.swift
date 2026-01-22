@@ -379,19 +379,20 @@ public final class DefaultSmartWalletService: SmartWalletService {
             "chain": params.chain.name
         ])
 
-        // The activity endpoint only requires the chain parameter
-        let queryItems: [URLQueryItem] = [
-            .init(name: "chain", value: params.chain.name)
+        var queryItems: [URLQueryItem] = [
+            .init(name: "chain", value: params.chain.name),
+            .init(name: "status", value: "successful")
         ]
+        if !params.tokens.isEmpty {
+            queryItems.append(.init(name: "tokens", value: params.tokens.map(\.name).joined(separator: ",")))
+        }
 
-        // Use the legacy activity endpoint which works with client-side JWT auth
-        // For client-side, use me:evm-smart-wallet or me:solana-smart-wallet
-        let walletTypeLocator = params.chain.chainType == .solana ? "solana-smart-wallet" : "evm-smart-wallet"
+        let chainType = params.chain.chainType.rawValue
 
         do {
             let response: TransferListApiModel = try await crossmintService.executeRequest(
                 Endpoint(
-                    path: "/2022-06-09/wallets/me:\(walletTypeLocator)/activity",
+                    path: "/unstable/wallets/me:\(chainType)/transfers",
                     method: .get,
                     headers: await authHeaders,
                     queryItems: queryItems
@@ -400,9 +401,9 @@ public final class DefaultSmartWalletService: SmartWalletService {
             )
 
             let result = TransferListResult(
-                transfers: response.events.map { Transfer.map($0) },
-                nextCursor: nil,
-                previousCursor: nil
+                transfers: response.data.map { Transfer.map($0) },
+                nextCursor: response.nextCursor,
+                previousCursor: response.previousCursor
             )
 
             Logger.smartWallet.info(LogEvents.apiListTransfersSuccess, attributes: [

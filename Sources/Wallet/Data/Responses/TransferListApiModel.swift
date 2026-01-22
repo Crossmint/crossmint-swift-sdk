@@ -8,46 +8,47 @@
 import CrossmintCommonTypes
 import Foundation
 
-/// API response model for the wallet activity endpoint.
+/// API response model for the unstable transfers endpoint.
 struct TransferListApiModel: Decodable {
-    /// Array of activity events.
-    let events: [ActivityEventApiModel]
+    let data: [TransferApiModel]
+    let nextCursor: String?
+    let previousCursor: String?
 }
 
-/// API model representing a single activity event.
-struct ActivityEventApiModel: Decodable {
-    /// The symbol of the token involved in the activity.
-    let tokenSymbol: String?
-
-    /// The hash of the token (for NFTs).
-    let mintHash: String?
-
-    /// The hash of the transaction.
-    let transactionHash: String
-
-    /// The destination address of the transaction.
-    let toAddress: String
-
-    /// The source address of the transaction.
-    let fromAddress: String
-
-    /// The timestamp when the activity occurred (Unix timestamp).
-    let timestamp: Double
-
-    /// The amount of the token involved in the activity.
-    let amount: String
-
-    /// The type of activity (e.g., "TRANSFER").
+/// API model representing a single transfer.
+struct TransferApiModel: Decodable {
     let type: String
+    let sender: TransferParticipantApiModel
+    let recipient: TransferParticipantApiModel
+    let token: TransferTokenApiModel
+    let status: String
+    let onChain: TransferOnChainApiModel?
+    let completedAt: String
+    let error: TransferErrorApiModel?
+}
 
-    enum CodingKeys: String, CodingKey {
-        case tokenSymbol = "token_symbol"
-        case mintHash = "mint_hash"
-        case transactionHash = "transaction_hash"
-        case toAddress = "to_address"
-        case fromAddress = "from_address"
-        case timestamp
-        case amount
-        case type
-    }
+struct TransferParticipantApiModel: Decodable {
+    let address: String
+    let chain: String
+    let locator: String
+    let owner: String?
+}
+
+struct TransferTokenApiModel: Decodable {
+    let type: String
+    let chain: String
+    let locator: String
+    let amount: String
+    let symbol: String
+    let decimals: Int
+}
+
+struct TransferOnChainApiModel: Decodable {
+    let txId: String
+    let explorerLink: String?
+}
+
+struct TransferErrorApiModel: Decodable {
+    let code: String
+    let message: String
 }
