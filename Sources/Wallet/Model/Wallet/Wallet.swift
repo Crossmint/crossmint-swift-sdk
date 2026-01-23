@@ -66,8 +66,14 @@ open class Wallet: @unchecked Sendable {
     /// let result = try await wallet.listTransfers(tokens: [.eth, .usdc])
     ///
     /// for transfer in result.transfers {
-    ///     let direction = transfer.isOutgoing(from: wallet.address) ? "Sent" : "Received"
-    ///     print("\(direction): \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
+    ///     switch transfer.type {
+    ///     case .outgoing:
+    ///         print("Sent \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
+    ///     case .incoming:
+    ///         print("Received \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
+    ///     case .unknown:
+    ///         break
+    ///     }
     /// }
     /// ```
     public func listTransfers(
