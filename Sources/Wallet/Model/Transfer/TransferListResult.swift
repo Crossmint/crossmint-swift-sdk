@@ -12,17 +12,6 @@ import Foundation
 /// This struct contains an array of ``Transfer`` events representing the wallet's
 /// transaction history. The transfers are sorted by timestamp in descending order
 /// (most recent first).
-///
-/// ## Example
-///
-/// ```swift
-/// let result = try await wallet.listTransfers(tokens: [.eth, .usdc])
-///
-/// for transfer in result.transfers {
-///     let direction = transfer.isOutgoing(from: wallet.address) ? "Sent" : "Received"
-///     print("\(direction): \(transfer.amount) \(transfer.tokenSymbol ?? "")")
-/// }
-/// ```
 public struct TransferListResult: Sendable {
     /// The array of transfer events.
     ///
