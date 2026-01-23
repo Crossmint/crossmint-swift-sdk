@@ -8,24 +8,25 @@
 import CrossmintCommonTypes
 import Foundation
 
-/// Represents a wallet activity event such as a token transfer or NFT transfer.
+/// The direction of a transfer relative to the wallet.
+public enum TransferType: String, Sendable, Hashable {
+    /// The transfer was sent from the wallet.
+    case outgoing = "wallets.transfer.out"
+    /// The transfer was received by the wallet.
+    case incoming = "wallets.transfer.in"
+}
+
+/// Represents a token transfer event in the wallet's transaction history.
 ///
 /// Use this model to display transaction history in your application. Each transfer
 /// contains information about the sender, recipient, token, amount, and timestamp.
 ///
-/// ## Determining Transfer Direction
-///
-/// Use ``isOutgoing(from:)`` or ``isIncoming(to:)`` to determine if a transfer
-/// was sent from or received by a specific wallet address:
+/// ## Example
 ///
 /// ```swift
 /// let result = try await wallet.listTransfers(tokens: [.eth, .usdc])
 /// for transfer in result.transfers {
-///     if transfer.isOutgoing(from: wallet.address) {
-///         print("Sent \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
-///     } else {
-///         print("Received \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
-///     }
+///     print("\(transfer.type): \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
 /// }
 /// ```
 ///
@@ -38,12 +39,8 @@ public struct Transfer: Sendable, Hashable, Equatable, Identifiable {
         transactionHash
     }
 
-    /// The type of activity.
-    ///
-    /// Common values include:
-    /// - `"TRANSFER"` - A standard token transfer
-    /// - `"NFT_TRANSFER"` - An NFT transfer
-    public let type: String
+    /// The direction of the transfer relative to the wallet.
+    public let type: TransferType
 
     /// The blockchain address that sent the transfer.
     public let fromAddress: String
@@ -82,7 +79,7 @@ public struct Transfer: Sendable, Hashable, Equatable, Identifiable {
     public let mintHash: String?
 
     public init(
-        type: String,
+        type: TransferType,
         fromAddress: String,
         toAddress: String,
         transactionHash: String,
@@ -103,49 +100,19 @@ public struct Transfer: Sendable, Hashable, Equatable, Identifiable {
         self.mintHash = mintHash
     }
 
-    /// Determines if this transfer was sent from the given wallet address.
-    ///
-    /// - Parameter walletAddress: The wallet address to check against. The comparison is case-insensitive.
-    /// - Returns: `true` if this transfer was sent from the specified address, `false` otherwise.
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// let transfer = result.transfers.first!
-    /// if transfer.isOutgoing(from: wallet.address) {
-    ///     print("You sent \(transfer.amount) \(transfer.tokenSymbol ?? "")")
-    /// }
-    /// ```
-    public func isOutgoing(from walletAddress: String) -> Bool {
-        fromAddress.lowercased() == walletAddress.lowercased()
-    }
-
-    /// Determines if this transfer was received by the given wallet address.
-    ///
-    /// - Parameter walletAddress: The wallet address to check against. The comparison is case-insensitive.
-    /// - Returns: `true` if this transfer was received by the specified address, `false` otherwise.
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// let transfer = result.transfers.first!
-    /// if transfer.isIncoming(to: wallet.address) {
-    ///     print("You received \(transfer.amount) \(transfer.tokenSymbol ?? "")")
-    /// }
-    /// ```
-    public func isIncoming(to walletAddress: String) -> Bool {
-        toAddress.lowercased() == walletAddress.lowercased()
-    }
 }
 
 // MARK: - Mapping
 
 extension Transfer {
-    static func map(_ apiModel: TransferApiModel) -> Transfer {
+    static func map(_ apiModel: TransferApiModel) -> Transfer? {
         let timestamp = Self.parseDate(apiModel.completedAt) ?? Date()
+        guard let type = TransferType(rawValue: apiModel.type) else {
+            return nil
+        }
 
         return Transfer(
-            type: apiModel.type,
+            type: type,
             fromAddress: apiModel.sender.address,
             toAddress: apiModel.recipient.address,
             transactionHash: apiModel.onChain?.txId ?? "",
