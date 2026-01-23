@@ -10,8 +10,6 @@ import Foundation
 
 struct TransferListApiModel: Decodable {
     let data: [TransferApiModel]
-    let nextCursor: String?
-    let previousCursor: String?
 }
 
 struct TransferApiModel: Decodable {
