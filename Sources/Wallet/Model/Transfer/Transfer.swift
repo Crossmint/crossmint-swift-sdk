@@ -121,7 +121,10 @@ extension Transfer {
             toAddress: apiModel.recipient.address,
             transactionHash: apiModel.onChain?.txId ?? "",
             tokenSymbol: apiModel.token.symbol,
-            amount: Decimal(string: apiModel.token.amount) ?? 0,
+            guard let amount = Decimal(string: apiModel.token.amount) else { return nil }
+            return Transfer(
+                ...
+                amount: amount,
             rawAmount: apiModel.token.amount,
             timestamp: timestamp,
             mintHash: nil
