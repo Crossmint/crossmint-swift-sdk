@@ -401,9 +401,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
             )
 
             let result = TransferListResult(
-                transfers: response.data.map { Transfer.map($0) },
-                nextCursor: response.nextCursor,
-                previousCursor: response.previousCursor
+                transfers: response.data.compactMap { Transfer.map($0) }
             )
 
             Logger.smartWallet.info(LogEvents.apiListTransfersSuccess, attributes: [
