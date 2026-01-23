@@ -13,15 +13,13 @@ import TestsUtils
 @testable import Wallet
 
 struct TransferTests {
-    @Test("Will decode a list transfers response with pagination")
+    @Test("Will decode a list transfers response")
     func willDecodeListTransfersResponse() async throws {
         let response: TransferListApiModel = try GetFromFile.getModelFrom(
             fileName: "ListTransfersResponse",
             bundle: Bundle.module
         )
 
-        #expect(response.nextCursor == "eyJsYXN0SWQiOiIxMjM0NTY3ODkwIn0=")
-        #expect(response.previousCursor == nil)
         #expect(response.data.count == 3)
     }
 
@@ -32,13 +30,10 @@ struct TransferTests {
             bundle: Bundle.module
         )
 
-        let walletAddress = "0x1234567890123456789012345678901234567890"
-        let transfer = Transfer.map(response.data[0])
+        let transfer = try #require(Transfer.map(response.data[0]))
 
-        #expect(transfer.type == "outgoing")
-        #expect(transfer.isOutgoing(from: walletAddress) == true)
-        #expect(transfer.isIncoming(to: walletAddress) == false)
-        #expect(transfer.fromAddress == walletAddress)
+        #expect(transfer.type == .outgoing)
+        #expect(transfer.fromAddress == "0x1234567890123456789012345678901234567890")
         #expect(transfer.toAddress == "0x0987654321098765432109876543210987654321")
         #expect(transfer.tokenSymbol == "USDC")
         #expect(transfer.amount == Decimal(string: "10.5"))
@@ -53,14 +48,11 @@ struct TransferTests {
             bundle: Bundle.module
         )
 
-        let walletAddress = "0x1234567890123456789012345678901234567890"
-        let transfer = Transfer.map(response.data[1])
+        let transfer = try #require(Transfer.map(response.data[1]))
 
-        #expect(transfer.type == "incoming")
-        #expect(transfer.isOutgoing(from: walletAddress) == false)
-        #expect(transfer.isIncoming(to: walletAddress) == true)
+        #expect(transfer.type == .incoming)
         #expect(transfer.fromAddress == "0x0987654321098765432109876543210987654321")
-        #expect(transfer.toAddress == walletAddress)
+        #expect(transfer.toAddress == "0x1234567890123456789012345678901234567890")
         #expect(transfer.tokenSymbol == "ETH")
         #expect(transfer.amount == Decimal(string: "0.05"))
     }
@@ -72,7 +64,7 @@ struct TransferTests {
             bundle: Bundle.module
         )
 
-        let transfer = Transfer.map(response.data[1])
+        let transfer = try #require(Transfer.map(response.data[1]))
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
@@ -96,7 +88,7 @@ struct TransferTests {
             bundle: Bundle.module
         )
 
-        let transfer = Transfer.map(response.data[2])
+        let transfer = try #require(Transfer.map(response.data[2]))
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
@@ -113,24 +105,6 @@ struct TransferTests {
         #expect(components.second == 0)
     }
 
-    @Test("TransferListResult pagination helpers work correctly")
-    func transferListResultPaginationHelpers() async throws {
-        let response: TransferListApiModel = try GetFromFile.getModelFrom(
-            fileName: "ListTransfersResponse",
-            bundle: Bundle.module
-        )
-
-        let result = TransferListResult(
-            transfers: response.data.map { Transfer.map($0) },
-            nextCursor: response.nextCursor,
-            previousCursor: response.previousCursor
-        )
-
-        #expect(result.hasNextPage == true)
-        #expect(result.hasPreviousPage == false)
-        #expect(result.transfers.count == 3)
-    }
-
     @Test("Transfer is Identifiable with txId as id")
     func transferIsIdentifiable() async throws {
         let response: TransferListApiModel = try GetFromFile.getModelFrom(
@@ -138,7 +112,7 @@ struct TransferTests {
             bundle: Bundle.module
         )
 
-        let transfer = Transfer.map(response.data[0])
+        let transfer = try #require(Transfer.map(response.data[0]))
 
         #expect(transfer.id == "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
     }

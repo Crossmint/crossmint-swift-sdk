@@ -1,7 +1,7 @@
 {
   "data": [
     {
-      "type": "outgoing",
+      "type": "wallets.transfer.out",
       "sender": {
         "address": "0x1234567890123456789012345678901234567890",
         "chain": "base-sepolia",
@@ -31,7 +31,7 @@
       "error": null
     },
     {
-      "type": "incoming",
+      "type": "wallets.transfer.in",
       "sender": {
         "address": "0x0987654321098765432109876543210987654321",
         "chain": "base-sepolia",
@@ -61,7 +61,7 @@
       "error": null
     },
     {
-      "type": "outgoing",
+      "type": "wallets.transfer.out",
       "sender": {
         "address": "0x1234567890123456789012345678901234567890",
         "chain": "base-sepolia",
