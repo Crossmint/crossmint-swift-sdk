@@ -8,7 +8,6 @@
 import CrossmintCommonTypes
 import Foundation
 
-/// API response model for the unstable transfers endpoint.
 struct TransferListApiModel: Decodable {
     let data: [TransferApiModel]
     let nextCursor: String?
