@@ -14,7 +14,6 @@ struct TransferListApiModel: Decodable {
     let previousCursor: String?
 }
 
-/// API model representing a single transfer.
 struct TransferApiModel: Decodable {
     let type: String
     let sender: TransferParticipantApiModel
