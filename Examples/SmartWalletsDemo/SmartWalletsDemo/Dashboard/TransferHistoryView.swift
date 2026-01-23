@@ -112,7 +112,7 @@ struct TransferHistoryView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(transfers) { transfer in
-                    TransferRowView(transfer: transfer, walletAddress: wallet.address)
+                    TransferRowView(transfer: transfer)
                 }
             }
             .padding(.bottom, 16)
@@ -153,10 +153,9 @@ struct TransferHistoryView: View {
 
 struct TransferRowView: View {
     let transfer: Transfer
-    let walletAddress: String
 
     private var isOutgoing: Bool {
-        transfer.isOutgoing(from: walletAddress)
+        transfer.type == .outgoing
     }
 
     private var formattedDate: String {
@@ -209,7 +208,7 @@ struct TransferRowView: View {
                     Spacer()
 
                     // Activity type badge
-                    Text(transfer.type)
+                    Text(isOutgoing ? "Outgoing" : "Incoming")
                         .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
