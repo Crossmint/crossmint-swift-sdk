@@ -39,6 +39,10 @@ let package = Package(
         .package(url: "https://github.com/attaswift/BigInt", from: "5.4.0"),
         .package(url: "https://github.com/ekscrypto/SwiftEmailValidator", exact: "1.0.4"),
         .package(url: "https://github.com/valpackett/SwiftCBOR", exact: "0.5.0"),
+        // OpenAPI Generator
+        .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.6.0"),
+        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.7.0"),
+        .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.0.0"),
         // Plugins
         // If the Swiftlint version is updated, update the binary in the Makefile.
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", exact: "0.59.1")
@@ -154,6 +158,17 @@ let package = Package(
             name: "Checkout",
             dependencies: baseDependencies,
             plugins: basePlugins
+        ),
+        .target(
+            name: "CrossmintAPI",
+            dependencies: [
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+                .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession")
+            ],
+            exclude: [
+                "openapi.json",
+                "openapi-generator-config.yaml"
+            ]
         ),
         //
         // MARK: - Tests

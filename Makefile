@@ -1,4 +1,4 @@
-.PHONY: build test lint lint-fix clean resolve open build-evm-demo build-solana-demo run-solana-demo run-evm-demo
+.PHONY: build test lint lint-fix clean resolve open build-evm-demo build-solana-demo run-solana-demo run-evm-demo generate-api
 
 # Default task
 all: build
@@ -182,3 +182,20 @@ run-evm-demo:
 	open -a Simulator
 	$(XCRUN) simctl install "iPhone 17 Pro" "$$($(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | awk '{print $$3}')/$(EVM_DEMO_SCHEME).app"
 	$(XCRUN) simctl launch "iPhone 17 Pro" $(EVM_BUNDLE_ID)
+
+# ==========================================
+# API Generation targets
+# ==========================================
+
+# Regenerate the OpenAPI client code from the spec
+# Usage: make generate-api
+# To update the spec, replace Sources/CrossmintAPI/openapi.json first
+generate-api:
+	@echo "Generating OpenAPI client code..."
+	@$(SWIFT) run --package-path .build/checkouts/swift-openapi-generator swift-openapi-generator generate \
+		"$(CURDIR)/Sources/CrossmintAPI/openapi.json" \
+		--config "$(CURDIR)/Sources/CrossmintAPI/openapi-generator-config.yaml" \
+		--output-directory "$(CURDIR)/Sources/CrossmintAPI/GeneratedSources"
+	@echo "OpenAPI client code generated successfully!"
+	@echo "Generated files:"
+	@ls -lh Sources/CrossmintAPI/GeneratedSources/
