@@ -87,7 +87,7 @@ final public class CrossmintSDK: ObservableObject {
         self.configuration = configuration
 
         do {
-            sdk = try CrossmintClient.sdk(key: configuration.apiKey, authManager: nil)
+            sdk = try CrossmintClient.sdk(key: configuration.apiKey, authManager: configuration.authManager)
             let authManager = sdk.authManager
             self.crossmintWallets = sdk.crossmintWallets()
             self.authManager = authManager
