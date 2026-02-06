@@ -14,31 +14,49 @@ import Web
 final public class CrossmintSDK: ObservableObject {
     nonisolated(unsafe) private static var _shared: CrossmintSDK?
 
+    /// Returns the shared SDK instance.
+    ///
+    /// - Important: You must call `configure(with:)` before accessing this property.
+    ///
+    /// - Throws: Fatal error if the SDK has not been configured.
     public static var shared: CrossmintSDK {
-        guard let shared = _shared else {
-            let newInstance = CrossmintSDK()
-            _shared = newInstance
-            return newInstance
+        guard let _shared else {
+            fatalError(
+                "CrossmintSDK.configure(with:) must be called before accessing .shared. " +
+                "Call CrossmintSDK.configure(with: Configuration(apiKey:)) in your app initialization."
+            )
         }
-        return shared
+        return _shared
     }
 
-    public static func shared(
-        apiKey: String,
-        authManager: AuthManager? = nil,
-        logLevel: LogLevel = .error
-    ) -> CrossmintSDK {
-        if let existing = _shared {
-            return existing
+    /// Configures the SDK with the provided configuration.
+    ///
+    /// This method allows you to customize SDK behavior beyond the basic API key setup.
+    ///
+    /// Example:
+    /// ```swift
+    /// CrossmintSDK.configure(with: Configuration(
+    ///     apiKey: "ck_staging_...",
+    ///     logLevel: .debug
+    /// ))
+    /// ```
+    ///
+    /// - Parameter configuration: The SDK configuration.
+    public static func configure(with configuration: Configuration) {
+        if _shared != nil {
+            Logger.sdk.warn("CrossmintSDK.configure() called multiple times. Ignoring subsequent calls.")
+            return
         }
 
-        Logger.level = logLevel
-        let newInstance = CrossmintSDK(apiKey: apiKey, authManager: authManager)
+        Logger.level = configuration.logLevel
+        let newInstance = CrossmintSDK(configuration: configuration)
         _shared = newInstance
-        return newInstance
     }
 
     private let sdk: ClientSDK
+
+    /// The SDK configuration used to initialize this instance.
+    public let configuration: Configuration
 
     public let crossmintWallets: CrossmintWallets
     public let authManager: AuthManager
@@ -60,29 +78,16 @@ final public class CrossmintSDK: ObservableObject {
         crossmintService.isProductionEnvironment
     }
 
-    private convenience init() {
-        #if DEBUG
-            if let apiKey = ProcessInfo.processInfo.environment["CROSSMINT_API_KEY"] {
-                Logger.client.info("Using API key from the environment variable.")
-                self.init(apiKey: apiKey)
-                return
-            }
-        #endif
-        Logger.client.error("Crossmint SDK requires an API key")
-        fatalError(
-            "Crossmint SDK requires an API key. " +
-            "Please call CrossmintSDK.shared(apiKey:) before accessing CrossmintSDK.shared"
-        )
-    }
-
-    private init(apiKey: String, authManager: AuthManager? = nil) {
+    private init(configuration: Configuration) {
         sdkInstances += 1
         if sdkInstances > 1 {
             Logger.sdk.error("Multiple SDK instances created, behaviour is undefined")
         }
 
+        self.configuration = configuration
+
         do {
-            sdk = try CrossmintClient.sdk(key: apiKey, authManager: authManager)
+            sdk = try CrossmintClient.sdk(key: configuration.apiKey, authManager: nil)
             let authManager = sdk.authManager
             self.crossmintWallets = sdk.crossmintWallets()
             self.authManager = authManager
@@ -90,7 +95,7 @@ final public class CrossmintSDK: ObservableObject {
             self.crossmintTEE = CrossmintTEE.start(
                 auth: authManager,
                 webProxy: DefaultWebViewCommunicationProxy(),
-                apiKey: apiKey,
+                apiKey: configuration.apiKey,
                 isProductionEnvironment: sdk.crossmintService.isProductionEnvironment
             )
         } catch {

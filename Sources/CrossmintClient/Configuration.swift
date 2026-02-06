@@ -10,9 +10,6 @@ import Logger
 
 /// Configuration for the Crossmint SDK.
 ///
-/// Use this to configure the SDK with advanced options. For simple use cases,
-/// use `CrossmintSDK.configure(apiKey:)` instead.
-///
 /// Example:
 /// ```swift
 /// CrossmintSDK.configure(with: Configuration(
