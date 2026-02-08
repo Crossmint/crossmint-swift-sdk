@@ -3,12 +3,18 @@ import CrossmintClient
 
 @main
 struct SolanaDemoApp: App {
+    init() {
+        CrossmintSDK.configure(with: Configuration(
+            apiKey: crossmintApiKey,
+            logLevel: .debug,
+            authManager: crossmintAuthManager
+        ))
+    }
+
     var body: some Scene {
         WindowGroup {
             SplashScreen()
-                .crossmintNonCustodialSigner(
-                    CrossmintSDK.shared(apiKey: crossmintApiKey, authManager: crossmintAuthManager, logLevel: .debug)
-                )
+                .crossmintNonCustodialSigner(CrossmintSDK.shared)
         }
     }
 }
