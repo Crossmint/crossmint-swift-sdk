@@ -25,36 +25,39 @@ struct DeviceInfoCache: @unchecked Sendable {
     let cellularTechnology: String?
 
     #if canImport(UIKit)
-    private nonisolated(unsafe) static func getDeviceModel() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.model
+    private static func runOnMainActor<T: Sendable>(_ operation: @MainActor @Sendable () -> T) -> T {
+        if #available(iOS 17.0, *) {
+            if Thread.isMainThread {
+                return MainActor.assumeIsolated { operation() }
+            } else {
+                return DispatchQueue.main.sync {
+                    MainActor.assumeIsolated { operation() }
+                }
+            }
         } else {
-            return DispatchQueue.main.sync { UIDevice.current.model }
+            let work = unsafeBitCast(operation, to: (@Sendable () -> T).self)
+            if Thread.isMainThread {
+                return work()
+            } else {
+                return DispatchQueue.main.sync { work() }
+            }
         }
     }
 
-    private nonisolated(unsafe) static func getDeviceName() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.name
-        } else {
-            return DispatchQueue.main.sync { UIDevice.current.name }
-        }
+    private static func getDeviceModel() -> String {
+        runOnMainActor { UIDevice.current.model }
     }
 
-    private nonisolated(unsafe) static func getOSName() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.systemName
-        } else {
-            return DispatchQueue.main.sync { UIDevice.current.systemName }
-        }
+    private static func getDeviceName() -> String {
+        runOnMainActor { UIDevice.current.name }
     }
 
-    private nonisolated(unsafe) static func getOSVersion() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.systemVersion
-        } else {
-            return DispatchQueue.main.sync { UIDevice.current.systemVersion }
-        }
+    private static func getOSName() -> String {
+        runOnMainActor { UIDevice.current.systemName }
+    }
+
+    private static func getOSVersion() -> String {
+        runOnMainActor { UIDevice.current.systemVersion }
     }
 
     private static func getOSBuild() -> String {
