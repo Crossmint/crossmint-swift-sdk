@@ -35,11 +35,13 @@ struct DeviceInfoCache: @unchecked Sendable {
                 }
             }
         } else {
-            let work = unsafeBitCast(operation, to: (@Sendable () -> T).self)
-            if Thread.isMainThread {
-                return work()
-            } else {
-                return DispatchQueue.main.sync { work() }
+            return withoutActuallyEscaping(operation) { escapable in
+                let work = unsafeBitCast(escapable, to: (@Sendable () -> T).self)
+                if Thread.isMainThread {
+                    return work()
+                } else {
+                    return DispatchQueue.main.sync { work() }
+                }
             }
         }
     }
