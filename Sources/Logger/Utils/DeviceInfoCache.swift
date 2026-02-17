@@ -129,23 +129,28 @@ struct DeviceInfoCache: Sendable {
         }
     }
 
-    @MainActor
-    static func capture() -> DeviceInfoCache {
+    static func capture() async -> DeviceInfoCache {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+
         let networkType = getNetworkConnectionType()
+        let cellularTech = networkType == "cellular" ? getCellularTechnology() : nil
+
+        let (model, deviceName, osName, osVersion) = await MainActor.run {
+            (getDeviceModel(), getDeviceName(), getOSName(), getOSVersion())
+        }
 
         return DeviceInfoCache(
-            model: getDeviceModel(),
-            deviceName: getDeviceName(),
-            osName: getOSName(),
-            osVersion: getOSVersion(),
+            model: model,
+            deviceName: deviceName,
+            osName: osName,
+            osVersion: osVersion,
             osBuild: getOSBuild(),
             architecture: getArchitecture(),
             appVersion: appVersion,
             appBuild: appBuild,
             networkConnectionType: networkType,
-            cellularTechnology: networkType == "cellular" ? getCellularTechnology() : nil
+            cellularTechnology: cellularTech
         )
     }
     #else
