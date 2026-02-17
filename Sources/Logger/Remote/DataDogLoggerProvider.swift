@@ -58,15 +58,14 @@ actor DataDogLoggerProvider: LoggerProvider {
     }
 
     private func captureDeviceInfo() async {
-        let info = await MainActor.run {
-            if let cached = Self.cachedDeviceInfo {
-                return cached
-            }
-            let captured = DeviceInfoCache.capture()
-            Self.cachedDeviceInfo = captured
-            return captured
+        if let cached = await MainActor.run(body: { Self.cachedDeviceInfo }) {
+            self.deviceInfo = cached
+            return
         }
-        self.deviceInfo = info
+
+        let captured = await DeviceInfoCache.capture()
+        await MainActor.run { Self.cachedDeviceInfo = captured }
+        self.deviceInfo = captured
     }
 
     // MARK: - LoggerProvider Protocol
