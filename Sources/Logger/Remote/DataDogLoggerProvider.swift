@@ -25,7 +25,10 @@ actor DataDogLoggerProvider: LoggerProvider {
     private var batchQueue: [LogEntry] = []
     private var batchTask: Task<Void, Never>?
     private let sessionId: String
-    private let deviceInfo: DeviceInfoCache
+    private var deviceInfo: DeviceInfoCache?
+
+    @MainActor
+    private static var cachedDeviceInfo: DeviceInfoCache?
 
     // MARK: - Date Formatter (reused for performance)
     private nonisolated(unsafe) static let iso8601Formatter: ISO8601DateFormatter = {
@@ -41,13 +44,29 @@ actor DataDogLoggerProvider: LoggerProvider {
         self.service = service
         self.environment = environment
         self.sessionId = Self.generateSessionId()
-        self.deviceInfo = DeviceInfoCache.capture()
+        self.deviceInfo = nil
 
         let datadogUrl = "https://http-intake.logs.datadoghq.com/v1/input/\(clientToken)"
         let encodedUrl = datadogUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? datadogUrl
         self.intakeUrl = "https://telemetry.crossmint.com/dd?ddforward=\(encodedUrl)"
 
         Self.setupLifecycleObservers(provider: self)
+
+        Task {
+            await self.captureDeviceInfo()
+        }
+    }
+
+    private func captureDeviceInfo() async {
+        let info = await MainActor.run {
+            if let cached = Self.cachedDeviceInfo {
+                return cached
+            }
+            let captured = DeviceInfoCache.capture()
+            Self.cachedDeviceInfo = captured
+            return captured
+        }
+        self.deviceInfo = info
     }
 
     // MARK: - LoggerProvider Protocol
@@ -174,28 +193,41 @@ actor DataDogLoggerProvider: LoggerProvider {
     private func formatLogForDataDog(_ entry: LogEntry) -> [String: Any] {
         let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
 
+        let info = deviceInfo ?? DeviceInfoCache(
+            model: "unknown",
+            deviceName: "unknown",
+            osName: "unknown",
+            osVersion: "unknown",
+            osBuild: "unknown",
+            architecture: "unknown",
+            appVersion: "unknown",
+            appBuild: "unknown",
+            networkConnectionType: "unknown",
+            cellularTechnology: nil
+        )
+
         var attributes: [String: Any] = [
             "date": entry.timestamp,
             "os": [
-                "build": deviceInfo.osBuild,
-                "name": deviceInfo.osName,
-                "version": deviceInfo.osVersion
+                "build": info.osBuild,
+                "name": info.osName,
+                "version": info.osVersion
             ],
-            "build_version": deviceInfo.appBuild,
+            "build_version": info.appBuild,
             "service": serviceName,
             "logger": [
                 "thread_name": Self.getThreadName(),
                 "name": service,
                 "version": SDKVersion.version
             ],
-            "version": deviceInfo.appVersion,
+            "version": info.appVersion,
             "platform": "ios",
             "_dd": [
                 "device": [
-                    "name": deviceInfo.deviceName,
-                    "model": deviceInfo.model,
+                    "name": info.deviceName,
+                    "model": info.model,
                     "brand": "Apple",
-                    "architecture": deviceInfo.architecture
+                    "architecture": info.architecture
                 ]
             ],
             "status": mapLevelToStatus(entry.level)
@@ -203,11 +235,11 @@ actor DataDogLoggerProvider: LoggerProvider {
 
         var networkInfo: [String: Any] = [
             "client": [
-                "type": deviceInfo.networkConnectionType
+                "type": info.networkConnectionType
             ]
         ]
 
-        if let cellularTech = deviceInfo.cellularTechnology {
+        if let cellularTech = info.cellularTechnology {
             if var client = networkInfo["client"] as? [String: Any] {
                 client["cellular_technology"] = cellularTech
                 networkInfo["client"] = client
@@ -224,7 +256,7 @@ actor DataDogLoggerProvider: LoggerProvider {
             "timestamp": entry.timestamp,
             "tags": [
                 "env:\(environment)",
-                "version:\(deviceInfo.appVersion)",
+                "version:\(info.appVersion)",
                 "source:ios"
             ],
             "service": serviceName,
