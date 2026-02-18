@@ -7,6 +7,7 @@
 
 import CrossmintCommonTypes
 import Foundation
+import Utils
 
 public struct StellarTransactionApiModel: TransactionApiModel {
     public struct StellarApprovalEntry: Decodable {
@@ -41,10 +42,17 @@ public struct StellarTransactionApiModel: TransactionApiModel {
         }
     }
 
+    public struct StellarOnChainTransaction: Decodable {
+        public let method: String
+        public let tx: String
+    }
+
     public struct OnChainData: Decodable {
-        public let transaction: String
+        public let transaction: StellarOnChainTransaction
         public let txId: String?
         public let explorerLink: String?
+        public let expiration: Int?
+        public let ledger: Int?
 
         var toDomain: Transaction.OnChainData {
             Transaction.OnChainData(
@@ -52,14 +60,14 @@ public struct StellarTransactionApiModel: TransactionApiModel {
                 userOperationHash: nil,
                 explorerLink: URL(string: explorerLink ?? ""),
                 txId: txId,
-                transaction: transaction,
+                transaction: transaction.tx,
                 lastValidBlockHeight: nil
             )
         }
     }
 
     public struct Params: Decodable, Sendable {
-        public let transaction: String
+        public let transaction: AnyCodable
         public let signer: SignerApiModel
         public let feeConfig: FeeConfig
 
@@ -68,7 +76,7 @@ public struct StellarTransactionApiModel: TransactionApiModel {
                 calls: nil,
                 chain: nil,
                 signer: signer.locator,
-                transaction: transaction,
+                transaction: nil,
                 feeConfig: feeConfig.toDomain
             )
         }
