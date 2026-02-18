@@ -8,11 +8,11 @@
 import Foundation
 import Network
 #if canImport(UIKit)
-@preconcurrency import UIKit
+import UIKit
 import CoreTelephony
 #endif
 
-struct DeviceInfoCache: @unchecked Sendable {
+struct DeviceInfoCache: Sendable {
     let model: String
     let deviceName: String
     let osName: String
@@ -25,36 +25,24 @@ struct DeviceInfoCache: @unchecked Sendable {
     let cellularTechnology: String?
 
     #if canImport(UIKit)
-    private nonisolated(unsafe) static func getDeviceModel() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.model
-        } else {
-            return DispatchQueue.main.sync { UIDevice.current.model }
-        }
+    @MainActor
+    private static func getDeviceModel() -> String {
+        UIDevice.current.model
     }
 
-    private nonisolated(unsafe) static func getDeviceName() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.name
-        } else {
-            return DispatchQueue.main.sync { UIDevice.current.name }
-        }
+    @MainActor
+    private static func getDeviceName() -> String {
+        UIDevice.current.name
     }
 
-    private nonisolated(unsafe) static func getOSName() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.systemName
-        } else {
-            return DispatchQueue.main.sync { UIDevice.current.systemName }
-        }
+    @MainActor
+    private static func getOSName() -> String {
+        UIDevice.current.systemName
     }
 
-    private nonisolated(unsafe) static func getOSVersion() -> String {
-        if Thread.isMainThread {
-            return UIDevice.current.systemVersion
-        } else {
-            return DispatchQueue.main.sync { UIDevice.current.systemVersion }
-        }
+    @MainActor
+    private static func getOSVersion() -> String {
+        UIDevice.current.systemVersion
     }
 
     private static func getOSBuild() -> String {
@@ -141,27 +129,33 @@ struct DeviceInfoCache: @unchecked Sendable {
         }
     }
 
-    static func capture() -> DeviceInfoCache {
+    static func capture() async -> DeviceInfoCache {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+
         let networkType = getNetworkConnectionType()
+        let cellularTech = networkType == "cellular" ? getCellularTechnology() : nil
+
+        let (model, deviceName, osName, osVersion) = await MainActor.run {
+            (getDeviceModel(), getDeviceName(), getOSName(), getOSVersion())
+        }
 
         return DeviceInfoCache(
-            model: getDeviceModel(),
-            deviceName: getDeviceName(),
-            osName: getOSName(),
-            osVersion: getOSVersion(),
+            model: model,
+            deviceName: deviceName,
+            osName: osName,
+            osVersion: osVersion,
             osBuild: getOSBuild(),
             architecture: getArchitecture(),
             appVersion: appVersion,
             appBuild: appBuild,
             networkConnectionType: networkType,
-            cellularTechnology: networkType == "cellular" ? getCellularTechnology() : nil
+            cellularTechnology: cellularTech
         )
     }
     #else
 
-    static func capture() -> DeviceInfoCache {
+    static func capture() async -> DeviceInfoCache {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
 
@@ -173,7 +167,9 @@ struct DeviceInfoCache: @unchecked Sendable {
             osBuild: "unknown",
             architecture: "unknown",
             appVersion: appVersion,
-            appBuild: appBuild
+            appBuild: appBuild,
+            networkConnectionType: "unknown",
+            cellularTechnology: nil
         )
     }
     #endif
