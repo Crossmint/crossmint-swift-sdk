@@ -155,7 +155,7 @@ struct DeviceInfoCache: Sendable {
     }
     #else
 
-    static func capture() -> DeviceInfoCache {
+    static func capture() async -> DeviceInfoCache {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
 

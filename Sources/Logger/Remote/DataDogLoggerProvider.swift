@@ -27,8 +27,10 @@ actor DataDogLoggerProvider: LoggerProvider {
     private let sessionId: String
     private var deviceInfo: DeviceInfoCache?
 
-    @MainActor
-    private static var cachedDeviceInfo: DeviceInfoCache?
+    // MARK: - Cached device info (single capture task)
+    private static let captureTask: Task<DeviceInfoCache, Never> = Task {
+        await DeviceInfoCache.capture()
+    }
 
     // MARK: - Date Formatter (reused for performance)
     private nonisolated(unsafe) static let iso8601Formatter: ISO8601DateFormatter = {
@@ -58,14 +60,7 @@ actor DataDogLoggerProvider: LoggerProvider {
     }
 
     private func captureDeviceInfo() async {
-        if let cached = await MainActor.run(body: { Self.cachedDeviceInfo }) {
-            self.deviceInfo = cached
-            return
-        }
-
-        let captured = await DeviceInfoCache.capture()
-        await MainActor.run { Self.cachedDeviceInfo = captured }
-        self.deviceInfo = captured
+        self.deviceInfo = await Self.captureTask.value
     }
 
     // MARK: - LoggerProvider Protocol
