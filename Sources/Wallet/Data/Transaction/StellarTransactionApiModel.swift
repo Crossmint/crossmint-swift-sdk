@@ -69,7 +69,7 @@ public struct StellarTransactionApiModel: TransactionApiModel {
     public struct Params: Decodable, Sendable {
         public let transaction: AnyCodable
         public let signer: SignerApiModel?
-        public let feeConfig: FeeConfig
+        public let feeConfig: FeeConfig?
 
         var toDomain: Transaction.Params {
             Transaction.Params(
@@ -77,7 +77,7 @@ public struct StellarTransactionApiModel: TransactionApiModel {
                 chain: nil,
                 signer: signer?.locator ?? "",
                 transaction: nil,
-                feeConfig: feeConfig.toDomain
+                feeConfig: feeConfig?.toDomain
             )
         }
     }
