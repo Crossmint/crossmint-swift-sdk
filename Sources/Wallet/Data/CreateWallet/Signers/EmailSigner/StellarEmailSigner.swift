@@ -32,7 +32,7 @@ public final class StellarEmailSigner: EmailSigner, Sendable {
 
     public var encoding: String {
         get async {
-            "strkey"
+            "base64"
         }
     }
 
