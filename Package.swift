@@ -32,7 +32,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/21-DOT-DEV/swift-secp256k1", exact: "0.18.0"),
+        .package(url: "https://github.com/21-DOT-DEV/swift-secp256k1", exact: "0.20.0"),
         .package(url: "https://github.com/airbnb/lottie-spm", from: "4.5.1"),
 //        .package(url: "https://github.com/checkout/checkout-ios-components", exact: "1.2.6"),
         .package(url: "https://github.com/bitflying/SwiftKeccak", exact: "0.1.2"),
@@ -90,7 +90,8 @@ let package = Package(
                 "CrossmintCommonTypes",
                 "SecureStorage",
                 "Passkeys",
-                .product(name: "secp256k1", package: "swift-secp256k1"),
+                .product(name: "P256K", package: "swift-secp256k1"),
+                .product(name: "libsecp256k1", package: "swift-secp256k1"),
                 .product(name: "SwiftKeccak", package: "SwiftKeccak"),
                 .product(name: "BigInt", package: "BigInt"),
                 "Web"
