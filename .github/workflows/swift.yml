@@ -18,6 +18,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: macos-26
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@v4
@@ -26,7 +27,7 @@ jobs:
       uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: '26.1'
-    
+
     - name: Cache SPM packages
       uses: actions/cache@v4
       with:
@@ -34,14 +35,54 @@ jobs:
         key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
         restore-keys: |
           ${{ runner.os }}-spm-
-    
-    - name: Build & run tests
+
+    - name: Boot simulator
       run: |
-        make ci-test
-    
+        UDID=$(xcrun simctl list devices available | grep "iPhone 17 Pro (" | grep -v "Max\|Plus" | head -1 | grep -Eo '[0-9A-F-]{36}')
+        echo "Booting simulator $UDID"
+        xcrun simctl boot "$UDID" || true
+        xcrun simctl bootstatus "$UDID" -b
+
+    - name: Build & run tests
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 25
+        max_attempts: 2
+        command: |
+          # Watchdog: appintentsnltrainingprocessor should finish in <10s.
+          # If it runs >90s it is hung — kill it so xcodebuild fails fast
+          # instead of blocking the whole job for 25 minutes.
+          (
+            sleep 30
+            while true; do
+              ps -eo pid,etimes,comm 2>/dev/null \
+                | awk '$2 > 90 && /appintentsnltrainingprocessor/ {print $1}' \
+                | while read -r pid; do
+                    echo "Watchdog: killing hung appintentsnltrainingprocessor (pid $pid)"
+                    kill -9 "$pid" 2>/dev/null || true
+                  done
+              sleep 15
+            done
+          ) &
+          WATCHDOG_PID=$!
+          make ci-test
+          BUILD_EXIT=$?
+          kill "$WATCHDOG_PID" 2>/dev/null || true
+          exit "$BUILD_EXIT"
+        on_retry_command: |
+          echo "Killing hung processes before retry..."
+          pkill -f appintentsnltrainingprocessor || true
+          pkill -f xcodebuild || true
+          pkill -f DTServiceHub || true
+          xcrun simctl shutdown all || true
+          UDID=$(xcrun simctl list devices available | grep "iPhone 17 Pro (" | grep -v "Max\|Plus" | head -1 | grep -Eo '[0-9A-F-]{36}')
+          echo "Re-booting simulator $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
     - name: Run SwiftLint
       run: make lint
-    
+
     - name: Upload Test Results
       if: always()
       uses: actions/upload-artifact@v4
