@@ -18,7 +18,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@v4
@@ -44,12 +44,21 @@ jobs:
         xcrun simctl bootstatus "$UDID" -b
 
     - name: Build & run tests
-      timeout-minutes: 20
       uses: nick-fields/retry@v3
       with:
-        timeout_minutes: 20
+        timeout_minutes: 25
         max_attempts: 2
         command: make ci-test
+        on_retry_command: |
+          echo "Killing hung processes before retry..."
+          pkill -f appintentsnltrainingprocessor || true
+          pkill -f xcodebuild || true
+          pkill -f DTServiceHub || true
+          xcrun simctl shutdown all || true
+          UDID=$(xcrun simctl list devices available | grep "iPhone 17 Pro (" | grep -v "Max\|Plus" | head -1 | grep -Eo '[0-9A-F-]{36}')
+          echo "Re-booting simulator $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
 
     - name: Run SwiftLint
       run: make lint
