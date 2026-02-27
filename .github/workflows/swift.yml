@@ -48,7 +48,27 @@ jobs:
       with:
         timeout_minutes: 25
         max_attempts: 2
-        command: make ci-test
+        command: |
+          # Watchdog: appintentsnltrainingprocessor should finish in <10s.
+          # If it runs >90s it is hung — kill it so xcodebuild fails fast
+          # instead of blocking the whole job for 25 minutes.
+          (
+            sleep 30
+            while true; do
+              ps -eo pid,etimes,comm 2>/dev/null \
+                | awk '$2 > 90 && /appintentsnltrainingprocessor/ {print $1}' \
+                | while read -r pid; do
+                    echo "Watchdog: killing hung appintentsnltrainingprocessor (pid $pid)"
+                    kill -9 "$pid" 2>/dev/null || true
+                  done
+              sleep 15
+            done
+          ) &
+          WATCHDOG_PID=$!
+          make ci-test
+          BUILD_EXIT=$?
+          kill "$WATCHDOG_PID" 2>/dev/null || true
+          exit "$BUILD_EXIT"
         on_retry_command: |
           echo "Killing hung processes before retry..."
           pkill -f appintentsnltrainingprocessor || true
