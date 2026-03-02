@@ -21,20 +21,11 @@ let package = Package(
             name: "CrossmintClientSDK",
             targets: [
                 "CrossmintClient"
-//                "PaymentsUI"
-            ]
-        ),
-        .library(
-            name: "CrossmintCheckout",
-            targets: [
-                "Checkout"
             ]
         )
     ],
     dependencies: [
         .package(url: "https://github.com/21-DOT-DEV/swift-secp256k1", exact: "0.20.0"),
-        .package(url: "https://github.com/airbnb/lottie-spm", from: "4.5.1"),
-//        .package(url: "https://github.com/checkout/checkout-ios-components", exact: "1.2.6"),
         .package(url: "https://github.com/bitflying/SwiftKeccak", exact: "0.1.2"),
         .package(url: "https://github.com/attaswift/BigInt", from: "5.4.0"),
         .package(url: "https://github.com/ekscrypto/SwiftEmailValidator", exact: "1.0.4"),
@@ -51,7 +42,6 @@ let package = Package(
                 "Wallet",
                 "CrossmintAuth",
                 "CrossmintCommonTypes",
-//                "Payments",
                 "SecureStorage"
             ],
             resources: [
@@ -117,27 +107,6 @@ let package = Package(
             dependencies: baseDependencies,
             plugins: basePlugins
         ),
-//        .target(
-//            name: "Payments",
-//            dependencies: baseDependencies + [
-//                "Wallet",
-//                .product(name: "CheckoutComponents", package: "checkout-ios-components")
-//            ],
-//            plugins: basePlugins
-//        ),
-//        .target(
-//            name: "PaymentsUI",
-//            dependencies: baseDependencies + [
-//                "Payments",
-//                "CrossmintService",
-//                .product(name: "Lottie", package: "lottie-spm"),
-//                .product(name: "CheckoutComponents", package: "checkout-ios-components")
-//            ],
-//            resources: [
-//                .process("Resources")
-//            ],
-//            plugins: basePlugins
-//        ),
         .target(
             name: "Passkeys",
             dependencies: baseDependencies + [
@@ -149,11 +118,6 @@ let package = Package(
         .target(
             name: "Web",
             dependencies: baseDependencies + ["CrossmintAuth"],
-            plugins: basePlugins
-        ),
-        .target(
-            name: "Checkout",
-            dependencies: baseDependencies,
             plugins: basePlugins
         ),
         //
@@ -200,18 +164,6 @@ let package = Package(
             ],
             plugins: basePlugins
         ),
-//        .testTarget(
-//            name: "PaymentTests",
-//            dependencies: [
-//                "Payments",
-//                "TestsUtils"
-//            ],
-//            resources: [
-//                .process("Order/Resources/GetLineItemDeliveryToken.json"),
-//                .process("Order/Resources/SolanaLineItemDeliveryTokenOut.json")
-//            ],
-//            plugins: basePlugins
-//        ),
         .testTarget(
             name: "UtilsTests",
             dependencies: [
