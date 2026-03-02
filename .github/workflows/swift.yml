@@ -36,13 +36,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
-    - name: Boot simulator
-      run: |
-        UDID=$(xcrun simctl list devices available | grep "iPhone 17 Pro (" | grep -v "Max\|Plus" | head -1 | grep -Eo '[0-9A-F-]{36}')
-        echo "Booting simulator $UDID"
-        xcrun simctl boot "$UDID" || true
-        xcrun simctl bootstatus "$UDID" -b
-
     - name: Build & run tests
       uses: nick-fields/retry@v3
       with:
