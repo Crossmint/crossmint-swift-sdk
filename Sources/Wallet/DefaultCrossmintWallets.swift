@@ -1,5 +1,8 @@
+import BigInt
 import CrossmintCommonTypes
 import CrossmintService
+import CryptoKit
+import DeviceSigner
 import Logger
 import SecureStorage
 
@@ -17,7 +20,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
 
-    // swiftlint:disable:next function_body_length
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     public func getOrCreateWallet(
         chain: Chain,
         signer: any Signer,
@@ -36,6 +39,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             "signerType": signer.signerType.rawValue
         ])
 
+        let deviceSignerStorage = makeDeviceSignerStorage(options: options)
+
         let walletApiModel: WalletApiModel
         do {
             walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
@@ -43,6 +48,31 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                 "chain": chain.name,
                 "address": walletApiModel.address
             ])
+
+            // Existing wallet on a new device: register device signer if not yet present
+            if let storage = deviceSignerStorage,
+               await storage.getKey(address: walletApiModel.address) == nil {
+                Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
+                    "address": walletApiModel.address
+                ])
+                do {
+                    let publicKeyBase64 = try await storage.generateKey(address: nil)
+                    let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+                    try await smartWalletService.addDelegatedSigner(entry, chainType: chain.chainType)
+                    try await storage.mapAddressToKey(
+                        address: walletApiModel.address,
+                        publicKeyBase64: publicKeyBase64
+                    )
+                    Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
+                        "address": walletApiModel.address
+                    ])
+                } catch {
+                    Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                        "error": "\(error)"
+                    ])
+                    // Device signer registration failed — continue without it
+                }
+            }
         } catch WalletError.walletNotFound {
             Logger.smartWallet.debug(LogEvents.walletGetOrCreateCreating, attributes: [
                 "chain": chain.name
@@ -51,7 +81,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                 signer: signer,
                 chainType: chain.chainType,
                 walletType: .smart,
-                options: options
+                options: options,
+                deviceSignerStorage: deviceSignerStorage
             )
         }
 
@@ -67,7 +98,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                 signer: signer,
                 baseModel: walletApiModel,
                 evmChain: evmChain,
-                onTransactionStart: options?.experimentalCallbacks.onTransactionStart
+                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerStorage
             )
         case .solana:
             guard let solanaChain: SolanaChain = SolanaChain(chain.name) else {
@@ -79,7 +111,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                 signer: signer,
                 baseModel: walletApiModel,
                 solanaChain: solanaChain,
-                onTransactionStart: options?.experimentalCallbacks.onTransactionStart
+                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerStorage
             )
         case .stellar:
             guard let stellarChain: StellarChain = StellarChain(chain.name) else {
@@ -91,7 +124,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                 signer: signer,
                 baseModel: walletApiModel,
                 stellarChain: stellarChain,
-                onTransactionStart: options?.experimentalCallbacks.onTransactionStart
+                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerStorage
             )
         case .unknown:
             throw .walletGeneric("Unknown wallet chain")
@@ -139,11 +173,13 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
     }
 
+    // swiftlint:disable:next function_body_length
     private func createWallet(
         signer: any Signer,
         chainType: ChainType,
         walletType: WalletType,
-        options: WalletOptions?
+        options: WalletOptions?,
+        deviceSignerStorage: (any DeviceSignerKeyStorage)? = nil
     ) async throws(WalletError) -> WalletApiModel {
         Logger.smartWallet.debug(LogEvents.walletCreateStart, attributes: [
             "chainType": chainType.rawValue,
@@ -152,16 +188,48 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
         try await initializeSigner(signer)
 
-        options?.experimentalCallbacks.onWalletCreationStart()
+        options?.experimentalCallbacks?.onWalletCreationStart()
+
+        var delegatedSigners: [DelegatedSignerEntry]?
+        var pendingPublicKeyBase64: String?
+
+        if let storage = deviceSignerStorage {
+            do {
+                let publicKeyBase64 = try await storage.generateKey(address: nil)
+                let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+                delegatedSigners = [entry]
+                pendingPublicKeyBase64 = publicKeyBase64
+            } catch {
+                Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                    "error": "\(error)"
+                ])
+                // Continue wallet creation without device signer
+            }
+        }
 
         do {
             let walletApiModel = try await smartWalletService.createWallet(
                 CreateWalletParams(
                     chainType: chainType,
                     type: walletType,
-                    config: .init(adminSigner: await signer.adminSigner)
+                    config: .init(adminSigner: await signer.adminSigner),
+                    delegatedSigners: delegatedSigners
                 )
             )
+
+            // Map the pending key to the now-known wallet address
+            if let storage = deviceSignerStorage, let publicKeyBase64 = pendingPublicKeyBase64 {
+                do {
+                    try await storage.mapAddressToKey(
+                        address: walletApiModel.address,
+                        publicKeyBase64: publicKeyBase64
+                    )
+                } catch {
+                    Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                        "error": "\(error)"
+                    ])
+                }
+            }
 
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
@@ -176,5 +244,29 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             ])
             throw error
         }
+    }
+
+    private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
+        guard let deviceSignerOptions = options?.deviceSigner else { return nil }
+        if SecureEnclave.isAvailable {
+            return SecureEnclaveKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
+        } else {
+            return SoftwareDeviceSignerKeyStorage()
+        }
+    }
+
+    private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
+        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64), rawPublicKey.count == 64 else {
+            throw WalletError.walletCreationFailed("Invalid device signer public key")
+        }
+        let xBytes = rawPublicKey.prefix(32)
+        let yBytes = rawPublicKey.suffix(32)
+        let xDecimal = BigUInt(xBytes).description
+        let yDecimal = BigUInt(yBytes).description
+        return DelegatedSignerEntry(
+            signer: DelegatedSignerData(
+                publicKey: DelegatedSignerPublicKey(x: xDecimal, y: yDecimal)
+            )
+        )
     }
 }
