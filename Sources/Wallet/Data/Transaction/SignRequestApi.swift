@@ -2,6 +2,17 @@ public struct SignRequestApi: Encodable {
     public enum Approval: Encodable {
         case keypair(signer: String, signature: String)
         case passkey(signer: String, signature: PasskeySignature, metadata: PasskeyMetadata)
+        case device(signer: String, signature: DeviceSignature)
+
+        public struct DeviceSignature: Encodable {
+            public let r: String
+            public let s: String
+
+            public init(r: String, s: String) {
+                self.r = r
+                self.s = s
+            }
+        }
 
         public struct PasskeySignature: Encodable {
             public let r: String
@@ -47,6 +58,10 @@ public struct SignRequestApi: Encodable {
                 try container.encode(signer, forKey: .signer)
                 try container.encode(signature, forKey: .signature)
                 try container.encode(metadata, forKey: .metadata)
+
+            case .device(let signer, let signature):
+                try container.encode(signer, forKey: .signer)
+                try container.encode(signature, forKey: .signature)
             }
         }
 
