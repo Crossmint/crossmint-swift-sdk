@@ -371,6 +371,24 @@ public final class DefaultSmartWalletService: SmartWalletService {
         return response
     }
 
+    public func addDelegatedSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType
+    ) async throws(WalletError) {
+        try await crossmintService.executeRequest(
+            Endpoint(
+                path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers",
+                method: .post,
+                headers: authHeaders,
+                body: try jsonCoder.encodeRequest(
+                    entry,
+                    errorType: WalletError.self
+                )
+            ),
+            errorType: WalletError.self
+        )
+    }
+
     public func listTransfers(
         _ params: ListTransfersQueryParams
     ) async throws(WalletError) -> TransferListResult {
