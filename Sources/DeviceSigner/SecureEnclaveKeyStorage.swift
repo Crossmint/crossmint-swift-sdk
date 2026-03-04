@@ -40,11 +40,7 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
             tag = "crossmint.device.pending.\(publicKeyBase64)"
         }
 
-        guard let newAccess = makeAccessControl() else {
-            throw DeviceSignerError.keyGenerationFailed
-        }
-
-        try DeviceSignerKeychainStorage.save(key.dataRepresentation, tag: tag, accessControl: newAccess)
+        try DeviceSignerKeychainStorage.save(key.dataRepresentation, tag: tag)
 
         return publicKeyBase64
     }
@@ -80,7 +76,7 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
             throw DeviceSignerError.keyNotFound
         }
 
-        guard let messageData = dataFromHex(message) else {
+        guard let messageData = Data(base64Encoded: message) else {
             throw DeviceSignerError.invalidMessage
         }
 
@@ -119,20 +115,6 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
             flags,
             nil
         )
-    }
-
-    private func dataFromHex(_ hex: String) -> Data? {
-        let stripped = hex.hasPrefix("0x") ? String(hex.dropFirst(2)) : hex
-        guard stripped.count % 2 == 0 else { return nil }
-        var data = Data()
-        var index = stripped.startIndex
-        while index < stripped.endIndex {
-            let nextIndex = stripped.index(index, offsetBy: 2)
-            guard let byte = UInt8(stripped[index..<nextIndex], radix: 16) else { return nil }
-            data.append(byte)
-            index = nextIndex
-        }
-        return data
     }
 
     private func hexString<D: DataProtocol>(from data: D) -> String {

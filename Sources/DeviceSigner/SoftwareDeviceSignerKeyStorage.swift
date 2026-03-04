@@ -1,6 +1,5 @@
 import CryptoKit
 import Foundation
-import Security
 
 public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
     public init() {}
@@ -21,17 +20,8 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
             tag = "crossmint.device.pending.\(publicKeyBase64)"
         }
 
-        guard let access = SecAccessControlCreateWithFlags(
-            nil,
-            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            [],
-            nil
-        ) else {
-            throw DeviceSignerError.keyGenerationFailed
-        }
-
         // Store the 32-byte private key scalar
-        try DeviceSignerKeychainStorage.save(key.rawRepresentation, tag: tag, accessControl: access)
+        try DeviceSignerKeychainStorage.save(key.rawRepresentation, tag: tag)
 
         return publicKeyBase64
     }
@@ -61,7 +51,7 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
             throw DeviceSignerError.keyNotFound
         }
 
-        guard let messageData = dataFromHex(message) else {
+        guard let messageData = Data(base64Encoded: message) else {
             throw DeviceSignerError.invalidMessage
         }
 
@@ -85,20 +75,6 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
     }
 
     // MARK: - Private helpers
-
-    private func dataFromHex(_ hex: String) -> Data? {
-        let stripped = hex.hasPrefix("0x") ? String(hex.dropFirst(2)) : hex
-        guard stripped.count % 2 == 0 else { return nil }
-        var data = Data()
-        var index = stripped.startIndex
-        while index < stripped.endIndex {
-            let nextIndex = stripped.index(index, offsetBy: 2)
-            guard let byte = UInt8(stripped[index..<nextIndex], radix: 16) else { return nil }
-            data.append(byte)
-            index = nextIndex
-        }
-        return data
-    }
 
     private func hexString<D: DataProtocol>(from data: D) -> String {
         data.map { String(format: "%02x", $0) }.joined()
