@@ -30,8 +30,7 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
     ) async throws(TransactionError) -> any TransactionApiModel
 
     func fetchTransaction(
-        _ fetchTransactionRequest: FetchTransactionRequest,
-
+        _ fetchTransactionRequest: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel
 
     func fund(
@@ -43,6 +42,7 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
         tokenLocator: String,
         recipient: String,
         amount: String,
+        signer: String?,
         idempotencyKey: String?
     ) async throws(TransactionError) -> any TransactionApiModel
 
@@ -61,8 +61,9 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
 
     func addDelegatedSigner(
         _ entry: DelegatedSignerEntry,
-        chainType: ChainType
-    ) async throws(WalletError)
+        chainType: ChainType,
+        chainName: String
+    ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     /// Fetches the transfer history for a wallet.
     ///
