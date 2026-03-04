@@ -4,7 +4,7 @@ import Security
 private let service = "com.crossmint.devicesigner"
 
 enum DeviceSignerKeychainStorage {
-    static func save(_ data: Data, tag: String, accessControl: SecAccessControl) throws(DeviceSignerError) {
+    static func save(_ data: Data, tag: String) throws(DeviceSignerError) {
         let deleteQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -17,7 +17,7 @@ enum DeviceSignerKeychainStorage {
             kSecAttrService: service,
             kSecAttrAccount: tag,
             kSecValueData: data,
-            kSecAttrAccessControl: accessControl
+            kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else {
