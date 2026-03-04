@@ -1,5 +1,6 @@
 import SwiftUI
 import CrossmintClient
+import DeviceSigner
 import Wallet
 
 struct DashboardView: View {
@@ -253,7 +254,8 @@ struct DashboardView: View {
         do {
             let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
                 chain: .baseSepolia,
-                signer: .email(email)
+                signer: .email(email),
+                options: WalletOptions(deviceSigner: DeviceSignerOptions(biometricPolicy: .always))
             )
 
             await MainActor.run {
