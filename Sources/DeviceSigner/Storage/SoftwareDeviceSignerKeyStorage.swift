@@ -1,6 +1,25 @@
+//
+//  SoftwareDeviceSignerKeyStorage.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 3/3/26.
+//
+
+
 import CryptoKit
 import Foundation
 
+/// A ``DeviceSignerKeyStorage`` implementation using software P-256 keys stored in the Keychain.
+///
+/// This implementation is intended for use on **simulators only**. Keys are stored as raw key
+/// material in the Keychain rather than in dedicated hardware, providing no hardware-backed isolation.
+///
+/// On physical devices that lack a Secure Enclave, the device signer feature should not be used.
+/// Use an alternative signer (e.g., email or passkey) instead.
+///
+/// - Important: Do not ship this implementation to production. ``DefaultCrossmintWallets`` selects
+///   ``SecureEnclaveKeyStorage`` on real devices and falls back to this implementation only
+///   when ``SecureEnclave/isAvailable`` returns `false`.
 public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
     public init() {}
 

@@ -1,10 +1,31 @@
+//
+//  SecureEnclaveKeyStorage.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 3/3/26.
+//
+
 import CryptoKit
 import Foundation
 import Security
 
+/// A ``DeviceSignerKeyStorage`` implementation backed by the iOS Secure Enclave.
+///
+/// Keys are non-extractable P-256 private keys generated and stored directly in the
+/// Secure Enclave hardware. Signing operations execute inside the enclave; the raw key
+/// material never leaves the chip.
+///
+/// Check ``SecureEnclave/isAvailable`` before instantiating this class. On simulators,
+/// use ``SoftwareDeviceSignerKeyStorage`` for development only. On physical devices without
+/// a Secure Enclave, the device signer feature should not be used — prefer an alternative
+/// signer such as email or passkey.
 public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     private let biometricPolicy: BiometricPolicy
 
+    /// Creates a Secure Enclave key storage with the given biometric policy.
+    ///
+    /// - Parameter biometricPolicy: When to require biometric authentication for signing.
+    ///   Defaults to ``BiometricPolicy/none``.
     public init(biometricPolicy: BiometricPolicy = .none) {
         self.biometricPolicy = biometricPolicy
     }
