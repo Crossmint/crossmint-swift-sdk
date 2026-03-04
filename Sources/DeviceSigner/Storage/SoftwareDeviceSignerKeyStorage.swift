@@ -5,7 +5,6 @@
 //  Created by Tomas Martins on 3/3/26.
 //
 
-
 import CryptoKit
 import Foundation
 
