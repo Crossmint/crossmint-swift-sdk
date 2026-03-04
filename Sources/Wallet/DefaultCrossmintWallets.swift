@@ -1,4 +1,3 @@
-import BigInt
 import CrossmintCommonTypes
 import CrossmintService
 import CryptoKit
@@ -44,33 +43,60 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         let walletApiModel: WalletApiModel
         do {
             walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+            let signers = walletApiModel.config.delegatedSigners?.compactMap(\.locator) ?? []
+            let existingDelegatedLocators = signers.isEmpty ? "none" : signers.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletGetOrCreateExisting, attributes: [
                 "chain": chain.name,
-                "address": walletApiModel.address
+                "address": walletApiModel.address,
+                "delegatedSigners": existingDelegatedLocators
             ])
 
-            // Existing wallet on a new device: register device signer if not yet present
-            if let storage = deviceSignerStorage,
-               await storage.getKey(address: walletApiModel.address) == nil {
-                Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
-                    "address": walletApiModel.address
-                ])
-                do {
-                    let publicKeyBase64 = try await storage.generateKey(address: nil)
-                    let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
-                    try await smartWalletService.addDelegatedSigner(entry, chainType: chain.chainType)
-                    try await storage.mapAddressToKey(
-                        address: walletApiModel.address,
-                        publicKeyBase64: publicKeyBase64
-                    )
-                    Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
+            // Existing wallet: register device signer if not yet present or not registered on backend
+            if let storage = deviceSignerStorage {
+                let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
+                let isRegistered = isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel)
+                if !isRegistered {
+                    Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
                         "address": walletApiModel.address
                     ])
-                } catch {
-                    Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
-                        "error": "\(error)"
-                    ])
-                    // Device signer registration failed — continue without it
+                    do {
+                        let publicKeyBase64: String
+                        if let existing = existingPublicKeyBase64 {
+                            publicKeyBase64 = existing
+                        } else {
+                            publicKeyBase64 = try await storage.generateKey(address: nil)
+                        }
+                        let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+                        let registration = try await smartWalletService.addDelegatedSigner(
+                            entry, chainType: chain.chainType, chainName: chain.name
+                        )
+                        if let chainEntry = registration.chains?[chain.name],
+                           chainEntry.status == "awaiting-approval",
+                           let signatureId = chainEntry.id,
+                           let pending = chainEntry.approvals?.pending, !pending.isEmpty {
+                            try await approveDelegatedSignerRegistration(
+                                signatureId: signatureId,
+                                pendingApprovals: pending,
+                                signer: signer,
+                                chainType: chain.chainType
+                            )
+                        }
+                        // Only rename if we generated a new pending key; existing keys are already under wallet tag
+                        if existingPublicKeyBase64 == nil {
+                            try await storage.mapAddressToKey(
+                                address: walletApiModel.address,
+                                publicKeyBase64: publicKeyBase64
+                            )
+                        }
+                        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
+                            "address": walletApiModel.address
+                        ])
+                    } catch {
+                        Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                            "error": "\(error)"
+                        ])
+                        // Device signer registration failed — continue without it
+                    }
                 }
             }
         } catch WalletError.walletNotFound {
@@ -199,12 +225,17 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
                 delegatedSigners = [entry]
                 pendingPublicKeyBase64 = publicKeyBase64
+                Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerPrepared, attributes: [
+                    "publicKeyBase64Prefix": String(publicKeyBase64.prefix(16))
+                ])
             } catch {
                 Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
                     "error": "\(error)"
                 ])
                 // Continue wallet creation without device signer
             }
+        } else {
+            Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerSkipped)
         }
 
         do {
@@ -212,8 +243,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 CreateWalletParams(
                     chainType: chainType,
                     type: walletType,
-                    config: .init(adminSigner: await signer.adminSigner),
-                    delegatedSigners: delegatedSigners
+                    config: .init(adminSigner: await signer.adminSigner, delegatedSigners: delegatedSigners)
                 )
             )
 
@@ -231,9 +261,12 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 }
             }
 
+            let createSigners = walletApiModel.config.delegatedSigners?.compactMap(\.locator) ?? []
+            let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
-                "address": walletApiModel.address
+                "address": walletApiModel.address,
+                "delegatedSigners": delegatedSignerLocators
             ])
 
             return walletApiModel
@@ -255,18 +288,41 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
     }
 
+    private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {
+        guard let keyBase64 = publicKeyBase64,
+              let rawKey = Data(base64Encoded: keyBase64), rawKey.count == 64 else {
+            return false
+        }
+        let uncompressed = Data([0x04]) + rawKey
+        let locator = "device:\(uncompressed.base64EncodedString())"
+        return wallet.config.delegatedSigners?.contains(where: { $0.locator == locator }) ?? false
+    }
+
     private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
         guard let rawPublicKey = Data(base64Encoded: publicKeyBase64), rawPublicKey.count == 64 else {
             throw WalletError.walletCreationFailed("Invalid device signer public key")
         }
-        let xBytes = rawPublicKey.prefix(32)
-        let yBytes = rawPublicKey.suffix(32)
-        let xDecimal = BigUInt(xBytes).description
-        let yDecimal = BigUInt(yBytes).description
-        return DelegatedSignerEntry(
-            signer: DelegatedSignerData(
-                publicKey: DelegatedSignerPublicKey(x: xDecimal, y: yDecimal)
+        // Build uncompressed P256 point: 0x04 || x (32 bytes) || y (32 bytes)
+        let uncompressed = Data([0x04]) + rawPublicKey
+        return DelegatedSignerEntry(signer: "device:\(uncompressed.base64EncodedString())")
+    }
+
+    private func approveDelegatedSignerRegistration(
+        signatureId: String,
+        pendingApprovals: [ApprovalEntry],
+        signer: any Signer,
+        chainType: ChainType
+    ) async throws {
+        try await initializeSigner(signer)
+        for approval in pendingApprovals {
+            let signRequest = SignRequestApi(
+                approvals: try await signer.approvals(
+                    withSignature: try await signer.sign(message: approval.message)
+                )
             )
-        )
+            try await smartWalletService.approveSignature(
+                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chainType)
+            )
+        }
     }
 }
