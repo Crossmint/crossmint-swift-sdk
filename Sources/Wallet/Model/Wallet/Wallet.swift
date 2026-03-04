@@ -324,6 +324,15 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
     }
 
+    private func deviceSignerLocator() async -> String? {
+        guard let storage = deviceSignerKeyStorage,
+              let publicKeyBase64 = await storage.getKey(address: address),
+              let rawKey = Data(base64Encoded: publicKeyBase64),
+              rawKey.count == 64 else { return nil }
+        let uncompressed = Data([0x04]) + rawKey
+        return "device:\(uncompressed.base64EncodedString())"
+    }
+
     internal func transferTokenAndPollWhilePending(
         tokenLocator: String,
         recipient: String,
@@ -331,11 +340,13 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
         onTransactionStart?()
+        let signerLocator = await deviceSignerLocator()
         let createdTransaction = try await smartWalletService.transferToken(
             chainType: chain.chainType.rawValue,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
+            signer: signerLocator,
             idempotencyKey: idempotencyKey
         ).toDomain(withService: smartWalletService)
 
@@ -478,6 +489,10 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         _ transaction: Transaction?
     ) async throws(TransactionError) -> Transaction? {
         if let transaction, let approvals = transaction.approvals, !approvals.pending.isEmpty {
+            Logger.smartWallet.debug("wallet.signTransaction.pendingApprovals", attributes: [
+                "count": "\(approvals.pending.count)",
+                "signers": approvals.pending.map(\.signer).joined(separator: ", ")
+            ])
             for pendingApproval in approvals.pending {
                 try await approveTransaction(
                     transactionId: transaction.id,
