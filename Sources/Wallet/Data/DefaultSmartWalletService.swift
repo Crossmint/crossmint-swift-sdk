@@ -395,10 +395,10 @@ public final class DefaultSmartWalletService: SmartWalletService {
             ),
             errorType: WalletError.self
         )
-        guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {
-            throw WalletError.walletGeneric("Failed to decode delegated signer registration response")
+        do {
+            return try jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData)
         } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+            throw WalletError.walletGeneric("Failed to decode delegated signer registration response")
         }
     }
 
