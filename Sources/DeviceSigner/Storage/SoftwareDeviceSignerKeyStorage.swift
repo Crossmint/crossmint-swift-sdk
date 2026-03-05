@@ -92,6 +92,11 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
         try DeviceSignerKeychainStorage.delete(tag: tag)
     }
 
+    public func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError) {
+        let tag = "crossmint.device.pending.\(publicKeyBase64)"
+        try DeviceSignerKeychainStorage.delete(tag: tag)
+    }
+
     // MARK: - Private helpers
 
     private func hexString<D: DataProtocol>(from data: D) -> String {

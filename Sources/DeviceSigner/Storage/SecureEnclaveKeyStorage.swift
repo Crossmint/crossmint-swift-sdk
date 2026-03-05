@@ -94,7 +94,8 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
         do {
             key = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData)
         } catch {
-            throw DeviceSignerError.keyNotFound
+            // Key data was found but the SE key is unusable (e.g. biometric enrollment changed)
+            throw DeviceSignerError.signingFailed
         }
 
         guard let messageData = Data(base64Encoded: message) else {
@@ -117,6 +118,11 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
 
     public func deleteKey(address: String) async throws(DeviceSignerError) {
         let tag = "crossmint.device.wallet.\(address)"
+        try DeviceSignerKeychainStorage.delete(tag: tag)
+    }
+
+    public func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError) {
+        let tag = "crossmint.device.pending.\(publicKeyBase64)"
         try DeviceSignerKeychainStorage.delete(tag: tag)
     }
 

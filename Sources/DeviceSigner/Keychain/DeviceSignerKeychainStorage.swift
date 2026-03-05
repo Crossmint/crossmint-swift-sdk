@@ -10,7 +10,10 @@ enum DeviceSignerKeychainStorage {
             kSecAttrService: service,
             kSecAttrAccount: tag
         ]
-        SecItemDelete(deleteQuery as CFDictionary)
+        let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
+        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+            throw DeviceSignerError.storageError(deleteStatus)
+        }
 
         let addQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,

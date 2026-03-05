@@ -51,4 +51,7 @@ public protocol DeviceSignerKeyStorage: Sendable {
 
     /// Deletes the signing key for the given wallet address from the Keychain.
     func deleteKey(address: String) async throws(DeviceSignerError)
+
+    /// Deletes a pending key that was never mapped to a wallet address.
+    func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError)
 }

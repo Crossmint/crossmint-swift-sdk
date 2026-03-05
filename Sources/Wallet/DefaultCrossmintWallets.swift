@@ -92,6 +92,9 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                             "address": walletApiModel.address
                         ])
                     } catch {
+                        if existingPublicKeyBase64 == nil {
+                            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+                        }
                         Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
                             "error": "\(error)"
                         ])
@@ -255,6 +258,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                         publicKeyBase64: publicKeyBase64
                     )
                 } catch {
+                    try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
                     Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
                         "error": "\(error)"
                     ])
