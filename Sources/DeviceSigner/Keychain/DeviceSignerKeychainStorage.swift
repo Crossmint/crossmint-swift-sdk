@@ -3,8 +3,8 @@ import Security
 
 private let service = "com.crossmint.devicesigner"
 
-enum DeviceSignerKeychainStorage {
-    static func save(_ data: Data, tag: String) throws(DeviceSignerError) {
+struct DeviceSignerKeychainStorage {
+    func save(_ data: Data, tag: String, accessControl: SecAccessControl? = nil) throws(DeviceSignerError) {
         let deleteQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -15,20 +15,24 @@ enum DeviceSignerKeychainStorage {
             throw DeviceSignerError.storageError(deleteStatus)
         }
 
-        let addQuery: [CFString: Any] = [
+        var addQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: tag,
-            kSecValueData: data,
-            kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecValueData: data
         ]
+        if let accessControl {
+            addQuery[kSecAttrAccessControl] = accessControl
+        } else {
+            addQuery[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        }
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw DeviceSignerError.storageError(status)
         }
     }
 
-    static func load(tag: String) -> Data? {
+    func load(tag: String) -> Data? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -42,7 +46,7 @@ enum DeviceSignerKeychainStorage {
         return result as? Data
     }
 
-    static func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
+    func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -57,7 +61,7 @@ enum DeviceSignerKeychainStorage {
         }
     }
 
-    static func delete(tag: String) throws(DeviceSignerError) {
+    func delete(tag: String) throws(DeviceSignerError) {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,

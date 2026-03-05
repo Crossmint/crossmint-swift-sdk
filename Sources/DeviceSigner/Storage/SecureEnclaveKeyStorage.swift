@@ -20,6 +20,7 @@ import Security
 /// a Secure Enclave, the device signer feature should not be used — prefer an alternative
 /// signer such as email or passkey.
 public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
+    private let keychain = DeviceSignerKeychainStorage()
     private let biometricPolicy: BiometricPolicy
 
     /// Creates a Secure Enclave key storage with the given biometric policy.
@@ -61,7 +62,7 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
             tag = "crossmint.device.pending.\(publicKeyBase64)"
         }
 
-        try DeviceSignerKeychainStorage.save(key.dataRepresentation, tag: tag)
+        try keychain.save(key.dataRepresentation, tag: tag)
 
         return publicKeyBase64
     }
@@ -69,12 +70,12 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     public func mapAddressToKey(address: String, publicKeyBase64: String) async throws(DeviceSignerError) {
         let oldTag = "crossmint.device.pending.\(publicKeyBase64)"
         let newTag = "crossmint.device.wallet.\(address)"
-        try DeviceSignerKeychainStorage.rename(from: oldTag, to: newTag)
+        try keychain.rename(from: oldTag, to: newTag)
     }
 
     public func getKey(address: String) async -> String? {
         let tag = "crossmint.device.wallet.\(address)"
-        guard let keyData = DeviceSignerKeychainStorage.load(tag: tag),
+        guard let keyData = keychain.load(tag: tag),
               let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else {
             return nil
         }
@@ -86,7 +87,7 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
         message: String
     ) async throws(DeviceSignerError) -> (r: String, s: String) {
         let tag = "crossmint.device.wallet.\(address)"
-        guard let keyData = DeviceSignerKeychainStorage.load(tag: tag) else {
+        guard let keyData = keychain.load(tag: tag) else {
             throw DeviceSignerError.keyNotFound
         }
 
@@ -118,12 +119,12 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
 
     public func deleteKey(address: String) async throws(DeviceSignerError) {
         let tag = "crossmint.device.wallet.\(address)"
-        try DeviceSignerKeychainStorage.delete(tag: tag)
+        try keychain.delete(tag: tag)
     }
 
     public func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError) {
         let tag = "crossmint.device.pending.\(publicKeyBase64)"
-        try DeviceSignerKeychainStorage.delete(tag: tag)
+        try keychain.delete(tag: tag)
     }
 
     // MARK: - Private helpers

@@ -7,6 +7,7 @@
 
 import CryptoKit
 import Foundation
+import Security
 
 /// A ``DeviceSignerKeyStorage`` implementation using software P-256 keys stored in the Keychain.
 ///
@@ -20,7 +21,16 @@ import Foundation
 ///   ``SecureEnclaveKeyStorage`` on real devices and falls back to this implementation only
 ///   when ``SecureEnclave/isAvailable`` returns `false`.
 public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
-    public init() {}
+    private let biometricPolicy: BiometricPolicy
+    private let keychain = DeviceSignerKeychainStorage()
+
+    /// Creates a software key storage with the given biometric policy.
+    ///
+    /// - Parameter biometricPolicy: When to require biometric authentication for signing.
+    ///   Defaults to ``BiometricPolicy/none``.
+    public init(biometricPolicy: BiometricPolicy = .none) {
+        self.biometricPolicy = biometricPolicy
+    }
 
     public func isAvailable() async -> Bool {
         true
@@ -39,7 +49,7 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
         }
 
         // Store the 32-byte private key scalar
-        try DeviceSignerKeychainStorage.save(key.rawRepresentation, tag: tag)
+        try keychain.save(key.rawRepresentation, tag: tag, accessControl: makeAccessControl())
 
         return publicKeyBase64
     }
@@ -47,12 +57,12 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
     public func mapAddressToKey(address: String, publicKeyBase64: String) async throws(DeviceSignerError) {
         let oldTag = "crossmint.device.pending.\(publicKeyBase64)"
         let newTag = "crossmint.device.wallet.\(address)"
-        try DeviceSignerKeychainStorage.rename(from: oldTag, to: newTag)
+        try keychain.rename(from: oldTag, to: newTag)
     }
 
     public func getKey(address: String) async -> String? {
         let tag = "crossmint.device.wallet.\(address)"
-        guard let keyData = DeviceSignerKeychainStorage.load(tag: tag),
+        guard let keyData = keychain.load(tag: tag),
               let key = try? P256.Signing.PrivateKey(rawRepresentation: keyData) else {
             return nil
         }
@@ -64,7 +74,7 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
         message: String
     ) async throws(DeviceSignerError) -> (r: String, s: String) {
         let tag = "crossmint.device.wallet.\(address)"
-        guard let keyData = DeviceSignerKeychainStorage.load(tag: tag),
+        guard let keyData = keychain.load(tag: tag),
               let key = try? P256.Signing.PrivateKey(rawRepresentation: keyData) else {
             throw DeviceSignerError.keyNotFound
         }
@@ -89,15 +99,29 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
 
     public func deleteKey(address: String) async throws(DeviceSignerError) {
         let tag = "crossmint.device.wallet.\(address)"
-        try DeviceSignerKeychainStorage.delete(tag: tag)
+        try keychain.delete(tag: tag)
     }
 
     public func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError) {
         let tag = "crossmint.device.pending.\(publicKeyBase64)"
-        try DeviceSignerKeychainStorage.delete(tag: tag)
+        try keychain.delete(tag: tag)
     }
 
     // MARK: - Private helpers
+
+    private func makeAccessControl() -> SecAccessControl? {
+        switch biometricPolicy {
+        case .none:
+            return nil
+        case .always:
+            return SecAccessControlCreateWithFlags(
+                nil,
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+                .biometryCurrentSet,
+                nil
+            )
+        }
+    }
 
     private func hexString<D: DataProtocol>(from data: D) -> String {
         data.map { String(format: "%02x", $0) }.joined()

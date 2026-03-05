@@ -59,14 +59,16 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                     Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
                         "address": walletApiModel.address
                     ])
+                    var publicKeyBase64: String?
                     do {
-                        let publicKeyBase64: String
+                        let key: String
                         if let existing = existingPublicKeyBase64 {
-                            publicKeyBase64 = existing
+                            key = existing
                         } else {
-                            publicKeyBase64 = try await storage.generateKey(address: nil)
+                            key = try await storage.generateKey(address: nil)
                         }
-                        let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+                        publicKeyBase64 = key
+                        let entry = try makeDelegatedSignerEntry(publicKeyBase64: key)
                         let registration = try await smartWalletService.addDelegatedSigner(
                             entry, chainType: chain.chainType, chainName: chain.name
                         )
@@ -85,14 +87,14 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                         if existingPublicKeyBase64 == nil {
                             try await storage.mapAddressToKey(
                                 address: walletApiModel.address,
-                                publicKeyBase64: publicKeyBase64
+                                publicKeyBase64: key
                             )
                         }
                         Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
                             "address": walletApiModel.address
                         ])
                     } catch {
-                        if existingPublicKeyBase64 == nil {
+                        if existingPublicKeyBase64 == nil, let publicKeyBase64 {
                             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
                         }
                         Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
@@ -288,7 +290,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         if SecureEnclave.isAvailable {
             return SecureEnclaveKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
         } else {
-            return SoftwareDeviceSignerKeyStorage()
+            return SoftwareDeviceSignerKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
         }
     }
 
