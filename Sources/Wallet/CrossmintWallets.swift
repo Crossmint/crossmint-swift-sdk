@@ -1,4 +1,5 @@
 import CrossmintCommonTypes
+import DeviceSigner
 
 public protocol CrossmintWallets: Sendable {
     @available(*, deprecated, message: "Use type-safe getOrCreateWallet methods with EVMSigners or SolanaSigners")
@@ -66,7 +67,18 @@ extension CrossmintWallets {
 }
 
 public struct WalletOptions {
-    let experimentalCallbacks: ExperimentalCallbacks
+    let experimentalCallbacks: ExperimentalCallbacks?
+    public let deviceSigner: DeviceSignerOptions?
+
+    public init(deviceSigner: DeviceSignerOptions? = nil) {
+        self.experimentalCallbacks = nil
+        self.deviceSigner = deviceSigner
+    }
+
+    init(deviceSigner: DeviceSignerOptions? = nil, experimentalCallbacks: ExperimentalCallbacks?) {
+        self.deviceSigner = deviceSigner
+        self.experimentalCallbacks = experimentalCallbacks
+    }
 }
 
 protocol ExperimentalCallbacks {

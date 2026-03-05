@@ -6,6 +6,7 @@
 //
 
 import CrossmintCommonTypes
+import DeviceSigner
 import Foundation
 import Logger
 
@@ -24,7 +25,8 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
         signer: any Signer,
         baseModel: WalletApiModel,
         stellarChain: StellarChain,
-        onTransactionStart: (() -> Void)? = nil
+        onTransactionStart: (() -> Void)? = nil,
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
     ) throws(WalletError) {
         var effectiveSigner = signer
 
@@ -43,7 +45,8 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 baseModel: baseModel,
                 chain: stellarChain.chain,
                 address: .stellar(StellarAddress(address: baseModel.address)),
-                onTransactionStart: onTransactionStart
+                onTransactionStart: onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerKeyStorage
             )
         } catch {
             throw .walletInvalidType("The address \(baseModel.address) is not compatible with Stellar")

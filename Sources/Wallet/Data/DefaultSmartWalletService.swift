@@ -30,27 +30,24 @@ public final class DefaultSmartWalletService: SmartWalletService {
             "locator": "me:\(request.chainType.rawValue)"
         ])
 
-        do {
-            let result: WalletApiModel = try await crossmintService.executeRequest(
-                Endpoint(
-                    path: "/2025-06-09/wallets/me:\(request.chainType.rawValue)",
-                    method: .get,
-                    headers: authHeaders
-                ),
-                errorType: WalletError.self
-            )
+        let data = try await crossmintService.executeRequestForRawData(
+            Endpoint(
+                path: "/2025-06-09/wallets/me:\(request.chainType.rawValue)",
+                method: .get,
+                headers: authHeaders
+            ),
+            errorType: WalletError.self
+        )
 
-            Logger.smartWallet.info(LogEvents.apiGetWalletSuccess, attributes: [
-                "address": result.address
-            ])
-
-            return result
-        } catch {
-            Logger.smartWallet.warn(LogEvents.apiGetWalletError, attributes: [
-                "error": "\(error)"
-            ])
-            throw error
+        guard let result = try? jsonCoder.decode(WalletApiModel.self, from: data) else {
+            throw WalletError.walletGeneric("Failed to decode wallet response")
         }
+
+        Logger.smartWallet.info(LogEvents.apiGetWalletSuccess, attributes: [
+            "address": result.address
+        ])
+
+        return result
     }
 
     public func createWallet(
@@ -61,31 +58,25 @@ public final class DefaultSmartWalletService: SmartWalletService {
             "type": request.type.rawValue
         ])
 
-        do {
-            let result: WalletApiModel = try await crossmintService.executeRequest(
-                Endpoint(
-                    path: "/2025-06-09/wallets/me",
-                    method: .post,
-                    headers: authHeaders,
-                    body: try jsonCoder.encodeRequest(
-                        request,
-                        errorType: WalletError.self
-                    )
-                ),
-                errorType: WalletError.self
-            )
+        let bodyData = try jsonCoder.encodeRequest(request, errorType: WalletError.self)
 
-            Logger.smartWallet.info(LogEvents.apiCreateWalletSuccess, attributes: [
-                "address": result.address
-            ])
+        let responseData = try await crossmintService.executeRequestForRawData(
+            Endpoint(
+                path: "/2025-06-09/wallets/me",
+                method: .post,
+                headers: authHeaders,
+                body: bodyData
+            ),
+            errorType: WalletError.self
+        )
 
-            return result
-        } catch {
-            Logger.smartWallet.error(LogEvents.apiCreateWalletError, attributes: [
-                "error": "\(error)"
-            ])
-            throw error
+        guard let result = try? jsonCoder.decode(WalletApiModel.self, from: responseData) else {
+            throw WalletError.walletGeneric("Failed to decode create wallet response")
         }
+
+        Logger.smartWallet.info(LogEvents.apiCreateWalletSuccess, attributes: ["address": result.address])
+
+        return result
     }
 
     public func getBalance(
@@ -138,14 +129,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
         let chainType = request.chainType
         let apiRequest = request.request
 
+        let bodyData = try jsonCoder.encodeRequest(apiRequest, errorType: TransactionError.self)
+
         let endpoint = Endpoint(
             path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions",
             method: .post,
             headers: await authHeaders,
-            body: try jsonCoder.encodeRequest(
-                    apiRequest,
-                    errorType: TransactionError.self
-            )
+            body: bodyData
         )
 
         return try await executeTransactionRequest(
@@ -161,14 +151,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
         let transactionId = request.transactionId
         let apiRequest = request.apiRequest
 
+        let bodyData = try jsonCoder.encodeRequest(apiRequest, errorType: TransactionError.self)
+
         let endpoint = Endpoint(
             path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions/\(transactionId)/approvals",
             method: .post,
             headers: await authHeaders,
-            body: try jsonCoder.encodeRequest(
-                apiRequest,
-                errorType: TransactionError.self
-            )
+            body: bodyData
         )
 
         return try await executeTransactionRequest(
@@ -223,6 +212,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         tokenLocator: String,
         recipient: String,
         amount: String,
+        signer: String? = nil,
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> any TransactionApiModel {
         Logger.smartWallet.info(LogEvents.apiSendStart, attributes: [
@@ -235,23 +225,30 @@ public final class DefaultSmartWalletService: SmartWalletService {
         struct Body: Encodable {
             let recipient: String
             let amount: String
+            let signer: String?
+            private enum CodingKeys: String, CodingKey { case recipient, amount, signer }
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(recipient, forKey: .recipient)
+                try c.encode(amount, forKey: .amount)
+                try c.encodeIfPresent(signer, forKey: .signer)
+            }
         }
 
         do {
             let body = Body(
                 recipient: recipient,
-                amount: amount
+                amount: amount,
+                signer: signer
             )
+            let bodyData = try jsonCoder.encodeRequest(body, errorType: TransactionError.self)
             var headers = await authHeaders
             headers["x-idempotency-key"] = idempotencyKey ?? UUID().uuidString
             let endpoint = Endpoint(
                 path: "/2025-06-09/wallets/me:\(chainType)/tokens/\(tokenLocator)/transfers",
                 method: .post,
                 headers: headers,
-                body: try jsonCoder.encodeRequest(
-                    body,
-                    errorType: TransactionError.self
-                )
+                body: bodyData
             )
 
             let result = try await executeTransactionRequest(
@@ -364,11 +361,45 @@ public final class DefaultSmartWalletService: SmartWalletService {
         endpoint: Endpoint,
         mapping: T.Type
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let response: T.APIModel = try await crossmintService.executeRequest(
+        let data = try await crossmintService.executeRequestForRawData(
             endpoint,
             errorType: TransactionError.self
         )
-        return response
+        do {
+            return try jsonCoder.decode(T.APIModel.self, from: data)
+        } catch {
+            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+        }
+    }
+
+    public func addDelegatedSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        struct RegisterSignerBody: Encodable {
+            let signer: String
+            let chain: String?
+        }
+        let chain: String? = chainType == .solana || chainType == .stellar ? nil : chainName
+        let bodyData = try jsonCoder.encodeRequest(
+            RegisterSignerBody(signer: entry.signer, chain: chain),
+            errorType: WalletError.self
+        )
+        let responseData = try await crossmintService.executeRequestForRawData(
+            Endpoint(
+                path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers",
+                method: .post,
+                headers: authHeaders,
+                body: bodyData
+            ),
+            errorType: WalletError.self
+        )
+        do {
+            return try jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode delegated signer registration response")
+        }
     }
 
     public func listTransfers(

@@ -1,4 +1,5 @@
 import CrossmintCommonTypes
+import DeviceSigner
 import Foundation
 import Logger
 
@@ -17,7 +18,8 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
         signer: any Signer,
         baseModel: WalletApiModel,
         solanaChain: SolanaChain,
-        onTransactionStart: (() -> Void)? = nil
+        onTransactionStart: (() -> Void)? = nil,
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
     ) throws(WalletError) {
         var effectiveSigner = signer
 
@@ -35,7 +37,8 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 baseModel: baseModel,
                 chain: solanaChain.chain,
                 address: .solana(SolanaAddress(address: baseModel.address)),
-                onTransactionStart: onTransactionStart
+                onTransactionStart: onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerKeyStorage
             )
         } catch {
             throw .walletInvalidType("The address \(baseModel.address) is not compatible with Solana")

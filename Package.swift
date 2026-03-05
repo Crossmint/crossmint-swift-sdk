@@ -72,6 +72,10 @@ let package = Package(
             plugins: basePlugins
         ),
         .target(
+            name: "DeviceSigner",
+            plugins: basePlugins
+        ),
+        .target(
             name: "Wallet",
             dependencies: baseDependencies + [
                 "Http",
@@ -80,6 +84,7 @@ let package = Package(
                 "CrossmintCommonTypes",
                 "SecureStorage",
                 "Passkeys",
+                "DeviceSigner",
                 .product(name: "P256K", package: "swift-secp256k1"),
                 .product(name: "libsecp256k1", package: "swift-secp256k1"),
                 .product(name: "SwiftKeccak", package: "SwiftKeccak"),

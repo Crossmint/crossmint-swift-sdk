@@ -21,7 +21,6 @@
 		EB9BDDE22DC4CFBF003999C7 /* BalanceDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE12DC4CFBF003999C7 /* BalanceDashboardView.swift */; };
 		EB9BDDE42DC4CFCF003999C7 /* TransferDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE32DC4CFCF003999C7 /* TransferDashboardView.swift */; };
 		EB9BDDE62DC4CFE2003999C7 /* NFTDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE52DC4CFE2003999C7 /* NFTDashboardView.swift */; };
-		EBHISTORY12F000000000001 /* TransferHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBHISTORY02F000000000001 /* TransferHistoryView.swift */; };
 		EB9BDDEB2DC4D219003999C7 /* GetTestTokenButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE92DC4D219003999C7 /* GetTestTokenButton.swift */; };
 		EB9BDDEC2DC4D219003999C7 /* WalletBalanceEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDEA2DC4D219003999C7 /* WalletBalanceEntryView.swift */; };
 		EB9BDDF02DC4E3F1003999C7 /* MiddleEllipsisText.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDEF2DC4E3F1003999C7 /* MiddleEllipsisText.swift */; };
@@ -32,6 +31,7 @@
 		EBEC0BD12DC39253000B59F1 /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC0BD02DC39253000B59F1 /* PrimaryButton.swift */; };
 		EBEC0BD32DC3955B000B59F1 /* AnimationConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC0BD22DC3955B000B59F1 /* AnimationConstants.swift */; };
 		EBEC0BD52DC396EA000B59F1 /* SecondaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC0BD42DC396EA000B59F1 /* SecondaryButton.swift */; };
+		EBHISTORY12F000000000001 /* TransferHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBHISTORY02F000000000001 /* TransferHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,7 +51,6 @@
 		EB9BDDE12DC4CFBF003999C7 /* BalanceDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceDashboardView.swift; sourceTree = "<group>"; };
 		EB9BDDE32DC4CFCF003999C7 /* TransferDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferDashboardView.swift; sourceTree = "<group>"; };
 		EB9BDDE52DC4CFE2003999C7 /* NFTDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFTDashboardView.swift; sourceTree = "<group>"; };
-		EBHISTORY02F000000000001 /* TransferHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferHistoryView.swift; sourceTree = "<group>"; };
 		EB9BDDE92DC4D219003999C7 /* GetTestTokenButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetTestTokenButton.swift; sourceTree = "<group>"; };
 		EB9BDDEA2DC4D219003999C7 /* WalletBalanceEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletBalanceEntryView.swift; sourceTree = "<group>"; };
 		EB9BDDEF2DC4E3F1003999C7 /* MiddleEllipsisText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiddleEllipsisText.swift; sourceTree = "<group>"; };
@@ -62,6 +61,7 @@
 		EBEC0BD02DC39253000B59F1 /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		EBEC0BD22DC3955B000B59F1 /* AnimationConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationConstants.swift; sourceTree = "<group>"; };
 		EBEC0BD42DC396EA000B59F1 /* SecondaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryButton.swift; sourceTree = "<group>"; };
+		EBHISTORY02F000000000001 /* TransferHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -402,11 +402,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SmartWalletsDemo/SmartWalletsDemo.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = T7Q46ZFBCG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SmartWalletsDemo/Info.plist;
@@ -424,7 +423,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.paella.SmartWalletsDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Wallets Demo";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -441,11 +439,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SmartWalletsDemo/SmartWalletsDemo.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = T7Q46ZFBCG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SmartWalletsDemo/Info.plist;
@@ -463,7 +460,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.paella.SmartWalletsDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Wallets Demo";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

@@ -1,5 +1,6 @@
 import BigInt
 import CrossmintCommonTypes
+import DeviceSigner
 import Foundation
 import Logger
 
@@ -20,7 +21,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         signer: any Signer,
         baseModel: WalletApiModel,
         evmChain: EVMChain,
-        onTransactionStart: (() -> Void)? = nil
+        onTransactionStart: (() -> Void)? = nil,
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
     ) throws(WalletError) {
         self.evmChain = evmChain
         do {
@@ -30,7 +32,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 baseModel: baseModel,
                 chain: evmChain.chain,
                 address: .evm(try EVMAddress(address: baseModel.address)),
-                onTransactionStart: onTransactionStart
+                onTransactionStart: onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerKeyStorage
             )
         } catch {
             throw .walletInvalidType("The address \(baseModel.address) is not compatible with EVM")
@@ -211,7 +214,11 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         let response = try await super.smartWalletService.createSignature(request)
 
         for pendingApproval in response.approvals.pending {
-            try await approveSignature(signatureID: response.id, message: pendingApproval.message)
+            try await approveSignature(
+                signatureID: response.id,
+                signerLocator: pendingApproval.signer.locator,
+                message: pendingApproval.message
+            )
         }
 
         return response
@@ -250,8 +257,27 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
     private func approveSignature(
         signatureID: String,
+        signerLocator: String,
         message: String
     ) async throws(SignatureError) {
+        if signerLocator.hasPrefix("device:") && deviceSignerKeyStorage == nil {
+            throw SignatureError.approvalFailed
+        }
+        if signerLocator.hasPrefix("device:"), let storage = deviceSignerKeyStorage {
+            let rAndS: (r: String, s: String)
+            do {
+                rAndS = try await storage.signMessage(address: address, message: message)
+            } catch {
+                throw SignatureError.approvalFailed
+            }
+            let request = SignRequestApi(approvals: [
+                .device(signer: signerLocator, signature: .init(r: rAndS.r, s: rAndS.s))
+            ])
+            return try await smartWalletService.approveSignature(
+                .init(transactionId: signatureID, apiRequest: request, chainType: chain.chainType)
+            )
+        }
+
         let updatedSigner: any Signer = await updateSignerIfRequired()
 
         let request: SignRequestApi

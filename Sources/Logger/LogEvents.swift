@@ -353,6 +353,14 @@ public enum LogEvents {
     /// Delegated signers retrieved
     public static let walletDelegatedSignersSuccess = "wallet.delegatedSigners.success"
 
+    // MARK: - Device Signer Events
+
+    /// Device signer key prepared for new wallet creation
+    public static let walletCreateDeviceSignerPrepared = "wallet.create.deviceSigner.prepared"
+
+    /// Device signer skipped (not configured)
+    public static let walletCreateDeviceSignerSkipped = "wallet.create.deviceSigner.skipped"
+
     // MARK: - WalletFactory Error Events
 
     /// Invalid chain error in getOrCreateWallet

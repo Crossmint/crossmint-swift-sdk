@@ -1,7 +1,9 @@
 import CrossmintCommonTypes
+import DeviceSigner
 import Foundation
 import Logger
 
+// swiftlint:disable:next type_body_length
 open class Wallet: @unchecked Sendable {
     public var address: String {
         blockchainAddress.description
@@ -12,6 +14,7 @@ open class Wallet: @unchecked Sendable {
     internal let blockchainAddress: Address
     internal let signer: any Signer
     internal let chain: Chain
+    var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
 
     private let owner: Owner?
     private let createdAt: Date
@@ -28,7 +31,8 @@ open class Wallet: @unchecked Sendable {
         baseModel: WalletApiModel,
         chain: Chain,
         address: Address,
-        onTransactionStart: (() -> Void)?
+        onTransactionStart: (() -> Void)?,
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
     ) throws(WalletError) {
         self.smartWalletService = smartWalletService
         self.owner = baseModel.owner
@@ -38,6 +42,7 @@ open class Wallet: @unchecked Sendable {
         self.signer = signer
         self.chain = chain
         self.onTransactionStart = onTransactionStart
+        self.deviceSignerKeyStorage = deviceSignerKeyStorage
     }
 
     public func nfts(page: Int, nftsPerPage: Int) async throws(WalletError) -> [NFT] {
@@ -319,6 +324,15 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
     }
 
+    private func deviceSignerLocator() async -> String? {
+        guard let storage = deviceSignerKeyStorage,
+              let publicKeyBase64 = await storage.getKey(address: address),
+              let rawKey = Data(base64Encoded: publicKeyBase64),
+              rawKey.count == 64 else { return nil }
+        let uncompressed = Data([0x04]) + rawKey
+        return "device:\(uncompressed.base64EncodedString())"
+    }
+
     internal func transferTokenAndPollWhilePending(
         tokenLocator: String,
         recipient: String,
@@ -326,11 +340,13 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
         onTransactionStart?()
+        let signerLocator = await deviceSignerLocator()
         let createdTransaction = try await smartWalletService.transferToken(
             chainType: chain.chainType.rawValue,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
+            signer: signerLocator,
             idempotencyKey: idempotencyKey
         ).toDomain(withService: smartWalletService)
 
@@ -397,10 +413,31 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         return transaction
     }
 
+    // swiftlint:disable:next function_body_length
     private func approveTransaction(
         transactionId: String,
+        signerLocator: String,
         message: String
-    ) async throws(TransactionError) -> Transaction? {
+    ) async throws(TransactionError) {
+        if signerLocator.hasPrefix("device:") && deviceSignerKeyStorage == nil {
+            throw TransactionError.transactionSigningFailed(DeviceSignerError.keyNotFound)
+        }
+        if signerLocator.hasPrefix("device:"), let storage = deviceSignerKeyStorage {
+            let rAndS: (r: String, s: String)
+            do {
+                rAndS = try await storage.signMessage(address: address, message: message)
+            } catch {
+                throw TransactionError.transactionSigningFailed(error)
+            }
+            let request = SignRequestApi(approvals: [
+                .device(signer: signerLocator, signature: .init(r: rAndS.r, s: rAndS.s))
+            ])
+            _ = try await smartWalletService.signTransaction(
+                .init(transactionId: transactionId, apiRequest: request, chainType: chain.chainType)
+            )
+            return
+        }
+
         let request: SignRequestApi
         do {
             let updatedSigner: any Signer = await updateSignerIfRequired()
@@ -434,13 +471,13 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             }
         }
 
-        return try await smartWalletService.signTransaction(
+        _ = try await smartWalletService.signTransaction(
             .init(
                 transactionId: transactionId,
                 apiRequest: request,
                 chainType: chain.chainType
             )
-        ).toDomain(withService: smartWalletService)
+        )
     }
 
     private func createTransaction(
@@ -454,16 +491,19 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     private func signTransactionIfRequired(
         _ transaction: Transaction?
     ) async throws(TransactionError) -> Transaction? {
-        if let transaction, let approvals = transaction.approvals {
-            let pendingApprovals = approvals.pending
-            guard pendingApprovals.count == 1, let pendingApproval = pendingApprovals.first else {
-                throw TransactionError.invalidApprovals(expected: 1, actual: pendingApprovals.count)
+        if let transaction, let approvals = transaction.approvals, !approvals.pending.isEmpty {
+            Logger.smartWallet.debug("wallet.signTransaction.pendingApprovals", attributes: [
+                "count": "\(approvals.pending.count)",
+                "signers": approvals.pending.map(\.signer).joined(separator: ", ")
+            ])
+            for pendingApproval in approvals.pending {
+                try await approveTransaction(
+                    transactionId: transaction.id,
+                    signerLocator: pendingApproval.signer,
+                    message: pendingApproval.message
+                )
             }
-
-            return try await approveTransaction(
-                transactionId: transaction.id,
-                message: pendingApproval.message
-            )
+            return transaction
         }
         return transaction
     }
