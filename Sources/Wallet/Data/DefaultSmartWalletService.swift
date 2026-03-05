@@ -39,10 +39,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
             errorType: WalletError.self
         )
 
-        if let bodyString = String(data: data, encoding: .utf8) {
-            Logger.smartWallet.debug("wallets.api.getWallet.responseBody", attributes: ["body": bodyString])
-        }
-
         guard let result = try? jsonCoder.decode(WalletApiModel.self, from: data) else {
             throw WalletError.walletGeneric("Failed to decode wallet response")
         }
@@ -63,9 +59,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
         ])
 
         let bodyData = try jsonCoder.encodeRequest(request, errorType: WalletError.self)
-        if let bodyString = String(data: bodyData, encoding: .utf8) {
-            Logger.smartWallet.debug("wallets.api.createWallet.requestBody", attributes: ["body": bodyString])
-        }
 
         let responseData = try await crossmintService.executeRequestForRawData(
             Endpoint(
@@ -76,10 +69,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
             ),
             errorType: WalletError.self
         )
-
-        if let responseString = String(data: responseData, encoding: .utf8) {
-            Logger.smartWallet.debug("wallets.api.createWallet.responseBody", attributes: ["body": responseString])
-        }
 
         guard let result = try? jsonCoder.decode(WalletApiModel.self, from: responseData) else {
             throw WalletError.walletGeneric("Failed to decode create wallet response")
@@ -141,9 +130,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
         let apiRequest = request.request
 
         let bodyData = try jsonCoder.encodeRequest(apiRequest, errorType: TransactionError.self)
-        if let bodyString = String(data: bodyData, encoding: .utf8) {
-            Logger.smartWallet.debug("wallets.api.createTransaction.requestBody", attributes: ["body": bodyString])
-        }
 
         let endpoint = Endpoint(
             path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions",
@@ -166,9 +152,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
         let apiRequest = request.apiRequest
 
         let bodyData = try jsonCoder.encodeRequest(apiRequest, errorType: TransactionError.self)
-        if let bodyString = String(data: bodyData, encoding: .utf8) {
-            Logger.smartWallet.debug("wallets.api.signTransaction.requestBody", attributes: ["body": bodyString])
-        }
 
         let endpoint = Endpoint(
             path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions/\(transactionId)/approvals",
@@ -259,9 +242,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
                 signer: signer
             )
             let bodyData = try jsonCoder.encodeRequest(body, errorType: TransactionError.self)
-            if let bodyString = String(data: bodyData, encoding: .utf8) {
-                Logger.smartWallet.debug("wallets.api.transferToken.requestBody", attributes: ["body": bodyString])
-            }
             var headers = await authHeaders
             headers["x-idempotency-key"] = idempotencyKey ?? UUID().uuidString
             let endpoint = Endpoint(
@@ -385,9 +365,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
             endpoint,
             errorType: TransactionError.self
         )
-        if let bodyString = String(data: data, encoding: .utf8) {
-            Logger.smartWallet.debug("wallets.api.transaction.responseBody", attributes: ["body": bodyString])
-        }
         guard let result = try? jsonCoder.decode(T.APIModel.self, from: data) else {
             throw TransactionError.transactionGeneric("Failed to decode transaction response")
         }
@@ -408,9 +385,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
             RegisterSignerBody(signer: entry.signer, chain: chain),
             errorType: WalletError.self
         )
-        if let bodyString = String(data: bodyData, encoding: .utf8) {
-            Logger.smartWallet.debug("wallets.api.addDelegatedSigner.requestBody", attributes: ["body": bodyString])
-        }
         let responseData = try await crossmintService.executeRequestForRawData(
             Endpoint(
                 path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers",
@@ -420,11 +394,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
             ),
             errorType: WalletError.self
         )
-        if let responseString = String(data: responseData, encoding: .utf8) {
-            Logger.smartWallet.debug(
-                "wallets.api.addDelegatedSigner.responseBody", attributes: ["body": responseString]
-            )
-        }
         return (try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData))
             ?? AddDelegatedSignerResponse(chains: nil)
     }
