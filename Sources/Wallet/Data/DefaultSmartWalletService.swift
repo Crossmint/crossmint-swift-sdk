@@ -243,6 +243,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
             let recipient: String
             let amount: String
             let signer: String?
+            private enum CodingKeys: String, CodingKey { case recipient, amount, signer }
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(recipient, forKey: .recipient)
+                try c.encode(amount, forKey: .amount)
+                try c.encodeIfPresent(signer, forKey: .signer)
+            }
         }
 
         do {

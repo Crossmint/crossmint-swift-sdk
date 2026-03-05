@@ -500,7 +500,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                     message: pendingApproval.message
                 )
             }
-            return try await pollTransactionWhilePending(transaction: transaction)
+            return transaction
         }
         return transaction
     }
