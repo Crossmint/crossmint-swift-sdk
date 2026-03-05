@@ -365,10 +365,11 @@ public final class DefaultSmartWalletService: SmartWalletService {
             endpoint,
             errorType: TransactionError.self
         )
-        guard let result = try? jsonCoder.decode(T.APIModel.self, from: data) else {
+        do {
+            return try jsonCoder.decode(T.APIModel.self, from: data)
+        } catch {
             throw TransactionError.transactionGeneric("Failed to decode transaction response")
         }
-        return result
     }
 
     public func addDelegatedSigner(
@@ -396,8 +397,9 @@ public final class DefaultSmartWalletService: SmartWalletService {
         )
         guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {
             throw WalletError.walletGeneric("Failed to decode delegated signer registration response")
+        } catch {
+            throw TransactionError.transactionGeneric("Failed to decode transaction response")
         }
-        return result
     }
 
     public func listTransfers(

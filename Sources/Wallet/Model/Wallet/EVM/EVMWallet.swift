@@ -260,6 +260,9 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         signerLocator: String,
         message: String
     ) async throws(SignatureError) {
+        if signerLocator.hasPrefix("device:") && deviceSignerKeyStorage == nil {
+            throw SignatureError.approvalFailed
+        }
         if signerLocator.hasPrefix("device:"), let storage = deviceSignerKeyStorage {
             let rAndS: (r: String, s: String)
             do {

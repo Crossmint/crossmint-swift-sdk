@@ -419,6 +419,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         signerLocator: String,
         message: String
     ) async throws(TransactionError) {
+        if signerLocator.hasPrefix("device:") && deviceSignerKeyStorage == nil {
+            throw TransactionError.transactionSigningFailed(DeviceSignerError.keyNotFound)
+        }
         if signerLocator.hasPrefix("device:"), let storage = deviceSignerKeyStorage {
             let rAndS: (r: String, s: String)
             do {
