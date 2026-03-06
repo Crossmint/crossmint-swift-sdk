@@ -604,6 +604,12 @@ extension CrossmintTEE {
             return
         }
 
+        await Task.yield()
+
+        guard !signRequestQueue.isEmpty else {
+            return
+        }
+
         let request = signRequestQueue.removeFirst()
         Logger.tee.debug(LogEvents.queueProcess, attributes: [
             "queue.requestId": request.id.uuidString,
