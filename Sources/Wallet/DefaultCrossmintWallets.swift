@@ -5,7 +5,6 @@ import DeviceSigner
 import Logger
 import SecureStorage
 
-// swiftlint:disable:next type_body_length
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
     private let secureWalletStorage: SecureWalletStorage
@@ -18,126 +17,6 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         self.secureWalletStorage = secureWalletStorage
 
         Logger.smartWallet.info(LogEvents.sdkInitialized)
-    }
-
-    // swiftlint:disable:next function_body_length
-    public func getOrCreateWallet(
-        chain: Chain,
-        signer: any Signer,
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> Wallet {
-        guard isValid(chain: chain) else {
-            let errorMessage = "The chain \(chain.name) is not supported for the current environment"
-            Logger.smartWallet.error(LogEvents.walletFactoryGetOrCreateWalletError, attributes: [
-                "error": errorMessage
-            ])
-            throw WalletError.walletCreationFailed(errorMessage)
-        }
-
-        Logger.smartWallet.debug(LogEvents.walletGetOrCreateStart, attributes: [
-            "chain": chain.name,
-            "signerType": signer.signerType.rawValue
-        ])
-
-        let deviceSignerStorage = makeDeviceSignerStorage(options: options)
-
-        let walletApiModel: WalletApiModel
-        do {
-            walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-            let signers = walletApiModel.config.delegatedSigners?.compactMap(\.locator) ?? []
-            let existingDelegatedLocators = signers.isEmpty ? "none" : signers.joined(separator: ", ")
-            Logger.smartWallet.debug(LogEvents.walletGetOrCreateExisting, attributes: [
-                "chain": chain.name,
-                "address": walletApiModel.address,
-                "delegatedSigners": existingDelegatedLocators
-            ])
-
-            // Existing wallet: register device signer if not yet present or not registered on backend
-            if let storage = deviceSignerStorage {
-                let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
-                let isRegistered = isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel)
-                if !isRegistered {
-                    Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
-                        "address": walletApiModel.address
-                    ])
-                    var publicKeyBase64: String?
-                    do {
-                        let key: String
-                        if let existing = existingPublicKeyBase64 {
-                            key = existing
-                        } else {
-                            key = try await storage.generateKey(address: nil)
-                        }
-                        publicKeyBase64 = key
-                        let entry = try makeDelegatedSignerEntry(publicKeyBase64: key)
-                        let registration = try await smartWalletService.addDelegatedSigner(
-                            entry, chainType: chain.chainType, chainName: chain.name
-                        )
-                        if let chainEntry = registration.chains?[chain.name],
-                           chainEntry.status == "awaiting-approval",
-                           let signatureId = chainEntry.id,
-                           let pending = chainEntry.approvals?.pending, !pending.isEmpty {
-                            try await approveDelegatedSignerRegistration(
-                                signatureId: signatureId,
-                                pendingApprovals: pending,
-                                signer: signer,
-                                chainType: chain.chainType
-                            )
-                        }
-                        // Only rename if we generated a new pending key; existing keys are already under wallet tag
-                        if existingPublicKeyBase64 == nil {
-                            try await storage.mapAddressToKey(
-                                address: walletApiModel.address,
-                                publicKeyBase64: key
-                            )
-                        }
-                        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
-                            "address": walletApiModel.address
-                        ])
-                    } catch {
-                        if existingPublicKeyBase64 == nil, let publicKeyBase64 {
-                            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
-                        }
-                        Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
-                            "error": "\(error)"
-                        ])
-                        // Device signer registration failed — continue without it
-                    }
-                }
-            }
-        } catch WalletError.walletNotFound {
-            Logger.smartWallet.debug(LogEvents.walletGetOrCreateCreating, attributes: [
-                "chain": chain.name
-            ])
-            walletApiModel = try await createWalletApiModel(
-                signer: signer,
-                chainType: chain.chainType,
-                walletType: .smart,
-                options: options,
-                deviceSignerStorage: deviceSignerStorage
-            )
-        }
-
-        let wallet = try buildWallet(
-            from: walletApiModel,
-            chain: chain,
-            signer: signer,
-            options: options,
-            deviceSignerStorage: deviceSignerStorage
-        )
-
-        do {
-            try await (signer as? any EmailSigner)?.load()
-        } catch {
-            Logger.smartWallet.warn(
-                """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
-"""
-            )
-        }
-
-        return wallet
     }
 
     // swiftlint:disable:next function_body_length
@@ -222,7 +101,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) async throws(WalletError) -> Wallet {
         guard isValid(chain: chain) else {
             let errorMessage = "The chain \(chain.name) is not supported for the current environment"
-            Logger.smartWallet.error(LogEvents.walletFactoryGetOrCreateWalletError, attributes: [
+            Logger.smartWallet.error(LogEvents.walletFactoryCreateWalletError, attributes: [
                 "error": errorMessage
             ])
             throw WalletError.walletCreationFailed(errorMessage)
