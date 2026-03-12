@@ -339,6 +339,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         ])
 
         var publicKeyBase64: String?
+        var registeredOnBackend = false
         do {
             let pubKey = try await storage.generateKey(address: nil)
             publicKeyBase64 = pubKey
@@ -354,6 +355,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 chainType: chain.chainType,
                 chainName: chain.name
             )
+            registeredOnBackend = true
 
             if let chainEntry = registration.chains?[chain.name],
                chainEntry.status == "awaiting-approval",
@@ -378,7 +380,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 "address": address
             ])
         } catch {
-            if let pubKey = publicKeyBase64 {
+            if let pubKey = publicKeyBase64, !registeredOnBackend {
                 try? await storage.deletePendingKey(publicKeyBase64: pubKey)
             }
             Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
