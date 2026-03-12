@@ -5,6 +5,7 @@ import DeviceSigner
 import Logger
 import SecureStorage
 
+// swiftlint:disable:next type_body_length
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
     private let secureWalletStorage: SecureWalletStorage
@@ -19,7 +20,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
 
-    // swiftlint:disable:next function_body_length cyclomatic_complexity
+    // swiftlint:disable:next function_body_length
     public func getOrCreateWallet(
         chain: Chain,
         signer: any Signer,
@@ -108,7 +109,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             Logger.smartWallet.debug(LogEvents.walletGetOrCreateCreating, attributes: [
                 "chain": chain.name
             ])
-            walletApiModel = try await createWallet(
+            walletApiModel = try await createWalletApiModel(
                 signer: signer,
                 chainType: chain.chainType,
                 walletType: .smart,
@@ -117,50 +118,132 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             )
         }
 
-        let wallet: Wallet
-        switch walletApiModel.chainType {
-        case .evm:
-            guard let evmChain: EVMChain = EVMChain(chain.name) else {
-                throw WalletError.walletInvalidType("The wallet received is not compatible with EVM")
-            }
+        let wallet = try buildWallet(
+            from: walletApiModel,
+            chain: chain,
+            signer: signer,
+            options: options,
+            deviceSignerStorage: deviceSignerStorage
+        )
 
-            wallet = try EVMWallet(
-                smartWalletService: smartWalletService,
-                signer: signer,
-                baseModel: walletApiModel,
-                evmChain: evmChain,
-                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerStorage
+        do {
+            try await (signer as? any EmailSigner)?.load()
+        } catch {
+            Logger.smartWallet.warn(
+                """
+There was an error initializing the Email signer. \(error.errorDescription)
+Review if the .crossmintEnvironmentObject modifier is used as expected.
+"""
             )
-        case .solana:
-            guard let solanaChain: SolanaChain = SolanaChain(chain.name) else {
-                throw WalletError.walletInvalidType("The wallet received is not compatible with Solana")
-            }
-
-            wallet = try SolanaWallet(
-                smartWalletService: smartWalletService,
-                signer: signer,
-                baseModel: walletApiModel,
-                solanaChain: solanaChain,
-                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerStorage
-            )
-        case .stellar:
-            guard let stellarChain: StellarChain = StellarChain(chain.name) else {
-                throw WalletError.walletInvalidType("The wallet received is not compatible with Stellar")
-            }
-
-            wallet = try StellarWallet(
-                smartWalletService: smartWalletService,
-                signer: signer,
-                baseModel: walletApiModel,
-                stellarChain: stellarChain,
-                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerStorage
-            )
-        case .unknown:
-            throw .walletGeneric("Unknown wallet chain")
         }
+
+        return wallet
+    }
+
+    // swiftlint:disable:next function_body_length
+    public func getWallet(
+        chain: Chain,
+        signer: any Signer,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        guard isValid(chain: chain) else {
+            let errorMessage = "The chain \(chain.name) is not supported for the current environment"
+            Logger.smartWallet.error(LogEvents.walletFactoryGetWalletError, attributes: [
+                "error": errorMessage
+            ])
+            throw WalletError.walletCreationFailed(errorMessage)
+        }
+
+        Logger.smartWallet.debug(LogEvents.walletGetStart, attributes: [
+            "chain": chain.name,
+            "signerType": signer.signerType.rawValue
+        ])
+
+        let deviceSignerStorage = makeDeviceSignerStorage(options: options)
+        let walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+
+        Logger.smartWallet.debug(LogEvents.walletGetSuccess, attributes: [
+            "chain": chain.name,
+            "address": walletApiModel.address
+        ])
+
+        // Device signer assignment flow for getWallet
+        if let storage = deviceSignerStorage {
+            let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
+
+            // Step 1: Check if device signer is already assigned to this wallet address
+            if !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) {
+                // Step 2: Check if any of the wallet's existing device signers are on this device (pending keys)
+                if let matchingPubKey = findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) {
+                    do {
+                        try await storage.mapAddressToKey(
+                            address: walletApiModel.address,
+                            publicKeyBase64: matchingPubKey
+                        )
+                        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
+                            "address": walletApiModel.address
+                        ])
+                    } catch {
+                        Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                            "error": "\(error)"
+                        ])
+                    }
+                }
+                // Step 3: No matching key found — deferred to first transaction (handled by Wallet)
+            }
+        }
+
+        let wallet = try buildWallet(
+            from: walletApiModel,
+            chain: chain,
+            signer: signer,
+            options: options,
+            deviceSignerStorage: deviceSignerStorage
+        )
+
+        do {
+            try await (signer as? any EmailSigner)?.load()
+        } catch {
+            Logger.smartWallet.warn(
+                """
+There was an error initializing the Email signer. \(error.errorDescription)
+Review if the .crossmintEnvironmentObject modifier is used as expected.
+"""
+            )
+        }
+
+        return wallet
+    }
+
+    public func createWallet(
+        chain: Chain,
+        signer: any Signer,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        guard isValid(chain: chain) else {
+            let errorMessage = "The chain \(chain.name) is not supported for the current environment"
+            Logger.smartWallet.error(LogEvents.walletFactoryGetOrCreateWalletError, attributes: [
+                "error": errorMessage
+            ])
+            throw WalletError.walletCreationFailed(errorMessage)
+        }
+
+        let deviceSignerStorage = makeDeviceSignerStorage(options: options)
+        let walletApiModel = try await createWalletApiModel(
+            signer: signer,
+            chainType: chain.chainType,
+            walletType: .smart,
+            options: options,
+            deviceSignerStorage: deviceSignerStorage
+        )
+
+        let wallet = try buildWallet(
+            from: walletApiModel,
+            chain: chain,
+            signer: signer,
+            options: options,
+            deviceSignerStorage: deviceSignerStorage
+        )
 
         do {
             try await (signer as? any EmailSigner)?.load()
@@ -205,7 +288,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     }
 
     // swiftlint:disable:next function_body_length
-    private func createWallet(
+    private func createWalletApiModel(
         signer: any Signer,
         chainType: ChainType,
         walletType: WalletType,
@@ -283,6 +366,76 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             ])
             throw error
         }
+    }
+
+    private func buildWallet(
+        from walletApiModel: WalletApiModel,
+        chain: Chain,
+        signer: any Signer,
+        options: WalletOptions?,
+        deviceSignerStorage: (any DeviceSignerKeyStorage)?
+    ) throws(WalletError) -> Wallet {
+        switch walletApiModel.chainType {
+        case .evm:
+            guard let evmChain: EVMChain = EVMChain(chain.name) else {
+                throw WalletError.walletInvalidType("The wallet received is not compatible with EVM")
+            }
+            return try EVMWallet(
+                smartWalletService: smartWalletService,
+                signer: signer,
+                baseModel: walletApiModel,
+                evmChain: evmChain,
+                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerStorage
+            )
+        case .solana:
+            guard let solanaChain: SolanaChain = SolanaChain(chain.name) else {
+                throw WalletError.walletInvalidType("The wallet received is not compatible with Solana")
+            }
+            return try SolanaWallet(
+                smartWalletService: smartWalletService,
+                signer: signer,
+                baseModel: walletApiModel,
+                solanaChain: solanaChain,
+                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerStorage
+            )
+        case .stellar:
+            guard let stellarChain: StellarChain = StellarChain(chain.name) else {
+                throw WalletError.walletInvalidType("The wallet received is not compatible with Stellar")
+            }
+            return try StellarWallet(
+                smartWalletService: smartWalletService,
+                signer: signer,
+                baseModel: walletApiModel,
+                stellarChain: stellarChain,
+                onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
+                deviceSignerKeyStorage: deviceSignerStorage
+            )
+        case .unknown:
+            throw .walletGeneric("Unknown wallet chain")
+        }
+    }
+
+    /// Searches the wallet's delegated signers for a pending device key stored on this device.
+    ///
+    /// Returns the 64-byte raw public key (base64-encoded) of the first matching pending key,
+    /// or `nil` if none are found.
+    private func findMatchingDeviceSignerKey(
+        in wallet: WalletApiModel,
+        storage: any DeviceSignerKeyStorage
+    ) -> String? {
+        guard let delegatedSigners = wallet.config.delegatedSigners else { return nil }
+        for entry in delegatedSigners {
+            guard let locator = entry.locator, locator.hasPrefix("device:") else { continue }
+            let b64 = String(locator.dropFirst("device:".count))
+            guard let data = Data(base64Encoded: b64), data.count == 65, data.first == 0x04 else { continue }
+            let pubKey64 = data.dropFirst().base64EncodedString()
+            if storage.hasKey(pubKey64: pubKey64) {
+                return pubKey64
+            }
+        }
+        return nil
     }
 
     private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
