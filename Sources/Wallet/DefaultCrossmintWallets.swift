@@ -26,11 +26,10 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet {
         guard isValid(chain: chain) else {
-            let errorMessage = "The chain \(chain.name) is not supported for the current environment"
             Logger.smartWallet.error(LogEvents.walletFactoryGetWalletError, attributes: [
-                "error": errorMessage
+                "error": "The chain \(chain.name) is not supported for the current environment"
             ])
-            throw WalletError.walletCreationFailed(errorMessage)
+            throw WalletError.invalidChain(chain: chain)
         }
 
         Logger.smartWallet.debug(LogEvents.walletGetStart, attributes: [
