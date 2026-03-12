@@ -2,13 +2,14 @@ import CrossmintCommonTypes
 import DeviceSigner
 
 public protocol CrossmintWallets: Sendable {
-    @available(*, deprecated, message: "Use type-safe getOrCreateWallet methods with EVMSigners or SolanaSigners")
+    @available(*, deprecated, message: "Use getWallet or createWallet instead")
     func getOrCreateWallet(
         chain: Chain,
         signer: any Signer,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
 
+    @available(*, deprecated, message: "Use getWallet or createWallet instead")
     func getOrCreateWallet<C: ChainWithSigners>(
         chain: C,
         signer: C.SpecificSigner,
@@ -29,6 +30,7 @@ public protocol CrossmintWallets: Sendable {
 }
 
 extension CrossmintWallets {
+    @available(*, deprecated, message: "Use getWallet or createWallet instead")
     public func getOrCreateWallet(
         chain: EVMChain,
         signer: EVMSigners,
@@ -41,6 +43,7 @@ extension CrossmintWallets {
         )
     }
 
+    @available(*, deprecated, message: "Use getWallet or createWallet instead")
     public func getOrCreateWallet(
         chain: SolanaChain,
         signer: SolanaSigners,
@@ -53,6 +56,7 @@ extension CrossmintWallets {
         )
     }
 
+    @available(*, deprecated, message: "Use getWallet or createWallet instead")
     public func getOrCreateWallet(
         chain: StellarChain,
         signer: StellarSigners,
@@ -65,6 +69,7 @@ extension CrossmintWallets {
         )
     }
 
+    @available(*, deprecated, message: "Use getWallet or createWallet instead")
     public func getOrCreateWallet<C: ChainWithSigners>(
         chain: C,
         signer: C.SpecificSigner,
