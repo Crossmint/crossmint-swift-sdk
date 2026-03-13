@@ -9,7 +9,7 @@ import CryptoKit
 import Foundation
 import Security
 
-/// A ``DeviceSignerKeyStorage`` implementation using software P-256 keys stored in the Keychain.
+/// A ``DeviceSignerKeyStorage`` implementation using P-256 keys stored in the Keychain.
 ///
 /// Keys are stored as Keychain-protected items rather than in dedicated hardware. This is the
 /// legitimate fallback for simulators and physical devices that lack a Secure Enclave.
