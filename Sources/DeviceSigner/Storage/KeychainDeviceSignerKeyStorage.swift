@@ -1,5 +1,5 @@
 //
-//  SoftwareDeviceSignerKeyStorage.swift
+//  KeychainDeviceSignerKeyStorage.swift
 //  CrossmintSDK
 //
 //  Created by Tomas Martins on 3/3/26.
@@ -11,20 +11,16 @@ import Security
 
 /// A ``DeviceSignerKeyStorage`` implementation using software P-256 keys stored in the Keychain.
 ///
-/// This implementation is intended for use on **simulators only**. Keys are stored as raw key
-/// material in the Keychain rather than in dedicated hardware, providing no hardware-backed isolation.
+/// Keys are stored as Keychain-protected items rather than in dedicated hardware. This is the
+/// legitimate fallback for simulators and physical devices that lack a Secure Enclave.
 ///
-/// On physical devices that lack a Secure Enclave, the device signer feature should not be used.
-/// Use an alternative signer (e.g., email or passkey) instead.
-///
-/// - Important: Do not ship this implementation to production. ``DefaultCrossmintWallets`` selects
-///   ``SecureEnclaveKeyStorage`` on real devices and falls back to this implementation only
-///   when ``SecureEnclave/isAvailable`` returns `false`.
-public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
+/// ``DefaultCrossmintWallets`` selects ``SecureEnclaveKeyStorage`` on devices with Secure Enclave
+/// and falls back to this implementation when ``SecureEnclave/isAvailable`` returns `false`.
+public final class KeychainDeviceSignerKeyStorage: DeviceSignerKeyStorage {
     private let biometricPolicy: BiometricPolicy
     private let keychain = DeviceSignerKeychainStorage()
 
-    /// Creates a software key storage with the given biometric policy.
+    /// Creates a Keychain key storage with the given biometric policy.
     ///
     /// - Parameter biometricPolicy: When to require biometric authentication for signing.
     ///   Defaults to ``BiometricPolicy/none``.

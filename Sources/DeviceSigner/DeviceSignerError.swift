@@ -40,7 +40,7 @@ public enum DeviceSignerError: Error, Sendable {
     public var recoverySuggestion: String? {
         switch self {
         case .hardwareUnavailable:
-            "Secure Enclave is not available on this device. The SDK will fall back to software key storage."
+            "Secure Enclave is not available on this device. The SDK will fall back to Keychain-backed key storage."
         case .keyNotFound:
             "The device signer key for this wallet was not found. The wallet may need to re-register a device signer."
         case .keyGenerationFailed:

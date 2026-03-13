@@ -12,7 +12,7 @@ import Security
 /// Implementations manage the full lifecycle of a P-256 signing key tied to a wallet address:
 /// generation, retrieval, signing, and deletion. Two implementations are provided:
 /// - ``SecureEnclaveKeyStorage``: hardware-backed, for physical devices with Secure Enclave.
-/// - ``SoftwareDeviceSignerKeyStorage``: software fallback for simulators and older devices.
+/// - ``KeychainDeviceSignerKeyStorage``: Keychain-backed fallback for simulators and devices without Secure Enclave.
 public protocol DeviceSignerKeyStorage: Sendable {
     /// Returns `true` if this storage backend is available on the current device.
     func isAvailable() async -> Bool

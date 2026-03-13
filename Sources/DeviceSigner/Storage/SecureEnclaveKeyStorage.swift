@@ -15,10 +15,9 @@ import Security
 /// Secure Enclave hardware. Signing operations execute inside the enclave; the raw key
 /// material never leaves the chip.
 ///
-/// Check ``SecureEnclave/isAvailable`` before instantiating this class. On simulators,
-/// use ``SoftwareDeviceSignerKeyStorage`` for development only. On physical devices without
-/// a Secure Enclave, the device signer feature should not be used — prefer an alternative
-/// signer such as email or passkey.
+/// Check ``SecureEnclave/isAvailable`` before instantiating this class. When SE is unavailable
+/// (simulators or devices without Secure Enclave), use ``KeychainDeviceSignerKeyStorage`` as
+/// the fallback.
 public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     private let keychain = DeviceSignerKeychainStorage()
     private let biometricPolicy: BiometricPolicy
