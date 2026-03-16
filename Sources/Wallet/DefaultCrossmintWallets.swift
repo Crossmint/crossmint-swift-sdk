@@ -290,7 +290,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         if SecureEnclave.isAvailable {
             return SecureEnclaveKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
         } else {
-            return KeychainDeviceSignerKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
+            return KeychainKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
         }
     }
 
