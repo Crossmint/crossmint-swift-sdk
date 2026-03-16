@@ -1,5 +1,5 @@
 //
-//  KeychainDeviceSignerKeyStorage.swift
+//  KeychainKeyStorage.swift
 //  CrossmintSDK
 //
 //  Created by Tomas Martins on 3/3/26.
@@ -12,11 +12,11 @@ import Security
 /// A ``DeviceSignerKeyStorage`` implementation using P-256 keys stored in the Keychain.
 ///
 /// Keys are stored as Keychain-protected items rather than in dedicated hardware. This is the
-/// legitimate fallback for simulators and physical devices that lack a Secure Enclave.
+/// fallback used when Secure Enclave is unavailable.
 ///
-/// ``DefaultCrossmintWallets`` selects ``SecureEnclaveKeyStorage`` on devices with Secure Enclave
-/// and falls back to this implementation when ``SecureEnclave/isAvailable`` returns `false`.
-public final class KeychainDeviceSignerKeyStorage: DeviceSignerKeyStorage {
+/// ``DefaultCrossmintWallets`` selects ``SecureEnclaveKeyStorage`` when Secure Enclave is
+/// available and falls back to this implementation when ``SecureEnclave/isAvailable`` returns `false`.
+public final class KeychainKeyStorage: DeviceSignerKeyStorage {
     private let biometricPolicy: BiometricPolicy
     private let keychain = DeviceSignerKeychainStorage()
 
