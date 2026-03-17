@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 private let service = "com.crossmint.devicesigner"
@@ -32,14 +33,21 @@ struct DeviceSignerKeychainStorage {
         }
     }
 
-    func load(tag: String) -> Data? {
-        let query: [CFString: Any] = [
+    func load(tag: String, prompt: String? = nil, authContext: LAContext? = nil) -> Data? {
+        var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: tag,
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne
         ]
+        if let authContext {
+            query[kSecUseAuthenticationContext] = authContext
+        } else if let prompt {
+            let context = LAContext()
+            context.localizedReason = prompt
+            query[kSecUseAuthenticationContext] = context
+        }
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess else { return nil }
@@ -47,6 +55,17 @@ struct DeviceSignerKeychainStorage {
     }
 
     func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
+        // Remove any existing item at the target tag to avoid errSecDuplicateItem (-25299).
+        let deleteTarget: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: newTag
+        ]
+        let deleteStatus = SecItemDelete(deleteTarget as CFDictionary)
+        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+            throw DeviceSignerError.storageError(deleteStatus)
+        }
+
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
