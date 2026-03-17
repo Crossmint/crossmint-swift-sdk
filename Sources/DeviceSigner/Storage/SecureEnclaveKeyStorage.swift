@@ -16,7 +16,7 @@ import Security
 /// material never leaves the chip.
 ///
 /// ``DefaultCrossmintWallets`` selects this implementation automatically when Secure Enclave
-/// is available, and falls back to ``KeychainKeyStorage`` when it is not.
+/// is available, and falls back to ``KeychainDeviceSignerKeyStorage`` when it is not.
 public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     private let keychain = DeviceSignerKeychainStorage()
     private let biometricPolicy: BiometricPolicy
@@ -50,8 +50,9 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
             throw DeviceSignerError.keyGenerationFailed
         }
 
-        let rawPublicKey = key.publicKey.rawRepresentation  // 64 bytes: x‖y
-        let publicKeyBase64 = rawPublicKey.base64EncodedString()
+        // Prepend 0x04 to produce a standard 65-byte uncompressed P-256 point.
+        let uncompressed = Data([0x04]) + key.publicKey.rawRepresentation
+        let publicKeyBase64 = uncompressed.base64EncodedString()
 
         let tag: String
         if let address {
@@ -77,7 +78,8 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
               let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else {
             return nil
         }
-        return key.publicKey.rawRepresentation.base64EncodedString()
+        let uncompressed = Data([0x04]) + key.publicKey.rawRepresentation
+        return uncompressed.base64EncodedString()
     }
 
     public func signMessage(
