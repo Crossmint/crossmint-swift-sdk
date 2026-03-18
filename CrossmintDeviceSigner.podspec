@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
 
   s.source_files     = 'Sources/DeviceSigner/**/*.swift'
 
-  s.swift_version    = '5.10'
+  s.swift_version    = '6.0'
 
   s.frameworks       = 'CryptoKit', 'LocalAuthentication', 'Security'
 end
