@@ -52,8 +52,9 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
             throw DeviceSignerError.keyGenerationFailed
         }
 
-        let rawPublicKey = key.publicKey.rawRepresentation  // 64 bytes: x‖y
-        let publicKeyBase64 = rawPublicKey.base64EncodedString()
+        var uncompressed = Data([0x04])
+        uncompressed.append(key.publicKey.rawRepresentation)  // 65 bytes: 0x04 ‖ x ‖ y
+        let publicKeyBase64 = uncompressed.base64EncodedString()
 
         let tag: String
         if let address {
@@ -79,7 +80,9 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
               let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else {
             return nil
         }
-        return key.publicKey.rawRepresentation.base64EncodedString()
+        var uncompressed = Data([0x04])
+        uncompressed.append(key.publicKey.rawRepresentation)
+        return uncompressed.base64EncodedString()
     }
 
     public func signMessage(

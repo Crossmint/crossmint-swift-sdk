@@ -38,8 +38,9 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
 
     public func generateKey(address: String?) async throws(DeviceSignerError) -> String {
         let key = P256.Signing.PrivateKey()
-        let rawPublicKey = key.publicKey.rawRepresentation  // 64 bytes: x‖y
-        let publicKeyBase64 = rawPublicKey.base64EncodedString()
+        var uncompressed = Data([0x04])
+        uncompressed.append(key.publicKey.rawRepresentation)  // 65 bytes: 0x04 ‖ x ‖ y
+        let publicKeyBase64 = uncompressed.base64EncodedString()
 
         let tag: String
         if let address {
@@ -66,7 +67,9 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
               let key = try? P256.Signing.PrivateKey(rawRepresentation: keyData) else {
             return nil
         }
-        return key.publicKey.rawRepresentation.base64EncodedString()
+        var uncompressed = Data([0x04])
+        uncompressed.append(key.publicKey.rawRepresentation)
+        return uncompressed.base64EncodedString()
     }
 
     public func signMessage(
