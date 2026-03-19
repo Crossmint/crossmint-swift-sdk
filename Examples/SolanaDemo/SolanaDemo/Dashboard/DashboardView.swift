@@ -240,17 +240,11 @@ struct DashboardView: View {
         }
 
         do {
-            let wallet: Wallet
-            do {
-                wallet = try await sdk.crossmintWallets.getWallet(
-                    chain: .solana,
-                    signer: .email(email)
-                )
-            } catch WalletError.walletNotFound {
-                wallet = try await sdk.crossmintWallets.createWallet(
-                    chain: .solana,
-                    signer: .email(email)
-                )
+            let wallet: SolanaWallet
+            if let existing = try await sdk.crossmintWallets.getWallet(chain: .solana, signer: .email(email)) {
+                wallet = existing
+            } else {
+                wallet = try await sdk.crossmintWallets.createWallet(chain: .solana, signer: .email(email))
             }
             await MainActor.run {
                 if updateLoadingStatus {

@@ -19,12 +19,11 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
 
-    // swiftlint:disable:next function_body_length
     public func getWallet(
         chain: Chain,
         signer: any Signer,
         options: WalletOptions? = nil
-    ) async throws(WalletError) -> Wallet {
+    ) async throws(WalletError) -> Wallet? {
         guard isValid(chain: chain) else {
             Logger.smartWallet.error(LogEvents.walletFactoryGetWalletError, attributes: [
                 "error": "The chain \(chain.name) is not supported for the current environment"
@@ -38,37 +37,20 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         ])
 
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
-        let walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        let walletApiModel: WalletApiModel
+        do {
+            walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        } catch WalletError.walletNotFound {
+            return nil
+        }
 
         Logger.smartWallet.debug(LogEvents.walletGetSuccess, attributes: [
             "chain": chain.name,
             "address": walletApiModel.address
         ])
 
-        // Device signer assignment flow for getWallet
         if let storage = deviceSignerStorage {
-            let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
-
-            // Step 1: Check if device signer is already assigned to this wallet address
-            if !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) {
-                // Step 2: Check if any of the wallet's existing device signers are on this device (pending keys)
-                if let matchingPubKey = findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) {
-                    do {
-                        try await storage.mapAddressToKey(
-                            address: walletApiModel.address,
-                            publicKeyBase64: matchingPubKey
-                        )
-                        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
-                            "address": walletApiModel.address
-                        ])
-                    } catch {
-                        Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
-                            "error": "\(error)"
-                        ])
-                    }
-                }
-                // Step 3: No matching key found — deferred to first transaction (handled by Wallet)
-            }
+            await assignPendingDeviceSignerKey(storage: storage, walletApiModel: walletApiModel)
         }
 
         let wallet = try buildWallet(
@@ -292,6 +274,29 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             )
         case .unknown:
             throw .walletGeneric("Unknown wallet chain")
+        }
+    }
+
+    private func assignPendingDeviceSignerKey(
+        storage: any DeviceSignerKeyStorage,
+        walletApiModel: WalletApiModel
+    ) async {
+        let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
+        guard !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) else { return }
+        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) else { return }
+
+        do {
+            try await storage.mapAddressToKey(
+                address: walletApiModel.address,
+                publicKeyBase64: deviceSignerPendingAssignment
+            )
+            Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
+                "address": walletApiModel.address
+            ])
+        } catch {
+            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                "error": "\(error)"
+            ])
         }
     }
 
