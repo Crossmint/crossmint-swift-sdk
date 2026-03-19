@@ -354,9 +354,5 @@ public enum LogEvents {
 
     // MARK: - WalletFactory Error Events
 
-    /// Invalid chain error in getWallet
-    public static let walletFactoryGetWalletError = "walletFactory.getWallet.error"
-
-    /// Invalid chain error in createWallet
-    public static let walletFactoryCreateWalletError = "walletFactory.createWallet.error"
+    public static let walletFactoryInvalidChain = "walletFactory.invalidChain"
 }

@@ -24,12 +24,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         signer: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet? {
-        guard isValid(chain) else {
-            Logger.smartWallet.error(LogEvents.walletFactoryGetWalletError, attributes: [
-                "error": "The chain \(chain.name) is not supported for the current environment"
-            ])
-            throw WalletError.invalidChain(chain: chain)
-        }
+        try assertValid(chain)
 
         Logger.smartWallet.debug(LogEvents.walletGetStart, attributes: [
             "chain": chain.name,
@@ -80,13 +75,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         signer: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet {
-        guard isValid(chain) else {
-            let errorMessage = "The chain \(chain.name) is not supported for the current environment"
-            Logger.smartWallet.error(LogEvents.walletFactoryCreateWalletError, attributes: [
-                "error": errorMessage
-            ])
-            throw WalletError.walletCreationFailed(errorMessage)
-        }
+        try assertValid(chain)
 
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
         let walletApiModel = try await createWalletApiModel(
@@ -117,6 +106,15 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
 
         return wallet
+    }
+
+    private func assertValid(_ chain: Chain) throws(WalletError) {
+        guard isValid(chain) else {
+            Logger.smartWallet.error(LogEvents.walletFactoryInvalidChain, attributes: [
+                "error": "The chain \(chain.name) is not supported for the current environment"
+            ])
+            throw WalletError.invalidChain(chain: chain)
+        }
     }
 
     private func isValid(_ chain: AnyChain) -> Bool {
