@@ -24,7 +24,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         signer: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet? {
-        guard isValid(chain: chain) else {
+        guard isValid(chain) else {
             Logger.smartWallet.error(LogEvents.walletFactoryGetWalletError, attributes: [
                 "error": "The chain \(chain.name) is not supported for the current environment"
             ])
@@ -80,7 +80,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         signer: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet {
-        guard isValid(chain: chain) else {
+        guard isValid(chain) else {
             let errorMessage = "The chain \(chain.name) is not supported for the current environment"
             Logger.smartWallet.error(LogEvents.walletFactoryCreateWalletError, attributes: [
                 "error": errorMessage
@@ -119,7 +119,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         return wallet
     }
 
-    private func isValid(chain: AnyChain) -> Bool {
+    private func isValid(_ chain: AnyChain) -> Bool {
         chain.isValid(isProductionEnvironment: smartWalletService.isProductionEnvironment)
     }
 
@@ -273,7 +273,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 deviceSignerKeyStorage: deviceSignerStorage
             )
         case .unknown:
-            throw .walletGeneric("Unknown wallet chain")
+            throw .walletGeneric("Unknown wallet chain: \(chain.rawValue)")
         }
     }
 
