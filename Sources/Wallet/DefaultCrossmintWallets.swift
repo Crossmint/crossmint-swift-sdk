@@ -273,7 +273,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 deviceSignerKeyStorage: deviceSignerStorage
             )
         case .unknown:
-            throw .walletGeneric("Unknown wallet chain: \(chain.rawValue)")
+            throw .walletGeneric("Unknown wallet chain: \(chain.name)")
         }
     }
 
