@@ -254,7 +254,7 @@ struct DashboardView: View {
         do {
             let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
                 chain: .baseSepolia,
-                signer: .email(email),
+                recovery: .email(email),
                 options: WalletOptions(deviceSigner: DeviceSignerOptions(biometricPolicy: .always))
             )
 

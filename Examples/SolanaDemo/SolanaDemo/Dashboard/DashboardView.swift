@@ -236,7 +236,7 @@ struct DashboardView: View {
 
             let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
                 chain: .solana,
-                signer: .email(email)
+                recovery: .email(email)
             )
             await MainActor.run {
                 if updateLoadingStatus {

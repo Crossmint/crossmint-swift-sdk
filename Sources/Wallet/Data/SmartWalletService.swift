@@ -59,7 +59,7 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel
 
-    func addDelegatedSigner(
+    func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String

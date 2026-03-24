@@ -130,6 +130,15 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
         try keychain.delete(tag: tag)
     }
 
+    public func hasKey(publicKeyBase64: String) async -> Bool {
+        keychain.hasMatchingKey(publicKeyBase64: publicKeyBase64) { keyData in
+            guard let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else { return nil }
+            var uncompressed = Data([0x04])
+            uncompressed.append(key.publicKey.rawRepresentation)
+            return uncompressed.base64EncodedString()
+        }
+    }
+
     // MARK: - Private helpers
 
     private func makeAccessControl() -> SecAccessControl? {

@@ -19,8 +19,20 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
 
+    public func getOrCreateWallet<C: ChainWithSigners>(
+        chain: C,
+        recovery: C.SpecificSigner,
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet {
+        try await getOrCreateWalletCore(
+            chain: Chain(chain.name),
+            signer: await recovery.signer,
+            options: options
+        )
+    }
+
     // swiftlint:disable:next function_body_length cyclomatic_complexity
-    public func getOrCreateWallet(
+    private func getOrCreateWalletCore(
         chain: Chain,
         signer: any Signer,
         options: WalletOptions? = nil
@@ -43,7 +55,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         let walletApiModel: WalletApiModel
         do {
             walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-            let signers = walletApiModel.config.delegatedSigners?.compactMap(\.locator) ?? []
+            let signers = walletApiModel.config.signers?.compactMap(\.locator) ?? []
             let existingDelegatedLocators = signers.isEmpty ? "none" : signers.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletGetOrCreateExisting, attributes: [
                 "chain": chain.name,
@@ -69,7 +81,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
                         }
                         publicKeyBase64 = key
                         let entry = try makeDelegatedSignerEntry(publicKeyBase64: key)
-                        let registration = try await smartWalletService.addDelegatedSigner(
+                        let registration = try await smartWalletService.addSigner(
                             entry, chainType: chain.chainType, chainName: chain.name
                         )
                         if let chainEntry = registration.chains?[chain.name],
@@ -267,7 +279,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 }
             }
 
-            let createSigners = walletApiModel.config.delegatedSigners?.compactMap(\.locator) ?? []
+            let createSigners = walletApiModel.config.signers?.compactMap(\.locator) ?? []
             let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
@@ -301,7 +313,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
         let uncompressed = Data([0x04]) + rawKey
         let locator = "device:\(uncompressed.base64EncodedString())"
-        return wallet.config.delegatedSigners?.contains(where: { $0.locator == locator }) ?? false
+        return wallet.config.signers?.contains(where: { $0.locator == locator }) ?? false
     }
 
     private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
