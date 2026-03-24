@@ -229,15 +229,23 @@ struct DashboardView: View {
     }
 
     private func obtainOrCreateWallet(_ updateLoadingStatus: Bool = false) async {
-        do {
-            guard let email = await crossmintAuthManager.email else {
-                throw WalletError.walletGeneric("Email not available")
+        guard let email = await crossmintAuthManager.email else {
+            await MainActor.run {
+                if updateLoadingStatus {
+                    creatingWallet = false
+                }
+                showAlert(with: "There was a problem loading the wallet.\nLogout and try again.")
             }
+            return
+        }
 
-            let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
-                chain: .solana,
-                recovery: .email(email)
-            )
+        do {
+            let wallet: SolanaWallet
+            if let existing = try await sdk.crossmintWallets.getWallet(chain: .solana, recovery: .email(email)) {
+                wallet = existing
+            } else {
+                wallet = try await sdk.crossmintWallets.createWallet(chain: .solana, recovery: .email(email))
+            }
             await MainActor.run {
                 if updateLoadingStatus {
                     creatingWallet = false

@@ -252,11 +252,21 @@ struct DashboardView: View {
         }
 
         do {
-            let wallet = try await sdk.crossmintWallets.getOrCreateWallet(
+            let options = WalletOptions(deviceSigner: DeviceSignerOptions(biometricPolicy: .always))
+            let wallet: EVMWallet
+            if let existing = try await sdk.crossmintWallets.getWallet(
                 chain: .baseSepolia,
                 recovery: .email(email),
-                options: WalletOptions(deviceSigner: DeviceSignerOptions(biometricPolicy: .always))
-            )
+                options: options
+            ) {
+                wallet = existing
+            } else {
+                wallet = try await sdk.crossmintWallets.createWallet(
+                    chain: .baseSepolia,
+                    recovery: .email(email),
+                    options: options
+                )
+            }
 
             await MainActor.run {
                 if updateLoadingStatus {
