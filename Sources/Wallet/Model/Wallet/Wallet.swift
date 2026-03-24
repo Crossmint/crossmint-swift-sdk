@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import CrossmintCommonTypes
 import DeviceSigner
 import Foundation
@@ -324,6 +325,74 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
     }
 
+    /// Lazily registers a new device signer if one is configured but no key exists for this wallet address.
+    ///
+    /// Called before the first transfer transaction so the device signer is in place when the
+    /// backend routes the transaction through it. Best-effort: any error is logged and the
+    /// wallet continues without a device signer.
+    internal func ensureDeviceSignerRegistered() async {
+        guard let storage = deviceSignerKeyStorage,
+              await storage.getKey(address: address) == nil else { return }
+
+        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
+            "address": address
+        ])
+
+        var publicKeyBase64: String?
+        var registeredOnBackend = false
+        do {
+            let pubKey = try await storage.generateKey(address: nil)
+            publicKeyBase64 = pubKey
+
+            guard let rawPublicKey = Data(base64Encoded: pubKey), rawPublicKey.count == 64 else {
+                throw DeviceSignerError.keyGenerationFailed
+            }
+            let uncompressed = Data([0x04]) + rawPublicKey
+            let entry = DelegatedSignerEntry(signer: "device:\(uncompressed.base64EncodedString())")
+
+            let registration = try await smartWalletService.addDelegatedSigner(
+                entry,
+                chainType: chain.chainType,
+                chainName: chain.name
+            )
+            registeredOnBackend = true
+
+            try await approveAddDelegatedSigner(registration: registration)
+
+            try await storage.mapAddressToKey(address: address, publicKeyBase64: pubKey)
+            Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
+                "address": address
+            ])
+        } catch {
+            if let pubKey = publicKeyBase64, !registeredOnBackend {
+                try? await storage.deletePendingKey(publicKeyBase64: pubKey)
+            }
+            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                "error": "\(error)"
+            ])
+        }
+    }
+
+    private func approveAddDelegatedSigner(registration: AddDelegatedSignerResponse) async throws {
+        guard let chainEntry = registration.chains?[chain.name],
+              chainEntry.status == "awaiting-approval",
+              let signatureId = chainEntry.id,
+              let pending = chainEntry.approvals?.pending, !pending.isEmpty else { return }
+
+        let updatedSigner = await updateSignerIfRequired()
+        try await updatedSigner.initialize(smartWalletService)
+        for approval in pending {
+            let signRequest = SignRequestApi(
+                approvals: try await updatedSigner.approvals(
+                    withSignature: try await updatedSigner.sign(message: approval.message)
+                )
+            )
+            try await smartWalletService.approveSignature(
+                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chain.chainType)
+            )
+        }
+    }
+
     private func deviceSignerLocator() async -> String? {
         guard let storage = deviceSignerKeyStorage,
               let publicKeyBase64 = await storage.getKey(address: address),
@@ -340,6 +409,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
         onTransactionStart?()
+        await ensureDeviceSignerRegistered()
         let signerLocator = await deviceSignerLocator()
         let createdTransaction = try await smartWalletService.transferToken(
             chainType: chain.chainType.rawValue,
@@ -413,7 +483,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         return transaction
     }
 
-    // swiftlint:disable:next function_body_length
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     private func approveTransaction(
         transactionId: String,
         signerLocator: String,

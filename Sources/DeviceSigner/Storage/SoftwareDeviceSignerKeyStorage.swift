@@ -110,6 +110,10 @@ public final class SoftwareDeviceSignerKeyStorage: DeviceSignerKeyStorage {
         try keychain.delete(tag: tag)
     }
 
+    public func hasKey(pubKey64: String) -> Bool {
+        keychain.load(tag: "crossmint.device.pending.\(pubKey64)") != nil
+    }
+
     // MARK: - Private helpers
 
     private func makeAccessControl() -> SecAccessControl? {
