@@ -1,10 +1,16 @@
 import Foundation
 import LocalAuthentication
+import OSLog
 import Security
+
+private let logger = Logger(subsystem: "com.crossmint.devicesigner", category: "KeychainStorage")
 
 private let service = "com.crossmint.devicesigner"
 
 struct DeviceSignerKeychainStorage {
+    private static let pendingKeyPrefix = "crossmint.device.pending."
+    private static let walletKeyPrefix = "crossmint.device.wallet."
+
     func save(_ data: Data, tag: String, accessControl: SecAccessControl? = nil) throws(DeviceSignerError) {
         let deleteQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
@@ -60,6 +66,35 @@ struct DeviceSignerKeychainStorage {
         }
         try delete(tag: oldTag)
         try save(data, tag: newTag)
+    }
+
+    func hasMatchingKey(publicKeyBase64: String, reconstructPublicKey: (Data) -> String?) -> Bool {
+        if load(tag: "\(Self.pendingKeyPrefix)\(publicKeyBase64)") != nil { return true }
+        return allTags(prefix: Self.walletKeyPrefix).contains { tag in
+            guard let keyData = load(tag: tag) else { return false }
+            return reconstructPublicKey(keyData) == publicKeyBase64
+        }
+    }
+
+    func allTags(prefix: String) -> [String] {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecReturnAttributes: true,
+            kSecMatchLimit: kSecMatchLimitAll
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess else {
+            if status != errSecItemNotFound {
+                logger.error("Unexpected Keychain error in allTags: \(status)")
+            }
+            return []
+        }
+        guard let items = result as? [[CFString: Any]] else {
+            return []
+        }
+        return items.compactMap { $0[kSecAttrAccount] as? String }.filter { $0.hasPrefix(prefix) }
     }
 
     func delete(tag: String) throws(DeviceSignerError) {

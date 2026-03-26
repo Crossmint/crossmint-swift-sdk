@@ -372,7 +372,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         }
     }
 
-    public func addDelegatedSigner(
+    public func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String

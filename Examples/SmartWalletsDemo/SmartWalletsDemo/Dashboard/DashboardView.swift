@@ -256,14 +256,14 @@ struct DashboardView: View {
             let wallet: EVMWallet
             if let existing = try await sdk.crossmintWallets.getWallet(
                 chain: .baseSepolia,
-                signer: .email(email),
+                recovery: .email(email),
                 options: options
             ) {
                 wallet = existing
             } else {
                 wallet = try await sdk.crossmintWallets.createWallet(
                     chain: .baseSepolia,
-                    signer: .email(email),
+                    recovery: .email(email),
                     options: options
                 )
             }

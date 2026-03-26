@@ -17,7 +17,7 @@ import Foundation
 /// ```swift
 /// let wallet = try await crossmint.wallets.getWallet(
 ///     chain: .polygon,
-///     signer: emailSigner,
+///     recovery: emailSigner,
 ///     options: WalletOptions(deviceSigner: DeviceSignerOptions(biometricPolicy: .always))
 /// )
 /// ```

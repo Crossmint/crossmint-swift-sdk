@@ -241,10 +241,10 @@ struct DashboardView: View {
 
         do {
             let wallet: SolanaWallet
-            if let existing = try await sdk.crossmintWallets.getWallet(chain: .solana, signer: .email(email)) {
+            if let existing = try await sdk.crossmintWallets.getWallet(chain: .solana, recovery: .email(email)) {
                 wallet = existing
             } else {
-                wallet = try await sdk.crossmintWallets.createWallet(chain: .solana, signer: .email(email))
+                wallet = try await sdk.crossmintWallets.createWallet(chain: .solana, recovery: .email(email))
             }
             await MainActor.run {
                 if updateLoadingStatus {

@@ -56,7 +56,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: "\(value ?? .zero)",
                 data: data ?? "0x",
                 chain: chain,
-                signer: self.config.adminSigner.locator
+                signer: self.config.recovery.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -83,7 +83,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: self.config.adminSigner.locator
+                signer: self.config.recovery.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -112,7 +112,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignMessageStart)
 
-        let signer = signer ?? self.config.adminSigner
+        let signer = signer ?? self.config.recovery
 
         do {
             let signatureRequest = SignMessageRequest(
@@ -164,7 +164,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignTypedDataStart)
 
-        let signer = signer ?? self.config.adminSigner
+        let signer = signer ?? self.config.recovery
 
         do {
             let signatureRequest = typedData.toSignTypedDataRequest(

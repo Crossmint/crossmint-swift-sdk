@@ -350,7 +350,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             let uncompressed = Data([0x04]) + rawPublicKey
             let entry = DelegatedSignerEntry(signer: "device:\(uncompressed.base64EncodedString())")
 
-            let registration = try await smartWalletService.addDelegatedSigner(
+            let registration = try await smartWalletService.addSigner(
                 entry,
                 chainType: chain.chainType,
                 chainName: chain.name
@@ -464,7 +464,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
     internal func updateSignerIfRequired() async -> any Signer {
         var updatedSigner: any Signer = signer
-        if let passkey = config.adminSigner as? PasskeySignerData {
+        if let passkey = config.recovery as? PasskeySignerData {
             if let passkeySigner = updatedSigner as? PasskeySigner {
                 updatedSigner = await passkeySigner.updateAdminSigner(
                     passkey

@@ -4,13 +4,13 @@ import DeviceSigner
 public protocol CrossmintWallets: Sendable {
     func getWallet(
         chain: Chain,
-        signer: any Signer,
+        recovery: any Signer,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet?
 
     func createWallet(
         chain: Chain,
-        signer: any Signer,
+        recovery: any Signer,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
 }
@@ -20,12 +20,12 @@ extension CrossmintWallets {
 
     public func getWallet(
         chain: EVMChain,
-        signer: EVMSigners,
+        recovery: EVMSigners,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> EVMWallet? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         ) else { return nil }
         guard let evmWallet = wallet as? EVMWallet else {
@@ -36,12 +36,12 @@ extension CrossmintWallets {
 
     public func getWallet(
         chain: SolanaChain,
-        signer: SolanaSigners,
+        recovery: SolanaSigners,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> SolanaWallet? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         ) else { return nil }
         guard let solanaWallet = wallet as? SolanaWallet else {
@@ -52,12 +52,12 @@ extension CrossmintWallets {
 
     public func getWallet(
         chain: StellarChain,
-        signer: StellarSigners,
+        recovery: StellarSigners,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> StellarWallet? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         ) else { return nil }
         guard let stellarWallet = wallet as? StellarWallet else {
@@ -68,12 +68,12 @@ extension CrossmintWallets {
 
     public func getWallet<C: ChainWithSigners>(
         chain: C,
-        signer: C.SpecificSigner,
+        recovery: C.SpecificSigner,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> C.WalletType? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         ) else { return nil }
         guard let typed = wallet as? C.WalletType else {
@@ -86,12 +86,12 @@ extension CrossmintWallets {
 
     public func createWallet(
         chain: EVMChain,
-        signer: EVMSigners,
+        recovery: EVMSigners,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> EVMWallet {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         )
         guard let evmWallet = wallet as? EVMWallet else {
@@ -102,12 +102,12 @@ extension CrossmintWallets {
 
     public func createWallet(
         chain: SolanaChain,
-        signer: SolanaSigners,
+        recovery: SolanaSigners,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> SolanaWallet {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         )
         guard let solanaWallet = wallet as? SolanaWallet else {
@@ -118,12 +118,12 @@ extension CrossmintWallets {
 
     public func createWallet(
         chain: StellarChain,
-        signer: StellarSigners,
+        recovery: StellarSigners,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> StellarWallet {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         )
         guard let stellarWallet = wallet as? StellarWallet else {
@@ -134,12 +134,12 @@ extension CrossmintWallets {
 
     public func createWallet<C: ChainWithSigners>(
         chain: C,
-        signer: C.SpecificSigner,
+        recovery: C.SpecificSigner,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> C.WalletType {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
-            signer: await signer.signer,
+            recovery: await recovery.signer,
             options: options
         )
         guard let typed = wallet as? C.WalletType else {

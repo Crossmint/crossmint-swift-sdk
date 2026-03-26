@@ -21,14 +21,14 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
 
     public func getWallet(
         chain: Chain,
-        signer: any Signer,
+        recovery: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet? {
         try assertValid(chain)
 
         Logger.smartWallet.debug(LogEvents.walletGetStart, attributes: [
             "chain": chain.name,
-            "signerType": signer.signerType.rawValue
+            "signerType": recovery.signerType.rawValue
         ])
 
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
@@ -51,13 +51,13 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
-            signer: signer,
+            signer: recovery,
             options: options,
             deviceSignerStorage: deviceSignerStorage
         )
 
         do {
-            try await (signer as? any EmailSigner)?.load()
+            try await (recovery as? any EmailSigner)?.load()
         } catch {
             Logger.smartWallet.warn(
                 """
@@ -72,14 +72,14 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
     public func createWallet(
         chain: Chain,
-        signer: any Signer,
+        recovery: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet {
         try assertValid(chain)
 
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
         let walletApiModel = try await createWalletApiModel(
-            signer: signer,
+            signer: recovery,
             chainType: chain.chainType,
             walletType: .smart,
             options: options,
@@ -89,13 +89,13 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
-            signer: signer,
+            signer: recovery,
             options: options,
             deviceSignerStorage: deviceSignerStorage
         )
 
         do {
-            try await (signer as? any EmailSigner)?.load()
+            try await (recovery as? any EmailSigner)?.load()
         } catch {
             Logger.smartWallet.warn(
                 """
@@ -208,7 +208,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 }
             }
 
-            let createSigners = walletApiModel.config.delegatedSigners?.compactMap(\.locator) ?? []
+            let createSigners = walletApiModel.config.signers?.compactMap(\.locator) ?? []
             let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
@@ -300,20 +300,18 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
     /// Searches the wallet's delegated signers for a pending device key stored on this device.
     ///
-    /// Returns the 64-byte raw public key (base64-encoded) of the first matching pending key,
+    /// Returns the base64-encoded 65-byte uncompressed public key of the first matching key,
     /// or `nil` if none are found.
     private func findMatchingDeviceSignerKey(
         in wallet: WalletApiModel,
         storage: any DeviceSignerKeyStorage
     ) -> String? {
-        guard let delegatedSigners = wallet.config.delegatedSigners else { return nil }
-        for entry in delegatedSigners {
+        guard let signers = wallet.config.signers else { return nil }
+        for entry in signers {
             guard let locator = entry.locator, locator.hasPrefix("device:") else { continue }
             let b64 = String(locator.dropFirst("device:".count))
-            guard let data = Data(base64Encoded: b64), data.count == 65, data.first == 0x04 else { continue }
-            let pubKey64 = data.dropFirst().base64EncodedString()
-            if storage.hasKey(pubKey64: pubKey64) {
-                return pubKey64
+            if storage.hasKey(publicKeyBase64: b64) {
+                return b64
             }
         }
         return nil
@@ -335,7 +333,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
         let uncompressed = Data([0x04]) + rawKey
         let locator = "device:\(uncompressed.base64EncodedString())"
-        return wallet.config.delegatedSigners?.contains(where: { $0.locator == locator }) ?? false
+        return wallet.config.signers?.contains(where: { $0.locator == locator }) ?? false
     }
 
     private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
