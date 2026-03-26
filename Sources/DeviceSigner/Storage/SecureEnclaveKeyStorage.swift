@@ -15,10 +15,8 @@ import Security
 /// Secure Enclave hardware. Signing operations execute inside the enclave; the raw key
 /// material never leaves the chip.
 ///
-/// Check ``SecureEnclave/isAvailable`` before instantiating this class. On simulators,
-/// use ``SoftwareDeviceSignerKeyStorage`` for development only. On physical devices without
-/// a Secure Enclave, the device signer feature should not be used — prefer an alternative
-/// signer such as email or passkey.
+/// ``DefaultCrossmintWallets`` selects this implementation automatically when Secure Enclave
+/// is available, and falls back to ``KeychainDeviceSignerKeyStorage`` when it is not.
 public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     private let keychain = DeviceSignerKeychainStorage()
     private let biometricPolicy: BiometricPolicy
@@ -36,10 +34,6 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     }
 
     public func generateKey(address: String?) async throws(DeviceSignerError) -> String {
-        guard SecureEnclave.isAvailable else {
-            throw DeviceSignerError.hardwareUnavailable
-        }
-
         let accessControl = makeAccessControl()
         guard let access = accessControl else {
             throw DeviceSignerError.keyGenerationFailed
@@ -52,15 +46,13 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
             throw DeviceSignerError.keyGenerationFailed
         }
 
-        var uncompressed = Data([0x04])
-        uncompressed.append(key.publicKey.rawRepresentation)  // 65 bytes: 0x04 ‖ x ‖ y
-        let publicKeyBase64 = uncompressed.base64EncodedString()
+        let publicKeyBase64 = uncompressedPublicKey(from: key.publicKey.rawRepresentation)
 
         let tag: String
         if let address {
-            tag = "crossmint.device.wallet.\(address)"
+            tag = "\(walletKeyPrefix)\(address)"
         } else {
-            tag = "crossmint.device.pending.\(publicKeyBase64)"
+            tag = "\(pendingKeyPrefix)\(publicKeyBase64)"
         }
 
         try keychain.save(key.dataRepresentation, tag: tag)
@@ -69,27 +61,26 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     }
 
     public func mapAddressToKey(address: String, publicKeyBase64: String) async throws(DeviceSignerError) {
-        let oldTag = "crossmint.device.pending.\(publicKeyBase64)"
-        let newTag = "crossmint.device.wallet.\(address)"
-        try keychain.rename(from: oldTag, to: newTag)
+        try keychain.rename(
+            from: "\(pendingKeyPrefix)\(publicKeyBase64)",
+            to: "\(walletKeyPrefix)\(address)"
+        )
     }
 
     public func getKey(address: String) async -> String? {
-        let tag = "crossmint.device.wallet.\(address)"
+        let tag = "\(walletKeyPrefix)\(address)"
         guard let keyData = keychain.load(tag: tag),
               let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else {
             return nil
         }
-        var uncompressed = Data([0x04])
-        uncompressed.append(key.publicKey.rawRepresentation)
-        return uncompressed.base64EncodedString()
+        return uncompressedPublicKey(from: key.publicKey.rawRepresentation)
     }
 
     public func signMessage(
         address: String,
         message: String
     ) async throws(DeviceSignerError) -> (r: String, s: String) {
-        let tag = "crossmint.device.wallet.\(address)"
+        let tag = "\(walletKeyPrefix)\(address)"
         guard let keyData = keychain.load(tag: tag) else {
             throw DeviceSignerError.keyNotFound
         }
@@ -121,25 +112,21 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     }
 
     public func deleteKey(address: String) async throws(DeviceSignerError) {
-        let tag = "crossmint.device.wallet.\(address)"
-        try keychain.delete(tag: tag)
+        try keychain.delete(tag: "\(walletKeyPrefix)\(address)")
     }
 
     public func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError) {
-        let tag = "crossmint.device.pending.\(publicKeyBase64)"
-        try keychain.delete(tag: tag)
+        try keychain.delete(tag: "\(pendingKeyPrefix)\(publicKeyBase64)")
     }
 
     public func hasKey(publicKeyBase64: String) async -> Bool {
-        keychain.hasMatchingKey(publicKeyBase64: publicKeyBase64) { keyData in
+        keychain.hasMatchingKey(publicKeyBase64: publicKeyBase64) { [self] keyData in
             guard let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else { return nil }
-            var uncompressed = Data([0x04])
-            uncompressed.append(key.publicKey.rawRepresentation)
-            return uncompressed.base64EncodedString()
+            return uncompressedPublicKey(from: key.publicKey.rawRepresentation)
         }
     }
 
-    // MARK: - Private helpers
+    // MARK: - Private helper
 
     private func makeAccessControl() -> SecAccessControl? {
         let flags: SecAccessControlCreateFlags
@@ -157,7 +144,4 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
         )
     }
 
-    private func hexString<D: DataProtocol>(from data: D) -> String {
-        data.map { String(format: "%02x", $0) }.joined()
-    }
 }

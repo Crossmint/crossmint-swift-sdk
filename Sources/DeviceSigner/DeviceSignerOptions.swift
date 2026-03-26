@@ -10,7 +10,7 @@ import Foundation
 /// Configuration for the device signer feature.
 ///
 /// When provided via ``WalletOptions/deviceSigner``, the SDK generates a hardware-backed
-/// P-256 signing key in the Secure Enclave (or a software fallback on simulators) and
+/// P-256 signing key in the Secure Enclave (or a Keychain-based fallback when Secure Enclave is unavailable) and
 /// registers it as a delegated signer on the wallet. Subsequent transactions are co-signed
 /// by this key silently, without requiring an OTP prompt on the same device.
 ///
