@@ -310,7 +310,6 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         for entry in signers {
             guard let locator = entry.locator, locator.hasPrefix("device:") else { continue }
             let b64 = String(locator.dropFirst("device:".count))
-            guard let data = Data(base64Encoded: b64), data.count == 65, data.first == 0x04 else { continue }
             if storage.hasKey(publicKeyBase64: b64) {
                 return b64
             }
