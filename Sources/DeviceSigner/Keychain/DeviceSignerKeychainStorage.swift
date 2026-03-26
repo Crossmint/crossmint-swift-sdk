@@ -1,6 +1,9 @@
 import Foundation
 import LocalAuthentication
+import OSLog
 import Security
+
+private let logger = Logger(subsystem: "com.crossmint.devicesigner", category: "KeychainStorage")
 
 private let service = "com.crossmint.devicesigner"
 
@@ -81,8 +84,14 @@ struct DeviceSignerKeychainStorage {
             kSecMatchLimit: kSecMatchLimitAll
         ]
         var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let items = result as? [[CFString: Any]] else {
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess else {
+            if status != errSecItemNotFound {
+                logger.error("Unexpected Keychain error in allTags: \(status)")
+            }
+            return []
+        }
+        guard let items = result as? [[CFString: Any]] else {
             return []
         }
         return items.compactMap { $0[kSecAttrAccount] as? String }.filter { $0.hasPrefix(prefix) }
