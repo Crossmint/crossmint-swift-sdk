@@ -53,4 +53,15 @@ public protocol DeviceSignerKeyStorage: Sendable {
 
     /// Deletes a pending key that was never mapped to a wallet address.
     func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError)
+
+    /// Returns `true` if a pending key identified by `pubKey64` is present on the current device.
+    ///
+    /// A pending key is one that has been generated but not yet mapped to a wallet address via
+    /// ``mapAddressToKey(address:publicKeyBase64:)``. Use this to check whether any of a wallet's
+    /// existing device signers (from the backend) were originally generated on this device before
+    /// their address was known.
+    ///
+    /// - Parameter pubKey64: The raw 64-byte public key (x‖y) encoded as a base64 string.
+    /// - Returns: `true` if a pending key with this public key exists in local storage.
+    func hasKey(pubKey64: String) -> Bool
 }

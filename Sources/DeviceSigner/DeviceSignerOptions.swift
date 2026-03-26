@@ -15,7 +15,7 @@ import Foundation
 /// by this key silently, without requiring an OTP prompt on the same device.
 ///
 /// ```swift
-/// let wallet = try await crossmint.wallets.getOrCreateWallet(
+/// let wallet = try await crossmint.wallets.getWallet(
 ///     chain: .polygon,
 ///     signer: emailSigner,
 ///     options: WalletOptions(deviceSigner: DeviceSignerOptions(biometricPolicy: .always))

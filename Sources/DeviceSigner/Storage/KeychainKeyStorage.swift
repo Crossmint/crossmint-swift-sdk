@@ -34,8 +34,9 @@ public final class KeychainKeyStorage: DeviceSignerKeyStorage {
 
     public func generateKey(address: String?) async throws(DeviceSignerError) -> String {
         let key = P256.Signing.PrivateKey()
-        let rawPublicKey = key.publicKey.rawRepresentation  // 64 bytes: x‖y
-        let publicKeyBase64 = rawPublicKey.base64EncodedString()
+        var uncompressed = Data([0x04])
+        uncompressed.append(key.publicKey.rawRepresentation)  // 65 bytes: 0x04 ‖ x ‖ y
+        let publicKeyBase64 = uncompressed.base64EncodedString()
 
         let tag: String
         if let address {
@@ -62,7 +63,9 @@ public final class KeychainKeyStorage: DeviceSignerKeyStorage {
               let key = try? P256.Signing.PrivateKey(rawRepresentation: keyData) else {
             return nil
         }
-        return key.publicKey.rawRepresentation.base64EncodedString()
+        var uncompressed = Data([0x04])
+        uncompressed.append(key.publicKey.rawRepresentation)
+        return uncompressed.base64EncodedString()
     }
 
     public func signMessage(
@@ -101,6 +104,10 @@ public final class KeychainKeyStorage: DeviceSignerKeyStorage {
     public func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError) {
         let tag = "crossmint.device.pending.\(publicKeyBase64)"
         try keychain.delete(tag: tag)
+    }
+
+    public func hasKey(pubKey64: String) -> Bool {
+        keychain.load(tag: "crossmint.device.pending.\(pubKey64)") != nil
     }
 
     // MARK: - Private helpers
