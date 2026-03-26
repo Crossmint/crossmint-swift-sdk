@@ -55,29 +55,11 @@ struct DeviceSignerKeychainStorage {
     }
 
     func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
-        // Remove any existing item at the target tag to avoid errSecDuplicateItem (-25299).
-        let deleteTarget: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: newTag
-        ]
-        let deleteStatus = SecItemDelete(deleteTarget as CFDictionary)
-        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
-            throw DeviceSignerError.storageError(deleteStatus)
+        guard let data = load(tag: oldTag) else {
+            throw DeviceSignerError.keyNotFound
         }
-
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: oldTag
-        ]
-        let attributes: [CFString: Any] = [
-            kSecAttrAccount: newTag
-        ]
-        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-        guard status == errSecSuccess else {
-            throw DeviceSignerError.storageError(status)
-        }
+        try delete(tag: oldTag)
+        try save(data, tag: newTag)
     }
 
     func delete(tag: String) throws(DeviceSignerError) {
