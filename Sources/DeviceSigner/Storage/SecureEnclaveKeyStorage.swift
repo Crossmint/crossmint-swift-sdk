@@ -34,10 +34,6 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     }
 
     public func generateKey(address: String?) async throws(DeviceSignerError) -> String {
-        guard SecureEnclave.isAvailable else {
-            throw DeviceSignerError.hardwareUnavailable
-        }
-
         let accessControl = makeAccessControl()
         guard let access = accessControl else {
             throw DeviceSignerError.keyGenerationFailed
