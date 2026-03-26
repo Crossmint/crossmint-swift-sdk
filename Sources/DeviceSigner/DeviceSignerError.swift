@@ -9,8 +9,6 @@ import Foundation
 
 /// Errors that can occur during device signer operations.
 public enum DeviceSignerError: Error, Sendable {
-    /// Secure Enclave is not available on this device.
-    case hardwareUnavailable
     /// No key found in storage for the given wallet address.
     case keyNotFound
     /// Key generation failed.
@@ -26,7 +24,6 @@ public enum DeviceSignerError: Error, Sendable {
     /// Intended to conform to `CrossmintError.code` when that protocol is introduced.
     public var code: String {
         switch self {
-        case .hardwareUnavailable:  "DEVICE_SIGNER_HARDWARE_UNAVAILABLE"
         case .keyNotFound:          "DEVICE_SIGNER_KEY_NOT_FOUND"
         case .keyGenerationFailed:  "DEVICE_SIGNER_KEY_GENERATION_FAILED"
         case .signingFailed:        "DEVICE_SIGNER_SIGNING_FAILED"
@@ -39,8 +36,6 @@ public enum DeviceSignerError: Error, Sendable {
     /// Intended to conform to `CrossmintError.recoverySuggestion` when that protocol is introduced.
     public var recoverySuggestion: String? {
         switch self {
-        case .hardwareUnavailable:
-            "Secure Enclave is not available on this device. The SDK will fall back to software key storage."
         case .keyNotFound:
             "The device signer key for this wallet was not found. The wallet may need to re-register a device signer."
         case .keyGenerationFailed:

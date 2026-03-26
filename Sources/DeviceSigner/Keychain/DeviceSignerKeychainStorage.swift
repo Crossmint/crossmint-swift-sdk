@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 private let service = "com.crossmint.devicesigner"
@@ -32,14 +33,21 @@ struct DeviceSignerKeychainStorage {
         }
     }
 
-    func load(tag: String) -> Data? {
-        let query: [CFString: Any] = [
+    func load(tag: String, prompt: String? = nil, authContext: LAContext? = nil) -> Data? {
+        var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: tag,
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne
         ]
+        if let authContext {
+            query[kSecUseAuthenticationContext] = authContext
+        } else if let prompt {
+            let context = LAContext()
+            context.localizedReason = prompt
+            query[kSecUseAuthenticationContext] = context
+        }
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess else { return nil }
@@ -47,18 +55,11 @@ struct DeviceSignerKeychainStorage {
     }
 
     func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: oldTag
-        ]
-        let attributes: [CFString: Any] = [
-            kSecAttrAccount: newTag
-        ]
-        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-        guard status == errSecSuccess else {
-            throw DeviceSignerError.storageError(status)
+        guard let data = load(tag: oldTag) else {
+            throw DeviceSignerError.keyNotFound
         }
+        try delete(tag: oldTag)
+        try save(data, tag: newTag)
     }
 
     func delete(tag: String) throws(DeviceSignerError) {
