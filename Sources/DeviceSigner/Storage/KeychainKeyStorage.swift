@@ -101,7 +101,7 @@ public final class KeychainKeyStorage: DeviceSignerKeyStorage {
         try keychain.delete(tag: "\(pendingKeyPrefix)\(publicKeyBase64)")
     }
 
-    public func hasKey(publicKeyBase64: String) async -> Bool {
+    public func hasKey(publicKeyBase64: String) -> Bool {
         keychain.hasMatchingKey(publicKeyBase64: publicKeyBase64) { [self] keyData in
             guard let key = try? P256.Signing.PrivateKey(rawRepresentation: keyData) else { return nil }
             return uncompressedPublicKey(from: key.publicKey.rawRepresentation)

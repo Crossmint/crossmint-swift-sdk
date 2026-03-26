@@ -281,7 +281,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) async {
         let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
         guard !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) else { return }
-        guard let deviceSignerPendingAssignment = await findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) else { return }
+        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) else { return }
 
         do {
             try await storage.mapAddressToKey(
@@ -305,13 +305,13 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     private func findMatchingDeviceSignerKey(
         in wallet: WalletApiModel,
         storage: any DeviceSignerKeyStorage
-    ) async -> String? {
+    ) -> String? {
         guard let signers = wallet.config.signers else { return nil }
         for entry in signers {
             guard let locator = entry.locator, locator.hasPrefix("device:") else { continue }
             let b64 = String(locator.dropFirst("device:".count))
             guard let data = Data(base64Encoded: b64), data.count == 65, data.first == 0x04 else { continue }
-            if await storage.hasKey(publicKeyBase64: b64) {
+            if storage.hasKey(publicKeyBase64: b64) {
                 return b64
             }
         }

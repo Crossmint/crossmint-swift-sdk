@@ -62,7 +62,7 @@ public protocol DeviceSignerKeyStorage: Sendable {
     /// device signers belongs to the current device.
     ///
     /// - Parameter publicKeyBase64: The base64-encoded 65-byte uncompressed public key (0x04 ‖ x ‖ y).
-    func hasKey(publicKeyBase64: String) async -> Bool
+    func hasKey(publicKeyBase64: String) -> Bool
 }
 
 extension DeviceSignerKeyStorage {
