@@ -5,6 +5,7 @@
 //  Created by Tomas Martins on 3/3/26.
 //
 
+import Foundation
 import Security
 
 /// Storage abstraction for device signer keys.
@@ -64,4 +65,17 @@ public protocol DeviceSignerKeyStorage: Sendable {
     /// - Parameter pubKey64: The raw 64-byte public key (x‖y) encoded as a base64 string.
     /// - Returns: `true` if a pending key with this public key exists in local storage.
     func hasKey(pubKey64: String) -> Bool
+}
+
+extension DeviceSignerKeyStorage {
+    var walletKeyPrefix: String { "crossmint.device.wallet." }
+    var pendingKeyPrefix: String { "crossmint.device.pending." }
+
+    func uncompressedPublicKey(from rawRepresentation: Data) -> String {
+        (Data([0x04]) + rawRepresentation).base64EncodedString()
+    }
+
+    func hexString<D: DataProtocol>(from data: D) -> String {
+        data.map { String(format: "%02x", $0) }.joined()
+    }
 }
