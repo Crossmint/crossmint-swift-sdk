@@ -15,6 +15,7 @@ public enum WalletError: ServiceError {
     case transactionNotFound
     case invalidChain(chain: Chain)
     case invalidToken(token: CryptoCurrency)
+    case signerRegistrationFailed(Error)
 
     public var errorMessage: String {
         switch self {
@@ -39,6 +40,8 @@ public enum WalletError: ServiceError {
             return "Invalid chain: \(chain.name)"
         case .invalidToken(let token):
             return "Invalid token: \(token.name)"
+        case .signerRegistrationFailed(let error):
+            return "Signer registration failed: \(error.localizedDescription)"
         }
     }
 

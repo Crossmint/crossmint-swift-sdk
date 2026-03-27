@@ -1,5 +1,6 @@
 // swiftlint:disable file_length
 import CrossmintCommonTypes
+import CryptoKit
 import DeviceSigner
 import Foundation
 import Logger
@@ -16,6 +17,8 @@ open class Wallet: @unchecked Sendable {
     internal let signer: any Signer
     internal let chain: Chain
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
+    private var delegatedSignerLocators: [String]
+    private var isDeviceSignerReady = false
 
     private let owner: Owner?
     private let createdAt: Date
@@ -40,6 +43,7 @@ open class Wallet: @unchecked Sendable {
         self.blockchainAddress = address
         self.createdAt = baseModel.createdAt
         self.config = baseModel.config.toDomain
+        self.delegatedSignerLocators = baseModel.config.signers?.compactMap(\.locator) ?? []
         self.signer = signer
         self.chain = chain
         self.onTransactionStart = onTransactionStart
@@ -325,52 +329,157 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
     }
 
-    /// Lazily registers a new device signer if one is configured but no key exists for this wallet address.
+    // MARK: - Public signer management
+
+    /// Sets the active signer for this wallet on the current device.
     ///
-    /// Called before the first transfer transaction so the device signer is in place when the
-    /// backend routes the transaction through it. Best-effort: any error is logged and the
-    /// wallet continues without a device signer.
+    /// For `.device`, the key is provisioned lazily on the first transaction if it does not
+    /// already exist, so this method never throws. Call ``addSigner(_:)`` or ``recover()``
+    /// to register the key eagerly.
+    public func useSigner(_ signer: SignerConfig) {
+        switch signer {
+        case .device:
+            ensureDeviceSignerStorage()
+        case .email, .phone, .externalWallet:
+            break
+        }
+    }
+
+    /// Registers a new signer on this wallet.
+    ///
+    /// For `.device`, generates a hardware-backed P-256 key and registers it as a delegated
+    /// signer via the approval flow. Does nothing if this device already has a key for the wallet.
+    /// For `.email`, `.phone`, and `.externalWallet`, registers the locator via the API and
+    /// approves using the recovery signer.
+    public func addSigner(_ signer: SignerConfig) async throws(WalletError) {
+        switch signer {
+        case .device:
+            ensureDeviceSignerStorage()
+            try await performDeviceSignerRegistration()
+        case .email(let email):
+            try await registerDelegatedSigner(locator: "email:\(email)")
+        case .phone(let phone):
+            try await registerDelegatedSigner(locator: "phone:\(phone)")
+        case .externalWallet(let address):
+            try await registerDelegatedSigner(locator: "external-wallet:\(address)")
+        }
+    }
+
+    /// Returns `true` when the wallet has a device signer registered on the backend but
+    /// the current device does not hold a matching key.
+    ///
+    /// Call ``recover()`` to generate a new key and re-register on this device.
+    public func needsRecovery() async -> Bool {
+        guard delegatedSignerLocators.contains(where: { $0.hasPrefix("device:") }) else {
+            return false
+        }
+        guard let storage = deviceSignerKeyStorage else { return true }
+        return await storage.getKey(address: address) == nil
+    }
+
+    /// Generates a new device key and registers it on the wallet using the recovery signer.
+    ///
+    /// Use this when ``needsRecovery()`` returns `true` (e.g., the wallet was set up on another
+    /// device). Called automatically before the first transaction when recovery is needed.
+    public func recover() async throws(WalletError) {
+        ensureDeviceSignerStorage()
+        try await performDeviceSignerRegistration()
+    }
+
+    /// Returns `true` if the given signer locator is registered on this wallet.
+    public func signerIsRegistered(_ locator: String) -> Bool {
+        delegatedSignerLocators.contains(locator)
+    }
+
+    // MARK: - Internal helpers
+
+    /// Lazily registers a device signer before the first transaction. Best-effort — errors are logged and the wallet proceeds without one.
     internal func ensureDeviceSignerRegistered() async {
-        guard let storage = deviceSignerKeyStorage,
-              await storage.getKey(address: address) == nil else { return }
+        guard deviceSignerKeyStorage != nil, !isDeviceSignerReady else { return }
+        do {
+            try await performDeviceSignerRegistration()
+        } catch {
+            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                "error": "\(error)"
+            ])
+        }
+    }
+
+    private func registerDelegatedSigner(locator: String) async throws(WalletError) {
+        guard !delegatedSignerLocators.contains(locator) else { return }
+
+        let registration: AddDelegatedSignerResponse
+        do {
+            registration = try await smartWalletService.addSigner(
+                DelegatedSignerEntry(signer: locator),
+                chainType: chain.chainType,
+                chainName: chain.name
+            )
+        } catch {
+            throw .signerRegistrationFailed(error)
+        }
+
+        do {
+            try await approveAddDelegatedSigner(registration: registration)
+            delegatedSignerLocators.append(locator)
+        } catch {
+            throw .signerRegistrationFailed(error)
+        }
+    }
+
+    private func performDeviceSignerRegistration() async throws(WalletError) {
+        guard let storage = deviceSignerKeyStorage else { return }
+
+        guard await storage.getKey(address: address) == nil else {
+            isDeviceSignerReady = true
+            return
+        }
 
         Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
             "address": address
         ])
 
-        var publicKeyBase64: String?
-        var registeredOnBackend = false
+        let pubKey: String
         do {
-            let pubKey = try await storage.generateKey(address: nil)
-            publicKeyBase64 = pubKey
+            pubKey = try await storage.generateKey(address: nil)
+        } catch {
+            throw .signerRegistrationFailed(error)
+        }
 
-            guard let rawPublicKey = Data(base64Encoded: pubKey), rawPublicKey.count == 64 else {
-                throw DeviceSignerError.keyGenerationFailed
-            }
-            let uncompressed = Data([0x04]) + rawPublicKey
-            let entry = DelegatedSignerEntry(signer: "device:\(uncompressed.base64EncodedString())")
-
-            let registration = try await smartWalletService.addSigner(
-                entry,
+        let locator = "device:\(pubKey)"
+        let registration: AddDelegatedSignerResponse
+        do {
+            registration = try await smartWalletService.addSigner(
+                DelegatedSignerEntry(signer: locator),
                 chainType: chain.chainType,
                 chainName: chain.name
             )
-            registeredOnBackend = true
+        } catch {
+            try? await storage.deletePendingKey(publicKeyBase64: pubKey)
+            throw .signerRegistrationFailed(error)
+        }
 
+        do {
             try await approveAddDelegatedSigner(registration: registration)
-
             try await storage.mapAddressToKey(address: address, publicKeyBase64: pubKey)
+            delegatedSignerLocators.append(locator)
+            isDeviceSignerReady = true
             Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
                 "address": address
             ])
         } catch {
-            if let pubKey = publicKeyBase64, !registeredOnBackend {
-                try? await storage.deletePendingKey(publicKeyBase64: pubKey)
-            }
-            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
-                "error": "\(error)"
-            ])
+            throw .signerRegistrationFailed(error)
         }
+    }
+
+    private func ensureDeviceSignerStorage() {
+        if deviceSignerKeyStorage == nil {
+            deviceSignerKeyStorage = makeDeviceSignerKeyStorage()
+        }
+    }
+
+    private func makeDeviceSignerKeyStorage() -> any DeviceSignerKeyStorage {
+        SecureEnclave.isAvailable ? SecureEnclaveKeyStorage() : KeychainKeyStorage()
     }
 
     private func approveAddDelegatedSigner(registration: AddDelegatedSignerResponse) async throws {
@@ -395,11 +504,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
     private func deviceSignerLocator() async -> String? {
         guard let storage = deviceSignerKeyStorage,
-              let publicKeyBase64 = await storage.getKey(address: address),
-              let rawKey = Data(base64Encoded: publicKeyBase64),
-              rawKey.count == 64 else { return nil }
-        let uncompressed = Data([0x04]) + rawKey
-        return "device:\(uncompressed.base64EncodedString())"
+              let publicKeyBase64 = await storage.getKey(address: address) else { return nil }
+        return "device:\(publicKeyBase64)"
     }
 
     internal func transferTokenAndPollWhilePending(
