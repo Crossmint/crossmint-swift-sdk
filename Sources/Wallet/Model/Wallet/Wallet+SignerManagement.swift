@@ -191,11 +191,11 @@ extension Wallet {
     }
 
     internal func makeDeviceSignerStorage(options: DeviceSignerOptions) -> any DeviceSignerKeyStorage {
-        if SecureEnclave.isAvailable {
-            return SecureEnclaveKeyStorage(biometricPolicy: options.biometricPolicy)
-        } else {
-            return SoftwareDeviceSignerKeyStorage(biometricPolicy: options.biometricPolicy)
+        let seStorage = SecureEnclaveKeyStorage(biometricPolicy: options.biometricPolicy)
+        if seStorage.isAvailable() {
+            return seStorage
         }
+        return SoftwareDeviceSignerKeyStorage(biometricPolicy: options.biometricPolicy)
     }
 
     // MARK: - Device signer registration
@@ -218,7 +218,7 @@ extension Wallet {
             entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
         } catch {
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
-            throw error as? WalletError ?? .walletGeneric("Invalid device signer public key")
+            throw error
         }
 
         let registration: AddDelegatedSignerResponse
