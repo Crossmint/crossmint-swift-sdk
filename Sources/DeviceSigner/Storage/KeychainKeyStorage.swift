@@ -28,7 +28,7 @@ public final class KeychainKeyStorage: DeviceSignerKeyStorage {
         self.biometricPolicy = biometricPolicy
     }
 
-    public func isAvailable() async -> Bool {
+    public func isAvailable() -> Bool {
         true
     }
 

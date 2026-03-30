@@ -29,11 +29,19 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
         self.biometricPolicy = biometricPolicy
     }
 
-    public func isAvailable() async -> Bool {
-        SecureEnclave.isAvailable
+    public func isAvailable() -> Bool {
+        #if targetEnvironment(simulator)
+        return false
+        #else
+        return SecureEnclave.isAvailable
+        #endif
     }
 
     public func generateKey(address: String?) async throws(DeviceSignerError) -> String {
+        guard isAvailable() else {
+            throw DeviceSignerError.hardwareUnavailable
+        }
+
         let accessControl = makeAccessControl()
         guard let access = accessControl else {
             throw DeviceSignerError.keyGenerationFailed
