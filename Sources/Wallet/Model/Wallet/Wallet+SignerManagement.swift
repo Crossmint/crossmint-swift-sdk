@@ -28,13 +28,20 @@ extension Wallet {
     /// - Parameter config: The signer to add.
     /// - Throws: ``WalletError`` if registration fails.
     public func addSigner(_ config: SignerConfig) async throws(WalletError) {
-        switch config {
-        case .device(let options):
-            let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage(options: options)
-            try await registerDeviceSigner(storage: storage)
-            deviceSignerKeyStorage = storage
-        default:
-            throw .walletGeneric("addSigner only supports .device signers via this method")
+        Logger.smartWallet.info(LogEvents.walletAddSignerStart)
+        do {
+            switch config {
+            case .device(let options):
+                let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage(options: options)
+                try await registerDeviceSigner(storage: storage)
+                deviceSignerKeyStorage = storage
+            default:
+                throw WalletError.walletGeneric("addSigner only supports .device signers via this method")
+            }
+            Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
+            throw error as? WalletError ?? .walletGeneric(error.localizedDescription)
         }
     }
 
@@ -46,12 +53,24 @@ extension Wallet {
     ///
     /// - Throws: ``WalletError`` if recovery fails or there is no device signer configured.
     public func recover() async throws(WalletError) {
+        Logger.smartWallet.info(LogEvents.walletRecoverStart)
         await signerInitializationTask?.value
-        guard !_deviceSignerApproved else { return }
-        guard let storage = deviceSignerKeyStorage else {
-            throw .walletGeneric("No device signer configured on this wallet")
+        guard !_deviceSignerApproved else {
+            Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
+            return
         }
-        try await registerDeviceSigner(storage: storage)
+        guard let storage = deviceSignerKeyStorage else {
+            let error = WalletError.walletGeneric("No device signer configured on this wallet")
+            Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
+            throw error
+        }
+        do {
+            try await registerDeviceSigner(storage: storage)
+            Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
+            throw error as? WalletError ?? .walletGeneric(error.localizedDescription)
+        }
     }
 
     internal func preAuthIfNeeded() async throws(WalletError) {
@@ -181,11 +200,16 @@ extension Wallet {
 
     // MARK: - Device signer registration
 
+    // swiftlint:disable:next function_body_length
     private func registerDeviceSigner(storage: any DeviceSignerKeyStorage) async throws(WalletError) {
+        Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerStart)
+
         let publicKeyBase64: String
         do {
             publicKeyBase64 = try await storage.generateKey(address: nil)
+            Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerKeyGenerated)
         } catch {
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw .walletGeneric("Failed to generate device key: \(error)")
         }
 
@@ -193,7 +217,8 @@ extension Wallet {
         do {
             entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
         } catch {
-            throw error
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+            throw error as? WalletError ?? .walletGeneric("Invalid device signer public key")
         }
 
         let registration: AddDelegatedSignerResponse
@@ -202,6 +227,7 @@ extension Wallet {
                 entry, chainType: chain.chainType, chainName: chain.name
             )
         } catch {
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw .walletGeneric("Failed to register device signer: \(error)")
         }
 
@@ -209,12 +235,16 @@ extension Wallet {
            chainEntry.status == "awaiting-approval",
            let signatureId = chainEntry.id,
            let pending = chainEntry.approvals?.pending, !pending.isEmpty {
+            Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerAwaitingApproval, attributes: [
+                "signatureId": signatureId
+            ])
             do {
-                try await approveDelegatedSignerRegistration(
-                    signatureId: signatureId,
-                    pendingApprovals: pending
-                )
+                try await approveDelegatedSignerRegistration(signatureId: signatureId, pendingApprovals: pending)
+                Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerApproved, attributes: [
+                    "signatureId": signatureId
+                ])
             } catch {
+                Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
                 throw .walletGeneric("Failed to approve device signer registration: \(error)")
             }
         }
@@ -222,11 +252,13 @@ extension Wallet {
         do {
             try await storage.mapAddressToKey(address: address, publicKeyBase64: publicKeyBase64)
         } catch {
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw .walletGeneric("Failed to persist device key: \(error)")
         }
 
         _needsRecovery = false
         _deviceSignerApproved = true
+        Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerSuccess)
     }
 
     private func approveDelegatedSignerRegistration(

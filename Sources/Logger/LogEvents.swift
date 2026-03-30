@@ -361,6 +361,51 @@ public enum LogEvents {
     /// Device signer skipped (not configured)
     public static let walletCreateDeviceSignerSkipped = "wallet.create.deviceSigner.skipped"
 
+    // MARK: - addSigner Events
+
+    /// Starting addSigner
+    public static let walletAddSignerStart = "wallet.addSigner.start"
+
+    /// addSigner succeeded
+    public static let walletAddSignerSuccess = "wallet.addSigner.success"
+
+    /// addSigner failed
+    public static let walletAddSignerError = "wallet.addSigner.error"
+
+    // MARK: - recover Events
+
+    /// Starting recover
+    public static let walletRecoverStart = "wallet.recover.start"
+
+    /// Recover skipped — device signer already approved on this device
+    public static let walletRecoverSkipped = "wallet.recover.skipped"
+
+    /// Recover succeeded
+    public static let walletRecoverSuccess = "wallet.recover.success"
+
+    /// Recover failed
+    public static let walletRecoverError = "wallet.recover.error"
+
+    // MARK: - registerDeviceSigner Events
+
+    /// Starting device signer registration
+    public static let walletRegisterDeviceSignerStart = "wallet.registerDeviceSigner.start"
+
+    /// Device key generated
+    public static let walletRegisterDeviceSignerKeyGenerated = "wallet.registerDeviceSigner.keyGenerated"
+
+    /// Registration awaiting approval
+    public static let walletRegisterDeviceSignerAwaitingApproval = "wallet.registerDeviceSigner.awaitingApproval"
+
+    /// Registration approved
+    public static let walletRegisterDeviceSignerApproved = "wallet.registerDeviceSigner.approved"
+
+    /// Device signer registered and persisted successfully
+    public static let walletRegisterDeviceSignerSuccess = "wallet.registerDeviceSigner.success"
+
+    /// Device signer registration failed
+    public static let walletRegisterDeviceSignerError = "wallet.registerDeviceSigner.error"
+
     // MARK: - WalletFactory Error Events
 
     /// Invalid chain error in getOrCreateWallet
