@@ -1,7 +1,9 @@
 import CrossmintCommonTypes
+import CryptoKit
 import DeviceSigner
 import Foundation
 import Logger
+import Web
 
 // swiftlint:disable:next type_body_length
 open class Wallet: @unchecked Sendable {
@@ -43,6 +45,26 @@ open class Wallet: @unchecked Sendable {
         self.chain = chain
         self.onTransactionStart = onTransactionStart
         self.deviceSignerKeyStorage = deviceSignerKeyStorage
+    }
+
+    /// Returns whether the given locator is registered as a signer on this wallet.
+    ///
+    /// Checks both delegated signers (via a fresh API call) and the admin signer.
+    /// Returns `false` on any network error.
+    ///
+    /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
+    ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    public func signerIsRegistered(_ locator: String) async -> Bool {
+        let walletModel: WalletApiModel
+        do {
+            walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        } catch {
+            return false
+        }
+        let delegatedMatch = walletModel.config.delegatedSigners?
+            .contains(where: { $0.locator == locator }) ?? false
+        if delegatedMatch { return true }
+        return walletModel.config.adminSigner.toDomain.locator == locator
     }
 
     public func nfts(page: Int, nftsPerPage: Int) async throws(WalletError) -> [NFT] {
