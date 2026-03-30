@@ -55,7 +55,10 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             if let storage = deviceSignerStorage {
                 let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
                 let isRegistered = isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel)
-                if !isRegistered {
+                let hasExistingDeviceSigners = walletApiModel.config.delegatedSigners?
+                    .compactMap(\.locator)
+                    .contains(where: { $0.hasPrefix("device:") }) ?? false
+                if !isRegistered && (existingPublicKeyBase64 != nil || !hasExistingDeviceSigners) {
                     Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
                         "address": walletApiModel.address
                     ])
