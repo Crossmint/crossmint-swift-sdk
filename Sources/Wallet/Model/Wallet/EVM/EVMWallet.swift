@@ -56,7 +56,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: "\(value ?? .zero)",
                 data: data ?? "0x",
                 chain: chain,
-                signer: self.config.adminSigner.locator
+                signer: activeSignerLocator ?? self.config.adminSigner.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -83,7 +83,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: self.config.adminSigner.locator
+                signer: activeSignerLocator ?? self.config.adminSigner.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")

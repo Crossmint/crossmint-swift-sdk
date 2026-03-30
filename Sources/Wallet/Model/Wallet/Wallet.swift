@@ -372,7 +372,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
         onTransactionStart?()
-        let signerLocator = await deviceSignerLocator()
+        let signerLocator = await deviceSignerLocator() ?? activeSignerLocator
         let createdTransaction = try await smartWalletService.transferToken(
             chainType: chain.chainType.rawValue,
             tokenLocator: tokenLocator,
@@ -472,7 +472,12 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
         let request: SignRequestApi
         do {
-            let updatedSigner: any Signer = await updateSignerIfRequired()
+            let updatedSigner: any Signer
+            if let active = activeSigner {
+                updatedSigner = active
+            } else {
+                updatedSigner = await updateSignerIfRequired()
+            }
             try await updatedSigner.initialize(smartWalletService)
             request = SignRequestApi(
                 approvals: try await updatedSigner.approvals(
