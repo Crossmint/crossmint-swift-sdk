@@ -356,7 +356,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
     }
 
-    private func deviceSignerLocator() async -> String? {
+    internal func deviceSignerLocator() async -> String? {
         guard let storage = deviceSignerKeyStorage,
               let publicKeyBase64 = await storage.getKey(address: address),
               let rawKey = Data(base64Encoded: publicKeyBase64),
