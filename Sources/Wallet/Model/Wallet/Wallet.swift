@@ -131,6 +131,12 @@ open class Wallet: @unchecked Sendable {
         ])
 
         do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .transactionGeneric((error as? WalletError)?.errorMessage ?? error.localizedDescription)
+        }
+
+        do {
             let transaction = try await self.transaction(withId: id)
             guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
@@ -329,6 +335,9 @@ open class Wallet: @unchecked Sendable {
     internal func sendTransaction(
         _ transactionRequest: any TransactionRequest
     ) async throws(TransactionError) -> Transaction? {
+        do { try await preAuthIfNeeded() } catch {
+            throw .transactionGeneric((error as? WalletError)?.errorMessage ?? error.localizedDescription)
+        }
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
@@ -360,9 +369,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         guard let storage = deviceSignerKeyStorage,
               let publicKeyBase64 = await storage.getKey(address: address),
               let rawKey = Data(base64Encoded: publicKeyBase64),
-              rawKey.count == 64 else { return nil }
-        let uncompressed = Data([0x04]) + rawKey
-        return "device:\(uncompressed.base64EncodedString())"
+              rawKey.count == 65, rawKey[0] == 0x04 else { return nil }
+        return "device:\(publicKeyBase64)"
     }
 
     internal func transferTokenAndPollWhilePending(
@@ -371,6 +379,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         amount: String,
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
+        do { try await preAuthIfNeeded() } catch {
+            throw .transactionGeneric((error as? WalletError)?.errorMessage ?? error.localizedDescription)
+        }
         onTransactionStart?()
         let signerLocator = await deviceSignerLocator() ?? activeSignerLocator
         let createdTransaction = try await smartWalletService.transferToken(

@@ -21,6 +21,46 @@ extension Wallet {
         return _needsRecovery
     }
 
+    /// Registers a new signer on this wallet.
+    ///
+    /// Currently supports `.device` signers only. For other types, use the Crossmint dashboard.
+    ///
+    /// - Parameter config: The signer to add.
+    /// - Throws: ``WalletError`` if registration fails.
+    public func addSigner(_ config: SignerConfig) async throws(WalletError) {
+        switch config {
+        case .device(let options):
+            let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage(options: options)
+            try await registerDeviceSigner(storage: storage)
+            deviceSignerKeyStorage = storage
+        default:
+            throw .walletGeneric("addSigner only supports .device signers via this method")
+        }
+    }
+
+    /// Re-registers the device signer on this device.
+    ///
+    /// Call this when ``needsRecovery()`` returns `true` — i.e. the wallet has a device signer
+    /// registered but the private key is missing on the current device. This generates a new key,
+    /// registers it with Crossmint, and awaits approval from the existing admin signer.
+    ///
+    /// - Throws: ``WalletError`` if recovery fails or there is no device signer configured.
+    public func recover() async throws(WalletError) {
+        await signerInitializationTask?.value
+        guard !_deviceSignerApproved else { return }
+        guard let storage = deviceSignerKeyStorage else {
+            throw .walletGeneric("No device signer configured on this wallet")
+        }
+        try await registerDeviceSigner(storage: storage)
+    }
+
+    internal func preAuthIfNeeded() async throws(WalletError) {
+        await signerInitializationTask?.value
+        if _needsRecovery {
+            try await recover()
+        }
+    }
+
     /// Sets the active signer used for subsequent wallet operations.
     ///
     /// After calling this method, send and sign operations will use the specified signer
@@ -137,5 +177,81 @@ extension Wallet {
         } else {
             return SoftwareDeviceSignerKeyStorage(biometricPolicy: options.biometricPolicy)
         }
+    }
+
+    // MARK: - Device signer registration
+
+    private func registerDeviceSigner(storage: any DeviceSignerKeyStorage) async throws(WalletError) {
+        let publicKeyBase64: String
+        do {
+            publicKeyBase64 = try await storage.generateKey(address: nil)
+        } catch {
+            throw .walletGeneric("Failed to generate device key: \(error)")
+        }
+
+        let entry: DelegatedSignerEntry
+        do {
+            entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+        } catch {
+            throw error
+        }
+
+        let registration: AddDelegatedSignerResponse
+        do {
+            registration = try await smartWalletService.addDelegatedSigner(
+                entry, chainType: chain.chainType, chainName: chain.name
+            )
+        } catch {
+            throw .walletGeneric("Failed to register device signer: \(error)")
+        }
+
+        if let chainEntry = registration.chains?[chain.name],
+           chainEntry.status == "awaiting-approval",
+           let signatureId = chainEntry.id,
+           let pending = chainEntry.approvals?.pending, !pending.isEmpty {
+            do {
+                try await approveDelegatedSignerRegistration(
+                    signatureId: signatureId,
+                    pendingApprovals: pending
+                )
+            } catch {
+                throw .walletGeneric("Failed to approve device signer registration: \(error)")
+            }
+        }
+
+        do {
+            try await storage.mapAddressToKey(address: address, publicKeyBase64: publicKeyBase64)
+        } catch {
+            throw .walletGeneric("Failed to persist device key: \(error)")
+        }
+
+        _needsRecovery = false
+        _deviceSignerApproved = true
+    }
+
+    private func approveDelegatedSignerRegistration(
+        signatureId: String,
+        pendingApprovals: [ApprovalEntry]
+    ) async throws {
+        let updatedSigner = await updateSignerIfRequired()
+        try await updatedSigner.initialize(smartWalletService)
+        for approval in pendingApprovals {
+            let signRequest = SignRequestApi(
+                approvals: try await updatedSigner.approvals(
+                    withSignature: try await updatedSigner.sign(message: approval.message)
+                )
+            )
+            try await smartWalletService.approveSignature(
+                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chain.chainType)
+            )
+        }
+    }
+
+    private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
+        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64),
+              rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
+            throw .walletGeneric("Invalid device signer public key")
+        }
+        return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
     }
 }
