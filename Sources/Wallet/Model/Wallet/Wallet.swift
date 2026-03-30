@@ -17,6 +17,12 @@ open class Wallet: @unchecked Sendable {
     internal let signer: any Signer
     internal let chain: Chain
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
+    var activeSigner: (any Signer)?
+    var activeSignerLocator: String?
+    var _needsRecovery: Bool = false
+    var _deviceSignerApproved: Bool = false
+    internal var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
+    var signerInitializationTask: Task<Void, Never>?
 
     private let owner: Owner?
     private let createdAt: Date
@@ -45,6 +51,10 @@ open class Wallet: @unchecked Sendable {
         self.chain = chain
         self.onTransactionStart = onTransactionStart
         self.deviceSignerKeyStorage = deviceSignerKeyStorage
+        self.initialDelegatedSigners = baseModel.config.delegatedSigners ?? []
+        self.signerInitializationTask = Task { [weak self] in
+            await self?.initDefaultSigner()
+        }
     }
 
     /// Returns whether the given locator is registered as a signer on this wallet.
