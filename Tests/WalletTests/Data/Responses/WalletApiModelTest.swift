@@ -14,7 +14,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.adminSigner.type == .passkey)
+        #expect(wallet.config.recovery.type == .passkey)
     }
 
     @Test(
@@ -26,8 +26,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.adminSigner.type == .externalWallet)
-        let locator = wallet.config.adminSigner.toDomain.locator
+        #expect(wallet.config.recovery.type == .externalWallet)
+        let locator = wallet.config.recovery.toDomain.locator
         let expectedLocator = "external-wallet:0x1234567890123456789012345678901234567890"
         #expect(locator == expectedLocator)
     }
@@ -41,8 +41,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.adminSigner.type == .externalWallet)
-        let locator = wallet.config.adminSigner.toDomain.locator
+        #expect(wallet.config.recovery.type == .externalWallet)
+        let locator = wallet.config.recovery.toDomain.locator
         let expectedLocator = "external-wallet:EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
         #expect(locator == expectedLocator)
     }
@@ -56,8 +56,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.adminSigner.type == .apiKey)
-        let locator = wallet.config.adminSigner.toDomain.locator
+        #expect(wallet.config.recovery.type == .apiKey)
+        let locator = wallet.config.recovery.toDomain.locator
         // New ApiKeySignerData uses fixed locatorId
         let expectedLocator = "api-key:api-key"
         #expect(locator == expectedLocator)
@@ -72,8 +72,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.adminSigner.type == .email)
-        let locator = wallet.config.adminSigner.toDomain.locator
+        #expect(wallet.config.recovery.type == .email)
+        let locator = wallet.config.recovery.toDomain.locator
         let expectedLocator = "email:user@example.com"
         #expect(locator == expectedLocator)
     }
@@ -87,8 +87,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.adminSigner.type == .email)
-        let locator = wallet.config.adminSigner.toDomain.locator
+        #expect(wallet.config.recovery.type == .email)
+        let locator = wallet.config.recovery.toDomain.locator
         let expectedLocator = "email:solana.user@example.com"
         #expect(locator == expectedLocator)
     }
@@ -102,8 +102,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.adminSigner.type == .phone)
-        let locator = wallet.config.adminSigner.toDomain.locator
+        #expect(wallet.config.recovery.type == .phone)
+        let locator = wallet.config.recovery.toDomain.locator
         let expectedLocator = "phone:+14155552671"
         #expect(locator == expectedLocator)
     }

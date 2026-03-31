@@ -155,15 +155,15 @@ extension Wallet {
             throw .walletGeneric("Failed to fetch wallet config")
         }
 
-        let passkeyLocator = walletModel.config.delegatedSigners?
+        let passkeyLocator = walletModel.config.signers?
             .compactMap(\.locator)
             .first(where: { $0.hasPrefix("passkey:") })
 
         let locator: String
         if let delegatedLocator = passkeyLocator {
             locator = delegatedLocator
-        } else if config.adminSigner is PasskeySignerData {
-            locator = config.adminSigner.locator
+        } else if config.recovery is PasskeySignerData {
+            locator = config.recovery.locator
         } else {
             throw .signerNotRegistered("passkey:\(name)")
         }
@@ -195,7 +195,7 @@ extension Wallet {
         if seStorage.isAvailable() {
             return seStorage
         }
-        return SoftwareDeviceSignerKeyStorage(biometricPolicy: options.biometricPolicy)
+        return KeychainKeyStorage(biometricPolicy: options.biometricPolicy)
     }
 
     // MARK: - Device signer registration
@@ -224,7 +224,7 @@ extension Wallet {
 
         let registration: AddDelegatedSignerResponse
         do {
-            registration = try await smartWalletService.addDelegatedSigner(
+            registration = try await smartWalletService.addSigner(
                 entry, chainType: chain.chainType, chainName: chain.name
             )
         } catch {

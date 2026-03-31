@@ -5,14 +5,14 @@
 //  Created by Tomas Martins on 3/3/26.
 //
 
+import Foundation
 import Security
 
 /// Storage abstraction for device signer keys.
 ///
-/// Implementations manage the full lifecycle of a P-256 signing key tied to a wallet address:
-/// generation, retrieval, signing, and deletion. Two implementations are provided:
-/// - ``SecureEnclaveKeyStorage``: hardware-backed, for physical devices with Secure Enclave.
-/// - ``SoftwareDeviceSignerKeyStorage``: software fallback for simulators and older devices.
+/// Manages the full lifecycle of a P-256 signing key tied to a wallet address:
+/// generation, retrieval, signing, and deletion.
+///
 public protocol DeviceSignerKeyStorage: Sendable {
     /// Returns `true` if this storage backend is available on the current device.
     func isAvailable() -> Bool
@@ -54,4 +54,26 @@ public protocol DeviceSignerKeyStorage: Sendable {
 
     /// Deletes a pending key that was never mapped to a wallet address.
     func deletePendingKey(publicKeyBase64: String) async throws(DeviceSignerError)
+
+    /// Returns `true` if the given public key belongs to a key stored on this device,
+    /// whether as a pending key or as a key already mapped to a wallet address.
+    ///
+    /// Use this during wallet initialisation to check whether any of the wallet's registered
+    /// device signers belongs to the current device.
+    ///
+    /// - Parameter publicKeyBase64: The base64-encoded 65-byte uncompressed public key (0x04 ‖ x ‖ y).
+    func hasKey(publicKeyBase64: String) -> Bool
+}
+
+extension DeviceSignerKeyStorage {
+    var walletKeyPrefix: String { "crossmint.device.wallet." }
+    var pendingKeyPrefix: String { "crossmint.device.pending." }
+
+    func uncompressedPublicKey(from rawRepresentation: Data) -> String {
+        (Data([0x04]) + rawRepresentation).base64EncodedString()
+    }
+
+    func hexString<D: DataProtocol>(from data: D) -> String {
+        data.map { String(format: "%02x", $0) }.joined()
+    }
 }

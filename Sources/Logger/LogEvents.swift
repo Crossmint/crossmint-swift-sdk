@@ -128,15 +128,6 @@ public enum LogEvents {
 
     // MARK: - Wallet Factory Events
 
-    /// Getting or creating wallet
-    public static let walletGetOrCreateStart = "wallet.getOrCreate.start"
-
-    /// Found existing wallet
-    public static let walletGetOrCreateExisting = "wallet.getOrCreate.existing"
-
-    /// Creating new wallet
-    public static let walletGetOrCreateCreating = "wallet.getOrCreate.creating"
-
     /// Getting wallet
     public static let walletGetStart = "wallet.get.start"
 
@@ -408,9 +399,5 @@ public enum LogEvents {
 
     // MARK: - WalletFactory Error Events
 
-    /// Invalid chain error in getOrCreateWallet
-    public static let walletFactoryGetOrCreateWalletError = "walletFactory.getOrCreateWallet.error"
-
-    /// Invalid chain error in getWallet
-    public static let walletFactoryGetWalletError = "walletFactory.getWallet.error"
+    public static let walletFactoryInvalidChain = "walletFactory.invalidChain"
 }
