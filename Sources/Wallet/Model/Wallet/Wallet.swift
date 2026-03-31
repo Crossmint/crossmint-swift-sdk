@@ -21,7 +21,7 @@ open class Wallet: @unchecked Sendable {
     var activeSignerLocator: String?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
-    internal var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
+    var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 
     private let owner: Owner?
@@ -383,7 +383,12 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             throw .transactionGeneric((error as? WalletError)?.errorMessage ?? error.localizedDescription)
         }
         onTransactionStart?()
-        let signerLocator = await deviceSignerLocator() ?? activeSignerLocator
+        let signerLocator: String?
+        if let active = activeSignerLocator {
+            signerLocator = active
+        } else {
+            signerLocator = await deviceSignerLocator()
+        }
         let createdTransaction = try await smartWalletService.transferToken(
             chainType: chain.chainType.rawValue,
             tokenLocator: tokenLocator,
