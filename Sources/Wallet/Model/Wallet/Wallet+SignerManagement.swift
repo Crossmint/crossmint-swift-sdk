@@ -217,6 +217,7 @@ extension Wallet {
         do {
             entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
         } catch {
+            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw error
         }
@@ -227,6 +228,7 @@ extension Wallet {
                 entry, chainType: chain.chainType, chainName: chain.name
             )
         } catch {
+            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw .walletGeneric("Failed to register device signer: \(error)")
         }
@@ -244,6 +246,7 @@ extension Wallet {
                     "signatureId": signatureId
                 ])
             } catch {
+                try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
                 Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
                 throw .walletGeneric("Failed to approve device signer registration: \(error)")
             }
