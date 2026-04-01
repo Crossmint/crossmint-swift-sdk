@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import DeviceSigner
 
 public protocol CrossmintWallets: Sendable {
     func getWallet(
@@ -151,14 +150,14 @@ extension CrossmintWallets {
 
 public struct WalletOptions {
     let experimentalCallbacks: ExperimentalCallbacks?
-    public let deviceSigner: DeviceSignerOptions?
+    public let deviceSigner: Bool
 
-    public init(deviceSigner: DeviceSignerOptions? = nil) {
+    public init(deviceSigner: Bool = false) {
         self.experimentalCallbacks = nil
         self.deviceSigner = deviceSigner
     }
 
-    init(deviceSigner: DeviceSignerOptions? = nil, experimentalCallbacks: ExperimentalCallbacks?) {
+    init(deviceSigner: Bool = false, experimentalCallbacks: ExperimentalCallbacks?) {
         self.deviceSigner = deviceSigner
         self.experimentalCallbacks = experimentalCallbacks
     }

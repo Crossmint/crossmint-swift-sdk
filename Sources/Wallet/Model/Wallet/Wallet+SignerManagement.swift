@@ -31,8 +31,8 @@ extension Wallet {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart)
         do {
             switch config {
-            case .device(let options):
-                let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage(options: options)
+            case .device:
+                let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
                 try await registerDeviceSigner(storage: storage)
                 deviceSignerKeyStorage = storage
             default:
@@ -90,8 +90,8 @@ extension Wallet {
     /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
         switch config {
-        case .device(let options):
-            try await activateDeviceSigner(options: options)
+        case .device:
+            try await activateDeviceSigner()
         case .email(let email):
             let locator = "email:\(email)"
             guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
@@ -134,8 +134,8 @@ extension Wallet {
 
     // MARK: - Private helpers
 
-    private func activateDeviceSigner(options: DeviceSignerOptions) async throws(WalletError) {
-        let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage(options: options)
+    private func activateDeviceSigner() async throws(WalletError) {
+        let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
         guard await storage.getKey(address: address) != nil else {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
@@ -190,12 +190,12 @@ extension Wallet {
         }
     }
 
-    internal func makeDeviceSignerStorage(options: DeviceSignerOptions) -> any DeviceSignerKeyStorage {
-        let seStorage = SecureEnclaveKeyStorage(biometricPolicy: options.biometricPolicy)
+    internal func makeDeviceSignerStorage() -> any DeviceSignerKeyStorage {
+        let seStorage = SecureEnclaveKeyStorage()
         if seStorage.isAvailable() {
             return seStorage
         }
-        return KeychainKeyStorage(biometricPolicy: options.biometricPolicy)
+        return KeychainKeyStorage()
     }
 
     // MARK: - Device signer registration
