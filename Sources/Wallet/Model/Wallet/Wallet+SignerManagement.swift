@@ -41,7 +41,7 @@ extension Wallet {
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
         } catch {
             Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
-            throw error as? WalletError ?? .walletGeneric(error.localizedDescription)
+            throw error
         }
     }
 
@@ -73,14 +73,7 @@ extension Wallet {
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
         } catch {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
-            throw error as? WalletError ?? .walletGeneric(error.localizedDescription)
-        }
-    }
-
-    internal func preAuthIfNeeded() async throws(WalletError) {
-        await signerInitializationTask?.value
-        if _needsRecovery {
-            try await recover()
+            throw error
         }
     }
 
@@ -113,6 +106,13 @@ extension Wallet {
     }
 
     // MARK: - Internal
+
+    internal func preAuthIfNeeded() async throws(WalletError) {
+        await signerInitializationTask?.value
+        if _needsRecovery {
+            try await recover()
+        }
+    }
 
     internal func initDefaultSigner() async {
         guard deviceSignerKeyStorage != nil else { return }
