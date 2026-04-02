@@ -55,6 +55,10 @@ extension Wallet {
     public func recover() async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletRecoverStart)
         await signerInitializationTask?.value
+        guard _needsRecovery else {
+            Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
+            return
+        }
         guard !_deviceSignerApproved else {
             Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
             return
