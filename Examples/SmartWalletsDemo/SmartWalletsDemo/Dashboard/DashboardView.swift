@@ -252,7 +252,7 @@ struct DashboardView: View {
         }
 
         do {
-            let options = WalletOptions(deviceSigner: DeviceSignerOptions(biometricPolicy: .always))
+            let options = WalletOptions(deviceSigner: true)
             let wallet: EVMWallet
             if let existing = try await sdk.crossmintWallets.getWallet(
                 chain: .baseSepolia,
