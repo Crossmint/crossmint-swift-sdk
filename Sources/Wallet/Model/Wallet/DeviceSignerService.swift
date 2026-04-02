@@ -1,0 +1,108 @@
+import CrossmintCommonTypes
+import DeviceSigner
+import Foundation
+import Logger
+
+final class DeviceSignerService {
+    private let smartWalletService: SmartWalletService
+    private let chainType: ChainType
+    private let chainName: String
+    private let address: String
+
+    init(
+        smartWalletService: SmartWalletService,
+        chainType: ChainType,
+        chainName: String,
+        address: String
+    ) {
+        self.smartWalletService = smartWalletService
+        self.chainType = chainType
+        self.chainName = chainName
+        self.address = address
+    }
+
+    func register(storage: any DeviceSignerKeyStorage, signer: any Signer) async throws(WalletError) {
+        Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerStart)
+
+        let publicKeyBase64: String
+        do {
+            publicKeyBase64 = try await storage.generateKey(address: nil)
+            Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerKeyGenerated)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+            throw WalletError.walletGeneric("Failed to generate device key: \(error)")
+        }
+
+        let entry: DelegatedSignerEntry
+        do {
+            entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+        } catch {
+            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+            throw error
+        }
+
+        let registration: AddDelegatedSignerResponse
+        do {
+            registration = try await smartWalletService.addSigner(entry, chainType: chainType, chainName: chainName)
+        } catch {
+            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+            throw WalletError.walletGeneric("Failed to register device signer: \(error)")
+        }
+
+        if let chainEntry = registration.chains?[chainName],
+           chainEntry.status == "awaiting-approval",
+           let signatureId = chainEntry.id,
+           let pending = chainEntry.approvals?.pending, !pending.isEmpty {
+            Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerAwaitingApproval, attributes: [
+                "signatureId": signatureId
+            ])
+            do {
+                try await approve(signatureId: signatureId, pendingApprovals: pending, signer: signer)
+                Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerApproved, attributes: [
+                    "signatureId": signatureId
+                ])
+            } catch {
+                try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+                Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+                throw WalletError.walletGeneric("Failed to approve device signer registration: \(error)")
+            }
+        }
+
+        do {
+            try await storage.mapAddressToKey(address: address, publicKeyBase64: publicKeyBase64)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+            throw WalletError.walletGeneric("Failed to persist device key: \(error)")
+        }
+
+        Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerSuccess)
+    }
+
+    private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
+        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64),
+              rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
+            throw WalletError.walletGeneric("Invalid device signer public key")
+        }
+        return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
+    }
+
+    private func approve(
+        signatureId: String,
+        pendingApprovals: [ApprovalEntry],
+        signer: any Signer
+    ) async throws {
+        try await signer.initialize(smartWalletService)
+        for approval in pendingApprovals {
+            let signRequest = SignRequestApi(
+                approvals: try await signer.approvals(
+                    withSignature: try await signer.sign(message: approval.message)
+                )
+            )
+            try await smartWalletService.approveSignature(
+                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chainType)
+            )
+        }
+    }
+}
