@@ -373,28 +373,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
     }
 
-    internal func ensureDeviceSignerRegistered() async {
-        guard let storage = deviceSignerKeyStorage,
-              await storage.getKey(address: address) == nil else { return }
-
-        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: ["address": address])
-        do {
-            let signer = await updateSignerIfRequired()
-            try await deviceSignerService.register(storage: storage, signer: signer)
-            Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: ["address": address])
-        } catch {
-            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: ["error": "\(error)"])
-        }
-    }
-
-    func deviceSignerLocator() async -> String? {
-        guard let storage = deviceSignerKeyStorage,
-              let publicKeyBase64 = await storage.getKey(address: address),
-              let rawKey = Data(base64Encoded: publicKeyBase64),
-              rawKey.count == 65, rawKey[0] == 0x04 else { return nil }
-        return "device:\(publicKeyBase64)"
-    }
-
     internal func transferTokenAndPollWhilePending(
         tokenLocator: String,
         recipient: String,
@@ -405,12 +383,16 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             throw .transactionGeneric(error.errorMessage)
         }
         onTransactionStart?()
-        await ensureDeviceSignerRegistered()
+        if let storage = deviceSignerKeyStorage {
+            await deviceSignerService.ensureRegistered(storage: storage, signer: await updateSignerIfRequired())
+        }
         let signerLocator: String?
         if let active = activeSignerLocator {
             signerLocator = active
+        } else if let storage = deviceSignerKeyStorage {
+            signerLocator = await deviceSignerService.locator(for: storage)
         } else {
-            signerLocator = await deviceSignerLocator()
+            signerLocator = nil
         }
         let createdTransaction = try await smartWalletService.transferToken(
             chainType: chain.chainType.rawValue,
