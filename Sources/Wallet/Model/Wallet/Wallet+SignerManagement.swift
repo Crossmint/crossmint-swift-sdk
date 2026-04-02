@@ -41,7 +41,10 @@ extension Wallet {
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
         } catch {
             Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
-            throw error
+            guard let walletError = error as? WalletError else {
+                throw WalletError.walletGeneric(error.localizedDescription)
+            }
+            throw walletError
         }
     }
 
