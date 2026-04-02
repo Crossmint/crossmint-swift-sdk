@@ -18,6 +18,7 @@ open class Wallet: @unchecked Sendable {
     internal let signer: any Signer
     internal let chain: Chain
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
+    var deviceSignerService: DeviceSignerService
     var activeSigner: (any Signer)?
     var activeSignerLocator: String?
     var _needsRecovery: Bool = false
@@ -52,6 +53,12 @@ open class Wallet: @unchecked Sendable {
         self.chain = chain
         self.onTransactionStart = onTransactionStart
         self.deviceSignerKeyStorage = deviceSignerKeyStorage
+        self.deviceSignerService = DeviceSignerService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name,
+            address: address.description
+        )
         self.initialDelegatedSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
             await self?.initDefaultSigner()
@@ -370,62 +377,13 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         guard let storage = deviceSignerKeyStorage,
               await storage.getKey(address: address) == nil else { return }
 
-        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: [
-            "address": address
-        ])
-
-        var publicKeyBase64: String?
-        var registeredOnBackend = false
+        Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: ["address": address])
         do {
-            let pubKey = try await storage.generateKey(address: nil)
-            publicKeyBase64 = pubKey
-
-            guard let rawPublicKey = Data(base64Encoded: pubKey),
-                  rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
-                throw DeviceSignerError.keyGenerationFailed
-            }
-            let entry = DelegatedSignerEntry(signer: "device:\(pubKey)")
-
-            let registration = try await smartWalletService.addSigner(
-                entry,
-                chainType: chain.chainType,
-                chainName: chain.name
-            )
-            registeredOnBackend = true
-
-            try await approveAddDelegatedSigner(registration: registration)
-
-            try await storage.mapAddressToKey(address: address, publicKeyBase64: pubKey)
-            Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: [
-                "address": address
-            ])
+            let signer = await updateSignerIfRequired()
+            try await deviceSignerService.register(storage: storage, signer: signer)
+            Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: ["address": address])
         } catch {
-            if let pubKey = publicKeyBase64, !registeredOnBackend {
-                try? await storage.deletePendingKey(publicKeyBase64: pubKey)
-            }
-            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
-                "error": "\(error)"
-            ])
-        }
-    }
-
-    private func approveAddDelegatedSigner(registration: AddDelegatedSignerResponse) async throws {
-        guard let chainEntry = registration.chains?[chain.name],
-              chainEntry.status == "awaiting-approval",
-              let signatureId = chainEntry.id,
-              let pending = chainEntry.approvals?.pending, !pending.isEmpty else { return }
-
-        let updatedSigner = await updateSignerIfRequired()
-        try await updatedSigner.initialize(smartWalletService)
-        for approval in pending {
-            let signRequest = SignRequestApi(
-                approvals: try await updatedSigner.approvals(
-                    withSignature: try await updatedSigner.sign(message: approval.message)
-                )
-            )
-            try await smartWalletService.approveSignature(
-                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chain.chainType)
-            )
+            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: ["error": "\(error)"])
         }
     }
 
