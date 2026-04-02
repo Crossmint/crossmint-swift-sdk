@@ -328,20 +328,21 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
     private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {
         guard let keyBase64 = publicKeyBase64,
-              let rawKey = Data(base64Encoded: keyBase64),
-              rawKey.count == 65, rawKey[0] == 0x04 else {
+              let rawKey = Data(base64Encoded: keyBase64), rawKey.count == 64 else {
             return false
         }
-        let locator = "device:\(keyBase64)"
+        let uncompressed = Data([0x04]) + rawKey
+        let locator = "device:\(uncompressed.base64EncodedString())"
         return wallet.config.signers?.contains(where: { $0.locator == locator }) ?? false
     }
 
     private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
-        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64),
-              rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
+        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64), rawPublicKey.count == 64 else {
             throw WalletError.walletCreationFailed("Invalid device signer public key")
         }
-        return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
+        // Build uncompressed P256 point: 0x04 || x (32 bytes) || y (32 bytes)
+        let uncompressed = Data([0x04]) + rawPublicKey
+        return DelegatedSignerEntry(signer: "device:\(uncompressed.base64EncodedString())")
     }
 
     private func approveDelegatedSignerRegistration(
