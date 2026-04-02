@@ -141,7 +141,7 @@ open class Wallet: @unchecked Sendable {
         do {
             try await preAuthIfNeeded()
         } catch {
-            throw .transactionGeneric((error as? WalletError)?.errorMessage ?? error.localizedDescription)
+            throw .transactionGeneric(error.errorMessage)
         }
 
         do {
@@ -344,7 +344,7 @@ open class Wallet: @unchecked Sendable {
         _ transactionRequest: any TransactionRequest
     ) async throws(TransactionError) -> Transaction? {
         do { try await preAuthIfNeeded() } catch {
-            throw .transactionGeneric((error as? WalletError)?.errorMessage ?? error.localizedDescription)
+            throw .transactionGeneric(error.errorMessage)
         }
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
@@ -402,7 +402,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
         do { try await preAuthIfNeeded() } catch {
-            throw .transactionGeneric((error as? WalletError)?.errorMessage ?? error.localizedDescription)
+            throw .transactionGeneric(error.errorMessage)
         }
         onTransactionStart?()
         await ensureDeviceSignerRegistered()
