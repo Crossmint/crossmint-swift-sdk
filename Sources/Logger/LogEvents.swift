@@ -344,6 +344,17 @@ public enum LogEvents {
     /// Delegated signers retrieved
     public static let walletDelegatedSignersSuccess = "wallet.delegatedSigners.success"
 
+    // MARK: - Remove Signer Events
+
+    /// Starting remove signer
+    public static let walletRemoveSignerStart = "wallet.removeSigner.start"
+
+    /// Remove signer succeeded
+    public static let walletRemoveSignerSuccess = "wallet.removeSigner.success"
+
+    /// Remove signer failed
+    public static let walletRemoveSignerError = "wallet.removeSigner.error"
+
     // MARK: - Device Signer Events
 
     /// Device signer key prepared for new wallet creation

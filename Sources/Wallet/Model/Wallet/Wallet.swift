@@ -119,6 +119,36 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
+    public func removeSigner(locator: String) async throws(TransactionError) -> Transaction {
+        Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
+            "locator": locator
+        ])
+
+        do {
+            let transactionModel = try await smartWalletService.removeSigner(
+                locator,
+                chainType: chain.chainType,
+                chainName: chain.name
+            )
+            guard let transaction = transactionModel.toDomain(withService: smartWalletService) else {
+                throw TransactionError.transactionGeneric("Failed to parse remove signer response")
+            }
+            guard let result = try await signAndPollWhilePending(transaction) else {
+                throw TransactionError.transactionGeneric("Unknown error")
+            }
+            Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
+                "locator": locator
+            ])
+            return result
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletRemoveSignerError, attributes: [
+                "locator": locator,
+                "error": "\(error)"
+            ])
+            throw error as? TransactionError ?? .transactionGeneric("Unknown error")
+        }
+    }
+
     @available(*, deprecated, renamed: "balances", message: "Use the balances(tokens) instead")
     public func balance(
         of tokens: [CryptoCurrency] = []
