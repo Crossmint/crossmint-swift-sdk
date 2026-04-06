@@ -402,6 +402,28 @@ public final class DefaultSmartWalletService: SmartWalletService {
         }
     }
 
+    public func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        let allowedChars = CharacterSet.alphanumerics.union(.init(charactersIn: "-._~:"))
+        let encodedLocator = signerLocator.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? signerLocator
+
+        var queryItems: [URLQueryItem] = []
+        if chainType != .solana && chainType != .stellar {
+            queryItems = [URLQueryItem(name: "chain", value: chainName)]
+        }
+
+        let endpoint = Endpoint(
+            path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers/\(encodedLocator)",
+            method: .delete,
+            headers: await authHeaders,
+            queryItems: queryItems
+        )
+        return try await executeTransactionRequest(endpoint: endpoint, mapping: chainType.mappingType)
+    }
+
     public func listTransfers(
         _ params: ListTransfersQueryParams
     ) async throws(WalletError) -> TransferListResult {
