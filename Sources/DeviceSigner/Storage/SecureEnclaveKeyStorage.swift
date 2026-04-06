@@ -21,11 +21,12 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     private let keychain = DeviceSignerKeychainStorage()
     private let biometricPolicy: BiometricPolicy
 
-    /// Creates a Secure Enclave key storage with the given biometric policy.
-    ///
-    /// - Parameter biometricPolicy: When to require biometric authentication for signing.
-    ///   Defaults to ``BiometricPolicy/none``.
-    public init(biometricPolicy: BiometricPolicy = .none) {
+    /// Creates a Secure Enclave key storage.
+    public init() {
+        self.biometricPolicy = .none
+    }
+
+    init(biometricPolicy: BiometricPolicy) {
         self.biometricPolicy = biometricPolicy
     }
 
