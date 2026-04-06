@@ -98,6 +98,17 @@ final class DeviceSignerService {
         }
     }
 
+    func buildSignRequest(
+        signerLocator: String,
+        message: String,
+        storage: any DeviceSignerKeyStorage
+    ) async throws(DeviceSignerError) -> SignRequestApi {
+        let rAndS = try await storage.signMessage(address: address, message: message)
+        return SignRequestApi(approvals: [
+            .device(signer: signerLocator, signature: .init(r: rAndS.r, s: rAndS.s))
+        ])
+    }
+
     private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
         guard let rawPublicKey = Data(base64Encoded: publicKeyBase64),
               rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
