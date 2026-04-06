@@ -56,7 +56,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: "\(value ?? .zero)",
                 data: data ?? "0x",
                 chain: chain,
-                signer: activeSignerLocator ?? self.config.recovery.locator
+                signer: selectedSignerLocator ?? self.config.recovery.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -83,7 +83,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: activeSignerLocator ?? self.config.recovery.locator
+                signer: selectedSignerLocator ?? self.config.recovery.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -264,21 +264,25 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             throw SignatureError.approvalFailed
         }
         if signerLocator.hasPrefix("device:"), let storage = deviceSignerKeyStorage {
-            let rAndS: (r: String, s: String)
+            let request: SignRequestApi
             do {
-                rAndS = try await storage.signMessage(address: address, message: message)
+                request = try await deviceSignerService.buildSignRequest(
+                    signerLocator: signerLocator, message: message, storage: storage
+                )
             } catch {
                 throw SignatureError.approvalFailed
             }
-            let request = SignRequestApi(approvals: [
-                .device(signer: signerLocator, signature: .init(r: rAndS.r, s: rAndS.s))
-            ])
             return try await smartWalletService.approveSignature(
                 .init(transactionId: signatureID, apiRequest: request, chainType: chain.chainType)
             )
         }
 
-        let updatedSigner: any Signer = await updateSignerIfRequired()
+        let updatedSigner: any Signer
+        if let selected = selectedSigner {
+            updatedSigner = selected
+        } else {
+            updatedSigner = await updateSignerIfRequired()
+        }
 
         let request: SignRequestApi
         do {

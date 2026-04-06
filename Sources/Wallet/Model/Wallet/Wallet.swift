@@ -19,8 +19,8 @@ open class Wallet: @unchecked Sendable {
     internal let chain: Chain
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
     var deviceSignerService: DeviceSignerService
-    var activeSigner: (any Signer)?
-    var activeSignerLocator: String?
+    var selectedSigner: (any Signer)?
+    var selectedSignerLocator: String?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
@@ -387,7 +387,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             await deviceSignerService.ensureRegistered(storage: storage, signer: await updateSignerIfRequired())
         }
         let signerLocator: String?
-        if let active = activeSignerLocator {
+        if let active = selectedSignerLocator {
             signerLocator = active
         } else if let storage = deviceSignerKeyStorage {
             signerLocator = await deviceSignerService.locator(for: storage)
@@ -476,15 +476,14 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             throw TransactionError.transactionSigningFailed(DeviceSignerError.keyNotFound)
         }
         if signerLocator.hasPrefix("device:"), let storage = deviceSignerKeyStorage {
-            let rAndS: (r: String, s: String)
+            let request: SignRequestApi
             do {
-                rAndS = try await storage.signMessage(address: address, message: message)
+                request = try await deviceSignerService.buildSignRequest(
+                    signerLocator: signerLocator, message: message, storage: storage
+                )
             } catch {
                 throw TransactionError.transactionSigningFailed(error)
             }
-            let request = SignRequestApi(approvals: [
-                .device(signer: signerLocator, signature: .init(r: rAndS.r, s: rAndS.s))
-            ])
             _ = try await smartWalletService.signTransaction(
                 .init(transactionId: transactionId, apiRequest: request, chainType: chain.chainType)
             )
@@ -494,7 +493,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         let request: SignRequestApi
         do {
             let updatedSigner: any Signer
-            if let active = activeSigner {
+            if let active = selectedSigner {
                 updatedSigner = active
             } else {
                 updatedSigner = await updateSignerIfRequired()

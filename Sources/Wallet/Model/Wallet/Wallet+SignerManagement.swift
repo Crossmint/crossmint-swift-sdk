@@ -96,15 +96,15 @@ extension Wallet {
             let locator = "email:\(email)"
             guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
             let newSigner: any Signer = await MainActor.run { makeEmailSigner(email: email) }
-            activeSigner = newSigner
-            activeSignerLocator = locator
+            selectedSigner = newSigner
+            selectedSignerLocator = locator
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:
             let locator = "api-key:api-key"
             guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
-            activeSigner = ApiKeySigner()
-            activeSignerLocator = locator
+            selectedSigner = ApiKeySigner()
+            selectedSignerLocator = locator
         }
     }
 
@@ -150,7 +150,7 @@ extension Wallet {
         guard let locator = await deviceSignerService.locator(for: storage) else {
             throw .walletGeneric("Failed to compute device signer locator")
         }
-        activeSignerLocator = locator
+        selectedSignerLocator = locator
         _deviceSignerApproved = true
     }
 
@@ -179,8 +179,8 @@ extension Wallet {
         let passkeyData = PasskeySignerData(id: credentialId, name: name, publicKey: .init(x: "0", y: "0"))
         let passkeySigner = PasskeySigner(name: name, host: host)
         _ = await passkeySigner.updateAdminSigner(passkeyData)
-        activeSigner = passkeySigner
-        activeSignerLocator = locator
+        selectedSigner = passkeySigner
+        selectedSignerLocator = locator
     }
 
     @MainActor
