@@ -20,15 +20,16 @@ public final class KeychainKeyStorage: DeviceSignerKeyStorage {
     private let biometricPolicy: BiometricPolicy
     private let keychain = DeviceSignerKeychainStorage()
 
-    /// Creates a Keychain key storage with the given biometric policy.
-    ///
-    /// - Parameter biometricPolicy: When to require biometric authentication for signing.
-    ///   Defaults to ``BiometricPolicy/none``.
-    public init(biometricPolicy: BiometricPolicy = .none) {
+    /// Creates a Keychain key storage.
+    public init() {
+        self.biometricPolicy = .none
+    }
+
+    init(biometricPolicy: BiometricPolicy) {
         self.biometricPolicy = biometricPolicy
     }
 
-    public func isAvailable() async -> Bool {
+    public func isAvailable() -> Bool {
         true
     }
 

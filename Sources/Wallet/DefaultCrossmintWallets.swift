@@ -318,12 +318,12 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     }
 
     private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
-        guard let deviceSignerOptions = options?.deviceSigner else { return nil }
-        if SecureEnclave.isAvailable {
-            return SecureEnclaveKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
-        } else {
-            return KeychainKeyStorage(biometricPolicy: deviceSignerOptions.biometricPolicy)
+        guard options?.deviceSigner == true else { return nil }
+        let seStorage = SecureEnclaveKeyStorage()
+        if seStorage.isAvailable() {
+            return seStorage
         }
+        return KeychainKeyStorage()
     }
 
     private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {

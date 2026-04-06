@@ -15,7 +15,7 @@ import Security
 ///
 public protocol DeviceSignerKeyStorage: Sendable {
     /// Returns `true` if this storage backend is available on the current device.
-    func isAvailable() async -> Bool
+    func isAvailable() -> Bool
 
     /// Generates a new P-256 signing key and stores it in the Keychain.
     ///
