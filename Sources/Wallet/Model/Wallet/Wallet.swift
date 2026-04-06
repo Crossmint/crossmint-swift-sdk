@@ -134,6 +134,7 @@ open class Wallet: @unchecked Sendable {
         ])
 
         do {
+            onTransactionStart?()
             let transactionModel = try await smartWalletService.removeSigner(
                 locator,
                 chainType: chain.chainType,
