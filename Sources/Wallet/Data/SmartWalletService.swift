@@ -65,6 +65,12 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(TransactionError) -> any TransactionApiModel
+
     /// Fetches the transfer history for a wallet.
     ///
     /// - Note: This endpoint uses the `/unstable/` API prefix, meaning the API may change

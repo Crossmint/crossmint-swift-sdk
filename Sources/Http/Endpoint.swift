@@ -6,6 +6,7 @@ public struct Endpoint: Hashable {
         case post = "POST"
         case put = "PUT"
         case patch = "PATCH"
+        case delete = "DELETE"
     }
 
     public let path: String
