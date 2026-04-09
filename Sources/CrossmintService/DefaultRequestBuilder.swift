@@ -17,7 +17,7 @@ public struct DefaultRequestBuilder: RequestBuilder {
         guard var components = URLComponents(url: baseUrl, resolvingAgainstBaseURL: true) else {
             throw .invalidURL
         }
-        components.path += endpoint.path
+        components.percentEncodedPath += endpoint.path
         components.queryItems = endpoint.queryItems
 
         components.percentEncodedQuery = components.percentEncodedQuery?
