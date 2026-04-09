@@ -138,6 +138,10 @@ final class AppState {
     /// Returns an error message on failure, or nil on success.
     @discardableResult
     func selectSigner(locator: String) async -> String? {
+        guard locator != "default-signer", !locator.isEmpty else {
+            selectedSignerLocator = nil
+            return nil
+        }
         guard let wallet = wallet else { return "No wallet available" }
         guard let config = signerConfig(for: locator) else {
             return "This signer type cannot be selected directly"
