@@ -3,18 +3,18 @@
 //  SmartWalletsDemo
 //
 
-import CrossmintClient
 import SwiftUI
 
 struct SignerRow: View {
-    let signer: WalletDelegatedSignerConfigApiModel
+    let locator: String
     var isCurrentDevice: Bool = false
     var isRemoving: Bool = false
-    let onUse: () -> Void
-    let onRemove: () -> Void
+    var isSelected: Bool = false
+    var canRemove: Bool = true
+    let onSelect: () -> Void
+    var onRemove: (() -> Void)? = nil
 
     private var signerType: String {
-        guard let locator = signer.locator else { return "Unknown" }
         if locator.hasPrefix("device:") { return "Device" }
         if locator.hasPrefix("passkey:") { return "Passkey" }
         if locator.hasPrefix("email:") { return "Email" }
@@ -24,7 +24,6 @@ struct SignerRow: View {
     }
 
     private var signerSystemImage: String {
-        guard let locator = signer.locator else { return "questionmark.circle" }
         if locator.hasPrefix("device:") { return "iphone" }
         if locator.hasPrefix("passkey:") { return "touchid" }
         if locator.hasPrefix("email:") { return "envelope" }
@@ -49,26 +48,30 @@ struct SignerRow: View {
                             .background(.green, in: Capsule())
                     }
                 }
-                if let locator = signer.locator {
-                    Text(locator)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
+                Text(locator)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
             Spacer()
             if isRemoving {
                 ProgressView()
+            } else if isSelected {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(Color.accentColor)
+                    .fontWeight(.semibold)
             }
         }
         .padding(.vertical, 2)
         .swipeActions(edge: .trailing) {
-            Button("Remove", role: .destructive, action: onRemove)
-                .disabled(isRemoving)
+            if canRemove, let onRemove {
+                Button("Remove", role: .destructive, action: onRemove)
+                    .disabled(isRemoving)
+            }
         }
         .swipeActions(edge: .leading) {
-            Button("Use", action: onUse)
+            Button("Use", action: onSelect)
                 .tint(.green)
                 .disabled(isRemoving)
         }

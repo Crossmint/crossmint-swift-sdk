@@ -30,6 +30,9 @@ final class AppState {
     private var notFoundChains: Set<SupportedChain> = []
     private var currentEmail: String?
 
+    // Signer selection (shared across Transfer/Signing/Signers)
+    private(set) var selectedSignerLocator: String? = nil
+
     private let sdk: CrossmintSDK = .shared
 
     // MARK: - Derived
@@ -55,6 +58,7 @@ final class AppState {
     /// Fetches fresh wallet state for the current chain. Safe to call on pull-to-refresh.
     func loadWallet(email: String) async {
         currentEmail = email
+        selectedSignerLocator = nil
         let chain = selectedChain
         guard !loadingChains.contains(chain) else { return }
 
@@ -105,6 +109,7 @@ final class AppState {
     func switchChain(_ chain: SupportedChain, email: String) async {
         guard chain != selectedChain else { return }
         selectedChain = chain
+        selectedSignerLocator = nil
         walletErrorMessage = nil
         balance = nil
 
@@ -126,6 +131,23 @@ final class AppState {
             }
         } catch {
             // Keep showing existing wallet on failure
+        }
+    }
+
+    /// Selects the given signer locator as active for all wallet operations.
+    /// Returns an error message on failure, or nil on success.
+    @discardableResult
+    func selectSigner(locator: String) async -> String? {
+        guard let wallet = wallet else { return "No wallet available" }
+        guard let config = signerConfig(for: locator) else {
+            return "This signer type cannot be selected directly"
+        }
+        do {
+            try await wallet.useSigner(config)
+            selectedSignerLocator = locator
+            return nil
+        } catch {
+            return error.userMessage
         }
     }
 
@@ -167,22 +189,33 @@ final class AppState {
         }
     }
 
+    private func signerConfig(for locator: String) -> SignerConfig? {
+        if locator.hasPrefix("device:") { return .device }
+        if locator.hasPrefix("api-key:") { return .apiKey }
+        if locator.hasPrefix("email:") { return .email(String(locator.dropFirst("email:".count))) }
+        return nil
+    }
+
     private func fetchWallet(chain: SupportedChain, email: String) async throws -> Wallet? {
+        let options = WalletOptions(deviceSigner: true)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.getWallet(
                 chain: EVMChain.baseSepolia,
-                recovery: EVMSigners.email(email)
+                recovery: EVMSigners.email(email),
+                options: options
             )
         case .solana:
             return try await sdk.crossmintWallets.getWallet(
                 chain: SolanaChain.solana,
-                recovery: SolanaSigners.email(email)
+                recovery: SolanaSigners.email(email),
+                options: options
             )
         case .stellar:
             return try await sdk.crossmintWallets.getWallet(
                 chain: StellarChain.stellar,
-                recovery: StellarSigners.email(email)
+                recovery: StellarSigners.email(email),
+                options: options
             )
         }
     }

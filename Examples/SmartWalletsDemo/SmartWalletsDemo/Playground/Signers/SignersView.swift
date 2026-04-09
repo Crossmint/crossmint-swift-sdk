@@ -20,7 +20,7 @@ struct SignersView: View {
     @State private var showAlert = false
     @State private var showOTPView = false
 
-    private var signers: [WalletDelegatedSignerConfigApiModel] {
+    private var delegatedSigners: [WalletDelegatedSignerConfigApiModel] {
         (appState.wallet?.signers ?? [])
             .filter { !removedLocators.contains($0.locator ?? "") }
     }
@@ -28,22 +28,30 @@ struct SignersView: View {
     var body: some View {
         NavigationStack {
             List {
-                if signers.isEmpty && !appState.isLoadingWallet {
-                    ContentUnavailableView(
-                        "No Signers",
-                        systemImage: "person.badge.key",
-                        description: Text("No delegated signers are registered on this wallet.")
-                    )
-                } else {
-                    Section("Registered Signers") {
-                        ForEach(signers, id: \.locator) { signer in
-                            SignerRow(
-                                signer: signer,
-                                isCurrentDevice: signer.locator == currentDeviceLocator,
-                                isRemoving: removingSignerLocator == signer.locator,
-                                onUse: { Task { await useSigner(signer) } },
-                                onRemove: { Task { await removeSigner(signer) } }
-                            )
+                if let wallet = appState.wallet {
+                    recoverySection(wallet: wallet)
+                }
+
+                Section("Delegated Signers") {
+                    if delegatedSigners.isEmpty && !appState.isLoadingWallet {
+                        ContentUnavailableView(
+                            "No Delegated Signers",
+                            systemImage: "person.badge.key",
+                            description: Text("No delegated signers are registered on this wallet.")
+                        )
+                    } else {
+                        ForEach(delegatedSigners, id: \.locator) { signer in
+                            if let locator = signer.locator {
+                                SignerRow(
+                                    locator: locator,
+                                    isCurrentDevice: locator == currentDeviceLocator,
+                                    isRemoving: removingSignerLocator == locator,
+                                    isSelected: locator == appState.selectedSignerLocator,
+                                    canRemove: true,
+                                    onSelect: { Task { await selectSigner(locator: locator) } },
+                                    onRemove: { Task { await removeSigner(signer) } }
+                                )
+                            }
                         }
                     }
                 }
@@ -86,31 +94,36 @@ struct SignersView: View {
         .onReceive(CrossmintSDK.shared.isOTPRequired) { showOTPView = $0 }
     }
 
+    @ViewBuilder
+    private func recoverySection(wallet: Wallet) -> some View {
+        let locator = wallet.config.recovery.locator
+        Section("Recovery Signer") {
+            SignerRow(
+                locator: locator,
+                isSelected: locator == appState.selectedSignerLocator,
+                canRemove: false,
+                onSelect: { Task { await selectSigner(locator: locator) } }
+            )
+        }
+    }
+
+    private func selectSigner(locator: String) async {
+        if let error = await appState.selectSigner(locator: locator) {
+            show(title: "Error", message: error)
+        }
+    }
+
     private func addDeviceSigner() async {
         guard let wallet = appState.wallet else { return }
         isAddingSigner = true
         do {
             try await wallet.addSigner(.device)
-            await appState.reloadCurrentWallet()
+            await refreshSigners()
             show(title: "Success", message: "Device signer added.")
         } catch {
             show(title: "Error", message: error.userMessage)
         }
         isAddingSigner = false
-    }
-
-    private func useSigner(_ signer: WalletDelegatedSignerConfigApiModel) async {
-        guard let wallet = appState.wallet, let locator = signer.locator else { return }
-        do {
-            if locator.hasPrefix("device:") {
-                try await wallet.useSigner(.device)
-            } else if locator.hasPrefix("api-key:") {
-                try await wallet.useSigner(.apiKey)
-            }
-            show(title: "Active Signer", message: "Now using \(locator)")
-        } catch {
-            show(title: "Error", message: error.userMessage)
-        }
     }
 
     private func removeSigner(_ signer: WalletDelegatedSignerConfigApiModel) async {
@@ -119,14 +132,18 @@ struct SignersView: View {
         do {
             _ = try await wallet.removeSigner(locator: locator)
             removedLocators.insert(locator)
-            await appState.reloadCurrentWallet()
-            removedLocators.remove(locator)
-            currentDeviceLocator = await appState.wallet?.currentDeviceSignerLocator()
+            removingSignerLocator = nil
+            await refreshSigners()
             show(title: "Removed", message: "Signer removed.")
         } catch {
             show(title: "Error", message: error.userMessage)
+            removingSignerLocator = nil
         }
-        removingSignerLocator = nil
+    }
+
+    private func refreshSigners() async {
+        await appState.reloadCurrentWallet()
+        currentDeviceLocator = await appState.wallet?.currentDeviceSignerLocator()
     }
 
     private func show(title: String, message: String) {

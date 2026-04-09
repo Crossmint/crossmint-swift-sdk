@@ -12,6 +12,7 @@ struct TransferView: View {
     let balance: Balance?
     var onComplete: (() async -> Void)? = nil
 
+    @Environment(AppState.self) private var appState
     @State private var recipientAddress = ""
     @State private var amount = ""
     @State private var selectedTokenIndex = 0
@@ -47,6 +48,8 @@ struct TransferView: View {
     var body: some View {
         NavigationStack {
             Form {
+                SignerPickerSection()
+
                 Section("Token") {
                     Picker("Token", selection: $selectedTokenIndex) {
                         ForEach(tokens.indices, id: \.self) { i in
