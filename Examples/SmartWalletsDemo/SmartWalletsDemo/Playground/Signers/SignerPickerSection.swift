@@ -23,8 +23,16 @@ struct SignerPickerSection: View {
         }
 
         private var truncatedLocator: String {
-            guard id.count > 6 else { return id }
-            return "\(id.prefix(3))…\(id.suffix(3))"
+            let value = stripPrefix(from: id)
+            guard value.count > 8 else { return value }
+            return "\(value.prefix(4))…\(value.suffix(4))"
+        }
+
+        private func stripPrefix(from locator: String) -> String {
+            for prefix in ["device:", "email:", "api-key:", "passkey:", "external-wallet:"] {
+                if locator.hasPrefix(prefix) { return String(locator.dropFirst(prefix.count)) }
+            }
+            return locator
         }
     }
 
@@ -33,8 +41,16 @@ struct SignerPickerSection: View {
             return "Default"
         }
         let label = signerLabel(locator: locator)
-        let truncated = locator.count > 6 ? "\(locator.prefix(3))…\(locator.suffix(3))" : locator
+        let value = locatorValue(locator)
+        let truncated = value.count > 8 ? "\(value.prefix(4))…\(value.suffix(4))" : value
         return "\(label) (\(truncated))"
+    }
+
+    private func locatorValue(_ locator: String) -> String {
+        for prefix in ["device:", "email:", "api-key:", "passkey:", "external-wallet:"] {
+            if locator.hasPrefix(prefix) { return String(locator.dropFirst(prefix.count)) }
+        }
+        return locator
     }
 
     var body: some View {
