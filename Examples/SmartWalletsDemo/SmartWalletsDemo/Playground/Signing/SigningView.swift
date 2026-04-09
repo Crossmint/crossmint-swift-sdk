@@ -1,0 +1,156 @@
+//
+//  SigningView.swift
+//  SmartWalletsDemo
+//
+
+import CrossmintClient
+import SwiftUI
+
+struct SigningView: View {
+    let wallet: EVMWallet?
+
+    @State private var mode: SigningMode = .message
+    @State private var messageText = ""
+    @State private var signature: String?
+    @State private var isSigning = false
+    @State private var errorMessage: String?
+    @State private var sigCopied = false
+    @State private var showOTPView = false
+
+    @Environment(\.dismiss) private var dismiss
+
+    enum SigningMode: String, CaseIterable {
+        case message = "Message"
+        case typedData = "Typed Data"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Mode", selection: $mode) {
+                        ForEach(SigningMode.allCases, id: \.self) { m in
+                            Text(m.rawValue).tag(m)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                }
+
+                if mode == .message {
+                    Section("Message") {
+                        TextField("Enter message to sign…", text: $messageText, axis: .vertical)
+                            .lineLimit(4...)
+                    }
+                } else {
+                    Section("Typed Data") {
+                        Text("Uses hardcoded EIP-712 example (Ether Mail).")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let sig = signature {
+                    Section("Signature") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Signed successfully", systemImage: "checkmark.seal.fill")
+                                .foregroundStyle(.green)
+                                .fontWeight(.medium)
+                            Button {
+                                UIPasteboard.general.string = sig
+                                sigCopied.toggle()
+                            } label: {
+                                HStack(alignment: .top) {
+                                    Text(sig)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(4)
+                                    Image(systemName: "doc.on.clipboard")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .sensoryFeedback(.success, trigger: sigCopied)
+                        }
+                    }
+                }
+
+                if let error = errorMessage {
+                    Section {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.red)
+                            .font(.footnote)
+                    }
+                }
+
+                Section {
+                    Button {
+                        Task { await sign() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isSigning { ProgressView().padding(.trailing, 8) }
+                            Text(isSigning ? "Signing…" : "Sign")
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                    }
+                    .disabled(isSigning || wallet == nil || (mode == .message && messageText.isEmpty))
+                }
+            }
+            .navigationTitle("Signing")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .disabled(isSigning)
+                }
+            }
+        }
+        .interactiveDismissDisabled(isSigning)
+        .sheet(isPresented: $showOTPView) { OTPValidatorView() }
+        .onReceive(CrossmintSDK.shared.isOTPRequired) { showOTPView = $0 }
+    }
+
+    private func sign() async {
+        guard let wallet else { return }
+        isSigning = true
+        signature = nil
+        errorMessage = nil
+        do {
+            switch mode {
+            case .message:
+                signature = try await wallet.signMessage(messageText)
+            case .typedData:
+                signature = try await wallet.signTypedData(exampleTypedData())
+            }
+        } catch {
+            errorMessage = error.userMessage
+        }
+        isSigning = false
+    }
+
+    private func exampleTypedData() -> EIP712.TypedData {
+        EIP712.Builder()
+            .withDomain(EIP712.Domain(
+                name: "Ether Mail",
+                version: "1",
+                chainId: 1,
+                verifyingContract: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+            ))
+            .defineType("Person") { $0.string("name").address("wallet") }
+            .defineType("Mail") { $0.string("contents") }
+            .withPrimaryType("Mail")
+            .withMessage([
+                "from": ["name": "Cow", "wallet": "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826"],
+                "to": ["name": "Bob", "wallet": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"],
+                "contents": "Hello, Bob!"
+            ])
+            .build()!
+    }
+}
+
+#Preview {
+    SigningView(wallet: nil)
+}
