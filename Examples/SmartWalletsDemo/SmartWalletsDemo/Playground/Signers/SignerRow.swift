@@ -10,6 +10,7 @@ struct SignerRow: View {
     var isCurrentDevice: Bool = false
     var isRemoving: Bool = false
     var isSelected: Bool = false
+    var canSelect: Bool = true
     var canRemove: Bool = true
     let onSelect: () -> Void
     var onRemove: (() -> Void)? = nil
@@ -59,8 +60,13 @@ struct SignerRow: View {
                 ProgressView()
             } else if isSelected {
                 Image(systemName: "checkmark")
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.tint)
                     .fontWeight(.semibold)
+            } else if canSelect {
+                Button("Use") { onSelect() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.green)
             }
         }
         .padding(.vertical, 2)
@@ -69,11 +75,6 @@ struct SignerRow: View {
                 Button("Remove", role: .destructive, action: onRemove)
                     .disabled(isRemoving)
             }
-        }
-        .swipeActions(edge: .leading) {
-            Button("Use", action: onSelect)
-                .tint(.green)
-                .disabled(isRemoving)
         }
     }
 }

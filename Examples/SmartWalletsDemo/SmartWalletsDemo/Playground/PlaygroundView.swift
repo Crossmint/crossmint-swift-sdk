@@ -72,15 +72,16 @@ struct PlaygroundView: View {
                 .environment(appState)
         }
         .sheet(isPresented: $showTransfer) {
-            TransferView(wallet: appState.wallet, chain: appState.selectedChain, balance: appState.balance) {
-                await appState.fetchBalance()
-            }
+            TransferView { await appState.fetchBalance() }
+                .environment(appState)
         }
         .sheet(isPresented: $showActivity) {
             ActivityView(wallet: appState.wallet, chain: appState.selectedChain)
+                .environment(appState)
         }
         .sheet(isPresented: $showSigning) {
-            SigningView(wallet: appState.wallet as? EVMWallet)
+            SigningView()
+                .environment(appState)
         }
         .task {
             if let email {

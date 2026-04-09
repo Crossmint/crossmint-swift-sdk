@@ -96,11 +96,13 @@ struct SignersView: View {
 
     @ViewBuilder
     private func recoverySection(wallet: Wallet) -> some View {
-        let locator = wallet.config.recovery.locator
+        let locator = wallet.recoveryLocator
+        let selectable = locator.hasPrefix("email:") || locator.hasPrefix("api-key:") || locator.hasPrefix("device:")
         Section("Recovery Signer") {
             SignerRow(
                 locator: locator,
                 isSelected: locator == appState.selectedSignerLocator,
+                canSelect: selectable,
                 canRemove: false,
                 onSelect: { Task { await selectSigner(locator: locator) } }
             )

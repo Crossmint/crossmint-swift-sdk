@@ -65,6 +65,9 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
+    /// The locator string of this wallet's recovery (admin) signer, e.g. `"email:user@example.com"`.
+    public var recoveryLocator: String { config.recovery.locator }
+
     /// Returns whether the given locator is registered as a signer on this wallet.
     ///
     /// Checks both delegated signers (via a fresh API call) and the admin signer.
