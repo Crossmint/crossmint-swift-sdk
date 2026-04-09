@@ -7,12 +7,13 @@ import CrossmintClient
 import SwiftUI
 
 struct TransferView: View {
-    let wallet: Wallet?
-    let chain: SupportedChain
-    let balance: Balance?
     var onComplete: (() async -> Void)? = nil
 
     @Environment(AppState.self) private var appState
+
+    private var wallet: Wallet? { appState.wallet }
+    private var chain: SupportedChain { appState.selectedChain }
+    private var balance: Balance? { appState.balance }
     @State private var recipientAddress = ""
     @State private var amount = ""
     @State private var selectedTokenIndex = 0
@@ -48,8 +49,6 @@ struct TransferView: View {
     var body: some View {
         NavigationStack {
             Form {
-                SignerPickerSection()
-
                 Section("Token") {
                     Picker("Token", selection: $selectedTokenIndex) {
                         ForEach(tokens.indices, id: \.self) { i in
@@ -160,5 +159,6 @@ struct TransferView: View {
 }
 
 #Preview {
-    TransferView(wallet: nil, chain: .evm, balance: nil)
+    TransferView()
+        .environment(AppState())
 }

@@ -7,9 +7,9 @@ import CrossmintClient
 import SwiftUI
 
 struct SigningView: View {
-    let wallet: EVMWallet?
-
     @Environment(AppState.self) private var appState
+
+    private var wallet: EVMWallet? { appState.wallet as? EVMWallet }
     @State private var mode: SigningMode = .message
     @State private var messageText = ""
     @State private var signature: String?
@@ -28,8 +28,6 @@ struct SigningView: View {
     var body: some View {
         NavigationStack {
             Form {
-                SignerPickerSection()
-
                 Section {
                     Picker("Mode", selection: $mode) {
                         ForEach(SigningMode.allCases, id: \.self) { m in
@@ -155,5 +153,6 @@ struct SigningView: View {
 }
 
 #Preview {
-    SigningView(wallet: nil)
+    SigningView()
+        .environment(AppState())
 }
