@@ -80,6 +80,12 @@ extension Wallet {
         }
     }
 
+    /// Returns the signer locator for the current device, or `nil` if no device key is stored.
+    public func currentDeviceSignerLocator() async -> String? {
+        guard let storage = deviceSignerKeyStorage else { return nil }
+        return await deviceSignerService.locator(for: storage)
+    }
+
     /// Sets the active signer used for subsequent wallet operations.
     ///
     /// After calling this method, send and sign operations will use the specified signer
@@ -120,12 +126,12 @@ extension Wallet {
     internal func initDefaultSigner() async {
         guard deviceSignerKeyStorage != nil else { return }
 
-        switch initialDelegatedSigners.count {
+        switch signers.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locator = initialDelegatedSigners[0].locator,
+            guard let locator = signers[0].locator,
                   locator.hasPrefix("device:"),
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
