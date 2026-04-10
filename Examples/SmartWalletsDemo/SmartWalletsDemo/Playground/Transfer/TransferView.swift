@@ -71,6 +71,8 @@ struct TransferView: View {
                     }
                 }
 
+                SignerPicker()
+
                 if let txId = transactionId {
                     Section("Sent") {
                         VStack(alignment: .leading, spacing: 8) {

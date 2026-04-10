@@ -43,9 +43,9 @@ struct SignersView: View {
                                 SignerRow(
                                     locator: locator,
                                     isRemoving: removingSignerLocator == locator,
-                                    isSelected: locator == appState.selectedSignerLocator,
+                                    canSelect: false,
                                     canRemove: true,
-                                    onSelect: { Task { await selectSigner(locator: locator) } },
+                                    onSelect: {},
                                     onRemove: { Task { await removeSigner(signer) } }
                                 )
                             }
@@ -85,22 +85,13 @@ struct SignersView: View {
 
     @ViewBuilder
     private func recoverySection(wallet: Wallet) -> some View {
-        let locator = wallet.recoveryLocator
-        let selectable = locator.hasPrefix("email:") || locator.hasPrefix("api-key:") || locator.hasPrefix("device:")
         Section("Recovery Signer") {
             SignerRow(
-                locator: locator,
-                isSelected: locator == appState.selectedSignerLocator,
-                canSelect: selectable,
+                locator: wallet.recoveryLocator,
+                canSelect: false,
                 canRemove: false,
-                onSelect: { Task { await selectSigner(locator: locator) } }
+                onSelect: {}
             )
-        }
-    }
-
-    private func selectSigner(locator: String) async {
-        if let error = await appState.selectSigner(locator: locator) {
-            show(title: "Error", message: error)
         }
     }
 
