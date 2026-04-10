@@ -201,25 +201,21 @@ final class AppState {
     }
 
     private func fetchWallet(chain: SupportedChain, email: String) async throws -> Wallet? {
-        let options = WalletOptions(deviceSigner: true)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.getWallet(
                 chain: EVMChain.baseSepolia,
-                recovery: EVMSigners.email(email),
-                options: options
+                recovery: EVMSigners.email(email)
             )
         case .solana:
             return try await sdk.crossmintWallets.getWallet(
                 chain: SolanaChain.solana,
-                recovery: SolanaSigners.email(email),
-                options: options
+                recovery: SolanaSigners.email(email)
             )
         case .stellar:
             return try await sdk.crossmintWallets.getWallet(
                 chain: StellarChain.stellar,
-                recovery: StellarSigners.email(email),
-                options: options
+                recovery: StellarSigners.email(email)
             )
         }
     }

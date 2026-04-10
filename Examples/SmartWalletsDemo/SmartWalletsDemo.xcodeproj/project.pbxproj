@@ -23,6 +23,7 @@
 		7CAB0000000000000000000E /* SignerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000E /* SignerRow.swift */; };
 		7CAB0000000000000000000F /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000F /* ActivityView.swift */; };
 		7CAB00000000000000000010 /* TransferRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000010 /* TransferRow.swift */; };
+		7CAB00000000000000000011 /* AddSignerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000011 /* AddSignerSheet.swift */; };
 		AC0101012DC600000000001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AC0101002DC600000000001 /* LaunchScreen.storyboard */; };
 		AC0101052DC600000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AC0101042DC600000000003 /* Assets.xcassets */; };
 		AC0101072DC600000000004 /* SmartWalletsDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0101062DC600000000004 /* SmartWalletsDemoApp.swift */; };
@@ -56,6 +57,7 @@
 		7CAF0000000000000000000E /* SignerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignerRow.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000F /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		7CAF00000000000000000010 /* TransferRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferRow.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000011 /* AddSignerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSignerSheet.swift; sourceTree = "<group>"; };
 		AC0101002DC600000000001 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		AC0101042DC600000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AC0101062DC600000000004 /* SmartWalletsDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartWalletsDemoApp.swift; sourceTree = "<group>"; };
@@ -144,6 +146,7 @@
 			children = (
 				7CAF0000000000000000000D /* SignersView.swift */,
 				7CAF0000000000000000000E /* SignerRow.swift */,
+				7CAF00000000000000000011 /* AddSignerSheet.swift */,
 			);
 			path = Signers;
 			sourceTree = "<group>";
@@ -318,6 +321,7 @@
 				7CAB0000000000000000000E /* SignerRow.swift in Sources */,
 				7CAB0000000000000000000F /* ActivityView.swift in Sources */,
 				7CAB00000000000000000010 /* TransferRow.swift in Sources */,
+				7CAB00000000000000000011 /* AddSignerSheet.swift in Sources */,
 				EB5D83162E45FA36002F8EF1 /* OTPValidatorView.swift in Sources */,
 				EBEC0BD52DC396EA000B59F1 /* SecondaryButton.swift in Sources */,
 				AC0101072DC600000000004 /* SmartWalletsDemoApp.swift in Sources */,

@@ -19,8 +19,10 @@ struct SignerRow: View {
         if locator.hasPrefix("device:") { return "Device" }
         if locator.hasPrefix("passkey:") { return "Passkey" }
         if locator.hasPrefix("email:") { return "Email" }
+        if locator.hasPrefix("phone:") { return "Phone" }
         if locator.hasPrefix("api-key:") { return "API Key" }
         if locator.hasPrefix("external-wallet:") { return "External Wallet" }
+        if locator.hasPrefix("server:") { return "Server" }
         return "Unknown"
     }
 
@@ -28,8 +30,10 @@ struct SignerRow: View {
         if locator.hasPrefix("device:") { return "iphone" }
         if locator.hasPrefix("passkey:") { return "touchid" }
         if locator.hasPrefix("email:") { return "envelope" }
+        if locator.hasPrefix("phone:") { return "phone" }
         if locator.hasPrefix("api-key:") { return "key" }
         if locator.hasPrefix("external-wallet:") { return "wallet.bifold" }
+        if locator.hasPrefix("server:") { return "server.rack" }
         return "questionmark.circle"
     }
 

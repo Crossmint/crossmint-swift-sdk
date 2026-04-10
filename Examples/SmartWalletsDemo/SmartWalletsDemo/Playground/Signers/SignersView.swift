@@ -9,7 +9,7 @@ import SwiftUI
 struct SignersView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
-    @State private var isAddingSigner = false
+    @State private var showAddSigner = false
     @State private var removingSignerLocator: String?
     @State private var removedLocators: Set<String> = []
     @State private var currentDeviceLocator: String?
@@ -56,21 +56,13 @@ struct SignersView: View {
                     }
                 }
 
-                Section("Add Signer") {
+                Section {
                     Button {
-                        Task { await addDeviceSigner() }
+                        showAddSigner = true
                     } label: {
-                        HStack(spacing: 8) {
-                            if isAddingSigner {
-                                ProgressView().scaleEffect(0.8)
-                            }
-                            Label(
-                                isAddingSigner ? "Adding…" : "Add Device Signer",
-                                systemImage: "iphone"
-                            )
-                        }
+                        Label("Add Signer…", systemImage: "plus.circle")
                     }
-                    .disabled(isAddingSigner || appState.wallet == nil)
+                    .disabled(appState.wallet == nil)
                 }
             }
             .navigationTitle("Signers")
@@ -78,7 +70,7 @@ struct SignersView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                        .disabled(isAddingSigner || isRemovingSigner)
+                        .disabled(isRemovingSigner)
                 }
             }
             .alert(alertTitle, isPresented: $showAlert) {
@@ -89,7 +81,11 @@ struct SignersView: View {
                 currentDeviceLocator = await appState.wallet?.currentDeviceSignerLocator()
             }
         }
-        .interactiveDismissDisabled(isAddingSigner || isRemovingSigner)
+        .interactiveDismissDisabled(isRemovingSigner)
+        .sheet(isPresented: $showAddSigner, onDismiss: { Task { await refreshSigners() } }) {
+            AddSignerSheet()
+                .environment(appState)
+        }
         .sheet(isPresented: $showOTPView) { OTPValidatorView() }
         .onReceive(CrossmintSDK.shared.isOTPRequired) { showOTPView = $0 }
     }
@@ -113,19 +109,6 @@ struct SignersView: View {
         if let error = await appState.selectSigner(locator: locator) {
             show(title: "Error", message: error)
         }
-    }
-
-    private func addDeviceSigner() async {
-        guard let wallet = appState.wallet else { return }
-        isAddingSigner = true
-        do {
-            try await wallet.addSigner(.device)
-            await refreshSigners()
-            show(title: "Success", message: "Device signer added.")
-        } catch {
-            show(title: "Error", message: error.userMessage)
-        }
-        isAddingSigner = false
     }
 
     private func removeSigner(_ signer: WalletDelegatedSignerConfigApiModel) async {
