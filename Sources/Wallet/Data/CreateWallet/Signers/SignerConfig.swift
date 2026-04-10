@@ -12,6 +12,12 @@ public enum SignerConfig: Sendable {
     case passkey(name: String, host: String)
     /// An email OTP signer.
     case email(String)
+    /// A phone OTP signer. The phone number must be in E.164 format (e.g. `"+15551234567"`).
+    case phone(String)
+    /// An external wallet signer identified by its blockchain address.
+    case externalWallet(String)
+    /// A server-managed blockchain signer identified by its address.
+    case server(String)
     /// The API key signer (server-side / custodial).
     case apiKey
 }

@@ -23,9 +23,7 @@ extension Wallet {
 
     /// Registers a new signer on this wallet.
     ///
-    /// Currently supports `.device` signers only. For other types, use the Crossmint dashboard.
-    ///
-    /// - Parameter config: The signer to add.
+    /// - Parameter config: The signer configuration to register.
     /// - Throws: ``WalletError`` if registration fails.
     public func addSigner(_ config: SignerConfig) async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart)
@@ -35,8 +33,18 @@ extension Wallet {
                 let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
                 try await registerDeviceSigner(storage: storage)
                 deviceSignerKeyStorage = storage
-            default:
-                throw WalletError.walletGeneric("addSigner only supports .device signers via this method")
+            case .email(let email):
+                try await registerSimpleSigner(EmailSignerData(email: email))
+            case .phone(let phone):
+                try await registerSimpleSigner(PhoneSignerData(phone: phone))
+            case .externalWallet(let address):
+                try await registerSimpleSigner(ExternalWalletSignerData(address: address))
+            case .server(let address):
+                try await registerSimpleSigner(ServerSignerData(address: address))
+            case .apiKey:
+                try await registerSimpleSigner(ApiKeySignerData())
+            case .passkey(let name, let host):
+                try await registerPasskeySigner(name: name, host: host)
             }
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
         } catch {
@@ -98,6 +106,20 @@ extension Wallet {
             let newSigner: any Signer = await MainActor.run { makeEmailSigner(email: email) }
             selectedSigner = newSigner
             selectedSignerLocator = locator
+        case .phone(let phone):
+            let locator = "phone:\(phone)"
+            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+            throw WalletError.walletGeneric("Phone OTP signing is not yet supported on iOS.")
+        case .externalWallet(let address):
+            let locator = "external-wallet:\(address)"
+            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+            throw WalletError.walletGeneric(
+                "External wallet signers must approve transactions outside of the SDK."
+            )
+        case .server(let address):
+            let locator = "server:\(address)"
+            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+            throw WalletError.walletGeneric("Server signers are managed server-side.")
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:
@@ -212,5 +234,75 @@ extension Wallet {
         try await deviceSignerService.register(storage: storage, signer: signer)
         _needsRecovery = false
         _deviceSignerApproved = true
+    }
+
+    // MARK: - Typed signer registration
+
+    private func registerSimpleSigner(_ signerData: any AdminSignerData) async throws(WalletError) {
+        let adminSigner = await updateSignerIfRequired()
+        let registration = try await smartWalletService.registerTypedSigner(
+            signerData,
+            chainType: chain.chainType,
+            chainName: chain.name
+        )
+        do {
+            try await approveSignerRegistrationIfNeeded(registration: registration, signer: adminSigner)
+        } catch {
+            throw WalletError.walletGeneric("Failed to approve signer registration: \(error)")
+        }
+    }
+
+    private func registerPasskeySigner(name: String, host: String) async throws(WalletError) {
+        let passkeySigner = PasskeySigner(name: name, host: host)
+        do {
+            try await passkeySigner.initialize(smartWalletService)
+        } catch {
+            switch error {
+            case .passkey(let passkeyError):
+                switch passkeyError {
+                case .cancelled: throw WalletError.walletGeneric("Passkey registration was cancelled")
+                default: throw WalletError.walletGeneric("Passkey registration failed: \(error)")
+                }
+            default:
+                throw WalletError.walletGeneric("Passkey registration failed: \(error)")
+            }
+        }
+
+        let passkeyData = await passkeySigner.adminSigner
+        let adminSigner = await updateSignerIfRequired()
+
+        let registration = try await smartWalletService.registerTypedSigner(
+            passkeyData,
+            chainType: chain.chainType,
+            chainName: chain.name
+        )
+
+        do {
+            try await approveSignerRegistrationIfNeeded(registration: registration, signer: adminSigner)
+        } catch {
+            throw WalletError.walletGeneric("Failed to approve passkey signer registration: \(error)")
+        }
+    }
+
+    private func approveSignerRegistrationIfNeeded(
+        registration: AddDelegatedSignerResponse,
+        signer: any Signer
+    ) async throws {
+        guard let chainEntry = registration.chains?[chain.name],
+              chainEntry.status == "awaiting-approval",
+              let signatureId = chainEntry.id,
+              let pending = chainEntry.approvals?.pending, !pending.isEmpty else { return }
+
+        try await signer.initialize(smartWalletService)
+        for approval in pending {
+            let signRequest = SignRequestApi(
+                approvals: try await signer.approvals(
+                    withSignature: try await signer.sign(message: approval.message)
+                )
+            )
+            try await smartWalletService.approveSignature(
+                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chain.chainType)
+            )
+        }
     }
 }
