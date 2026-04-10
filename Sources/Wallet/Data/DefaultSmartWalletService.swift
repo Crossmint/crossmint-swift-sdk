@@ -381,7 +381,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
             let signer: String
             let chain: String?
         }
-        let chain: String? = chainType == .solana || chainType == .stellar ? nil : chainName
+        let chain = signerChain(chainType: chainType, chainName: chainName)
         let bodyData = try jsonCoder.encodeRequest(
             RegisterSignerBody(signer: entry.signer, chain: chain),
             errorType: WalletError.self
@@ -421,7 +421,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
             }
         }
 
-        let chain: String? = chainType == .solana || chainType == .stellar ? nil : chainName
+        let chain = signerChain(chainType: chainType, chainName: chainName)
         let bodyData = try jsonCoder.encodeRequest(
             RegisterTypedSignerBody(signerData: signer, chain: chain),
             errorType: WalletError.self
@@ -520,5 +520,9 @@ public final class DefaultSmartWalletService: SmartWalletService {
                 "Authorization": "Bearer \(jwt)"
             ]
         }
+    }
+
+    private func signerChain(chainType: ChainType, chainName: String) -> String? {
+        chainType == .solana || chainType == .stellar ? nil : chainName
     }
 }
