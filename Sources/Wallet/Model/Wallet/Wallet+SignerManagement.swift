@@ -34,15 +34,15 @@ extension Wallet {
                 try await registerDeviceSigner(storage: storage)
                 deviceSignerKeyStorage = storage
             case .email(let email):
-                try await registerSimpleSigner(EmailSignerData(email: email))
+                try await registerLocatorSigner("email:\(email)")
             case .phone(let phone):
-                try await registerSimpleSigner(PhoneSignerData(phone: phone))
+                try await registerLocatorSigner("phone:\(phone)")
             case .externalWallet(let address):
-                try await registerSimpleSigner(ExternalWalletSignerData(address: address))
+                try await registerLocatorSigner("external-wallet:\(address)")
             case .server(let address):
-                try await registerSimpleSigner(ServerSignerData(address: address))
+                try await registerLocatorSigner("server:\(address)")
             case .apiKey:
-                try await registerSimpleSigner(ApiKeySignerData())
+                try await registerLocatorSigner("api-key")
             case .passkey(let name, let host):
                 try await registerPasskeySigner(name: name, host: host)
             }
@@ -236,12 +236,13 @@ extension Wallet {
         _deviceSignerApproved = true
     }
 
-    // MARK: - Typed signer registration
+    // MARK: - Locator-based signer registration
 
-    private func registerSimpleSigner(_ signerData: any AdminSignerData) async throws(WalletError) {
+    private func registerLocatorSigner(_ locator: String) async throws(WalletError) {
         let adminSigner = await updateSignerIfRequired()
-        let registration = try await smartWalletService.registerTypedSigner(
-            signerData,
+        let entry = DelegatedSignerEntry(signer: locator)
+        let registration = try await smartWalletService.addSigner(
+            entry,
             chainType: chain.chainType,
             chainName: chain.name
         )
