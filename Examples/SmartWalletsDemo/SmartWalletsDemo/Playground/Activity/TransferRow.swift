@@ -8,14 +8,12 @@ import SwiftUI
 
 struct TransferRow: View {
     let transfer: Transfer
-    let walletAddress: String
 
     private var isOutgoing: Bool { transfer.type == .outgoing }
 
     private var counterparty: String {
-        isOutgoing
-            ? formatAddress(transfer.toAddress)
-            : formatAddress(transfer.fromAddress)
+        let address = isOutgoing ? transfer.toAddress : transfer.fromAddress
+        return formatAddress(address)
     }
 
     var body: some View {

@@ -7,14 +7,12 @@ import CrossmintClient
 import SwiftUI
 
 struct ActivityView: View {
-    let wallet: Wallet?
-    let chain: SupportedChain
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
 
     @State private var transfers: [Transfer] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -35,7 +33,7 @@ struct ActivityView: View {
                     )
                 } else {
                     List(transfers) { transfer in
-                        TransferRow(transfer: transfer, walletAddress: wallet?.address ?? "")
+                        TransferRow(transfer: transfer)
                     }
                     .refreshable { await loadTransfers() }
                 }
@@ -52,11 +50,11 @@ struct ActivityView: View {
     }
 
     private func loadTransfers() async {
-        guard let wallet else { return }
+        guard let wallet = appState.wallet else { return }
         isLoading = true
         errorMessage = nil
         do {
-            let result = try await wallet.listTransfers(tokens: chain.balanceCurrencies)
+            let result = try await wallet.listTransfers(tokens: appState.selectedChain.balanceCurrencies)
             transfers = result.transfers
         } catch {
             errorMessage = error.userMessage

@@ -9,11 +9,8 @@ import SwiftUI
 struct PlaygroundView: View {
     @Binding var authenticationStatus: AuthenticationStatus?
     @State private var appState = AppState()
+    @State private var presentedSheet: SheetType?
 
-    @State private var showSigners = false
-    @State private var showTransfer = false
-    @State private var showActivity = false
-    @State private var showSigning = false
     private var email: String? {
         guard case .authenticated(let email, _, _) = authenticationStatus else { return nil }
         return email
@@ -23,12 +20,7 @@ struct PlaygroundView: View {
         NavigationStack {
             List {
                 WalletSectionView(email: email)
-                FeaturesSection(
-                    showSigners: $showSigners,
-                    showTransfer: $showTransfer,
-                    showActivity: $showActivity,
-                    showSigning: $showSigning
-                )
+                FeaturesSection(presentedSheet: $presentedSheet)
             }
             .refreshable {
                 if let email {
@@ -67,21 +59,17 @@ struct PlaygroundView: View {
             }
         }
         .environment(appState)
-        .sheet(isPresented: $showSigners) {
-            SignersView()
-                .environment(appState)
-        }
-        .sheet(isPresented: $showTransfer) {
-            TransferView { await appState.fetchBalance() }
-                .environment(appState)
-        }
-        .sheet(isPresented: $showActivity) {
-            ActivityView(wallet: appState.wallet, chain: appState.selectedChain)
-                .environment(appState)
-        }
-        .sheet(isPresented: $showSigning) {
-            SigningView()
-                .environment(appState)
+        .sheet(item: $presentedSheet) { sheet in
+            switch sheet {
+            case .signers:
+                SignersView().environment(appState)
+            case .transfer:
+                TransferView { await appState.fetchBalance() }.environment(appState)
+            case .activity:
+                ActivityView().environment(appState)
+            case .signing:
+                SigningView().environment(appState)
+            }
         }
         .task {
             if let email {

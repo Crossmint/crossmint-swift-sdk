@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2CC6EA9B9C96B07E039BCA27 /* CopyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */; };
+		30BCF1F16E84DB0995489C62 /* OTPSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F32D4100D0B463E463390BC /* OTPSheet.swift */; };
 		7CAB00000000000000000001 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000001 /* AppState.swift */; };
 		7CAB00000000000000000002 /* PlaygroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000002 /* PlaygroundView.swift */; };
 		7CAB00000000000000000003 /* FeaturesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000003 /* FeaturesSection.swift */; };
@@ -41,6 +43,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopyButton.swift; sourceTree = "<group>"; };
+		6F32D4100D0B463E463390BC /* OTPSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OTPSheet.swift; sourceTree = "<group>"; };
 		7CAF00000000000000000001 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		7CAF00000000000000000002 /* PlaygroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaygroundView.swift; sourceTree = "<group>"; };
 		7CAF00000000000000000003 /* FeaturesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeaturesSection.swift; sourceTree = "<group>"; };
@@ -185,6 +189,8 @@
 				EBEC0BD02DC39253000B59F1 /* PrimaryButton.swift */,
 				EBEC0BCC2DC37AE4000B59F1 /* CrossmintPoweredView.swift */,
 				AC0102042DD700000000003 /* CustomTextField.swift */,
+				6F32D4100D0B463E463390BC /* OTPSheet.swift */,
+				1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -333,6 +339,8 @@
 				EBEC0BD12DC39253000B59F1 /* PrimaryButton.swift in Sources */,
 				AC0101092DC600000000007 /* SplashScreen.swift in Sources */,
 				EBEC0BD32DC3955B000B59F1 /* AnimationConstants.swift in Sources */,
+				30BCF1F16E84DB0995489C62 /* OTPSheet.swift in Sources */,
+				2CC6EA9B9C96B07E039BCA27 /* CopyButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

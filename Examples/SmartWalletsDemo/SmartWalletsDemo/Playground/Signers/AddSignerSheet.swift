@@ -14,7 +14,6 @@ struct AddSignerSheet: View {
     @State private var inputText = ""
     @State private var isAdding = false
     @State private var errorMessage: String?
-    @State private var showOTPView = false
 
     enum SignerTypeOption: String, CaseIterable, Identifiable {
         case device = "Device"
@@ -33,41 +32,38 @@ struct AddSignerSheet: View {
             }
         }
 
-        var needsInput: Bool {
+        var showsInput: Bool {
             switch self {
-            case .device, .passkey: return false
+            case .device: return false
             default: return true
+            }
+        }
+
+        var inputRequired: Bool {
+            switch self {
+            case .externalWallet, .server: return true
+            default: return false
             }
         }
 
         var inputLabel: String {
             switch self {
-            case .externalWallet: return "Wallet address"
-            case .server: return "Server address"
+            case .passkey: return "Name"
+            case .externalWallet: return "Address"
+            case .server: return "Address"
             default: return ""
             }
         }
 
         var inputPlaceholder: String {
             switch self {
+            case .passkey: return "e.g. My Yubikey"
             case .externalWallet: return "0x..."
             case .server: return "0x..."
             default: return ""
             }
         }
 
-        var description: String {
-            switch self {
-            case .device:
-                return "Non-extractable P-256 key stored in the Secure Enclave (software keychain on simulator). Signs approvals on-device with no network call."
-            case .passkey:
-                return "WebAuthn credential registered via Face ID / Touch ID. EVM only. Requires passkeys entitlement and associated domain."
-            case .externalWallet:
-                return "Adds a pre-existing wallet address as a co-signer. Requires recovery-signer approval before it can be used."
-            case .server:
-                return "Server-managed signer whose private key is held by Crossmint. Registered immediately — useful for backend-controlled signing flows."
-            }
-        }
     }
 
     private var availableTypes: [SignerTypeOption] {
@@ -78,9 +74,9 @@ struct AddSignerSheet: View {
     }
 
     private var isValid: Bool {
-        guard !isAdding else { return false }
-        if selectedType.needsInput { return !inputText.trimmingCharacters(in: .whitespaces).isEmpty }
-        return appState.wallet != nil
+        guard !isAdding, appState.wallet != nil else { return false }
+        if selectedType.inputRequired { return !inputText.trimmingCharacters(in: .whitespaces).isEmpty }
+        return true
     }
 
     var body: some View {
@@ -95,19 +91,13 @@ struct AddSignerSheet: View {
                     .pickerStyle(.menu)
                 }
 
-                if selectedType.needsInput {
+                if selectedType.showsInput {
                     Section(selectedType.inputLabel) {
                         TextField(selectedType.inputPlaceholder, text: $inputText)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                            .font(.system(.body, design: .monospaced))
+                            .font(selectedType == .passkey ? .body : .system(.body, design: .monospaced))
                     }
-                }
-
-                Section {
-                    Text(selectedType.description)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
 
                 if let error = errorMessage {
@@ -144,8 +134,7 @@ struct AddSignerSheet: View {
             }
         }
         .interactiveDismissDisabled(isAdding)
-        .sheet(isPresented: $showOTPView) { OTPValidatorView() }
-        .onReceive(CrossmintSDK.shared.isOTPRequired) { showOTPView = $0 }
+        .otpSheet()
     }
 
     private func addSigner() async {
@@ -159,8 +148,7 @@ struct AddSignerSheet: View {
             case .device:
                 try await wallet.addSigner(.device)
             case .passkey:
-                let host = Bundle.main.bundleIdentifier ?? "crossmint.demo"
-                try await wallet.addSigner(.passkey(name: "Crossmint Demo", host: host))
+                try await wallet.addSigner(.passkey(name: value.isEmpty ? "Crossmint Demo" : value, host: "wallets-ios.demos-crossmint.com"))
             case .externalWallet:
                 try await wallet.addSigner(.externalWallet(value))
             case .server:

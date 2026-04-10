@@ -8,6 +8,7 @@ import SwiftUI
 
 struct SigningView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
 
     private var wallet: EVMWallet? { appState.wallet as? EVMWallet }
     @State private var mode: SigningMode = .message
@@ -15,10 +16,6 @@ struct SigningView: View {
     @State private var signature: String?
     @State private var isSigning = false
     @State private var errorMessage: String?
-    @State private var sigCopied = false
-    @State private var showOTPView = false
-
-    @Environment(\.dismiss) private var dismiss
 
     enum SigningMode: String, CaseIterable {
         case message = "Message"
@@ -57,22 +54,7 @@ struct SigningView: View {
                             Label("Signed successfully", systemImage: "checkmark.seal.fill")
                                 .foregroundStyle(.green)
                                 .fontWeight(.medium)
-                            Button {
-                                UIPasteboard.general.string = sig
-                                sigCopied.toggle()
-                            } label: {
-                                HStack(alignment: .top) {
-                                    Text(sig)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(4)
-                                    Image(systemName: "doc.on.clipboard")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .sensoryFeedback(.success, trigger: sigCopied)
+                            CopyButton(value: sig, lineLimit: 4)
                         }
                     }
                 }
@@ -110,8 +92,7 @@ struct SigningView: View {
             }
         }
         .interactiveDismissDisabled(isSigning)
-        .sheet(isPresented: $showOTPView) { OTPValidatorView() }
-        .onReceive(CrossmintSDK.shared.isOTPRequired) { showOTPView = $0 }
+        .otpSheet()
     }
 
     private func sign() async {

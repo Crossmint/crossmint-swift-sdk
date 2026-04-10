@@ -10,10 +10,8 @@ struct TransferView: View {
     var onComplete: (() async -> Void)? = nil
 
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
 
-    private var wallet: Wallet? { appState.wallet }
-    private var chain: SupportedChain { appState.selectedChain }
-    private var balance: Balance? { appState.balance }
     @State private var recipientAddress = ""
     @State private var amount = ""
     @State private var selectedTokenIndex = 0
@@ -21,16 +19,13 @@ struct TransferView: View {
     @State private var transactionId: String?
     @State private var errorMessage: String?
     @State private var txCopied = false
-    @State private var showOTPView = false
-
-    @Environment(\.dismiss) private var dismiss
 
     private var tokens: [(name: String, locator: String)] {
-        chain.transferTokens
+        appState.selectedChain.transferTokens
     }
 
     private var selectedTokenBalance: String? {
-        guard let balance else { return nil }
+        guard let balance = appState.balance else { return nil }
         let tokenName = tokens[selectedTokenIndex].name.lowercased()
         let all = [balance.nativeToken, balance.usdc] + balance.tokens
         return all.first { $0.name.lowercased() == tokenName || $0.symbol.value.lowercased() == tokenName }.map { tb in
@@ -43,7 +38,7 @@ struct TransferView: View {
     private var isFormValid: Bool {
         !recipientAddress.trimmingCharacters(in: .whitespaces).isEmpty
             && Double(amount) != nil
-            && wallet != nil
+            && appState.wallet != nil
     }
 
     var body: some View {
@@ -82,22 +77,7 @@ struct TransferView: View {
                             Label("Transaction submitted", systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                                 .fontWeight(.medium)
-                            Button {
-                                UIPasteboard.general.string = txId
-                                txCopied.toggle()
-                            } label: {
-                                HStack {
-                                    Text(txId)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                    Image(systemName: "doc.on.clipboard")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .sensoryFeedback(.success, trigger: txCopied)
+                            CopyButton(value: txId, lineLimit: 2)
                         }
                     }
                 }
@@ -135,12 +115,11 @@ struct TransferView: View {
             }
         }
         .interactiveDismissDisabled(isSending)
-        .sheet(isPresented: $showOTPView) { OTPValidatorView() }
-        .onReceive(CrossmintSDK.shared.isOTPRequired) { showOTPView = $0 }
+        .otpSheet()
     }
 
     private func send() async {
-        guard let wallet, let amountValue = Double(amount) else { return }
+        guard let wallet = appState.wallet, let amountValue = Double(amount) else { return }
         isSending = true
         errorMessage = nil
         transactionId = nil

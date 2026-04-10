@@ -69,13 +69,7 @@ enum SupportedChain: Equatable, Identifiable {
         }
     }
 
-    var fundToken: CryptoCurrency {
-        switch self {
-        case .evm: .usdxm
-        case .solana: .usdxm
-        case .stellar: .usdxm
-        }
-    }
+    var fundToken: CryptoCurrency { .usdxm }
 
     var supportsMessageSigning: Bool {
         self == .evm
