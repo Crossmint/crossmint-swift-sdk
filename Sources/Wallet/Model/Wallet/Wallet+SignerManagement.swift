@@ -39,8 +39,6 @@ extension Wallet {
                 try await registerLocatorSigner("phone:\(phone)")
             case .externalWallet(let address):
                 try await registerLocatorSigner("external-wallet:\(address)")
-            case .server(let address):
-                try await registerLocatorSigner("server:\(address)")
             case .apiKey:
                 try await registerLocatorSigner("api-key")
             case .passkey(let name, let host):
@@ -122,10 +120,6 @@ extension Wallet {
             throw WalletError.walletGeneric(
                 "External wallet signers must approve transactions outside of the SDK."
             )
-        case .server(let address):
-            let locator = "server:\(address)"
-            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
-            throw WalletError.walletGeneric("Server signers are managed server-side.")
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:

@@ -19,7 +19,6 @@ struct AddSignerSheet: View {
         case device = "Device"
         case passkey = "Passkey"
         case externalWallet = "External Wallet"
-        case server = "Server"
 
         var id: String { rawValue }
 
@@ -28,7 +27,6 @@ struct AddSignerSheet: View {
             case .device: return "iphone"
             case .passkey: return "touchid"
             case .externalWallet: return "wallet.bifold"
-            case .server: return "server.rack"
             }
         }
 
@@ -41,7 +39,7 @@ struct AddSignerSheet: View {
 
         var inputRequired: Bool {
             switch self {
-            case .externalWallet, .server: return true
+            case .externalWallet: return true
             default: return false
             }
         }
@@ -50,7 +48,6 @@ struct AddSignerSheet: View {
             switch self {
             case .passkey: return "Name"
             case .externalWallet: return "Address"
-            case .server: return "Address"
             default: return ""
             }
         }
@@ -59,11 +56,9 @@ struct AddSignerSheet: View {
             switch self {
             case .passkey: return "e.g. My Yubikey"
             case .externalWallet: return "0x..."
-            case .server: return "0x..."
             default: return ""
             }
         }
-
     }
 
     private var availableTypes: [SignerTypeOption] {
@@ -151,8 +146,6 @@ struct AddSignerSheet: View {
                 try await wallet.addSigner(.passkey(name: value.isEmpty ? "Crossmint Demo" : value, host: "wallets-ios.demos-crossmint.com"))
             case .externalWallet:
                 try await wallet.addSigner(.externalWallet(value))
-            case .server:
-                try await wallet.addSigner(.server(value))
             }
             dismiss()
         } catch {
