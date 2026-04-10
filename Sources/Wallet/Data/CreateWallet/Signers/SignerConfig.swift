@@ -16,8 +16,6 @@ public enum SignerConfig: Sendable {
     case phone(String)
     /// An external wallet signer identified by its blockchain address.
     case externalWallet(String)
-    /// A server-managed blockchain signer identified by its address.
-    case server(String)
     /// The API key signer (server-side / custodial).
     case apiKey
 }
