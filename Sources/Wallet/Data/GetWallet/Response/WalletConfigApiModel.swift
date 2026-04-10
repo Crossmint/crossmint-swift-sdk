@@ -33,6 +33,8 @@ public struct WalletConfigApiModel: Decodable {
             recovery = try container.decode(ApiKeySignerApiModel.self, forKey: .recovery)
         case .externalWallet:
             recovery = try container.decode(ExternalWalletSignerApiModel.self, forKey: .recovery)
+        case .server:
+            recovery = try container.decode(ServerSignerApiModel.self, forKey: .recovery)
         }
 
         signers = try container.decodeIfPresent([WalletDelegatedSignerConfigApiModel].self, forKey: .signers)

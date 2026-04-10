@@ -402,6 +402,46 @@ public final class DefaultSmartWalletService: SmartWalletService {
         }
     }
 
+    public func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        struct RegisterTypedSignerBody: Encodable {
+            let signerData: any AdminSignerData
+            let chain: String?
+
+            enum CodingKeys: String, CodingKey { case signer, chain }
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                let signerEncoder = container.superEncoder(forKey: .signer)
+                try signerData.encode(to: signerEncoder)
+                try container.encodeIfPresent(chain, forKey: .chain)
+            }
+        }
+
+        let chain: String? = chainType == .solana || chainType == .stellar ? nil : chainName
+        let bodyData = try jsonCoder.encodeRequest(
+            RegisterTypedSignerBody(signerData: signer, chain: chain),
+            errorType: WalletError.self
+        )
+        let responseData = try await crossmintService.executeRequestForRawData(
+            Endpoint(
+                path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers",
+                method: .post,
+                headers: authHeaders,
+                body: bodyData
+            ),
+            errorType: WalletError.self
+        )
+        do {
+            return try jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode signer registration response")
+        }
+    }
+
     public func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,

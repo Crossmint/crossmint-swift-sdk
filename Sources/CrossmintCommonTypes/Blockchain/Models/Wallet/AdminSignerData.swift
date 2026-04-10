@@ -9,6 +9,7 @@ public enum AdminSignerDataType: String, Sendable, Codable {
     case passkey
     case externalWallet = "external-wallet"
     case phone
+    case server
 }
 
 public extension AdminSignerData {
@@ -233,5 +234,41 @@ public struct PhoneSignerData: AdminSignerData {
             )
         }
         self.phone = try container.decode(String.self, forKey: .phone)
+    }
+}
+
+public struct ServerSignerData: AdminSignerData {
+    public let address: String
+
+    public var type: AdminSignerDataType { .server }
+
+    public var locatorId: String { address }
+
+    public init(address: String) {
+        self.address = address
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case address
+    }
+
+    public nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(type.rawValue, forKey: .type)
+        try container.encode(address, forKey: .address)
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+        guard type == AdminSignerDataType.server.rawValue else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .type,
+                in: container,
+                debugDescription: "Expected signer type to be \(AdminSignerDataType.server.rawValue) but found \(type)"
+            )
+        }
+        self.address = try container.decode(String.self, forKey: .address)
     }
 }
