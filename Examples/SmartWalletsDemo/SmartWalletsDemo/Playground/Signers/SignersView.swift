@@ -30,10 +30,10 @@ struct SignersView: View {
                     recoverySection(wallet: wallet)
                 }
 
-                Section("Delegated Signers") {
+                Section("Signers") {
                     if delegatedSigners.isEmpty && !appState.isLoadingWallet {
                         ContentUnavailableView(
-                            "No Delegated Signers",
+                            "No Signers",
                             systemImage: "person.badge.key",
                             description: Text("No delegated signers are registered on this wallet.")
                         )
@@ -85,7 +85,7 @@ struct SignersView: View {
 
     @ViewBuilder
     private func recoverySection(wallet: Wallet) -> some View {
-        Section("Recovery Signer") {
+        Section("Recovery") {
             SignerRow(
                 locator: wallet.recoveryLocator,
                 canSelect: false,

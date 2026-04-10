@@ -48,6 +48,8 @@ struct SigningView: View {
                     }
                 }
 
+                SignerPicker()
+
                 if let sig = signature {
                     Section("Signature") {
                         VStack(alignment: .leading, spacing: 8) {
