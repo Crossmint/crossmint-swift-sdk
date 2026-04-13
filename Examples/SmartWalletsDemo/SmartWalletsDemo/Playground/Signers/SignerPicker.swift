@@ -9,16 +9,10 @@ import SwiftUI
 /// Only renders when the wallet has more than one selectable signer.
 struct SignerPicker: View {
     @Environment(AppState.self) private var appState
-    private var selection: Binding<String> {
-        Binding(
-            get: { appState.selectedSignerLocator ?? options.first?.id ?? "" },
-            set: { new in Task { await appState.selectSigner(locator: new) } }
-        )
-    }
 
     private struct Option: Identifiable {
         var id: String { locator }
-        
+
         let locator: String
         let typeLabel: String
         let isRecovery: Bool
@@ -30,21 +24,25 @@ struct SignerPicker: View {
 
         let recovery = wallet.recoveryLocator
         if isSelectable(recovery) {
-            result.append(Option(locator: recovery, typeLabel: typeName(recovery), isRecovery: true))
+            result.append(Option(locator: recovery, typeLabel: SignerRow.typeLabel(for: recovery), isRecovery: true))
         }
         for signer in wallet.signers {
             if let locator = signer.locator, isSelectable(locator) {
-                result.append(Option(locator: locator, typeLabel: typeName(locator), isRecovery: false))
+                result.append(Option(locator: locator, typeLabel: SignerRow.typeLabel(for: locator), isRecovery: false))
             }
         }
         return result
     }
 
     var body: some View {
+        let opts = options
         Section {
-            Picker("Sign with", selection: selection) {
-                ForEach(options) { opt in
-                    Button { } label: {
+            Picker("Sign with", selection: Binding(
+                get: { appState.selectedSignerLocator ?? opts.first?.id ?? "" },
+                set: { new in Task { await appState.selectSigner(locator: new) } }
+            )) {
+                ForEach(opts) { opt in
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
                         Text(opt.id)
                             .font(.caption)
@@ -59,15 +57,31 @@ struct SignerPicker: View {
     private func isSelectable(_ locator: String) -> Bool {
         locator.hasPrefix("email:") || locator.hasPrefix("api-key:") || locator.hasPrefix("device:")
     }
+}
 
-    private func typeName(_ locator: String) -> String {
-        if locator.hasPrefix("device:") { return "Device" }
-        if locator.hasPrefix("passkey:") { return "Passkey" }
-        if locator.hasPrefix("email:") { return "Email" }
-        if locator.hasPrefix("phone:") { return "Phone" }
-        if locator.hasPrefix("api-key:") { return "API Key" }
-        if locator.hasPrefix("external-wallet:") { return "External Wallet" }
-        if locator.hasPrefix("server:") { return "Server" }
-        return "Unknown"
+#Preview {
+    struct GenderPickerPreview: View {
+        let options = [
+            (id: "male", label: "Male", sublabel: "gender:male"),
+            (id: "female", label: "Female", sublabel: "gender:female"),
+            (id: "non-binary", label: "Non-binary", sublabel: "gender:non-binary"),
+        ]
+        @State private var selection = "male"
+        var body: some View {
+            Form {
+                Section {
+                    Picker("Sign with", selection: $selection) {
+                        ForEach(options, id: \.id) { opt in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(opt.label)
+                                Text(opt.sublabel).font(.caption).foregroundStyle(.secondary)
+                            }
+                            .tag(opt.id)
+                        }
+                    }
+                }
+            }
+        }
     }
+    return GenderPickerPreview()
 }

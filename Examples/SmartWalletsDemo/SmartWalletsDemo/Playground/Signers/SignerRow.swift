@@ -14,15 +14,29 @@ struct SignerRow: View {
     let onSelect: () -> Void
     var onRemove: (() -> Void)? = nil
 
+    static func typeLabel(for locator: String) -> String {
+        if locator.hasPrefix("device:") { return "Device" }
+        if locator.hasPrefix("passkey:") { return "Passkey" }
+        if locator.hasPrefix("email:") { return "Email" }
+        if locator.hasPrefix("phone:") { return "Phone" }
+        if locator.hasPrefix("api-key:") { return "API Key" }
+        if locator.hasPrefix("external-wallet:") { return "External Wallet" }
+        if locator.hasPrefix("server:") { return "Server" }
+        return "Unknown"
+    }
+
     private var signerInfo: (type: String, icon: String) {
-        if locator.hasPrefix("device:") { return ("Device", "iphone") }
-        if locator.hasPrefix("passkey:") { return ("Passkey", "touchid") }
-        if locator.hasPrefix("email:") { return ("Email", "envelope") }
-        if locator.hasPrefix("phone:") { return ("Phone", "phone") }
-        if locator.hasPrefix("api-key:") { return ("API Key", "key") }
-        if locator.hasPrefix("external-wallet:") { return ("External Wallet", "wallet.bifold") }
-        if locator.hasPrefix("server:") { return ("Server", "server.rack") }
-        return ("Unknown", "questionmark.circle")
+        let type = Self.typeLabel(for: locator)
+        let icon: String
+        if locator.hasPrefix("device:") { icon = "iphone" }
+        else if locator.hasPrefix("passkey:") { icon = "touchid" }
+        else if locator.hasPrefix("email:") { icon = "envelope" }
+        else if locator.hasPrefix("phone:") { icon = "phone" }
+        else if locator.hasPrefix("api-key:") { icon = "key" }
+        else if locator.hasPrefix("external-wallet:") { icon = "wallet.bifold" }
+        else if locator.hasPrefix("server:") { icon = "server.rack" }
+        else { icon = "questionmark.circle" }
+        return (type, icon)
     }
 
     var body: some View {
