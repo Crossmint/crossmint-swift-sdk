@@ -42,7 +42,7 @@ struct SignerPicker: View {
                 set: { new in Task { await appState.selectSigner(locator: new) } }
             )) {
                 ForEach(opts) { opt in
-                    VStack(alignment: .leading, spacing: 2) {
+                    Button { } label: {
                         Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
                         Text(opt.id)
                             .font(.caption)
@@ -72,7 +72,7 @@ struct SignerPicker: View {
                 Section {
                     Picker("Sign with", selection: $selection) {
                         ForEach(options, id: \.id) { opt in
-                            VStack(alignment: .leading, spacing: 2) {
+                            Button { } label: {
                                 Text(opt.label)
                                 Text(opt.sublabel).font(.caption).foregroundStyle(.secondary)
                             }
