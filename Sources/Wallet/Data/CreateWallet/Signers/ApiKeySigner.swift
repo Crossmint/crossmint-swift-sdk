@@ -6,7 +6,7 @@ public class ApiKeySigner: Signer, @unchecked Sendable {
     public typealias AdminType = ApiKeySignerData
     nonisolated public let signerType: SignerType = .apiKey
 
-    public init(adminSigner: ApiKeySignerData = ApiKeySignerData()) {
+    public init(adminSigner: ApiKeySignerData) {
         self.adminSigner = adminSigner
     }
 

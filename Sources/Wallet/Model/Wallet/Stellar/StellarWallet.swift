@@ -33,7 +33,9 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
         // Switch to API key signer if wallet uses API key admin
         switch baseModel.config.recovery.type {
         case .apiKey:
-            effectiveSigner = ApiKeySigner()
+            if let apiKeyData = baseModel.config.recovery.toDomain as? ApiKeySignerData {
+                effectiveSigner = ApiKeySigner(adminSigner: apiKeyData)
+            }
         default:
             break
         }

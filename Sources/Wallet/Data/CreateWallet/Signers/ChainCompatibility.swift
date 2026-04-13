@@ -1,3 +1,4 @@
+import CrossmintCommonTypes
 import Foundation
 import Web
 
@@ -14,7 +15,7 @@ public enum EVMSigners: Sendable, SignerProvider {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            ApiKeySigner()
+            ApiKeySigner(adminSigner: ApiKeySignerData())
         case let .email(email):
             EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .passkey(name, host):
@@ -31,7 +32,7 @@ public enum SolanaSigners: Sendable, SignerProvider {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            ApiKeySigner()
+            ApiKeySigner(adminSigner: ApiKeySignerData())
         case let .email(email):
             SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         }
@@ -46,7 +47,7 @@ public enum StellarSigners: Sendable, SignerProvider {
     public var signer: any Signer {
         switch self {
         case .apiKey:
-            ApiKeySigner()
+            ApiKeySigner(adminSigner: ApiKeySignerData())
         case let .email(email):
             StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         }
