@@ -48,7 +48,7 @@ struct SignInView: View {
                     .padding(.bottom, 20)
             }
             .padding(.horizontal, 24)
-            .background(Color.white)
+            .background(Color(.systemBackground))
             .opacity(opacity)
             .onAppear {
                 withAnimation(AnimationConstants.easeIn()) { opacity = 1 }

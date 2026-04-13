@@ -71,7 +71,7 @@ struct DashboardView: View {
                         }
                     }
                 }
-                .background(Color.white)
+                .background(Color(.systemBackground))
 
                 tabContent(for: wallet)
             } else {
@@ -113,8 +113,8 @@ struct DashboardView: View {
         }
         .background(Color.white)
         .cornerRadius(20, corners: UIRectCorner([.bottomLeft, .bottomRight]))
-        .shadow(color: Color(UIColor(red: 16/255, green: 24/255, blue: 40/255, alpha: 0.1)), radius: 3, x: 0, y: 1)
-        .shadow(color: Color(UIColor(red: 0, green: 0, blue: 0, alpha: 0.1)), radius: 2, x: 0, y: 1)
+        .shadow(color: Color(.label).opacity(0.1), radius: 3, x: 0, y: 1)
+        .shadow(color: Color(.label).opacity(0.1), radius: 2, x: 0, y: 1)
         .padding(.bottom)
     }
 
@@ -340,7 +340,7 @@ struct TabButton: View {
                 Text(title)
                     .font(.system(size: 14))
                     .fontWeight(.medium)
-                    .foregroundColor(isSelected ? .black : .gray)
+                    .foregroundStyle(isSelected ? Color.primary : .secondary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
 

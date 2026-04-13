@@ -120,7 +120,7 @@ struct BalanceDashboardView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
-                .background(Color.white)
+                .background(Color(.systemBackground))
                 .cornerRadius(8)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
@@ -235,11 +235,7 @@ struct BalanceDashboardView: View {
             Button("Retry") {
                 fetchBalances()
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
+            .buttonStyle(.borderedProminent)
             .padding(.top, 8)
         }
         .padding()
@@ -257,17 +253,17 @@ struct BalanceDashboardView: View {
                     // Show native token if it has balance
                     if balance.nativeToken.amount != "0" {
                         WalletBalanceEntryView(tokenBalance: balance.nativeToken)
-                            .background(Color.white)
+                            .background(Color(.systemBackground))
                             .cornerRadius(8)
-                            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                            .shadow(color: Color(.label).opacity(0.05), radius: 2, x: 0, y: 1)
                     }
 
                     // Show USDC if it has balance
                     if balance.usdc.amount != "0" {
                         WalletBalanceEntryView(tokenBalance: balance.usdc)
-                            .background(Color.white)
+                            .background(Color(.systemBackground))
                             .cornerRadius(8)
-                            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                            .shadow(color: Color(.label).opacity(0.05), radius: 2, x: 0, y: 1)
                     }
 
                     // Show other tokens
@@ -275,9 +271,9 @@ struct BalanceDashboardView: View {
                         let token = balance.tokens[index]
                         if token.amount != "0" {
                             WalletBalanceEntryView(tokenBalance: token)
-                                .background(Color.white)
+                                .background(Color(.systemBackground))
                                 .cornerRadius(8)
-                                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                                .shadow(color: Color(.label).opacity(0.05), radius: 2, x: 0, y: 1)
                         }
                     }
                 } else {

@@ -34,7 +34,7 @@ struct GetTestTokenButton: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .background(Color.white)
+            .background(Color(.systemBackground))
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)

@@ -89,7 +89,7 @@ struct SplashScreen: View {
     }
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
 
             if authenticationStatus == nil {
                 splashContent

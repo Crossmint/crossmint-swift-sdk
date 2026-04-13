@@ -47,7 +47,7 @@ struct OTPValidatorView: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        .background(Color.white)
+        .background(Color(.systemBackground))
         .opacity(opacity)
         .onAppear {
             withAnimation(AnimationConstants.easeIn()) {

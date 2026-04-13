@@ -46,7 +46,7 @@ struct OTPSignInView: View {
                 .padding(.bottom, 20)
         }
         .padding(.horizontal, 24)
-        .background(Color.white)
+        .background(Color(.systemBackground))
         .navigationBarTitleDisplayMode(.inline)
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Alert"), message: Text(alertMessage), dismissButton: .default(Text("OK")))

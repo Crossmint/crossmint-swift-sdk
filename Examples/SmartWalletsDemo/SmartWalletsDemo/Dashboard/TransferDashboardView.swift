@@ -57,13 +57,13 @@ struct TransferDashboardView: View {
                         .frame(height: 40)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white)
+                                .fill(Color(.systemBackground))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color(red: 0.886, green: 0.91, blue: 0.941), lineWidth: 1)
+                                        .stroke(Color(.systemGray4), lineWidth: 1)
                                 )
                                 .shadow(
-                                    color: Color(red: 0.063, green: 0.094, blue: 0.157).opacity(0.05),
+                                    color: Color(.label).opacity(0.05),
                                     radius: 2,
                                     x: 0,
                                     y: 1
