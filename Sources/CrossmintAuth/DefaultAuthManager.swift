@@ -77,7 +77,7 @@ public actor CrossmintAuthManager: AuthManager {
         forceRefresh: Bool = false
     ) async throws(AuthManagerError) -> OTPAuthenticationStatus {
         if let code, code.isEmpty {
-            throw AuthManagerError.invalidInput("code cannot be empty")
+            throw AuthManagerError.invalidInput("OTP code cannot be empty")
         }
         let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         do {
