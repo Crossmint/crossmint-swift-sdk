@@ -19,6 +19,7 @@ open class Wallet: @unchecked Sendable {
     internal let chain: Chain
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
     var deviceSignerService: DeviceSignerService
+    var signerRegistrationService: SignerRegistrationService
     var selectedSigner: (any Signer)?
     var selectedSignerLocator: String?
     var _needsRecovery: Bool = false
@@ -58,6 +59,11 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name,
             address: address.description
+        )
+        self.signerRegistrationService = SignerRegistrationService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name
         )
         self.signers = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
