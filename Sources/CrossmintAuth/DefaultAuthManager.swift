@@ -76,7 +76,6 @@ public actor CrossmintAuthManager: AuthManager {
         code: String? = nil,
         forceRefresh: Bool = false
     ) async throws(AuthManagerError) -> OTPAuthenticationStatus {
-        // Fail fast — the server would reject this but with a less actionable error.
         if let code, code.isEmpty {
             throw AuthManagerError.invalidInput("code cannot be empty")
         }
