@@ -125,9 +125,10 @@ extension Wallet {
         case .apiKey:
             let locator = self.config.recovery.locator
             guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
-            if let apiKeyData = self.config.recovery as? ApiKeySignerData {
-                selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
+            guard let apiKeyData = self.config.recovery as? ApiKeySignerData else {
+                throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
             }
+            selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
             selectedSignerLocator = locator
         }
     }
