@@ -377,22 +377,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        struct RegisterSignerBody: Encodable {
-            let signer: String
-            let chain: String?
-        }
         let chain = signerChain(chainType: chainType, chainName: chainName)
         let bodyData = try jsonCoder.encodeRequest(
             RegisterSignerBody(signer: entry.signer, chain: chain),
             errorType: WalletError.self
         )
         let responseData = try await crossmintService.executeRequestForRawData(
-            Endpoint(
-                path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers",
-                method: .post,
-                headers: authHeaders,
-                body: bodyData
-            ),
+            .meWalletSigners(chainType: chainType, headers: authHeaders, body: bodyData),
             errorType: WalletError.self
         )
         do {
@@ -407,32 +398,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        struct RegisterTypedSignerBody: Encodable {
-            let signerData: any AdminSignerData
-            let chain: String?
-
-            enum CodingKeys: String, CodingKey { case signer, chain }
-
-            func encode(to encoder: Encoder) throws {
-                var container = encoder.container(keyedBy: CodingKeys.self)
-                let signerEncoder = container.superEncoder(forKey: .signer)
-                try signerData.encode(to: signerEncoder)
-                try container.encodeIfPresent(chain, forKey: .chain)
-            }
-        }
-
         let chain = signerChain(chainType: chainType, chainName: chainName)
         let bodyData = try jsonCoder.encodeRequest(
             RegisterTypedSignerBody(signerData: signer, chain: chain),
             errorType: WalletError.self
         )
         let responseData = try await crossmintService.executeRequestForRawData(
-            Endpoint(
-                path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers",
-                method: .post,
-                headers: authHeaders,
-                body: bodyData
-            ),
+            .meWalletSigners(chainType: chainType, headers: authHeaders, body: bodyData),
             errorType: WalletError.self
         )
         do {

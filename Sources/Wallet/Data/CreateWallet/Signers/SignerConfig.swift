@@ -19,3 +19,17 @@ public enum SignerConfig: Sendable {
     /// The API key signer (server-side / custodial).
     case apiKey
 }
+
+extension SignerConfig {
+    /// The locator string for this signer config, or `nil` for types whose locator
+    /// cannot be determined without async context (`.device`) or server-assigned data (`.passkey`).
+    var locator: String? {
+        switch self {
+        case .email(let email): "email:\(email)"
+        case .phone(let phone): "phone:\(phone)"
+        case .externalWallet(let address): "external-wallet:\(address)"
+        case .apiKey: "api-key"
+        case .device, .passkey: nil
+        }
+    }
+}
