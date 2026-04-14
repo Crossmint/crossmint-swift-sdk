@@ -6,6 +6,6 @@ public struct ApiKeySignerApiModel: AdminSignerApiModel {
     public let locator: String
 
     public var toDomain: any AdminSignerData {
-        ApiKeySignerData()
+        ApiKeySignerData(address: address)
     }
 }

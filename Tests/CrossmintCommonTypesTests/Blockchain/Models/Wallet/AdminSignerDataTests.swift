@@ -63,17 +63,27 @@ struct AdminSignerDataTests {
 
     // MARK: - ApiKeySignerData Tests
 
-    @Test("ApiKeySignerData initialization")
+    @Test("ApiKeySignerData initialization with address")
     func testApiKeySignerDataInit() {
+        let signer = ApiKeySignerData(address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+
+        #expect(signer.type == .apiKey)
+        #expect(signer.address == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+        #expect(signer.locatorId == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+    }
+
+    @Test("ApiKeySignerData initialization without address falls back to type rawValue")
+    func testApiKeySignerDataInitNoAddress() {
         let signer = ApiKeySignerData()
 
         #expect(signer.type == .apiKey)
+        #expect(signer.address == nil)
         #expect(signer.locatorId == "api-key")
     }
 
-    @Test("ApiKeySignerData JSON encoding")
+    @Test("ApiKeySignerData JSON encoding with address")
     func testApiKeySignerDataEncoding() throws {
-        let signer = ApiKeySignerData()
+        let signer = ApiKeySignerData(address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
@@ -81,14 +91,40 @@ struct AdminSignerDataTests {
         let json = String(data: data, encoding: .utf8)!
 
         let expectedJSON = """
-        {"type":"api-key"}
+        {"address":"0x742d35Cc6634C0532925a3b844Bc454e4438f44e","type":"api-key"}
         """
 
         #expect(json == expectedJSON)
     }
 
-    @Test("ApiKeySignerData JSON decoding")
+    @Test("ApiKeySignerData JSON encoding without address omits address field")
+    func testApiKeySignerDataEncodingNoAddress() throws {
+        let signer = ApiKeySignerData()
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(signer)
+        let json = String(data: data, encoding: .utf8)!
+
+        #expect(json == #"{"type":"api-key"}"#)
+    }
+
+    @Test("ApiKeySignerData JSON decoding with address")
     func testApiKeySignerDataDecoding() throws {
+        let json = """
+        {"type": "api-key", "address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"}
+        """
+
+        let data = json.data(using: .utf8)!
+        let signer = try JSONDecoder().decode(ApiKeySignerData.self, from: data)
+
+        #expect(signer.type == .apiKey)
+        #expect(signer.address == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+        #expect(signer.locatorId == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+    }
+
+    @Test("ApiKeySignerData JSON decoding without address")
+    func testApiKeySignerDataDecodingNoAddress() throws {
         let json = """
         {"type": "api-key"}
         """
@@ -97,6 +133,7 @@ struct AdminSignerDataTests {
         let signer = try JSONDecoder().decode(ApiKeySignerData.self, from: data)
 
         #expect(signer.type == .apiKey)
+        #expect(signer.address == nil)
         #expect(signer.locatorId == "api-key")
     }
 
@@ -325,12 +362,25 @@ struct AdminSignerDataTests {
 
     @Test("ApiKeySignerData round-trip encoding/decoding")
     func testApiKeySignerDataRoundTrip() throws {
+        let original = ApiKeySignerData(address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(ApiKeySignerData.self, from: data)
+
+        #expect(decoded.type == original.type)
+        #expect(decoded.address == original.address)
+        #expect(decoded.locatorId == original.locatorId)
+    }
+
+    @Test("ApiKeySignerData round-trip encoding/decoding without address")
+    func testApiKeySignerDataRoundTripNoAddress() throws {
         let original = ApiKeySignerData()
 
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(ApiKeySignerData.self, from: data)
 
         #expect(decoded.type == original.type)
+        #expect(decoded.address == nil)
         #expect(decoded.locatorId == original.locatorId)
     }
 
