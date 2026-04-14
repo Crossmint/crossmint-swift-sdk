@@ -1,6 +1,7 @@
 import Logger
 import CrossmintService
 import SecureStorage
+import Utils
 
 public actor CrossmintAuthManager: AuthManager {
     enum Errors: Error {
@@ -77,6 +78,9 @@ public actor CrossmintAuthManager: AuthManager {
         forceRefresh: Bool = false
     ) async throws(AuthManagerError) -> OTPAuthenticationStatus {
         let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isValidEmail(normalizedEmail) else {
+            throw AuthManagerError.invalidEmail
+        }
         do {
             if forceRefresh || !otpAuthenticationStatus.isAuthenticating {
                 otpAuthenticationStatus = try await startEmailValidation(
