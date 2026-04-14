@@ -9,18 +9,18 @@ public enum UnknownChain: SpecificChain {
 
     public var name: String {
         switch self {
-        case .unknown(let name, _):
+        case .unknown(let name):
             name
         }
     }
 
     public func isValid(isProductionEnvironment: Bool) -> Bool {
-        true
+        false
     }
 
     public init?(_ from: String) {
-        self = .unknown(name: from, isTest: true)
+        self = .unknown(name: from)
     }
 
-    case unknown(name: String, isTest: Bool)
+    case unknown(name: String)
 }
