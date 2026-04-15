@@ -78,8 +78,9 @@ public actor CrossmintAuthManager: AuthManager {
             throw AuthManagerError.invalidEmail
         }
         do {
+            let newStatus = try await startEmailValidation(email: normalizedEmail)
             jwtRefreshTimer?.invalidate()
-            otpAuthenticationStatus = try await startEmailValidation(email: normalizedEmail)
+            otpAuthenticationStatus = newStatus
         } catch {
             throw AuthManagerError.serviceError(error.errorMessage)
         }
