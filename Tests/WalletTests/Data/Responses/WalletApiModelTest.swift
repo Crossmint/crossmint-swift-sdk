@@ -58,8 +58,7 @@ struct WalletApiModelTest {
 
         #expect(wallet.config.recovery.type == .apiKey)
         let locator = wallet.config.recovery.toDomain.locator
-        // New ApiKeySignerData uses fixed locatorId
-        let expectedLocator = "api-key:api-key"
+        let expectedLocator = "api-key:0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
         #expect(locator == expectedLocator)
     }
 

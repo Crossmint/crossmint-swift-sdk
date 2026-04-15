@@ -25,7 +25,10 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
         switch baseModel.config.recovery.type {
         case .apiKey:
-            effectiveSigner = ApiKeySigner()
+            guard let apiKeyData = baseModel.config.recovery.toDomain as? ApiKeySignerData else {
+                throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
+            }
+            effectiveSigner = ApiKeySigner(adminSigner: apiKeyData)
         default:
             break
         }

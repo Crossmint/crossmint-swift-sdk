@@ -207,7 +207,7 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
         case .solana:
             SolanaChain.solana
         case .unknown(name: let name):
-            UnknownChain.unknown(name: name, isTest: true)
+            UnknownChain.unknown(name: name)
         }
     }
 

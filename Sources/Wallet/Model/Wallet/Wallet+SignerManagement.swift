@@ -101,9 +101,12 @@ extension Wallet {
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:
-            let locator = "api-key:api-key"
+            let locator = self.config.recovery.locator
             guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
-            selectedSigner = ApiKeySigner()
+            guard let apiKeyData = self.config.recovery as? ApiKeySignerData else {
+                throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
+            }
+            selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
             selectedSignerLocator = locator
         }
     }
