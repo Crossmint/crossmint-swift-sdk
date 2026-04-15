@@ -14,6 +14,6 @@
 	],
 	"workspace": "/Users/franfernandez/Development/Crossmint/repos/crossmint-swift-sdk/Crossmint SDK.xcworkspace",
 	"build_root": "/Users/franfernandez/Library/Developer/Xcode/DerivedData/Crossmint_SDK-dfpntykvfpviwkaemgypbyqasety",
-	"scheme": "SolanaDemo",
+	"scheme": "SmartWalletsDemo",
 	"kind": "xcode"
 }
