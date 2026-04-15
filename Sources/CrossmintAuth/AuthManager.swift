@@ -10,11 +10,14 @@ public protocol AuthManager: Sendable {
 public enum AuthManagerError: Swift.Error {
     case unknown(String)
     case serviceError(String)
+    case invalidEmail
 
     public var errorMessage: String {
         return switch self {
-            case .unknown(let message), .serviceError(let message):
-                message
+        case .unknown(let message), .serviceError(let message):
+            message
+        case .invalidEmail:
+            "Invalid email address"
         }
     }
 }
