@@ -24,16 +24,12 @@ struct CrossmintAuthManagerTests {
 
     @Test("Does not throw when OTP code is nil")
     func doesNotThrowOnNilCode() async throws {
-        await #expect(throws: Never.self) {
-            _ = try await authManager.otpAuthentication(email: "user@example.com", code: nil)
-        }
+        _ = try await authManager.otpAuthentication(email: "user@example.com", code: nil)
     }
 
     @Test("Does not throw when OTP code is non-empty")
     func doesNotThrowOnNonEmptyCode() async throws {
-        await #expect(throws: Never.self) {
-            _ = try await authManager.otpAuthentication(email: "user@example.com", code: "123456")
-        }
+        _ = try await authManager.otpAuthentication(email: "user@example.com", code: "123456")
     }
 }
 
