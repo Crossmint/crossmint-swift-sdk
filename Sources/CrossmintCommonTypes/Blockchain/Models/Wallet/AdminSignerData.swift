@@ -59,23 +59,29 @@ public struct ExternalWalletSignerData: AdminSignerData {
 }
 
 public struct ApiKeySignerData: AdminSignerData {
+    public let address: String?
+
     public var type: AdminSignerDataType {
         .apiKey
     }
 
     public var locatorId: String {
-        "api-key"
+        address ?? type.rawValue
     }
 
-    public init() {}
+    public init(address: String? = nil) {
+        self.address = address
+    }
 
     private enum CodingKeys: String, CodingKey {
         case type
+        case address
     }
 
     public nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(type.rawValue, forKey: .type)
+        try container.encodeIfPresent(address, forKey: .address)
     }
 
     public init(from decoder: Decoder) throws {
@@ -88,6 +94,7 @@ public struct ApiKeySignerData: AdminSignerData {
                 debugDescription: "Expected signer type to be \(AdminSignerDataType.apiKey.rawValue) but found \(type)"
             )
         }
+        self.address = try container.decodeIfPresent(String.self, forKey: .address)
     }
 }
 
