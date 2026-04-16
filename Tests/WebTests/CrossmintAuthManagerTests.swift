@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import CrossmintAuth
 import SecureStorage
@@ -11,25 +12,26 @@ struct CrossmintAuthManagerTests {
     @Test("Throws invalidInput when OTP code is empty")
     func throwsOnEmptyCode() async {
         await #expect(throws: AuthManagerError.invalidInput("OTP code cannot be empty")) {
-            _ = try await authManager.otpAuthentication(email: "user@example.com", code: "")
+            _ = try await authManager.confirmEmailOtp(email: "user@example.com", code: "")
         }
     }
 
     @Test("Throws invalidInput when OTP code is whitespace only")
     func throwsOnWhitespaceCode() async {
         await #expect(throws: AuthManagerError.invalidInput("OTP code cannot be empty")) {
-            _ = try await authManager.otpAuthentication(email: "user@example.com", code: "   ")
+            _ = try await authManager.confirmEmailOtp(email: "user@example.com", code: "   ")
         }
     }
 
-    @Test("Does not throw when OTP code is nil")
-    func doesNotThrowOnNilCode() async throws {
-        _ = try await authManager.otpAuthentication(email: "user@example.com", code: nil)
+    @Test("Does not throw when sending email OTP")
+    func doesNotThrowOnSendEmailOtp() async throws {
+        try await authManager.sendEmailOtp(email: "user@example.com")
     }
 
     @Test("Does not throw when OTP code is non-empty")
     func doesNotThrowOnNonEmptyCode() async throws {
-        _ = try await authManager.otpAuthentication(email: "user@example.com", code: "123456")
+        try await authManager.sendEmailOtp(email: "user@example.com")
+        _ = try await authManager.confirmEmailOtp(email: "user@example.com", code: "123456")
     }
 }
 
@@ -45,7 +47,11 @@ private struct StubAuthService: AuthService {
     }
 
     func refreshJWT(_ request: RefreshJWTRequest) async throws(AuthError) -> RefreshJWTResponse {
-        throw AuthError.generic("not implemented")
+        RefreshJWTResponse(
+            jwt: "test-jwt",
+            refresh: .init(secret: "test-secret", expiresAt: Date().addingTimeInterval(3600)),
+            user: .init(id: "test-id", email: "user@example.com")
+        )
     }
 
     func logout(_ request: LogoutRequest) async throws(AuthError) {}
