@@ -107,7 +107,7 @@ struct SigningView: View {
             case .message:
                 signature = try await wallet.signMessage(messageText)
             case .typedData:
-                signature = try await wallet.signTypedData(exampleTypedData())
+                signature = try await wallet.signTypedData(try exampleTypedData())
             }
         } catch {
             errorMessage = error.userMessage
@@ -115,8 +115,8 @@ struct SigningView: View {
         isSigning = false
     }
 
-    private func exampleTypedData() -> EIP712.TypedData {
-        EIP712.Builder()
+    private func exampleTypedData() throws -> EIP712.TypedData {
+        guard let typedData = EIP712.Builder()
             .withDomain(EIP712.Domain(
                 name: "Ether Mail",
                 version: "1",
@@ -131,7 +131,9 @@ struct SigningView: View {
                 "to": ["name": "Bob", "wallet": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"],
                 "contents": "Hello, Bob!"
             ])
-            .build()!
+            .build()
+        else { throw SignatureError.creationFailed }
+        return typedData
     }
 }
 
