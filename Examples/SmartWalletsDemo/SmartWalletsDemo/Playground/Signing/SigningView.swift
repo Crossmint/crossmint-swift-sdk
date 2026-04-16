@@ -116,7 +116,7 @@ struct SigningView: View {
     }
 
     private func exampleTypedData() throws -> EIP712.TypedData {
-        guard let typedData = EIP712.Builder()
+        let built = EIP712.Builder()
             .withDomain(EIP712.Domain(
                 name: "Ether Mail",
                 version: "1",
@@ -132,7 +132,7 @@ struct SigningView: View {
                 "contents": "Hello, Bob!"
             ])
             .build()
-        else { throw SignatureError.creationFailed }
+        guard let typedData = built else { throw SignatureError.creationFailed }
         return typedData
     }
 }
