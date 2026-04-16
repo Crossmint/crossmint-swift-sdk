@@ -64,7 +64,7 @@ struct SignerPicker: View {
         let options = [
             (id: "male", label: "Male", sublabel: "gender:male"),
             (id: "female", label: "Female", sublabel: "gender:female"),
-            (id: "non-binary", label: "Non-binary", sublabel: "gender:non-binary"),
+            (id: "non-binary", label: "Non-binary", sublabel: "gender:non-binary")
         ]
         @State private var selection = "male"
         var body: some View {

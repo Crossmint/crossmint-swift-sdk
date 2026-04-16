@@ -12,7 +12,7 @@ struct SignerRow: View {
     var canSelect: Bool = true
     var canRemove: Bool = true
     let onSelect: () -> Void
-    var onRemove: (() -> Void)? = nil
+    var onRemove: (() -> Void)?
 
     static func typeLabel(for locator: String) -> String {
         if locator.hasPrefix("device:") { return "Device" }
@@ -27,15 +27,17 @@ struct SignerRow: View {
 
     private var signerInfo: (type: String, icon: String) {
         let type = Self.typeLabel(for: locator)
-        let icon: String
-        if locator.hasPrefix("device:") { icon = "iphone" }
-        else if locator.hasPrefix("passkey:") { icon = "touchid" }
-        else if locator.hasPrefix("email:") { icon = "envelope" }
-        else if locator.hasPrefix("phone:") { icon = "phone" }
-        else if locator.hasPrefix("api-key:") { icon = "key" }
-        else if locator.hasPrefix("external-wallet:") { icon = "wallet.bifold" }
-        else if locator.hasPrefix("server:") { icon = "server.rack" }
-        else { icon = "questionmark.circle" }
+        let prefix = locator.components(separatedBy: ":").first ?? ""
+        let icon: String = switch prefix {
+        case "device": "iphone"
+        case "passkey": "touchid"
+        case "email": "envelope"
+        case "phone": "phone"
+        case "api-key": "key"
+        case "external-wallet": "wallet.bifold"
+        case "server": "server.rack"
+        default: "questionmark.circle"
+        }
         return (type, icon)
     }
 

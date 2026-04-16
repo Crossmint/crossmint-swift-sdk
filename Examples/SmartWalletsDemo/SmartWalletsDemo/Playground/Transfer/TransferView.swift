@@ -7,7 +7,7 @@ import CrossmintClient
 import SwiftUI
 
 struct TransferView: View {
-    var onComplete: (() async -> Void)? = nil
+    var onComplete: (() async -> Void)?
 
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss

@@ -31,7 +31,7 @@ final class AppState {
     private var currentEmail: String?
 
     // Signer selection (shared across Transfer/Signing/Signers)
-    private(set) var selectedSignerLocator: String? = nil
+    private(set) var selectedSignerLocator: String?
 
     private let sdk: CrossmintSDK = .shared
 
