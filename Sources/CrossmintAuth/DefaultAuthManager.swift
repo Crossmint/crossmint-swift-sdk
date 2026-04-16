@@ -72,58 +72,32 @@ public actor CrossmintAuthManager: AuthManager {
     }
 #endif
 
-    public func otpAuthentication(
-        email: String,
-        code: String? = nil,
-        forceRefresh: Bool = false
-    ) async throws(AuthManagerError) -> OTPAuthenticationStatus {
-        let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    public func sendEmailOtp(email: String) async throws(AuthManagerError) {
+        let normalizedEmail = normalizeEmail(email)
         guard isValidEmail(normalizedEmail) else {
             throw AuthManagerError.invalidEmail
         }
         do {
-            if forceRefresh || !otpAuthenticationStatus.isAuthenticating {
-                otpAuthenticationStatus = try await startEmailValidation(
-                    email: normalizedEmail
-                )
-            } else {
-                switch otpAuthenticationStatus {
-                case .authenticationStatus(let authenticationStatus):
-                    switch authenticationStatus {
-                    case .nonAuthenticated:
-                        otpAuthenticationStatus = try await startEmailValidation(email: normalizedEmail)
-                        jwtRefreshTimer?.invalidate()
-                    case .authenticated(let authenticatedEmail, _, _):
-                        if authenticatedEmail != normalizedEmail {
-                            // swiftlint:disable:next line_length
-                            Logger.auth.debug("Starting authentication again. \(email) is different from \(authenticatedEmail)")
-                            otpAuthenticationStatus = try await startEmailValidation(email: normalizedEmail)
-                            jwtRefreshTimer?.invalidate()
-                        } else {
-                            Logger.auth.debug("Already authenticated. Use force refresh to authenticate again")
-                        }
-                    case .authenticating:
-                        break
-                    }
-                case .emailSent(let verifiedEmail, let emailId):
-                    if let code {
-                        if verifiedEmail == normalizedEmail {
-                            try await refreshJWT(
-                                try await authService.validateToken(
-                                    ValidateTokenRequest(email: verifiedEmail, token: code, emailID: emailId)
-                                ).oneTimeSecret
-                            )
-                        } else {
-                            Logger.auth.debug("Email mismatch. Using \(normalizedEmail) to start authentication again")
-                            otpAuthenticationStatus = try await startEmailValidation(email: normalizedEmail)
-                        }
-                    } else {
-                        // swiftlint:disable:next line_length
-                        Logger.auth.debug("No code received while expecting it. Authentication won't proceed until a code is provided")
-                    }
+            let newStatus = try await startEmailValidation(email: normalizedEmail)
+            jwtRefreshTimer?.invalidate()
+            otpAuthenticationStatus = newStatus
+        } catch {
+            throw AuthManagerError.serviceError(error.errorMessage)
+        }
+    }
 
-                }
-            }
+    public func confirmEmailOtp(email: String, code: String) async throws(AuthManagerError) -> OTPAuthenticationStatus {
+        let normalizedEmail = normalizeEmail(email)
+        guard case let .emailSent(verifiedEmail, emailId) = otpAuthenticationStatus,
+              verifiedEmail == normalizedEmail else {
+            throw AuthManagerError.noPendingOTP
+        }
+        do {
+            try await refreshJWT(
+                try await authService.validateToken(
+                    ValidateTokenRequest(email: verifiedEmail, token: code, emailID: emailId)
+                ).oneTimeSecret
+            )
             return otpAuthenticationStatus
         } catch {
             throw AuthManagerError.serviceError(error.errorMessage)
@@ -164,6 +138,10 @@ public actor CrossmintAuthManager: AuthManager {
         )
         otpAuthenticationStatus = .authenticationStatus(authStatus)
         _authenticationStatus = authStatus
+    }
+
+    private func normalizeEmail(_ email: String) -> String {
+        email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func startEmailValidation(email: String) async throws(AuthError) -> OTPAuthenticationStatus {
