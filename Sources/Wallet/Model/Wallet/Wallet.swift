@@ -12,6 +12,10 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
+    public var signers: [WalletDelegatedSignerConfigApiModel] {
+        initialDelegatedSigners
+    }
+
     internal let smartWalletService: SmartWalletService
     internal let config: WalletConfig
     internal let blockchainAddress: Address

@@ -22,8 +22,7 @@ struct SignerPicker: View {
         var result: [Option] = []
         guard let wallet = appState.wallet else { return result }
 
-        let recovery = wallet.recoveryLocator
-        if isSelectable(recovery) {
+        if let recovery = appState.recoveryLocator, isSelectable(recovery) {
             result.append(Option(locator: recovery, typeLabel: SignerRow.typeLabel(for: recovery), isRecovery: true))
         }
         for signer in wallet.signers {

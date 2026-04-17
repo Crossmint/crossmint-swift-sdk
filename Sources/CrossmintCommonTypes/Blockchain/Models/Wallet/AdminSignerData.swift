@@ -93,17 +93,6 @@ public struct ServerSignerData: AdminSignerData {
     public let address: String
 
     public var type: AdminSignerDataType { .server }
-    public var locatorId: String { address }
-
-    public init(address: String) {
-        self.address = address
-    }
-}
-
-public struct ServerSignerData: AdminSignerData {
-    public let address: String
-
-    public var type: AdminSignerDataType { .server }
 
     public var locatorId: String { address }
 

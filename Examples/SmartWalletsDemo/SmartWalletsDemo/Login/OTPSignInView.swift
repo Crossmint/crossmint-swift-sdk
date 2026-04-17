@@ -9,7 +9,6 @@ struct OTPSignInView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var showOTPVerification = false
-    @State private var emailId = ""
     @State private var verifiedAuthStatus: AuthenticationStatus?
 
     var body: some View {
@@ -54,8 +53,7 @@ struct OTPSignInView: View {
         .sheet(isPresented: $showOTPVerification) {
             VerificationView(
                 authenticationStatus: $verifiedAuthStatus,
-                email: email,
-                emailId: emailId
+                email: email
             )
             .presentationDetents([.medium])
         }
@@ -76,16 +74,9 @@ struct OTPSignInView: View {
         isSigningIn = true
         Task {
             do {
-                let status = try await crossmintAuthManager.otpAuthentication(
-                    email: email,
-                    code: nil,
-                    forceRefresh: false
-                )
+                try await crossmintAuthManager.sendEmailOtp(email: email)
                 isSigningIn = false
-                if case let .emailSent(_, id) = status {
-                    emailId = id
-                    showOTPVerification = true
-                }
+                showOTPVerification = true
             } catch let authError as AuthManagerError {
                 isSigningIn = false
                 alertMessage = authError.errorMessage

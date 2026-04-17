@@ -85,13 +85,15 @@ struct SignersView: View {
 
     @ViewBuilder
     private func recoverySection(wallet: Wallet) -> some View {
-        Section("Recovery") {
-            SignerRow(
-                locator: wallet.recoveryLocator,
-                canSelect: false,
-                canRemove: false,
-                onSelect: {}
-            )
+        if let locator = appState.recoveryLocator {
+            Section("Recovery") {
+                SignerRow(
+                    locator: locator,
+                    canSelect: false,
+                    canRemove: false,
+                    onSelect: {}
+                )
+            }
         }
     }
 

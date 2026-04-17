@@ -113,7 +113,7 @@ extension Wallet {
             let locator = "external-wallet:\(address)"
             guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
             throw WalletError.walletGeneric(
-                "External wallet signers must approve transactions outside of the SDK."
+                "External wallet initialDelegatedSigners must approve transactions outside of the SDK."
             )
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
@@ -140,12 +140,12 @@ extension Wallet {
     internal func initDefaultSigner() async {
         guard deviceSignerKeyStorage != nil else { return }
 
-        switch signers.count {
+        switch initialDelegatedSigners.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locator = signers[0].locator,
+            guard let locator = initialDelegatedSigners[0].locator,
                   locator.hasPrefix("device:"),
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
@@ -154,7 +154,7 @@ extension Wallet {
                 _needsRecovery = true
             }
         default:
-            // Multiple delegated signers — user must call useSigner to select one
+            // Multiple delegated initialDelegatedSigners — user must call useSigner to select one
             break
         }
     }

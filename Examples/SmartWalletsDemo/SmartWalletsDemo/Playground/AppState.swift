@@ -40,6 +40,7 @@ final class AppState {
     var wallet: Wallet? { walletCache[selectedChain] }
     var walletNotFound: Bool { notFoundChains.contains(selectedChain) }
     var isLoadingWallet: Bool { loadingChains.contains(selectedChain) }
+    var recoveryLocator: String? { currentEmail.map { "email:\($0)" } }
 
     var formattedBalance: String {
         guard let balance else { return "—" }
