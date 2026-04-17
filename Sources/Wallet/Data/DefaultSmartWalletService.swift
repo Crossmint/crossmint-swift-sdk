@@ -400,7 +400,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let chain = signerChain(chainType: chainType, chainName: chainName)
         let bodyData = try jsonCoder.encodeRequest(
-            RegisterTypedSignerBody(signerData: signer, chain: chain),
+            RegisterTypedSignerBody(signer: AdminSignerRequestApiModel(signer), chain: chain),
             errorType: WalletError.self
         )
         let responseData = try await crossmintService.executeRequestForRawData(

@@ -80,7 +80,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
-    // swiftlint:disable:next function_parameter_count
     func transferToken(
         chainType: String,
         tokenLocator: String,

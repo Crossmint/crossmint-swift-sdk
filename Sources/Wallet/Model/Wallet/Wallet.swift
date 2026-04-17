@@ -24,7 +24,7 @@ open class Wallet: @unchecked Sendable {
     var selectedSignerLocator: String?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
-    public var signers: [WalletDelegatedSignerConfigApiModel] = []
+    var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 
     private let owner: Owner?
@@ -65,14 +65,11 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name
         )
-        self.signers = baseModel.config.signers ?? []
+        self.initialDelegatedSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
             await self?.initDefaultSigner()
         }
     }
-
-    /// The locator string of this wallet's recovery (admin) signer, e.g. `"email:user@example.com"`.
-    public var recoveryLocator: String { config.recovery.locator }
 
     /// Returns whether the given locator is registered as a signer on this wallet.
     ///

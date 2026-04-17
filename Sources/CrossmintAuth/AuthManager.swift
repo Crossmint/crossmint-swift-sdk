@@ -12,6 +12,7 @@ public enum AuthManagerError: Swift.Error, Equatable {
     case serviceError(String)
     case invalidInput(String)
     case invalidEmail
+    case noPendingOTP
 
     public var errorMessage: String {
         return switch self {
@@ -19,6 +20,8 @@ public enum AuthManagerError: Swift.Error, Equatable {
             message
         case .invalidEmail:
             "Invalid email address"
+        case .noPendingOTP:
+            "No OTP email has been sent. Call sendEmailOtp first."
         }
     }
 }

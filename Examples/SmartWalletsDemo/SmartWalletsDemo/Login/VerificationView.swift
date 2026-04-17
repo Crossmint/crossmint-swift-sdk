@@ -17,7 +17,6 @@ struct VerificationView: View {
     }
 
     let email: String
-    let emailId: String
 
     var body: some View {
         VStack(spacing: 20) {
@@ -83,26 +82,18 @@ struct VerificationView: View {
         isVerifying = true
         Task {
             do {
-                let status = try await crossmintAuthManager.otpAuthentication(
-                    email: email,
-                    code: verificationCode,
-                    forceRefresh: false
-                )
+                let status = try await crossmintAuthManager.confirmEmailOtp(email: email, code: verificationCode)
 
                 isVerifying = false
 
-                if case let .authenticationStatus(authStatus) = status {
-                    if case .authenticated = authStatus {
-                        withAnimation(AnimationConstants.easeOut()) {
-                            opacity = 0
-                        }
-
-                        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                            authenticationStatus = authStatus
-                        }
+                if case let .authenticationStatus(authStatus) = status, case .authenticated = authStatus {
+                    withAnimation(AnimationConstants.easeOut()) {
+                        opacity = 0
                     }
-                } else {
-                    showAlert(with: "Invalid verification code. Please try again.")
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
+                        authenticationStatus = authStatus
+                    }
                 }
             } catch {
                 isVerifying = false
@@ -115,15 +106,8 @@ struct VerificationView: View {
     private func resendCode() {
         Task {
             do {
-                let status = try await crossmintAuthManager.otpAuthentication(
-                    email: email,
-                    code: nil,
-                    forceRefresh: true
-                )
-
-                if case .emailSent = status {
-                    showAlert(with: "A new verification code has been sent to your email.")
-                }
+                try await crossmintAuthManager.sendEmailOtp(email: email)
+                showAlert(with: "A new verification code has been sent to your email.")
             } catch {
                 showAlert(with: "Error sending new code: \(error.localizedDescription)")
                 print("Error resending code: \(error)")
@@ -153,7 +137,6 @@ struct VerificationView: View {
 #Preview {
     VerificationView(
         authenticationStatus: .constant(nil),
-        email: "example@email.com",
-        emailId: "sample-id"
+        email: "example@email.com"
     )
 }
