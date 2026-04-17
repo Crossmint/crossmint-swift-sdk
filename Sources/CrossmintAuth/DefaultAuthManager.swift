@@ -87,6 +87,9 @@ public actor CrossmintAuthManager: AuthManager {
     }
 
     public func confirmEmailOtp(email: String, code: String) async throws(AuthManagerError) -> OTPAuthenticationStatus {
+        if code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw AuthManagerError.invalidInput("OTP code cannot be empty")
+        }
         let normalizedEmail = normalizeEmail(email)
         guard case let .emailSent(verifiedEmail, emailId) = otpAuthenticationStatus,
               verifiedEmail == normalizedEmail else {
