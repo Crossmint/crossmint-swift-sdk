@@ -19,11 +19,21 @@ struct AdminSignerDataTests {
 
     // MARK: - ApiKeySignerData
 
-    @Test("ApiKeySignerData initialization")
+    @Test("ApiKeySignerData initialization with address")
     func testApiKeySignerDataInit() {
+        let signer = ApiKeySignerData(address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+
+        #expect(signer.type == .apiKey)
+        #expect(signer.address == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+        #expect(signer.locatorId == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+    }
+
+    @Test("ApiKeySignerData initialization without address falls back to type rawValue")
+    func testApiKeySignerDataInitNoAddress() {
         let signer = ApiKeySignerData()
 
         #expect(signer.type == .apiKey)
+        #expect(signer.address == nil)
         #expect(signer.locatorId == "api-key")
     }
 

@@ -158,14 +158,18 @@ struct ChainTest {
     }
 
     @Test(
-        "Unknown chains should be valid in both environments"
+        "Unknown chains should be invalid in both environments"
     )
-    func unknownChainsValidInBothEnvironments() async {
+    func unknownChainsInvalidInBothEnvironments() async {
         let unknownChain = Chain.unknown(name: "custom_chain")
 
         #expect(
-            unknownChain.isValid(isProductionEnvironment: true),
-            "Unknown chain should be valid in production environment"
+            !unknownChain.isValid(isProductionEnvironment: true),
+            "Unknown chain should be invalid in production environment"
+        )
+        #expect(
+            !unknownChain.isValid(isProductionEnvironment: false),
+            "Unknown chain should be invalid in test environment"
         )
     }
 

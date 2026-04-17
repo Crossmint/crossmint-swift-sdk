@@ -28,8 +28,8 @@ struct AdminSignerRequestApiModel: Encodable {
             try container.encode(d.name, forKey: .name)
             try container.encode(PasskeyPublicKey(d.publicKey), forKey: .publicKey)
             try container.encodeIfPresent(d.validatorContractVersion, forKey: .validatorContractVersion)
-        case is ApiKeySignerData:
-            break
+        case let d as ApiKeySignerData:
+            try container.encodeIfPresent(d.address, forKey: .address)
         default:
             break
         }

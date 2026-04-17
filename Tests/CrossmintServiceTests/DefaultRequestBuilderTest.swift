@@ -99,4 +99,18 @@ struct DefaultRequestBuilderTest {
 
         #expect(request.httpMethod == "POST")
     }
+
+    @Test("Preserves percent-encoded characters in path")
+    func preservesPercentEncodedPathCharacters() throws {
+        let request = try requestBuilder.getRequest(
+            forEndpoint: .init(
+                path: "/2025-06-09/wallets/me:evm-smart-wallet/signers/device%2Bkey%3Dvalue%2Fextra",
+                method: .delete
+            ),
+            withKey: apiKey,
+            andAppIdentifier: "App-Identifier"
+        )
+
+        #expect(request.url?.absoluteString.contains("device%2Bkey%3Dvalue%2Fextra") == true)
+    }
 }

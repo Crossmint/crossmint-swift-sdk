@@ -30,10 +30,14 @@ public struct ExternalWalletSignerData: AdminSignerData {
 }
 
 public struct ApiKeySignerData: AdminSignerData {
-    public var type: AdminSignerDataType { .apiKey }
-    public var locatorId: String { "api-key" }
+    public let address: String?
 
-    public init() {}
+    public var type: AdminSignerDataType { .apiKey }
+    public var locatorId: String { address ?? type.rawValue }
+
+    public init(address: String? = nil) {
+        self.address = address
+    }
 }
 
 public struct PasskeySignerData: AdminSignerData {

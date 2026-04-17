@@ -7,14 +7,21 @@ public protocol AuthManager: Sendable {
     func setJWT(_ jwt: String) async
 }
 
-public enum AuthManagerError: Swift.Error {
+public enum AuthManagerError: Swift.Error, Equatable {
     case unknown(String)
     case serviceError(String)
+    case invalidInput(String)
+    case invalidEmail
+    case noPendingOTP
 
     public var errorMessage: String {
         return switch self {
-            case .unknown(let message), .serviceError(let message):
-                message
+        case .unknown(let message), .serviceError(let message), .invalidInput(let message):
+            message
+        case .invalidEmail:
+            "Invalid email address"
+        case .noPendingOTP:
+            "No OTP email has been sent. Call sendEmailOtp first."
         }
     }
 }

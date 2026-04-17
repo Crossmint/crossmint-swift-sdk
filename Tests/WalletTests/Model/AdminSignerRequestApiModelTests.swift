@@ -40,6 +40,11 @@ struct AdminSignerRequestApiModelTests {
         #expect(json == #"{"type":"api-key"}"#)
     }
 
+    @Test func apiKeySignerWithAddressEncodesCorrectly() throws {
+        let json = try encode(ApiKeySignerData(address: "0xABC"))
+        #expect(json == #"{"address":"0xABC","type":"api-key"}"#)
+    }
+
     @Test func passkeySignerEncodesCorrectly() throws {
         let key = PasskeySignerData.PublicKey(x: "123", y: "456")
         let json = try encode(PasskeySignerData(id: "pk-id", name: "alice", publicKey: key))

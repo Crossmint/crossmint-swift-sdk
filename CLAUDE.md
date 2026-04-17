@@ -39,9 +39,6 @@ swift package plugin --allow-writing-to-package-directory swiftlint --fix
 ```bash
 # Build the EVM demo app (SmartWalletsDemo)
 make build-evm-demo
-
-# Build the Solana demo app
-make build-solana-demo
 ```
 
 ### Other Commands
