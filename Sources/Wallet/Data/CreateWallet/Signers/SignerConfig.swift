@@ -12,6 +12,24 @@ public enum SignerConfig: Sendable {
     case passkey(name: String, host: String)
     /// An email OTP signer.
     case email(String)
+    /// A phone OTP signer. The phone number must be in E.164 format (e.g. `"+15551234567"`).
+    case phone(String)
+    /// An external wallet signer identified by its blockchain address.
+    case externalWallet(String)
     /// The API key signer (server-side / custodial).
     case apiKey
+}
+
+extension SignerConfig {
+    /// The locator string for this signer config, or `nil` for types whose locator
+    /// cannot be determined without async context (`.device`) or server-assigned data (`.passkey`).
+    var locator: String? {
+        switch self {
+        case .email(let email): "email:\(email)"
+        case .phone(let phone): "phone:\(phone)"
+        case .externalWallet(let address): "external-wallet:\(address)"
+        case .apiKey: "api-key"
+        case .device, .passkey: nil
+        }
+    }
 }

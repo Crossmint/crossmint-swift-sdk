@@ -23,9 +23,7 @@ extension Wallet {
 
     /// Registers a new signer on this wallet.
     ///
-    /// Currently supports `.device` signers only. For other types, use the Crossmint dashboard.
-    ///
-    /// - Parameter config: The signer to add.
+    /// - Parameter config: The signer configuration to register.
     /// - Throws: ``WalletError`` if registration fails.
     public func addSigner(_ config: SignerConfig) async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart)
@@ -35,8 +33,11 @@ extension Wallet {
                 let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
                 try await registerDeviceSigner(storage: storage)
                 deviceSignerKeyStorage = storage
-            default:
-                throw WalletError.walletGeneric("addSigner only supports .device signers via this method")
+            case .email, .phone, .externalWallet, .apiKey:
+                guard let locator = config.locator else { return }
+                try await registerLocatorSigner(locator)
+            case .passkey(let name, let host):
+                try await registerPasskeySigner(name: name, host: host)
             }
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
         } catch {
@@ -98,6 +99,16 @@ extension Wallet {
             let newSigner: any Signer = await MainActor.run { makeEmailSigner(email: email) }
             selectedSigner = newSigner
             selectedSignerLocator = locator
+        case .phone(let phone):
+            let locator = "phone:\(phone)"
+            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+            throw WalletError.walletGeneric("Phone OTP signing is not yet supported on iOS.")
+        case .externalWallet(let address):
+            let locator = "external-wallet:\(address)"
+            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+            throw WalletError.walletGeneric(
+                "External wallet signers must approve transactions outside of the SDK."
+            )
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:
@@ -215,5 +226,17 @@ extension Wallet {
         try await deviceSignerService.register(storage: storage, signer: signer)
         _needsRecovery = false
         _deviceSignerApproved = true
+    }
+
+    // MARK: - Locator-based signer registration
+
+    private func registerLocatorSigner(_ locator: String) async throws(WalletError) {
+        let adminSigner = await updateSignerIfRequired()
+        try await signerRegistrationService.register(locator: locator, signer: adminSigner)
+    }
+
+    private func registerPasskeySigner(name: String, host: String) async throws(WalletError) {
+        let adminSigner = await updateSignerIfRequired()
+        try await signerRegistrationService.registerPasskey(name: name, host: host, adminSigner: adminSigner)
     }
 }

@@ -377,28 +377,40 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        struct RegisterSignerBody: Encodable {
-            let signer: String
-            let chain: String?
-        }
-        let chain: String? = chainType == .solana || chainType == .stellar ? nil : chainName
+        let chain = signerChain(chainType: chainType, chainName: chainName)
         let bodyData = try jsonCoder.encodeRequest(
             RegisterSignerBody(signer: entry.signer, chain: chain),
             errorType: WalletError.self
         )
         let responseData = try await crossmintService.executeRequestForRawData(
-            Endpoint(
-                path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers",
-                method: .post,
-                headers: authHeaders,
-                body: bodyData
-            ),
+            .meWalletSigners(chainType: chainType, headers: authHeaders, body: bodyData),
             errorType: WalletError.self
         )
         do {
             return try jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData)
         } catch {
             throw WalletError.walletGeneric("Failed to decode delegated signer registration response")
+        }
+    }
+
+    public func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        let chain = signerChain(chainType: chainType, chainName: chainName)
+        let bodyData = try jsonCoder.encodeRequest(
+            RegisterTypedSignerBody(signer: AdminSignerRequestApiModel(signer), chain: chain),
+            errorType: WalletError.self
+        )
+        let responseData = try await crossmintService.executeRequestForRawData(
+            .meWalletSigners(chainType: chainType, headers: authHeaders, body: bodyData),
+            errorType: WalletError.self
+        )
+        do {
+            return try jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode signer registration response")
         }
     }
 
@@ -480,5 +492,9 @@ public final class DefaultSmartWalletService: SmartWalletService {
                 "Authorization": "Bearer \(jwt)"
             ]
         }
+    }
+
+    private func signerChain(chainType: ChainType, chainName: String) -> String? {
+        chainType == .solana || chainType == .stellar ? nil : chainName
     }
 }
