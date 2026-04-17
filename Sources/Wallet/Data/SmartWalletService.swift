@@ -66,7 +66,7 @@ public protocol SmartWalletService: AuthenticatedService, Sendable {
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func registerTypedSigner(
-        _ signer: PasskeySignerData,
+        _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse

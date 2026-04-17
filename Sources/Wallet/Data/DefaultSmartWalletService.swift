@@ -394,7 +394,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
     }
 
     public func registerTypedSigner(
-        _ signer: PasskeySignerData,
+        _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
