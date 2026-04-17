@@ -394,13 +394,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
     }
 
     public func registerTypedSigner(
-        _ signer: any AdminSignerData,
+        _ signer: PasskeySignerData,
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let chain = signerChain(chainType: chainType, chainName: chainName)
         let bodyData = try jsonCoder.encodeRequest(
-            RegisterTypedSignerBody(signerData: signer, chain: chain),
+            RegisterTypedSignerBody(signer: AdminSignerRequestApiModel(signer), chain: chain),
             errorType: WalletError.self
         )
         let responseData = try await crossmintService.executeRequestForRawData(

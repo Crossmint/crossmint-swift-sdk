@@ -8,17 +8,8 @@ struct RegisterSignerBody: Encodable {
 }
 
 struct RegisterTypedSignerBody: Encodable {
-    let signerData: any AdminSignerData
+    let signer: AdminSignerRequestApiModel
     let chain: String?
-
-    enum CodingKeys: String, CodingKey { case signer, chain }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        let signerEncoder = container.superEncoder(forKey: .signer)
-        try signerData.encode(to: signerEncoder)
-        try container.encodeIfPresent(chain, forKey: .chain)
-    }
 }
 
 extension Endpoint {
