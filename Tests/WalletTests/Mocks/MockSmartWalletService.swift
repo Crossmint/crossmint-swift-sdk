@@ -27,7 +27,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var registerTypedSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil)
 
     func registerTypedSigner(
-        _ signer: any AdminSignerData,
+        _ signer: PasskeySignerData,
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
@@ -80,7 +80,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
-    // swiftlint:disable:next function_parameter_count
     func transferToken(
         chainType: String,
         tokenLocator: String,
