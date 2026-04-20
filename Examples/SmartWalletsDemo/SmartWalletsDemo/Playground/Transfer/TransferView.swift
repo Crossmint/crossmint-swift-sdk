@@ -19,6 +19,7 @@ struct TransferView: View {
     @State private var transactionId: String?
     @State private var errorMessage: String?
     @State private var txCopied = false
+    @FocusState private var isAnyFieldFocused: Bool
 
     private var tokens: [(name: String, locator: String)] {
         appState.selectedChain.transferTokens
@@ -31,7 +32,8 @@ struct TransferView: View {
         return all.first { $0.name.lowercased() == tokenName || $0.symbol.value.lowercased() == tokenName }.map { tb in
             let value = Double(tb.amount) ?? 0
             let fractionLength = value < 0.001 ? 6 : (value < 1 ? 4 : 2)
-            return "\(value.formatted(.number.precision(.fractionLength(fractionLength)))) \(tb.symbol.value.uppercased())"
+            let formatted = value.formatted(.number.precision(.fractionLength(fractionLength)))
+            return "\(formatted) \(tb.symbol.value.uppercased())"
         }
     }
 
@@ -59,11 +61,13 @@ struct TransferView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .font(.system(.body, design: .monospaced))
+                        .focused($isAnyFieldFocused)
                 }
 
                 Section("Amount") {
                     TextField("0.00", text: $amount)
                         .keyboardType(.decimalPad)
+                        .focused($isAnyFieldFocused)
                     if let bal = selectedTokenBalance {
                         LabeledContent("Balance", value: bal)
                             .font(.footnote)
@@ -122,12 +126,14 @@ struct TransferView: View {
 
     private func send() async {
         guard let wallet = appState.wallet, let amountValue = Double(amount) else { return }
+        isAnyFieldFocused = false
         isSending = true
         errorMessage = nil
         transactionId = nil
         let locator = tokens[selectedTokenIndex].locator
+        let trimmedAddress = recipientAddress.trimmingCharacters(in: .whitespaces)
         do {
-            let result = try await wallet.send(recipientAddress.trimmingCharacters(in: .whitespaces), locator, amountValue)
+            let result = try await wallet.send(trimmedAddress, locator, amountValue)
             transactionId = result.hash
             recipientAddress = ""
             amount = ""

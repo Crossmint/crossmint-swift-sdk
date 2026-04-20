@@ -16,6 +16,7 @@ struct SigningView: View {
     @State private var signature: String?
     @State private var isSigning = false
     @State private var errorMessage: String?
+    @FocusState private var isMessageFocused: Bool
 
     enum SigningMode: String, CaseIterable {
         case message = "Message"
@@ -39,6 +40,7 @@ struct SigningView: View {
                     Section("Message") {
                         TextField("Enter message to sign…", text: $messageText, axis: .vertical)
                             .lineLimit(4...)
+                            .focused($isMessageFocused)
                     }
                 } else {
                     Section("Typed Data") {
@@ -84,6 +86,7 @@ struct SigningView: View {
                     .disabled(isSigning || wallet == nil || (mode == .message && messageText.isEmpty))
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Signing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -99,6 +102,7 @@ struct SigningView: View {
 
     private func sign() async {
         guard let wallet else { return }
+        isMessageFocused = false
         isSigning = true
         signature = nil
         errorMessage = nil

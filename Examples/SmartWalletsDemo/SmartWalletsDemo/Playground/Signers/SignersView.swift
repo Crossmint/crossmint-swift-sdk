@@ -43,7 +43,6 @@ struct SignersView: View {
                                 SignerRow(
                                     locator: locator,
                                     isRemoving: removingSignerLocator == locator,
-                                    canSelect: false,
                                     canRemove: true,
                                     onSelect: {},
                                     onRemove: { Task { await removeSigner(signer) } }
@@ -89,7 +88,6 @@ struct SignersView: View {
             Section("Recovery") {
                 SignerRow(
                     locator: locator,
-                    canSelect: false,
                     canRemove: false,
                     onSelect: {}
                 )

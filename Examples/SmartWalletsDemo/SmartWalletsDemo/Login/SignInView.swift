@@ -14,7 +14,7 @@ struct SignInView: View {
                 Spacer()
 
                 AuthHeaderView(
-                    title: "EVM Quickstart",
+                    title: "Smart Wallets Demo",
                     subtitle: "The easiest way to build onchain"
                 )
 

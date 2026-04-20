@@ -35,19 +35,21 @@ struct SignerPicker: View {
 
     var body: some View {
         let opts = options
-        Section {
-            Picker("Sign with", selection: Binding(
-                get: { appState.selectedSignerLocator ?? opts.first?.id ?? "" },
-                set: { new in Task { await appState.selectSigner(locator: new) } }
-            )) {
-                ForEach(opts) { opt in
-                    Button { } label: {
-                        Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
-                        Text(opt.id)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+        if opts.count > 1 {
+            Section {
+                Picker("Sign with", selection: Binding(
+                    get: { appState.selectedSignerLocator ?? opts.first?.id ?? "" },
+                    set: { new in Task { await appState.selectSigner(locator: new) } }
+                )) {
+                    ForEach(opts) { opt in
+                        Button { } label: {
+                            Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
+                            Text(opt.id)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .tag(opt.id)
                     }
-                    .tag(opt.id)
                 }
             }
         }

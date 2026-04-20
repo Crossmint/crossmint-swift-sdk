@@ -49,7 +49,8 @@ final class AppState {
         for token in all {
             guard let amount = Double(token.amount), amount > 0 else { continue }
             let fractionLength = amount < 0.001 ? 6 : (amount < 1 ? 4 : 2)
-            parts.append("\(amount.formatted(.number.precision(.fractionLength(fractionLength)))) \(token.symbol.value.uppercased())")
+            let formatted = amount.formatted(.number.precision(.fractionLength(fractionLength)))
+            parts.append("\(formatted) \(token.symbol.value.uppercased())")
         }
         return parts.isEmpty ? "No balance" : parts.joined(separator: " · ")
     }

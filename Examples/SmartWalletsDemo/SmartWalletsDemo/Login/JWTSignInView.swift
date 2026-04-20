@@ -15,7 +15,7 @@ struct JWTSignInView: View {
 
             AuthHeaderView(
                 title: "Bring your own auth",
-                subtitle: "Specify your JWKS endpoint in the Crossmint admin panel, then paste a JWT for the user below."
+                subtitle: "Set your JWKS endpoint in the Crossmint admin panel, then paste a JWT for the user below."
             )
 
             Spacer()

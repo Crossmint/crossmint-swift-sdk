@@ -12,6 +12,9 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
+    /// The delegated signers registered on this wallet at the time it was fetched.
+    /// This is a snapshot — it does not update after calls to `addSigner` or `removeSigner`.
+    /// Re-fetch the wallet to get the current list.
     public var signers: [WalletDelegatedSignerConfigApiModel] {
         initialDelegatedSigners
     }

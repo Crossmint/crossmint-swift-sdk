@@ -8,8 +8,6 @@ import SwiftUI
 struct SignerRow: View {
     let locator: String
     var isRemoving: Bool = false
-    var isSelected: Bool = false
-    var canSelect: Bool = true
     var canRemove: Bool = true
     let onSelect: () -> Void
     var onRemove: (() -> Void)?
@@ -55,15 +53,6 @@ struct SignerRow: View {
             Spacer()
             if isRemoving {
                 ProgressView()
-            } else if isSelected {
-                Image(systemName: "checkmark")
-                    .foregroundStyle(.tint)
-                    .fontWeight(.semibold)
-            } else if canSelect {
-                Button("Use") { onSelect() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(.green)
             }
         }
         .padding(.vertical, 2)

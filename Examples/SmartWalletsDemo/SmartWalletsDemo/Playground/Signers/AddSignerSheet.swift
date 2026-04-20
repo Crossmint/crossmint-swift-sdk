@@ -132,6 +132,10 @@ struct AddSignerSheet: View {
         .otpSheet()
     }
 
+    private var passkeyHost: String {
+        Bundle.main.object(forInfoDictionaryKey: "PasskeyHost") as? String ?? ""
+    }
+
     private func addSigner() async {
         guard let wallet = appState.wallet else { return }
         isAdding = true
@@ -143,7 +147,8 @@ struct AddSignerSheet: View {
             case .device:
                 try await wallet.addSigner(.device)
             case .passkey:
-                try await wallet.addSigner(.passkey(name: value.isEmpty ? "Crossmint Demo" : value, host: "wallets-ios.demos-crossmint.com"))
+                let passkeyName = value.isEmpty ? "Crossmint Demo" : value
+                try await wallet.addSigner(.passkey(name: passkeyName, host: passkeyHost))
             case .externalWallet:
                 try await wallet.addSigner(.externalWallet(value))
             }
