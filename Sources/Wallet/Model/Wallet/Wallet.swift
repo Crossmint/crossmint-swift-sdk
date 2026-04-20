@@ -12,11 +12,12 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
-    /// The delegated signers registered on this wallet at the time it was fetched.
-    /// This is a snapshot — it does not update after calls to `addSigner` or `removeSigner`.
-    /// Re-fetch the wallet to get the current list.
-    public var signers: [WalletDelegatedSignerConfigApiModel] {
-        initialDelegatedSigners
+    /// Fetches the current list of delegated signers from the API.
+    ///
+    /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
+    public func signers() async throws(WalletError) -> [WalletDelegatedSignerConfigApiModel] {
+        let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        return model.config.signers ?? []
     }
 
     internal let smartWalletService: SmartWalletService

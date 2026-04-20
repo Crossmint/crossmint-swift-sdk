@@ -3,12 +3,14 @@
 //  SmartWalletsDemo
 //
 
+import CrossmintClient
 import SwiftUI
 
 /// A form section with a "Sign with" picker.
 /// Only renders when the wallet has more than one selectable signer.
 struct SignerPicker: View {
     @Environment(AppState.self) private var appState
+    @State private var delegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
 
     private struct Option: Identifiable {
         var id: String { locator }
@@ -20,12 +22,10 @@ struct SignerPicker: View {
 
     private var options: [Option] {
         var result: [Option] = []
-        guard let wallet = appState.wallet else { return result }
-
         if let recovery = appState.recoveryLocator, isSelectable(recovery) {
             result.append(Option(locator: recovery, typeLabel: SignerRow.typeLabel(for: recovery), isRecovery: true))
         }
-        for signer in wallet.signers {
+        for signer in delegatedSigners {
             if let locator = signer.locator, isSelectable(locator) {
                 result.append(Option(locator: locator, typeLabel: SignerRow.typeLabel(for: locator), isRecovery: false))
             }
@@ -35,23 +35,29 @@ struct SignerPicker: View {
 
     var body: some View {
         let opts = options
-        if opts.count > 1 {
-            Section {
-                Picker("Sign with", selection: Binding(
-                    get: { appState.selectedSignerLocator ?? opts.first?.id ?? "" },
-                    set: { new in Task { await appState.selectSigner(locator: new) } }
-                )) {
-                    ForEach(opts) { opt in
-                        Button { } label: {
-                            Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
-                            Text(opt.id)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+        Group {
+            if opts.count > 1 {
+                Section {
+                    Picker("Sign with", selection: Binding(
+                        get: { appState.selectedSignerLocator ?? opts.first?.id ?? "" },
+                        set: { new in Task { await appState.selectSigner(locator: new) } }
+                    )) {
+                        ForEach(opts) { opt in
+                            Button { } label: {
+                                Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
+                                Text(opt.id)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .tag(opt.id)
                         }
-                        .tag(opt.id)
                     }
                 }
             }
+        }
+        .task(id: appState.wallet?.address) {
+            guard let wallet = appState.wallet else { return }
+            delegatedSigners = (try? await wallet.signers()) ?? []
         }
     }
 

@@ -11,34 +11,28 @@ struct SignersView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAddSigner = false
     @State private var removingSignerLocator: String?
-    @State private var removedLocators: Set<String> = []
+    @State private var fetchedSigners: [WalletDelegatedSignerConfigApiModel] = []
+    @State private var isLoadingSigners = false
 
     private var isRemovingSigner: Bool { removingSignerLocator != nil }
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var showAlert = false
 
-    private var delegatedSigners: [WalletDelegatedSignerConfigApiModel] {
-        (appState.wallet?.signers ?? [])
-            .filter { !removedLocators.contains($0.locator ?? "") }
-    }
-
     var body: some View {
         NavigationStack {
             List {
-                if let wallet = appState.wallet {
-                    recoverySection(wallet: wallet)
-                }
+                recoverySection()
 
                 Section("Signers") {
-                    if delegatedSigners.isEmpty && !appState.isLoadingWallet {
+                    if fetchedSigners.isEmpty && !isLoadingSigners {
                         ContentUnavailableView(
                             "No Signers",
                             systemImage: "person.badge.key",
                             description: Text("No delegated signers are registered on this wallet.")
                         )
                     } else {
-                        ForEach(delegatedSigners, id: \.locator) { signer in
+                        ForEach(fetchedSigners, id: \.locator) { signer in
                             if let locator = signer.locator {
                                 SignerRow(
                                     locator: locator,
@@ -73,9 +67,12 @@ struct SignersView: View {
             } message: {
                 Text(alertMessage)
             }
+            .task(id: appState.wallet?.address) {
+                await loadSigners()
+            }
         }
         .interactiveDismissDisabled(isRemovingSigner)
-        .sheet(isPresented: $showAddSigner, onDismiss: { Task { await appState.reloadCurrentWallet() } }) {
+        .sheet(isPresented: $showAddSigner, onDismiss: { Task { await loadSigners() } }) {
             AddSignerSheet()
                 .environment(appState)
         }
@@ -83,7 +80,7 @@ struct SignersView: View {
     }
 
     @ViewBuilder
-    private func recoverySection(wallet: Wallet) -> some View {
+    private func recoverySection() -> some View {
         if let locator = appState.recoveryLocator {
             Section("Recovery") {
                 SignerRow(
@@ -95,14 +92,20 @@ struct SignersView: View {
         }
     }
 
+    private func loadSigners() async {
+        guard let wallet = appState.wallet else { return }
+        isLoadingSigners = true
+        fetchedSigners = (try? await wallet.signers()) ?? []
+        isLoadingSigners = false
+    }
+
     private func removeSigner(_ signer: WalletDelegatedSignerConfigApiModel) async {
         guard let wallet = appState.wallet, let locator = signer.locator else { return }
         removingSignerLocator = locator
         do {
             _ = try await wallet.removeSigner(locator: locator)
-            removedLocators.insert(locator)
             removingSignerLocator = nil
-            await appState.reloadCurrentWallet()
+            await loadSigners()
             show(title: "Removed", message: "Signer removed.")
         } catch {
             show(title: "Error", message: error.userMessage)
