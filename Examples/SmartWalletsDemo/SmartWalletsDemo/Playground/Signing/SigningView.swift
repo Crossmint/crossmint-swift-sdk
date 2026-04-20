@@ -128,7 +128,7 @@ struct SigningView: View {
                 verifyingContract: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
             ))
             .defineType("Person") { $0.string("name").address("wallet") }
-            .defineType("Mail") { $0.string("contents") }
+            .defineType("Mail") { $0.field("from", type: "Person").field("to", type: "Person").string("contents") }
             .withPrimaryType("Mail")
             .withMessage([
                 "from": ["name": "Cow", "wallet": "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826"],
