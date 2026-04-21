@@ -9,8 +9,8 @@ public struct CustomTextField: View {
 
     public var height: CGFloat = 40
     public var cornerRadius: CGFloat = 8
-    public var borderColor: Color = Color(red: 0.886, green: 0.91, blue: 0.941)
-    public var shadowColor: Color = Color(red: 0.063, green: 0.094, blue: 0.157).opacity(0.05)
+    public var borderColor: Color = Color(.systemGray4)
+    public var shadowColor: Color = Color(.label).opacity(0.05)
     public var shadowRadius: CGFloat = 2
     public var shadowOffset: CGSize = CGSize(width: 0, height: 1)
 
@@ -22,8 +22,8 @@ public struct CustomTextField: View {
         multilineTextAlignment: TextAlignment = .leading,
         height: CGFloat = 40,
         cornerRadius: CGFloat = 8,
-        borderColor: Color = Color(red: 0.886, green: 0.91, blue: 0.941),
-        shadowColor: Color = Color(red: 0.063, green: 0.094, blue: 0.157).opacity(0.05),
+        borderColor: Color = Color(.systemGray4),
+        shadowColor: Color = Color(.label).opacity(0.05),
         shadowRadius: CGFloat = 2,
         shadowOffset: CGSize = CGSize(width: 0, height: 1)
     ) {
@@ -62,7 +62,7 @@ public struct CustomTextField: View {
 
     private var textFieldBackground: some View {
         RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(Color.white)
+            .fill(Color(.systemBackground))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(borderColor, lineWidth: 1)

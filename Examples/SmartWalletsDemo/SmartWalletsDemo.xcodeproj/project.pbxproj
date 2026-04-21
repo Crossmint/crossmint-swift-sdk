@@ -7,34 +7,67 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AC0102102DD700000000006 /* AuthHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102112DD700000000006 /* AuthHeaderView.swift */; };
+		2CC6EA9B9C96B07E039BCA27 /* CopyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */; };
+		30BCF1F16E84DB0995489C62 /* OTPSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F32D4100D0B463E463390BC /* OTPSheet.swift */; };
+		7CAB00000000000000000001 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000001 /* AppState.swift */; };
+		7CAB00000000000000000002 /* PlaygroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000002 /* PlaygroundView.swift */; };
+		7CAB00000000000000000003 /* FeaturesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000003 /* FeaturesSection.swift */; };
+		7CAB00000000000000000004 /* SupportedChain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000004 /* SupportedChain.swift */; };
+		7CAB00000000000000000005 /* ChainPickerMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000005 /* ChainPickerMenu.swift */; };
+		7CAB00000000000000000006 /* WalletSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000006 /* WalletSectionView.swift */; };
+		7CAB00000000000000000007 /* NoWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000007 /* NoWalletView.swift */; };
+		7CAB00000000000000000008 /* AddressRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000008 /* AddressRow.swift */; };
+		7CAB00000000000000000009 /* BalanceRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000009 /* BalanceRow.swift */; };
+		7CAB0000000000000000000A /* AddFundsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000A /* AddFundsRow.swift */; };
+		7CAB0000000000000000000B /* TransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000B /* TransferView.swift */; };
+		7CAB0000000000000000000C /* SigningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000C /* SigningView.swift */; };
+		7CAB0000000000000000000D /* SignersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000D /* SignersView.swift */; };
+		7CAB0000000000000000000E /* SignerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000E /* SignerRow.swift */; };
+		7CAB0000000000000000000F /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000F /* ActivityView.swift */; };
+		7CAB00000000000000000010 /* TransferRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000010 /* TransferRow.swift */; };
+		7CAB00000000000000000011 /* AddSignerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000011 /* AddSignerSheet.swift */; };
+		7CAB00000000000000000012 /* SignerPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000012 /* SignerPicker.swift */; };
 		AC0101012DC600000000001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AC0101002DC600000000001 /* LaunchScreen.storyboard */; };
 		AC0101052DC600000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AC0101042DC600000000003 /* Assets.xcassets */; };
 		AC0101072DC600000000004 /* SmartWalletsDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0101062DC600000000004 /* SmartWalletsDemoApp.swift */; };
 		AC0101092DC600000000007 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0101082DC600000000007 /* SplashScreen.swift */; };
 		AC0102012DD700000000001 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102002DD700000000001 /* SignInView.swift */; };
 		AC0102032DD700000000002 /* VerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102022DD700000000002 /* VerificationView.swift */; };
+		AC0102062DD700000000004 /* OTPSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102072DD700000000004 /* OTPSignInView.swift */; };
+		AC0102082DD700000000005 /* JWTSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102092DD700000000005 /* JWTSignInView.swift */; };
 		AC0102052DD700000000003 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102042DD700000000003 /* CustomTextField.swift */; };
-		AC0102072DD800000000001 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102062DD800000000001 /* DashboardView.swift */; };
 		E52EB51B2ED54D19004256E2 /* CrossmintAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52EB51A2ED54D15004256E2 /* CrossmintAuthManager.swift */; };
 		EB49FDE22DC35C0D00BAAFEB /* CrossmintClientSDK in Frameworks */ = {isa = PBXBuildFile; productRef = EB49FDE12DC35C0D00BAAFEB /* CrossmintClientSDK */; };
 		EB5D83162E45FA36002F8EF1 /* OTPValidatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB5D83152E45FA36002F8EF1 /* OTPValidatorView.swift */; };
-		EB9BDDE22DC4CFBF003999C7 /* BalanceDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE12DC4CFBF003999C7 /* BalanceDashboardView.swift */; };
-		EB9BDDE42DC4CFCF003999C7 /* TransferDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE32DC4CFCF003999C7 /* TransferDashboardView.swift */; };
-		EB9BDDE62DC4CFE2003999C7 /* NFTDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE52DC4CFE2003999C7 /* NFTDashboardView.swift */; };
-		EB9BDDEB2DC4D219003999C7 /* GetTestTokenButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDE92DC4D219003999C7 /* GetTestTokenButton.swift */; };
-		EB9BDDEC2DC4D219003999C7 /* WalletBalanceEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDEA2DC4D219003999C7 /* WalletBalanceEntryView.swift */; };
-		EB9BDDF02DC4E3F1003999C7 /* MiddleEllipsisText.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDEF2DC4E3F1003999C7 /* MiddleEllipsisText.swift */; };
-		EB9BDDF32DC4E41C003999C7 /* Color+hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDF22DC4E417003999C7 /* Color+hex.swift */; };
-		EB9BDDF52DC4E43A003999C7 /* View+CornerRadius.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9BDDF42DC4E433003999C7 /* View+CornerRadius.swift */; };
-		EBB46CD82DC8F8E00026AA88 /* AlertViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB46CD72DC8F8E00026AA88 /* AlertViewModel.swift */; };
 		EBEC0BCE2DC37AE4000B59F1 /* CrossmintPoweredView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC0BCC2DC37AE4000B59F1 /* CrossmintPoweredView.swift */; };
 		EBEC0BD12DC39253000B59F1 /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC0BD02DC39253000B59F1 /* PrimaryButton.swift */; };
 		EBEC0BD32DC3955B000B59F1 /* AnimationConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC0BD22DC3955B000B59F1 /* AnimationConstants.swift */; };
 		EBEC0BD52DC396EA000B59F1 /* SecondaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC0BD42DC396EA000B59F1 /* SecondaryButton.swift */; };
-		EBHISTORY12F000000000001 /* TransferHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBHISTORY02F000000000001 /* TransferHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AC0102112DD700000000006 /* AuthHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthHeaderView.swift; sourceTree = "<group>"; };
+		1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopyButton.swift; sourceTree = "<group>"; };
+		6F32D4100D0B463E463390BC /* OTPSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OTPSheet.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000001 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000002 /* PlaygroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaygroundView.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000003 /* FeaturesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeaturesSection.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000004 /* SupportedChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedChain.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000005 /* ChainPickerMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainPickerMenu.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000006 /* WalletSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSectionView.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000007 /* NoWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoWalletView.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000008 /* AddressRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressRow.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000009 /* BalanceRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceRow.swift; sourceTree = "<group>"; };
+		7CAF0000000000000000000A /* AddFundsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundsRow.swift; sourceTree = "<group>"; };
+		7CAF0000000000000000000B /* TransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferView.swift; sourceTree = "<group>"; };
+		7CAF0000000000000000000C /* SigningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningView.swift; sourceTree = "<group>"; };
+		7CAF0000000000000000000D /* SignersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignersView.swift; sourceTree = "<group>"; };
+		7CAF0000000000000000000E /* SignerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignerRow.swift; sourceTree = "<group>"; };
+		7CAF0000000000000000000F /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000010 /* TransferRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferRow.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000011 /* AddSignerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSignerSheet.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000012 /* SignerPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignerPicker.swift; sourceTree = "<group>"; };
 		AC0101002DC600000000001 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		AC0101042DC600000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AC0101062DC600000000004 /* SmartWalletsDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartWalletsDemoApp.swift; sourceTree = "<group>"; };
@@ -42,26 +75,17 @@
 		AC0101082DC600000000007 /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		AC0102002DD700000000001 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		AC0102022DD700000000002 /* VerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationView.swift; sourceTree = "<group>"; };
+		AC0102072DD700000000004 /* OTPSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPSignInView.swift; sourceTree = "<group>"; };
+		AC0102092DD700000000005 /* JWTSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTSignInView.swift; sourceTree = "<group>"; };
 		AC0102042DD700000000003 /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
-		AC0102062DD800000000001 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		E52EB51A2ED54D15004256E2 /* CrossmintAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossmintAuthManager.swift; sourceTree = "<group>"; };
 		EB1EA11F2DC0F6550018C2C3 /* SmartWalletsDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartWalletsDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB5D83152E45FA36002F8EF1 /* OTPValidatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPValidatorView.swift; sourceTree = "<group>"; };
 		EB9BDDDA2DC4B20C003999C7 /* SmartWalletsDemo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SmartWalletsDemo.entitlements; sourceTree = "<group>"; };
-		EB9BDDE12DC4CFBF003999C7 /* BalanceDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceDashboardView.swift; sourceTree = "<group>"; };
-		EB9BDDE32DC4CFCF003999C7 /* TransferDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferDashboardView.swift; sourceTree = "<group>"; };
-		EB9BDDE52DC4CFE2003999C7 /* NFTDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFTDashboardView.swift; sourceTree = "<group>"; };
-		EB9BDDE92DC4D219003999C7 /* GetTestTokenButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetTestTokenButton.swift; sourceTree = "<group>"; };
-		EB9BDDEA2DC4D219003999C7 /* WalletBalanceEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletBalanceEntryView.swift; sourceTree = "<group>"; };
-		EB9BDDEF2DC4E3F1003999C7 /* MiddleEllipsisText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiddleEllipsisText.swift; sourceTree = "<group>"; };
-		EB9BDDF22DC4E417003999C7 /* Color+hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+hex.swift"; sourceTree = "<group>"; };
-		EB9BDDF42DC4E433003999C7 /* View+CornerRadius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+CornerRadius.swift"; sourceTree = "<group>"; };
-		EBB46CD72DC8F8E00026AA88 /* AlertViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewModel.swift; sourceTree = "<group>"; };
 		EBEC0BCC2DC37AE4000B59F1 /* CrossmintPoweredView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossmintPoweredView.swift; sourceTree = "<group>"; };
 		EBEC0BD02DC39253000B59F1 /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		EBEC0BD22DC3955B000B59F1 /* AnimationConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationConstants.swift; sourceTree = "<group>"; };
 		EBEC0BD42DC396EA000B59F1 /* SecondaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryButton.swift; sourceTree = "<group>"; };
-		EBHISTORY02F000000000001 /* TransferHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,12 +100,85 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7CAG00000000000000000001 /* Playground */ = {
+			isa = PBXGroup;
+			children = (
+				7CAG00000000000000000002 /* ChainPicker */,
+				7CAG00000000000000000003 /* Wallet */,
+				7CAG00000000000000000004 /* Transfer */,
+				7CAG00000000000000000005 /* Signing */,
+				7CAG00000000000000000006 /* Signers */,
+				7CAG00000000000000000007 /* Activity */,
+				7CAF00000000000000000001 /* AppState.swift */,
+				7CAF00000000000000000002 /* PlaygroundView.swift */,
+				7CAF00000000000000000003 /* FeaturesSection.swift */,
+			);
+			path = Playground;
+			sourceTree = "<group>";
+		};
+		7CAG00000000000000000002 /* ChainPicker */ = {
+			isa = PBXGroup;
+			children = (
+				7CAF00000000000000000004 /* SupportedChain.swift */,
+				7CAF00000000000000000005 /* ChainPickerMenu.swift */,
+			);
+			path = ChainPicker;
+			sourceTree = "<group>";
+		};
+		7CAG00000000000000000003 /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				7CAF00000000000000000006 /* WalletSectionView.swift */,
+				7CAF00000000000000000007 /* NoWalletView.swift */,
+				7CAF00000000000000000008 /* AddressRow.swift */,
+				7CAF00000000000000000009 /* BalanceRow.swift */,
+				7CAF0000000000000000000A /* AddFundsRow.swift */,
+			);
+			path = Wallet;
+			sourceTree = "<group>";
+		};
+		7CAG00000000000000000004 /* Transfer */ = {
+			isa = PBXGroup;
+			children = (
+				7CAF0000000000000000000B /* TransferView.swift */,
+			);
+			path = Transfer;
+			sourceTree = "<group>";
+		};
+		7CAG00000000000000000005 /* Signing */ = {
+			isa = PBXGroup;
+			children = (
+				7CAF0000000000000000000C /* SigningView.swift */,
+			);
+			path = Signing;
+			sourceTree = "<group>";
+		};
+		7CAG00000000000000000006 /* Signers */ = {
+			isa = PBXGroup;
+			children = (
+				7CAF0000000000000000000D /* SignersView.swift */,
+				7CAF0000000000000000000E /* SignerRow.swift */,
+				7CAF00000000000000000011 /* AddSignerSheet.swift */,
+				7CAF00000000000000000012 /* SignerPicker.swift */,
+			);
+			path = Signers;
+			sourceTree = "<group>";
+		};
+		7CAG00000000000000000007 /* Activity */ = {
+			isa = PBXGroup;
+			children = (
+				7CAF0000000000000000000F /* ActivityView.swift */,
+				7CAF00000000000000000010 /* TransferRow.swift */,
+			);
+			path = Activity;
+			sourceTree = "<group>";
+		};
 		AC0101092DC600000000006 /* SmartWalletsDemo */ = {
 			isa = PBXGroup;
 			children = (
+				7CAG00000000000000000001 /* Playground */,
 				EB5D83142E45FA2E002F8EF1 /* NonCustodialSigners */,
 				EB9BDDE82DC4D048003999C7 /* Login */,
-				EB9BDDE72DC4D037003999C7 /* Dashboard */,
 				EB9BDDDA2DC4B20C003999C7 /* SmartWalletsDemo.entitlements */,
 				EBEC0BD22DC3955B000B59F1 /* AnimationConstants.swift */,
 				AC01020A2DD700000000005 /* Components */,
@@ -97,14 +194,13 @@
 		AC01020A2DD700000000005 /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				EB9BDDF12DC4E40D003999C7 /* Extensions */,
-				EB9BDDEF2DC4E3F1003999C7 /* MiddleEllipsisText.swift */,
-				EB9BDDE92DC4D219003999C7 /* GetTestTokenButton.swift */,
-				EB9BDDEA2DC4D219003999C7 /* WalletBalanceEntryView.swift */,
 				EBEC0BD42DC396EA000B59F1 /* SecondaryButton.swift */,
 				EBEC0BD02DC39253000B59F1 /* PrimaryButton.swift */,
 				EBEC0BCC2DC37AE4000B59F1 /* CrossmintPoweredView.swift */,
 				AC0102042DD700000000003 /* CustomTextField.swift */,
+				6F32D4100D0B463E463390BC /* OTPSheet.swift */,
+				1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */,
+				AC0102112DD700000000006 /* AuthHeaderView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -141,36 +237,16 @@
 			path = NonCustodialSigners;
 			sourceTree = "<group>";
 		};
-		EB9BDDE72DC4D037003999C7 /* Dashboard */ = {
-			isa = PBXGroup;
-			children = (
-				EBB46CD72DC8F8E00026AA88 /* AlertViewModel.swift */,
-				EB9BDDE52DC4CFE2003999C7 /* NFTDashboardView.swift */,
-				EBHISTORY02F000000000001 /* TransferHistoryView.swift */,
-				EB9BDDE32DC4CFCF003999C7 /* TransferDashboardView.swift */,
-				EB9BDDE12DC4CFBF003999C7 /* BalanceDashboardView.swift */,
-				AC0102062DD800000000001 /* DashboardView.swift */,
-			);
-			path = Dashboard;
-			sourceTree = "<group>";
-		};
 		EB9BDDE82DC4D048003999C7 /* Login */ = {
 			isa = PBXGroup;
 			children = (
 				E52EB51A2ED54D15004256E2 /* CrossmintAuthManager.swift */,
 				AC0102002DD700000000001 /* SignInView.swift */,
+				AC0102072DD700000000004 /* OTPSignInView.swift */,
+				AC0102092DD700000000005 /* JWTSignInView.swift */,
 				AC0102022DD700000000002 /* VerificationView.swift */,
 			);
 			path = Login;
-			sourceTree = "<group>";
-		};
-		EB9BDDF12DC4E40D003999C7 /* Extensions */ = {
-			isa = PBXGroup;
-			children = (
-				EB9BDDF42DC4E433003999C7 /* View+CornerRadius.swift */,
-				EB9BDDF22DC4E417003999C7 /* Color+hex.swift */,
-			);
-			path = Extensions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -247,28 +323,40 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EB9BDDF32DC4E41C003999C7 /* Color+hex.swift in Sources */,
+				7CAB00000000000000000001 /* AppState.swift in Sources */,
+				7CAB00000000000000000002 /* PlaygroundView.swift in Sources */,
+				7CAB00000000000000000003 /* FeaturesSection.swift in Sources */,
+				7CAB00000000000000000004 /* SupportedChain.swift in Sources */,
+				7CAB00000000000000000005 /* ChainPickerMenu.swift in Sources */,
+				7CAB00000000000000000006 /* WalletSectionView.swift in Sources */,
+				7CAB00000000000000000007 /* NoWalletView.swift in Sources */,
+				7CAB00000000000000000008 /* AddressRow.swift in Sources */,
+				7CAB00000000000000000009 /* BalanceRow.swift in Sources */,
+				7CAB0000000000000000000A /* AddFundsRow.swift in Sources */,
+				7CAB0000000000000000000B /* TransferView.swift in Sources */,
+				7CAB0000000000000000000C /* SigningView.swift in Sources */,
+				7CAB0000000000000000000D /* SignersView.swift in Sources */,
+				7CAB0000000000000000000E /* SignerRow.swift in Sources */,
+				7CAB0000000000000000000F /* ActivityView.swift in Sources */,
+				7CAB00000000000000000010 /* TransferRow.swift in Sources */,
+				7CAB00000000000000000011 /* AddSignerSheet.swift in Sources */,
+				7CAB00000000000000000012 /* SignerPicker.swift in Sources */,
 				EB5D83162E45FA36002F8EF1 /* OTPValidatorView.swift in Sources */,
 				EBEC0BD52DC396EA000B59F1 /* SecondaryButton.swift in Sources */,
-				EB9BDDE62DC4CFE2003999C7 /* NFTDashboardView.swift in Sources */,
-				EBHISTORY12F000000000001 /* TransferHistoryView.swift in Sources */,
 				AC0101072DC600000000004 /* SmartWalletsDemoApp.swift in Sources */,
 				EBEC0BCE2DC37AE4000B59F1 /* CrossmintPoweredView.swift in Sources */,
-				EB9BDDE42DC4CFCF003999C7 /* TransferDashboardView.swift in Sources */,
-				EB9BDDE22DC4CFBF003999C7 /* BalanceDashboardView.swift in Sources */,
 				AC0102012DD700000000001 /* SignInView.swift in Sources */,
+				AC0102062DD700000000004 /* OTPSignInView.swift in Sources */,
+				AC0102082DD700000000005 /* JWTSignInView.swift in Sources */,
 				E52EB51B2ED54D19004256E2 /* CrossmintAuthManager.swift in Sources */,
 				AC0102032DD700000000002 /* VerificationView.swift in Sources */,
 				AC0102052DD700000000003 /* CustomTextField.swift in Sources */,
-				AC0102072DD800000000001 /* DashboardView.swift in Sources */,
-				EBB46CD82DC8F8E00026AA88 /* AlertViewModel.swift in Sources */,
 				EBEC0BD12DC39253000B59F1 /* PrimaryButton.swift in Sources */,
 				AC0101092DC600000000007 /* SplashScreen.swift in Sources */,
-				EB9BDDF02DC4E3F1003999C7 /* MiddleEllipsisText.swift in Sources */,
 				EBEC0BD32DC3955B000B59F1 /* AnimationConstants.swift in Sources */,
-				EB9BDDF52DC4E43A003999C7 /* View+CornerRadius.swift in Sources */,
-				EB9BDDEB2DC4D219003999C7 /* GetTestTokenButton.swift in Sources */,
-				EB9BDDEC2DC4D219003999C7 /* WalletBalanceEntryView.swift in Sources */,
+				30BCF1F16E84DB0995489C62 /* OTPSheet.swift in Sources */,
+				AC0102102DD700000000006 /* AuthHeaderView.swift in Sources */,
+				2CC6EA9B9C96B07E039BCA27 /* CopyButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
