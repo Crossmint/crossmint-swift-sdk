@@ -58,6 +58,9 @@ struct SignerPicker: View {
         .task(id: appState.wallet?.address) {
             guard let wallet = appState.wallet else { return }
             delegatedSigners = (try? await wallet.signers()) ?? []
+            if appState.selectedSignerLocator == nil, let first = options.first {
+                await appState.selectSigner(locator: first.id)
+            }
         }
     }
 

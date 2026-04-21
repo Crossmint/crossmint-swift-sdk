@@ -184,6 +184,9 @@ final class AppState {
                 do {
                     if let found = try await fetchWallet(chain: chain, email: email) {
                         walletCache[chain] = found
+                        if chain == selectedChain {
+                            await fetchBalance()
+                        }
                     } else {
                         notFoundChains.insert(chain)
                     }
