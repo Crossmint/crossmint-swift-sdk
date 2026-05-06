@@ -17,9 +17,8 @@ extension DefaultSmartWalletService {
         }
 
         return try await crossmintService.executeRequest(
-            Endpoint(
-                path: "/2025-06-09/wallets/\(params.walletLocator.value)/balances",
-                method: .get,
+            Endpoint.walletBalances(
+                walletLocator: params.walletLocator.value,
                 headers: await authHeaders,
                 queryItems: queryItems
             ),

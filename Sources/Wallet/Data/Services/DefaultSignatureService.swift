@@ -12,36 +12,22 @@ extension DefaultSmartWalletService {
     public func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel {
-        let endpoint = Endpoint(
-            path: "/2025-06-09/wallets/me:\(request.chainType.rawValue)/signatures",
-            method: .post,
-            headers: await authHeaders,
-            body: try jsonCoder.encodeRequest(request.request, errorType: SignatureError.self)
-        )
-
-        if request.request is SignMessageRequest {
-            return try await crossmintService.executeRequest(
-                endpoint,
-                errorType: SignatureError.self
-            ) as MessageSignatureResponse
-        } else {
-            return try await crossmintService.executeRequest(
-                endpoint,
-                errorType: SignatureError.self
-            ) as TypedDataSignatureResponse
+        let body = try jsonCoder.encodeRequest(request.request, errorType: SignatureError.self)
+        let endpoint = Endpoint.createSignature(chainType: request.chainType, headers: await authHeaders, body: body)
+        switch request.responseType {
+        case .message:
+            return try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self) as MessageSignatureResponse
+        case .typedData:
+            return try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self) as TypedDataSignatureResponse
         }
     }
 
     public func approveSignature(
         _ request: SignRequest
     ) async throws(SignatureError) {
+        let body = try jsonCoder.encodeRequest(request.apiRequest, errorType: SignatureError.self)
         try await crossmintService.executeRequest(
-            Endpoint(
-                path: "/2025-06-09/wallets/me:\(request.chainType.rawValue)/signatures/\(request.transactionId)/approvals",
-                method: .post,
-                headers: await authHeaders,
-                body: try jsonCoder.encodeRequest(request.apiRequest, errorType: SignatureError.self)
-            ),
+            Endpoint.approveSignature(chainType: request.chainType, signatureId: request.transactionId, headers: await authHeaders, body: body),
             errorType: SignatureError.self
         )
     }
@@ -51,17 +37,15 @@ extension DefaultSmartWalletService {
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
         let data = try await crossmintService.executeRequestForRawData(
-            Endpoint(
-                path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signatures/\(signatureId)",
-                method: .get,
-                headers: await authHeaders
-            ),
+            Endpoint.fetchSignature(chainType: chainType, signatureId: signatureId, headers: await authHeaders),
             errorType: SignatureError.self
         )
+        return try decodeSignatureByType(from: data)
+    }
 
+    private func decodeSignatureByType(from data: Data) throws(SignatureError) -> any SignatureApiModel {
         struct TypeWrapper: Decodable { let type: SignatureType }
         let typeInfo = try decodeSignatureOrThrow(TypeWrapper.self, from: data)
-
         switch typeInfo.type {
         case .message:
             return try decodeSignatureOrThrow(MessageSignatureResponse.self, from: data)
@@ -74,10 +58,6 @@ extension DefaultSmartWalletService {
         _ type: T.Type,
         from data: Data
     ) throws(SignatureError) -> T {
-        do {
-            return try jsonCoder.decode(type, from: data)
-        } catch {
-            throw .decodingError
-        }
+        try jsonCoder.decodeOrThrow(type, from: data, onFailure: SignatureError.decodingError)
     }
 }

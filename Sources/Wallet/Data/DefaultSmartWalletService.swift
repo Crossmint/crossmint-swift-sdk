@@ -5,6 +5,7 @@ import Http
 import Logger
 
 public final class DefaultSmartWalletService: SmartWalletService {
+    // internal rather than private so extension files across this module can access them
     internal let crossmintService: CrossmintService
     internal let authManager: AuthManager
     internal let jsonCoder: JSONCoder
@@ -50,7 +51,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         }
     }
 
-    func signerChain(chainType: ChainType, chainName: String) -> String? {
+    func signerRegistrationChain(chainType: ChainType, chainName: String) -> String? {
         chainType == .solana || chainType == .stellar ? nil : chainName
     }
 }

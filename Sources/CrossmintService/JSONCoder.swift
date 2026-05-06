@@ -22,4 +22,15 @@ public extension JSONCoder {
             errorType: errorType
         )
     }
+
+    func decodeOrThrow<T: Decodable, E: Error>(
+        _ type: T.Type,
+        from data: Data,
+        onFailure: @autoclosure () -> E
+    ) throws(E) -> T {
+        guard let result = try? decode(type, from: data) else {
+            throw onFailure()
+        }
+        return result
+    }
 }

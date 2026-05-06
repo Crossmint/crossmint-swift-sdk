@@ -52,14 +52,19 @@ extension DefaultSmartWalletService {
         signer: String?,
         idempotencyKey: String?
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let bodyData = try jsonCoder.encodeRequest(
-            TransferBody(recipient: recipient, amount: amount, signer: signer),
-            errorType: TransactionError.self
-        )
+        let body = TransferBody(recipient: recipient, amount: amount, signer: signer)
+        let bodyData = try jsonCoder.encodeRequest(body, errorType: TransactionError.self)
         var headers = await authHeaders
         // Always send an idempotency key — callers that need idempotency supply their own.
         headers["x-idempotency-key"] = idempotencyKey ?? UUID().uuidString
-        let endpoint = makeTransferEndpoint(chainType: chainType, tokenLocator: tokenLocator, headers: headers, body: bodyData)
+        let endpoint = Endpoint.meWalletTokenTransfer(chainType: chainType, tokenLocator: tokenLocator, headers: headers, body: bodyData)
+        return try await loggedTransfer(endpoint: endpoint, chainType: chainType)
+    }
+
+    private func loggedTransfer(
+        endpoint: Endpoint,
+        chainType: ChainType
+    ) async throws(TransactionError) -> any TransactionApiModel {
         do {
             let result = try await executeTransactionRequest(endpoint: endpoint, mapping: chainType.mappingType)
             Logger.smartWallet.info(LogEvents.apiSendSuccess, attributes: ["transactionId": "\(result.id)"])
@@ -70,41 +75,29 @@ extension DefaultSmartWalletService {
         }
     }
 
-    private func makeTransferEndpoint(
-        chainType: ChainType,
-        tokenLocator: String,
-        headers: [String: String],
-        body: Data
-    ) -> Endpoint {
-        Endpoint(
-            path: "/2025-06-09/wallets/me:\(chainType.rawValue)/tokens/\(tokenLocator)/transfers",
-            method: .post,
-            headers: headers,
-            body: body
-        )
-    }
-
     private func fetchTransferList(
         _ params: ListTransfersQueryParams
     ) async throws(WalletError) -> TransferListResult {
         let queryItems = makeListTransfersQueryItems(for: params)
+        let endpoint = Endpoint.meWalletTransferList(
+            chainType: params.chain.chainType,
+            headers: await authHeaders,
+            queryItems: queryItems
+        )
         do {
-            let response: TransferListApiModel = try await crossmintService.executeRequest(
-                Endpoint(
-                    path: "/unstable/wallets/me:\(params.chain.chainType.rawValue)/transfers",
-                    method: .get,
-                    headers: await authHeaders,
-                    queryItems: queryItems
-                ),
-                errorType: WalletError.self
-            )
-            let result = TransferListResult(transfers: response.data.compactMap { Transfer.map($0) })
+            let response: TransferListApiModel = try await crossmintService.executeRequest(endpoint, errorType: WalletError.self)
+            let result = mapTransferListResponse(response)
             Logger.smartWallet.info(LogEvents.apiListTransfersSuccess, attributes: ["count": "\(result.transfers.count)"])
             return result
         } catch {
             Logger.smartWallet.warn(LogEvents.apiListTransfersError, attributes: ["error": "\(error)"])
             throw error
         }
+    }
+
+    private func mapTransferListResponse(_ response: TransferListApiModel) -> TransferListResult {
+        let transfers = response.data.compactMap { Transfer.map($0) }
+        return TransferListResult(transfers: transfers)
     }
 
     private func makeListTransfersQueryItems(for params: ListTransfersQueryParams) -> [URLQueryItem] {

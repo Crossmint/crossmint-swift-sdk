@@ -7,61 +7,36 @@ extension DefaultSmartWalletService {
     public func createTransaction(
         _ request: CreateTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let chainType = request.chainType
-        let apiRequest = request.request
-
-        let bodyData = try jsonCoder.encodeRequest(apiRequest, errorType: TransactionError.self)
-
-        let endpoint = Endpoint(
-            path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions",
-            method: .post,
+        let bodyData = try jsonCoder.encodeRequest(request.request, errorType: TransactionError.self)
+        let endpoint = Endpoint.createTransaction(
+            chainType: request.chainType,
             headers: await authHeaders,
             body: bodyData
         )
-
-        return try await executeTransactionRequest(
-            endpoint: endpoint,
-            mapping: chainType.mappingType
-        )
+        return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
     }
 
     public func signTransaction(
         _ request: SignRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let chainType = request.chainType
-        let transactionId = request.transactionId
-        let apiRequest = request.apiRequest
-
-        let bodyData = try jsonCoder.encodeRequest(apiRequest, errorType: TransactionError.self)
-
-        let endpoint = Endpoint(
-            path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions/\(transactionId)/approvals",
-            method: .post,
+        let bodyData = try jsonCoder.encodeRequest(request.apiRequest, errorType: TransactionError.self)
+        let endpoint = Endpoint.approveTransaction(
+            chainType: request.chainType,
+            transactionId: request.transactionId,
             headers: await authHeaders,
             body: bodyData
         )
-
-        return try await executeTransactionRequest(
-            endpoint: endpoint,
-            mapping: chainType.mappingType
-        )
+        return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
     }
 
     public func fetchTransaction(
-        _ fetchTransactionRequest: FetchTransactionRequest
+        _ request: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let transactionId = fetchTransactionRequest.transactionId
-        let chainType = fetchTransactionRequest.chainType
-
-        let endpoint = Endpoint(
-            path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions/\(transactionId)",
-            method: .get,
+        let endpoint = Endpoint.fetchTransaction(
+            chainType: request.chainType,
+            transactionId: request.transactionId,
             headers: await authHeaders
         )
-
-        return try await executeTransactionRequest(
-            endpoint: endpoint,
-            mapping: chainType.mappingType
-        )
+        return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
     }
 }
