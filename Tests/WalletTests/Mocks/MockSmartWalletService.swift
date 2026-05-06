@@ -81,7 +81,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
     func transferToken(
-        chainType: String,
+        chainType: ChainType,
         tokenLocator: String,
         recipient: String,
         amount: String,

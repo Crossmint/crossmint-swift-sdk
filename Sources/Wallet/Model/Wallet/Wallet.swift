@@ -449,7 +449,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             signerLocator = nil
         }
         let createdTransaction = try await smartWalletService.transferToken(
-            chainType: chain.chainType.rawValue,
+            chainType: chain.chainType,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
