@@ -61,7 +61,10 @@ struct SignMessageTests {
         )
 
         #expect(createRequest.chainType == ChainType.evm)
-        #expect(createRequest.request is SignMessageRequest)
+        guard case .message = createRequest.body else {
+            Issue.record("Expected .message body")
+            return
+        }
     }
 
     @Test
@@ -91,7 +94,10 @@ struct SignMessageTests {
         )
 
         #expect(createRequest.chainType == ChainType.evm)
-        #expect(createRequest.request is SignTypedDataRequest)
+        guard case .typedData = createRequest.body else {
+            Issue.record("Expected .typedData body")
+            return
+        }
     }
 
     private func encodeToJSON(_ encodable: any Encodable) throws -> [String: Any] {

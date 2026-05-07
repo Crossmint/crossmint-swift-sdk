@@ -24,22 +24,23 @@ struct DefaultSignatureService: SignatureService {
     func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel {
-        let body = try jsonCoder.encodeRequest(request.request, errorType: SignatureError.self)
-        let endpoint = Endpoint.createSignature(
-            chainType: request.chainType,
-            headers: await authHeaders,
-            body: body
-        )
-        switch request.responseType {
-        case .message:
-            let response: MessageSignatureResponse =
-                try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self)
+        switch request.body {
+        case .message(let r):
+            let response: MessageSignatureResponse = try await executeSignatureRequest(r, chainType: request.chainType)
             return response
-        case .typedData:
-            let response: TypedDataSignatureResponse =
-                try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self)
+        case .typedData(let r):
+            let response: TypedDataSignatureResponse = try await executeSignatureRequest(r, chainType: request.chainType)
             return response
         }
+    }
+
+    private func executeSignatureRequest<Response: SignatureApiModel>(
+        _ signRequest: some Encodable,
+        chainType: ChainType
+    ) async throws(SignatureError) -> Response {
+        let body = try jsonCoder.encodeRequest(signRequest, errorType: SignatureError.self)
+        let endpoint = Endpoint.createSignature(chainType: chainType, headers: await authHeaders, body: body)
+        return try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self)
     }
 
     func approveSignature(_ request: SignRequest) async throws(SignatureError) {
