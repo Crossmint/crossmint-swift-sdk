@@ -1,7 +1,7 @@
 import CrossmintCommonTypes
 import CrossmintService
 
-public protocol WalletCoreService: AuthenticatedService, Sendable {
+public protocol WalletService: AuthenticatedService, Sendable {
     var isProductionEnvironment: Bool { get }
 
     func getWallet(

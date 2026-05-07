@@ -1,5 +1,5 @@
 public protocol SmartWalletService:
-    WalletCoreService,
+    WalletService,
     TransactionService,
     TransferService,
     BalanceService,
