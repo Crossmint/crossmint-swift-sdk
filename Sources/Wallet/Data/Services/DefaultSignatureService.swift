@@ -58,6 +58,9 @@ extension DefaultSmartWalletService {
         _ type: T.Type,
         from data: Data
     ) throws(SignatureError) -> T {
-        try jsonCoder.decodeOrThrow(type, from: data, onFailure: SignatureError.decodingError)
+        guard let result = try? jsonCoder.decode(type, from: data) else {
+            throw SignatureError.decodingError
+        }
+        return result
     }
 }

@@ -96,7 +96,10 @@ extension DefaultSmartWalletService {
     }
 
     private func decodeWalletOrThrow(_ data: Data) throws(WalletError) -> WalletApiModel {
-        try jsonCoder.decodeOrThrow(WalletApiModel.self, from: data, onFailure: WalletError.walletGeneric("Failed to decode wallet response"))
+        guard let result = try? jsonCoder.decode(WalletApiModel.self, from: data) else {
+            throw WalletError.walletGeneric("Failed to decode wallet response")
+        }
+        return result
     }
 
     private func registerSignerBody(
@@ -108,6 +111,9 @@ extension DefaultSmartWalletService {
             .meWalletSigners(chainType: chainType, headers: await authHeaders, body: bodyData),
             errorType: WalletError.self
         )
-        return try jsonCoder.decodeOrThrow(AddDelegatedSignerResponse.self, from: responseData, onFailure: WalletError.walletGeneric("Failed to decode signer registration response"))
+        guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {
+            throw WalletError.walletGeneric("Failed to decode signer registration response")
+        }
+        return result
     }
 }
