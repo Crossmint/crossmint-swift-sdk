@@ -1,3 +1,4 @@
+import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Http
@@ -9,8 +10,12 @@ private struct TransferBody: Encodable {
     let signer: String?
 }
 
-extension DefaultSmartWalletService {
-    public func transferToken(
+struct DefaultTransferService: TransferService, AuthManagerBacked, TransactionExecuting {
+    let crossmintService: CrossmintService
+    let jsonCoder: JSONCoder
+    let authManager: AuthManager
+
+    func transferToken(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         Logger.smartWallet.info(LogEvents.apiSendStart, attributes: [
@@ -22,7 +27,7 @@ extension DefaultSmartWalletService {
         return try await executeTransfer(request)
     }
 
-    public func listTransfers(
+    func listTransfers(
         _ params: ListTransfersQueryParams
     ) async throws(WalletError) -> TransferListResult {
         Logger.smartWallet.info(LogEvents.apiListTransfersStart, attributes: [

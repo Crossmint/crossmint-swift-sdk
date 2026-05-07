@@ -1,3 +1,4 @@
+import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Foundation
@@ -8,12 +9,20 @@ private enum SignatureType: String, Decodable {
     case typedData = "typed-data"
 }
 
-extension DefaultSmartWalletService {
-    public func createSignature(
+struct DefaultSignatureService: SignatureService, AuthManagerBacked {
+    let crossmintService: CrossmintService
+    let jsonCoder: JSONCoder
+    let authManager: AuthManager
+
+    func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel {
         let body = try jsonCoder.encodeRequest(request.request, errorType: SignatureError.self)
-        let endpoint = Endpoint.createSignature(chainType: request.chainType, headers: await authHeaders, body: body)
+        let endpoint = Endpoint.createSignature(
+            chainType: request.chainType,
+            headers: await authHeaders,
+            body: body
+        )
         switch request.responseType {
         case .message:
             let response: MessageSignatureResponse =
@@ -26,9 +35,7 @@ extension DefaultSmartWalletService {
         }
     }
 
-    public func approveSignature(
-        _ request: SignRequest
-    ) async throws(SignatureError) {
+    func approveSignature(_ request: SignRequest) async throws(SignatureError) {
         let body = try jsonCoder.encodeRequest(request.apiRequest, errorType: SignatureError.self)
         try await crossmintService.executeRequest(
             Endpoint.approveSignature(
@@ -41,12 +48,16 @@ extension DefaultSmartWalletService {
         )
     }
 
-    public func fetchSignature(
+    func fetchSignature(
         _ signatureId: String,
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
         let data = try await crossmintService.executeRequestForRawData(
-            Endpoint.fetchSignature(chainType: chainType, signatureId: signatureId, headers: await authHeaders),
+            Endpoint.fetchSignature(
+                chainType: chainType,
+                signatureId: signatureId,
+                headers: await authHeaders
+            ),
             errorType: SignatureError.self
         )
         return try decodeSignatureByType(from: data)

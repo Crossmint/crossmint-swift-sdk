@@ -1,12 +1,14 @@
+import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Foundation
 import Http
 
-extension DefaultSmartWalletService {
-    public func getNFTs(
-        _ params: GetNTFQueryParams
-    ) async throws(WalletError) -> [NFT] {
+struct DefaultNFTService: NFTService, AuthManagerBacked {
+    let crossmintService: CrossmintService
+    let authManager: AuthManager
+
+    func getNFTs(_ params: GetNTFQueryParams) async throws(WalletError) -> [NFT] {
         let queryItems: [URLQueryItem] = [
             .init(name: "page", value: "\(params.page)"),
             .init(name: "perPage", value: "\(params.perPage)")

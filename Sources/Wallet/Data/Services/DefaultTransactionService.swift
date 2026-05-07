@@ -1,10 +1,14 @@
+import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Http
-import Logger
 
-extension DefaultSmartWalletService {
-    public func createTransaction(
+struct DefaultTransactionService: TransactionService, AuthManagerBacked, TransactionExecuting {
+    let crossmintService: CrossmintService
+    let jsonCoder: JSONCoder
+    let authManager: AuthManager
+
+    func createTransaction(
         _ request: CreateTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         let bodyData = try jsonCoder.encodeRequest(request.request, errorType: TransactionError.self)
@@ -16,7 +20,7 @@ extension DefaultSmartWalletService {
         return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
     }
 
-    public func signTransaction(
+    func signTransaction(
         _ request: SignRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         let bodyData = try jsonCoder.encodeRequest(request.apiRequest, errorType: TransactionError.self)
@@ -29,7 +33,7 @@ extension DefaultSmartWalletService {
         return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
     }
 
-    public func fetchTransaction(
+    func fetchTransaction(
         _ request: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         let endpoint = Endpoint.fetchTransaction(

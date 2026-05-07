@@ -1,12 +1,17 @@
+import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Http
 import Logger
 
-extension DefaultSmartWalletService {
-    public func getWallet(
-        _ request: GetMeWalletRequest
-    ) async throws(WalletError) -> WalletApiModel {
+struct DefaultWalletService: WalletService, AuthManagerBacked, TransactionExecuting {
+    let crossmintService: CrossmintService
+    let jsonCoder: JSONCoder
+    let authManager: AuthManager
+
+    var isProductionEnvironment: Bool { crossmintService.isProductionEnvironment }
+
+    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
         Logger.smartWallet.info(LogEvents.apiGetWalletStart, attributes: [
             "locator": "me:\(request.chainType.rawValue)"
         ])
@@ -19,9 +24,7 @@ extension DefaultSmartWalletService {
         return result
     }
 
-    public func createWallet(
-        _ request: CreateWalletParams
-    ) async throws(WalletError) -> WalletApiModel {
+    func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
         Logger.smartWallet.info(LogEvents.apiCreateWalletStart, attributes: [
             "chain": request.chainType.rawValue,
             "type": request.type.rawValue
@@ -36,9 +39,7 @@ extension DefaultSmartWalletService {
         return result
     }
 
-    public func fund(
-        _ request: FundWalletRequest
-    ) async throws(WalletError) {
+    func fund(_ request: FundWalletRequest) async throws(WalletError) {
         let apiRequest = FundWalletApiRequest(token: request.token, amount: request.amount, chain: request.chain)
         let body = try jsonCoder.encodeRequest(apiRequest, errorType: WalletError.self)
         try await crossmintService.executeRequest(
@@ -47,7 +48,7 @@ extension DefaultSmartWalletService {
         )
     }
 
-    public func addSigner(
+    func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String
@@ -59,7 +60,7 @@ extension DefaultSmartWalletService {
         return try await registerSignerBody(body, chainType: chainType)
     }
 
-    public func registerTypedSigner(
+    func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String
@@ -71,7 +72,7 @@ extension DefaultSmartWalletService {
         return try await registerSignerBody(body, chainType: chainType)
     }
 
-    public func removeSigner(
+    func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String
@@ -115,5 +116,9 @@ extension DefaultSmartWalletService {
             throw WalletError.walletGeneric("Failed to decode signer registration response")
         }
         return result
+    }
+
+    private func signerRegistrationChain(chainType: ChainType, chainName: String) -> String? {
+        chainType == .solana || chainType == .stellar ? nil : chainName
     }
 }
