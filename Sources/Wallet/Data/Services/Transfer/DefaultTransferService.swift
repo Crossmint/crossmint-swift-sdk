@@ -10,25 +10,10 @@ private struct TransferBody: Encodable {
     let signer: String?
 }
 
-struct DefaultTransferService: TransferService, AuthManagerProviding {
+struct DefaultTransferService: TransferService, AuthManagerProviding, TransactionRequestExecuting {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
     let authManager: AuthManager
-
-    func executeTransactionRequest<T: WalletTypeTransactionMapping>(
-        endpoint: Endpoint,
-        mapping: T.Type
-    ) async throws(TransactionError) -> any TransactionApiModel {
-        let data = try await crossmintService.executeRequestForRawData(
-            endpoint,
-            errorType: TransactionError.self
-        )
-        do {
-            return try jsonCoder.decode(T.APIModel.self, from: data)
-        } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction response")
-        }
-    }
 
     func transferToken(
         _ request: TransferTokenRequest

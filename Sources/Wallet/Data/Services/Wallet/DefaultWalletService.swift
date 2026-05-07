@@ -4,27 +4,12 @@ import CrossmintService
 import Http
 import Logger
 
-struct DefaultWalletService: WalletService, AuthManagerProviding {
+struct DefaultWalletService: WalletService, AuthManagerProviding, TransactionRequestExecuting {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
     let authManager: AuthManager
 
     var isProductionEnvironment: Bool { crossmintService.isProductionEnvironment }
-
-    func executeTransactionRequest<T: WalletTypeTransactionMapping>(
-        endpoint: Endpoint,
-        mapping: T.Type
-    ) async throws(TransactionError) -> any TransactionApiModel {
-        let data = try await crossmintService.executeRequestForRawData(
-            endpoint,
-            errorType: TransactionError.self
-        )
-        do {
-            return try jsonCoder.decode(T.APIModel.self, from: data)
-        } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction response")
-        }
-    }
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
         Logger.smartWallet.info(LogEvents.apiGetWalletStart, attributes: [
