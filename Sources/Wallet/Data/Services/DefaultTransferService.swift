@@ -11,27 +11,15 @@ private struct TransferBody: Encodable {
 
 extension DefaultSmartWalletService {
     public func transferToken(
-        chainType: ChainType,
-        tokenLocator: String,
-        recipient: String,
-        amount: String,
-        signer: String? = nil,
-        idempotencyKey: String? = nil
+        _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         Logger.smartWallet.info(LogEvents.apiSendStart, attributes: [
-            "walletLocator": "me:\(chainType.rawValue)",
-            "recipient": recipient,
-            "token": tokenLocator,
-            "amount": amount
+            "walletLocator": "me:\(request.chainType.rawValue)",
+            "recipient": request.recipient,
+            "token": request.tokenLocator,
+            "amount": request.amount
         ])
-        return try await executeTransfer(
-            chainType: chainType,
-            tokenLocator: tokenLocator,
-            recipient: recipient,
-            amount: amount,
-            signer: signer,
-            idempotencyKey: idempotencyKey
-        )
+        return try await executeTransfer(request)
     }
 
     public func listTransfers(
@@ -45,20 +33,20 @@ extension DefaultSmartWalletService {
     }
 
     private func executeTransfer(
-        chainType: ChainType,
-        tokenLocator: String,
-        recipient: String,
-        amount: String,
-        signer: String?,
-        idempotencyKey: String?
+        _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let body = TransferBody(recipient: recipient, amount: amount, signer: signer)
+        let body = TransferBody(recipient: request.recipient, amount: request.amount, signer: request.signer)
         let bodyData = try jsonCoder.encodeRequest(body, errorType: TransactionError.self)
         var headers = await authHeaders
         // Always send an idempotency key — callers that need idempotency supply their own.
-        headers["x-idempotency-key"] = idempotencyKey ?? UUID().uuidString
-        let endpoint = Endpoint.meWalletTokenTransfer(chainType: chainType, tokenLocator: tokenLocator, headers: headers, body: bodyData)
-        return try await loggedTransfer(endpoint: endpoint, chainType: chainType)
+        headers["x-idempotency-key"] = request.idempotencyKey ?? UUID().uuidString
+        let endpoint = Endpoint.meWalletTokenTransfer(
+            chainType: request.chainType,
+            tokenLocator: request.tokenLocator,
+            headers: headers,
+            body: bodyData
+        )
+        return try await loggedTransfer(endpoint: endpoint, chainType: request.chainType)
     }
 
     private func loggedTransfer(
@@ -85,9 +73,12 @@ extension DefaultSmartWalletService {
             queryItems: queryItems
         )
         do {
-            let response: TransferListApiModel = try await crossmintService.executeRequest(endpoint, errorType: WalletError.self)
+            let response: TransferListApiModel =
+                try await crossmintService.executeRequest(endpoint, errorType: WalletError.self)
             let result = mapTransferListResponse(response)
-            Logger.smartWallet.info(LogEvents.apiListTransfersSuccess, attributes: ["count": "\(result.transfers.count)"])
+            Logger.smartWallet.info(LogEvents.apiListTransfersSuccess, attributes: [
+                "count": "\(result.transfers.count)"
+            ])
             return result
         } catch {
             Logger.smartWallet.warn(LogEvents.apiListTransfersError, attributes: ["error": "\(error)"])

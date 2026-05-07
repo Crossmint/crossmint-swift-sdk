@@ -16,9 +16,13 @@ extension DefaultSmartWalletService {
         let endpoint = Endpoint.createSignature(chainType: request.chainType, headers: await authHeaders, body: body)
         switch request.responseType {
         case .message:
-            return try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self) as MessageSignatureResponse
+            let response: MessageSignatureResponse =
+                try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self)
+            return response
         case .typedData:
-            return try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self) as TypedDataSignatureResponse
+            let response: TypedDataSignatureResponse =
+                try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self)
+            return response
         }
     }
 
@@ -27,7 +31,12 @@ extension DefaultSmartWalletService {
     ) async throws(SignatureError) {
         let body = try jsonCoder.encodeRequest(request.apiRequest, errorType: SignatureError.self)
         try await crossmintService.executeRequest(
-            Endpoint.approveSignature(chainType: request.chainType, signatureId: request.transactionId, headers: await authHeaders, body: body),
+            Endpoint.approveSignature(
+                chainType: request.chainType,
+                signatureId: request.transactionId,
+                headers: await authHeaders,
+                body: body
+            ),
             errorType: SignatureError.self
         )
     }
