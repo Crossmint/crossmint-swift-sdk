@@ -10,17 +10,10 @@ private struct TransferBody: Encodable {
     let signer: String?
 }
 
-struct DefaultTransferService: TransferService {
+struct DefaultTransferService: TransferService, AuthManagerProviding {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
     let authManager: AuthManager
-
-    var authHeaders: [String: String] {
-        get async {
-            guard let jwt = await authManager.jwt else { return [:] }
-            return ["Authorization": "Bearer \(jwt)"]
-        }
-    }
 
     func executeTransactionRequest<T: WalletTypeTransactionMapping>(
         endpoint: Endpoint,

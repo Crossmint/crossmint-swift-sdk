@@ -3,17 +3,10 @@ import CrossmintCommonTypes
 import CrossmintService
 import Http
 
-struct DefaultTransactionService: TransactionService {
+struct DefaultTransactionService: TransactionService, AuthManagerProviding {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
     let authManager: AuthManager
-
-    var authHeaders: [String: String] {
-        get async {
-            guard let jwt = await authManager.jwt else { return [:] }
-            return ["Authorization": "Bearer \(jwt)"]
-        }
-    }
 
     func executeTransactionRequest<T: WalletTypeTransactionMapping>(
         endpoint: Endpoint,

@@ -9,17 +9,10 @@ private enum SignatureType: String, Decodable {
     case typedData = "typed-data"
 }
 
-struct DefaultSignatureService: SignatureService {
+struct DefaultSignatureService: SignatureService, AuthManagerProviding {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
     let authManager: AuthManager
-
-    var authHeaders: [String: String] {
-        get async {
-            guard let jwt = await authManager.jwt else { return [:] }
-            return ["Authorization": "Bearer \(jwt)"]
-        }
-    }
 
     func createSignature(
         _ request: CreateSignatureRequest

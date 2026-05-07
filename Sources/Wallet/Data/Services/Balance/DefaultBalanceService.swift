@@ -4,16 +4,9 @@ import CrossmintService
 import Foundation
 import Http
 
-struct DefaultBalanceService: BalanceService {
+struct DefaultBalanceService: BalanceService, AuthManagerProviding {
     let crossmintService: CrossmintService
     let authManager: AuthManager
-
-    var authHeaders: [String: String] {
-        get async {
-            guard let jwt = await authManager.jwt else { return [:] }
-            return ["Authorization": "Bearer \(jwt)"]
-        }
-    }
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {
         let tokens: [CryptoCurrency] = params.tokens.isEmpty ? CryptoCurrency.allCases : params.tokens
