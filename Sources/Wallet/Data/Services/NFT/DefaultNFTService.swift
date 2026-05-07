@@ -4,9 +4,16 @@ import CrossmintService
 import Foundation
 import Http
 
-struct DefaultNFTService: NFTService, AuthManagerBacked {
+struct DefaultNFTService: NFTService {
     let crossmintService: CrossmintService
     let authManager: AuthManager
+
+    var authHeaders: [String: String] {
+        get async {
+            guard let jwt = await authManager.jwt else { return [:] }
+            return ["Authorization": "Bearer \(jwt)"]
+        }
+    }
 
     func getNFTs(_ params: GetNTFQueryParams) async throws(WalletError) -> [NFT] {
         let queryItems: [URLQueryItem] = [

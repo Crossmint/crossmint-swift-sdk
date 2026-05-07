@@ -3,10 +3,32 @@ import CrossmintCommonTypes
 import CrossmintService
 import Http
 
-struct DefaultTransactionService: TransactionService, AuthManagerBacked, TransactionExecuting {
+struct DefaultTransactionService: TransactionService {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
     let authManager: AuthManager
+
+    var authHeaders: [String: String] {
+        get async {
+            guard let jwt = await authManager.jwt else { return [:] }
+            return ["Authorization": "Bearer \(jwt)"]
+        }
+    }
+
+    func executeTransactionRequest<T: WalletTypeTransactionMapping>(
+        endpoint: Endpoint,
+        mapping: T.Type
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        let data = try await crossmintService.executeRequestForRawData(
+            endpoint,
+            errorType: TransactionError.self
+        )
+        do {
+            return try jsonCoder.decode(T.APIModel.self, from: data)
+        } catch {
+            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+        }
+    }
 
     func createTransaction(
         _ request: CreateTransactionRequest
