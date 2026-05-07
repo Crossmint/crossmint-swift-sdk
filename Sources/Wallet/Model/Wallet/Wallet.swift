@@ -448,14 +448,16 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         } else {
             signerLocator = nil
         }
-        let createdTransaction = try await smartWalletService.transferToken(TransferTokenRequest(
+        let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
             signer: signerLocator,
             idempotencyKey: idempotencyKey
-        )).toDomain(withService: smartWalletService)
+        )
+        let createdTransaction = try await smartWalletService.transferToken(transferRequest)
+            .toDomain(withService: smartWalletService)
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
