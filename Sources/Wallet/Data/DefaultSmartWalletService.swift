@@ -3,66 +3,56 @@ import CrossmintCommonTypes
 import CrossmintService
 
 public final class DefaultSmartWalletService: SmartWalletService {
-    private let wallet: DefaultWalletService
-    private let transaction: DefaultTransactionService
-    private let transfer: DefaultTransferService
-    private let balance: DefaultBalanceService
-    private let nft: DefaultNFTService
-    private let signature: DefaultSignatureService
+    private let walletService: DefaultWalletService
+    private let transactionService: DefaultTransactionService
+    private let transferService: DefaultTransferService
+    private let balanceService: DefaultBalanceService
+    private let nftService: DefaultNFTService
+    private let signatureService: DefaultSignatureService
 
-    public var isProductionEnvironment: Bool { wallet.isProductionEnvironment }
-
-    public var authHeaders: [String: String] {
-        get async { await wallet.authHeaders }
-    }
+    public var isProductionEnvironment: Bool { walletService.isProductionEnvironment }
 
     public init(
         crossmintService: CrossmintService,
         authManager: AuthManager,
         jsonCoder: JSONCoder = DefaultJSONCoder()
     ) {
-        wallet = DefaultWalletService(
-            crossmintService: crossmintService,
-            jsonCoder: jsonCoder,
+        let authenticatedService = AuthenticatedCrossmintService(
+            base: crossmintService,
             authManager: authManager
         )
-        transaction = DefaultTransactionService(
-            crossmintService: crossmintService,
-            jsonCoder: jsonCoder,
-            authManager: authManager
+        walletService = DefaultWalletService(
+            crossmintService: authenticatedService,
+            jsonCoder: jsonCoder
         )
-        transfer = DefaultTransferService(
-            crossmintService: crossmintService,
-            jsonCoder: jsonCoder,
-            authManager: authManager
+        transactionService = DefaultTransactionService(
+            crossmintService: authenticatedService,
+            jsonCoder: jsonCoder
         )
-        balance = DefaultBalanceService(
-            crossmintService: crossmintService,
-            authManager: authManager
+        transferService = DefaultTransferService(
+            crossmintService: authenticatedService,
+            jsonCoder: jsonCoder
         )
-        nft = DefaultNFTService(
-            crossmintService: crossmintService,
-            authManager: authManager
-        )
-        signature = DefaultSignatureService(
-            crossmintService: crossmintService,
-            jsonCoder: jsonCoder,
-            authManager: authManager
+        balanceService = DefaultBalanceService(crossmintService: authenticatedService)
+        nftService = DefaultNFTService(crossmintService: authenticatedService)
+        signatureService = DefaultSignatureService(
+            crossmintService: authenticatedService,
+            jsonCoder: jsonCoder
         )
     }
 
     // MARK: - WalletService
 
     public func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        try await wallet.getWallet(request)
+        try await walletService.getWallet(request)
     }
 
     public func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
-        try await wallet.createWallet(request)
+        try await walletService.createWallet(request)
     }
 
     public func fund(_ request: FundWalletRequest) async throws(WalletError) {
-        try await wallet.fund(request)
+        try await walletService.fund(request)
     }
 
     public func addSigner(
@@ -70,7 +60,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        try await wallet.addSigner(entry, chainType: chainType, chainName: chainName)
+        try await walletService.addSigner(entry, chainType: chainType, chainName: chainName)
     }
 
     public func registerTypedSigner(
@@ -78,7 +68,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        try await wallet.registerTypedSigner(signer, chainType: chainType, chainName: chainName)
+        try await walletService.registerTypedSigner(signer, chainType: chainType, chainName: chainName)
     }
 
     public func removeSigner(
@@ -86,7 +76,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await wallet.removeSigner(signerLocator, chainType: chainType, chainName: chainName)
+        try await walletService.removeSigner(signerLocator, chainType: chainType, chainName: chainName)
     }
 
     // MARK: - TransactionService
@@ -94,19 +84,19 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func createTransaction(
         _ request: CreateTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await transaction.createTransaction(request)
+        try await transactionService.createTransaction(request)
     }
 
     public func signTransaction(
         _ request: SignRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await transaction.signTransaction(request)
+        try await transactionService.signTransaction(request)
     }
 
     public func fetchTransaction(
         _ request: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await transaction.fetchTransaction(request)
+        try await transactionService.fetchTransaction(request)
     }
 
     // MARK: - TransferService
@@ -114,13 +104,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func transferToken(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await transfer.transferToken(request)
+        try await transferService.transferToken(request)
     }
 
     public func listTransfers(
         _ params: ListTransfersQueryParams
     ) async throws(WalletError) -> TransferListResult {
-        try await transfer.listTransfers(params)
+        try await transferService.listTransfers(params)
     }
 
     // MARK: - BalanceService
@@ -128,7 +118,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func getBalance(
         _ params: GetBalanceQueryParams
     ) async throws(WalletError) -> Balances {
-        try await balance.getBalance(params)
+        try await balanceService.getBalance(params)
     }
 
     // MARK: - NFTService
@@ -136,7 +126,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func getNFTs(
         _ params: GetNTFQueryParams
     ) async throws(WalletError) -> [NFT] {
-        try await nft.getNFTs(params)
+        try await nftService.getNFTs(params)
     }
 
     // MARK: - SignatureService
@@ -144,17 +134,17 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel {
-        try await signature.createSignature(request)
+        try await signatureService.createSignature(request)
     }
 
     public func approveSignature(_ request: SignRequest) async throws(SignatureError) {
-        try await signature.approveSignature(request)
+        try await signatureService.approveSignature(request)
     }
 
     public func fetchSignature(
         _ signatureId: String,
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
-        try await signature.fetchSignature(signatureId, chainType: chainType)
+        try await signatureService.fetchSignature(signatureId, chainType: chainType)
     }
 }

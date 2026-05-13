@@ -1,6 +1,4 @@
-import CrossmintService
-
-public protocol TransactionService: AuthenticatedService, Sendable {
+public protocol TransactionService: Sendable {
     func createTransaction(
         _ request: CreateTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel

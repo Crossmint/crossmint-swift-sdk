@@ -1,7 +1,6 @@
 import CrossmintCommonTypes
-import CrossmintService
 
-public protocol NFTService: AuthenticatedService, Sendable {
+public protocol NFTService: Sendable {
     func getNFTs(
         _ params: GetNTFQueryParams
     ) async throws(WalletError) -> [NFT]

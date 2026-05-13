@@ -1,12 +1,10 @@
-import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Foundation
 import Http
 
-struct DefaultBalanceService: BalanceService, AuthManagerProviding {
+struct DefaultBalanceService: BalanceService {
     let crossmintService: CrossmintService
-    let authManager: AuthManager
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {
         let tokens: [CryptoCurrency] = params.tokens.isEmpty ? CryptoCurrency.allCases : params.tokens
@@ -21,7 +19,6 @@ struct DefaultBalanceService: BalanceService, AuthManagerProviding {
         return try await crossmintService.executeRequest(
             Endpoint.walletBalances(
                 walletLocator: params.walletLocator.value,
-                headers: await authHeaders,
                 queryItems: queryItems
             ),
             errorType: WalletError.self

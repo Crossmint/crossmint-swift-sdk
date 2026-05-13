@@ -1,7 +1,6 @@
 import CrossmintCommonTypes
-import CrossmintService
 
-public protocol SignatureService: AuthenticatedService, Sendable {
+public protocol SignatureService: Sendable {
     func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel

@@ -1,7 +1,6 @@
 import CrossmintCommonTypes
-import CrossmintService
 
-public protocol BalanceService: AuthenticatedService, Sendable {
+public protocol BalanceService: Sendable {
     func getBalance(
         _ params: GetBalanceQueryParams
     ) async throws(WalletError) -> Balances

@@ -1,12 +1,10 @@
-import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Foundation
 import Http
 
-struct DefaultNFTService: NFTService, AuthManagerProviding {
+struct DefaultNFTService: NFTService {
     let crossmintService: CrossmintService
-    let authManager: AuthManager
 
     func getNFTs(_ params: GetNTFQueryParams) async throws(WalletError) -> [NFT] {
         let queryItems: [URLQueryItem] = [
@@ -17,7 +15,6 @@ struct DefaultNFTService: NFTService, AuthManagerProviding {
             Endpoint.walletNFTs(
                 chainName: params.chain.name,
                 walletLocator: params.walletLocator.value,
-                headers: await authHeaders,
                 queryItems: queryItems
             ),
             errorType: WalletError.self

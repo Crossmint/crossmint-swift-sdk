@@ -1,4 +1,3 @@
-import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Foundation
@@ -9,20 +8,21 @@ private enum SignatureType: String, Decodable {
     case typedData = "typed-data"
 }
 
-struct DefaultSignatureService: SignatureService, AuthManagerProviding {
+struct DefaultSignatureService: SignatureService {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
-    let authManager: AuthManager
 
     func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel {
         switch request.body {
-        case .message(let r):
-            let response: MessageSignatureResponse = try await executeSignatureRequest(r, chainType: request.chainType)
+        case .message(let signRequest):
+            let response: MessageSignatureResponse =
+                try await executeSignatureRequest(signRequest, chainType: request.chainType)
             return response
-        case .typedData(let r):
-            let response: TypedDataSignatureResponse = try await executeSignatureRequest(r, chainType: request.chainType)
+        case .typedData(let signRequest):
+            let response: TypedDataSignatureResponse =
+                try await executeSignatureRequest(signRequest, chainType: request.chainType)
             return response
         }
     }
@@ -32,7 +32,7 @@ struct DefaultSignatureService: SignatureService, AuthManagerProviding {
         chainType: ChainType
     ) async throws(SignatureError) -> Response {
         let body = try jsonCoder.encodeRequest(signRequest, errorType: SignatureError.self)
-        let endpoint = Endpoint.createSignature(chainType: chainType, headers: await authHeaders, body: body)
+        let endpoint = Endpoint.createSignature(chainType: chainType, body: body)
         return try await crossmintService.executeRequest(endpoint, errorType: SignatureError.self)
     }
 
@@ -42,7 +42,6 @@ struct DefaultSignatureService: SignatureService, AuthManagerProviding {
             Endpoint.approveSignature(
                 chainType: request.chainType,
                 signatureId: request.transactionId,
-                headers: await authHeaders,
                 body: body
             ),
             errorType: SignatureError.self
@@ -56,8 +55,7 @@ struct DefaultSignatureService: SignatureService, AuthManagerProviding {
         let data = try await crossmintService.executeRequestForRawData(
             Endpoint.fetchSignature(
                 chainType: chainType,
-                signatureId: signatureId,
-                headers: await authHeaders
+                signatureId: signatureId
             ),
             errorType: SignatureError.self
         )

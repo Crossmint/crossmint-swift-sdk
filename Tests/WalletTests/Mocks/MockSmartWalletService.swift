@@ -3,7 +3,6 @@ import CrossmintService
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
-    var authHeaders: [String: String] { [:] }
     var isProductionEnvironment: Bool { false }
 
     // MARK: - addSigner

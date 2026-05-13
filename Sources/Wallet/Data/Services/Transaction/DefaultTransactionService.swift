@@ -1,12 +1,10 @@
-import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Http
 
-struct DefaultTransactionService: TransactionService, AuthManagerProviding, TransactionRequestExecuting {
+struct DefaultTransactionService: TransactionService {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
-    let authManager: AuthManager
 
     func createTransaction(
         _ request: CreateTransactionRequest
@@ -14,7 +12,6 @@ struct DefaultTransactionService: TransactionService, AuthManagerProviding, Tran
         let bodyData = try jsonCoder.encodeRequest(request.request, errorType: TransactionError.self)
         let endpoint = Endpoint.createTransaction(
             chainType: request.chainType,
-            headers: await authHeaders,
             body: bodyData
         )
         return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
@@ -27,7 +24,6 @@ struct DefaultTransactionService: TransactionService, AuthManagerProviding, Tran
         let endpoint = Endpoint.approveTransaction(
             chainType: request.chainType,
             transactionId: request.transactionId,
-            headers: await authHeaders,
             body: bodyData
         )
         return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
@@ -38,9 +34,23 @@ struct DefaultTransactionService: TransactionService, AuthManagerProviding, Tran
     ) async throws(TransactionError) -> any TransactionApiModel {
         let endpoint = Endpoint.fetchTransaction(
             chainType: request.chainType,
-            transactionId: request.transactionId,
-            headers: await authHeaders
+            transactionId: request.transactionId
         )
         return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
+    }
+
+    private func executeTransactionRequest<T: WalletTypeTransactionMapping>(
+        endpoint: Endpoint,
+        mapping: T.Type
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        let data = try await crossmintService.executeRequestForRawData(
+            endpoint,
+            errorType: TransactionError.self
+        )
+        do {
+            return try jsonCoder.decode(T.APIModel.self, from: data)
+        } catch {
+            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+        }
     }
 }

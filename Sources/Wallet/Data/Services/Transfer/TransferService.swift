@@ -1,7 +1,6 @@
 import CrossmintCommonTypes
-import CrossmintService
 
-public protocol TransferService: AuthenticatedService, Sendable {
+public protocol TransferService: Sendable {
     func transferToken(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel

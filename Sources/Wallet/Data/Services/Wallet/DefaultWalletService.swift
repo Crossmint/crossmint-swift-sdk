@@ -1,13 +1,11 @@
-import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Http
 import Logger
 
-struct DefaultWalletService: WalletService, AuthManagerProviding, TransactionRequestExecuting {
+struct DefaultWalletService: WalletService {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
-    let authManager: AuthManager
 
     var isProductionEnvironment: Bool { crossmintService.isProductionEnvironment }
 
@@ -16,7 +14,7 @@ struct DefaultWalletService: WalletService, AuthManagerProviding, TransactionReq
             "locator": "me:\(request.chainType.rawValue)"
         ])
         let data = try await crossmintService.executeRequestForRawData(
-            Endpoint.meWallet(chainType: request.chainType, headers: await authHeaders),
+            Endpoint.meWallet(chainType: request.chainType),
             errorType: WalletError.self
         )
         let result = try decodeWalletOrThrow(data)
@@ -31,7 +29,7 @@ struct DefaultWalletService: WalletService, AuthManagerProviding, TransactionReq
         ])
         let bodyData = try jsonCoder.encodeRequest(request, errorType: WalletError.self)
         let responseData = try await crossmintService.executeRequestForRawData(
-            Endpoint.createMeWallet(headers: await authHeaders, body: bodyData),
+            Endpoint.createMeWallet(body: bodyData),
             errorType: WalletError.self
         )
         let result = try decodeWalletOrThrow(responseData)
@@ -43,7 +41,7 @@ struct DefaultWalletService: WalletService, AuthManagerProviding, TransactionReq
         let apiRequest = FundWalletApiRequest(token: request.token, amount: request.amount, chain: request.chain)
         let body = try jsonCoder.encodeRequest(apiRequest, errorType: WalletError.self)
         try await crossmintService.executeRequest(
-            Endpoint.fundWallet(address: "\(request.address)", headers: await authHeaders, body: body),
+            Endpoint.fundWallet(address: "\(request.address)", body: body),
             errorType: WalletError.self
         )
     }
@@ -85,10 +83,21 @@ struct DefaultWalletService: WalletService, AuthManagerProviding, TransactionReq
         let endpoint = Endpoint.removeSigner(
             chainType: chainType,
             encodedLocator: encodedLocator,
-            headers: await authHeaders,
             queryItems: queryItems
         )
-        return try await executeTransactionRequest(endpoint: endpoint, mapping: chainType.mappingType)
+        let data = try await crossmintService.executeRequestForRawData(endpoint, errorType: TransactionError.self)
+        return try decodeTransaction(from: data, mapping: chainType.mappingType)
+    }
+
+    private func decodeTransaction<T: WalletTypeTransactionMapping>(
+        from data: Data,
+        mapping: T.Type
+    ) throws(TransactionError) -> any TransactionApiModel {
+        do {
+            return try jsonCoder.decode(T.APIModel.self, from: data)
+        } catch {
+            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+        }
     }
 
     private func encodedSignerLocator(_ locator: String) -> String {
@@ -109,7 +118,7 @@ struct DefaultWalletService: WalletService, AuthManagerProviding, TransactionReq
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let bodyData = try jsonCoder.encodeRequest(body, errorType: WalletError.self)
         let responseData = try await crossmintService.executeRequestForRawData(
-            .meWalletSigners(chainType: chainType, headers: await authHeaders, body: bodyData),
+            .meWalletSigners(chainType: chainType, body: bodyData),
             errorType: WalletError.self
         )
         guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {

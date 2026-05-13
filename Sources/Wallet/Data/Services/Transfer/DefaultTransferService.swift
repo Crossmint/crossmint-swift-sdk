@@ -1,4 +1,3 @@
-import CrossmintAuth
 import CrossmintCommonTypes
 import CrossmintService
 import Http
@@ -10,10 +9,9 @@ private struct TransferBody: Encodable {
     let signer: String?
 }
 
-struct DefaultTransferService: TransferService, AuthManagerProviding, TransactionRequestExecuting {
+struct DefaultTransferService: TransferService {
     let crossmintService: CrossmintService
     let jsonCoder: JSONCoder
-    let authManager: AuthManager
 
     func transferToken(
         _ request: TransferTokenRequest
@@ -42,9 +40,7 @@ struct DefaultTransferService: TransferService, AuthManagerProviding, Transactio
     ) async throws(TransactionError) -> any TransactionApiModel {
         let body = TransferBody(recipient: request.recipient, amount: request.amount, signer: request.signer)
         let bodyData = try jsonCoder.encodeRequest(body, errorType: TransactionError.self)
-        var headers = await authHeaders
-        // Always send an idempotency key — callers that need idempotency supply their own.
-        headers["x-idempotency-key"] = request.idempotencyKey ?? UUID().uuidString
+        let headers = ["x-idempotency-key": request.idempotencyKey ?? UUID().uuidString]
         let endpoint = Endpoint.meWalletTokenTransfer(
             chainType: request.chainType,
             tokenLocator: request.tokenLocator,
@@ -59,12 +55,31 @@ struct DefaultTransferService: TransferService, AuthManagerProviding, Transactio
         chainType: ChainType
     ) async throws(TransactionError) -> any TransactionApiModel {
         do {
-            let result = try await executeTransactionRequest(endpoint: endpoint, mapping: chainType.mappingType)
+            let result = try await executeTransactionRequest(endpoint: endpoint, chainType: chainType)
             Logger.smartWallet.info(LogEvents.apiSendSuccess, attributes: ["transactionId": "\(result.id)"])
             return result
         } catch {
             Logger.smartWallet.error(LogEvents.apiSendError, attributes: ["error": "\(error)"])
             throw error
+        }
+    }
+
+    private func executeTransactionRequest(
+        endpoint: Endpoint,
+        chainType: ChainType
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        let data = try await crossmintService.executeRequestForRawData(endpoint, errorType: TransactionError.self)
+        return try decodeTransaction(from: data, mapping: chainType.mappingType)
+    }
+
+    private func decodeTransaction<T: WalletTypeTransactionMapping>(
+        from data: Data,
+        mapping: T.Type
+    ) throws(TransactionError) -> any TransactionApiModel {
+        do {
+            return try jsonCoder.decode(T.APIModel.self, from: data)
+        } catch {
+            throw TransactionError.transactionGeneric("Failed to decode transaction response")
         }
     }
 
@@ -74,7 +89,6 @@ struct DefaultTransferService: TransferService, AuthManagerProviding, Transactio
         let queryItems = makeListTransfersQueryItems(for: params)
         let endpoint = Endpoint.meWalletTransferList(
             chainType: params.chain.chainType,
-            headers: await authHeaders,
             queryItems: queryItems
         )
         do {
