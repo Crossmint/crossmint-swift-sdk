@@ -1,6 +1,6 @@
 # Crossmint Swift SDK — Test Suite Conventions
 
-> Swift-specific edition. For the full test case catalogue see [`SDK_TEST_PLAN.md`](./SDK_TEST_PLAN.md).
+> Applies to `crossmint-swift-sdk`. Swift-specific edition of the cross-repo test conventions.
 
 ---
 
@@ -68,15 +68,6 @@ Staging integration tests live inside `CrossmintClientTests/` alongside unit tes
 @Test func shouldSendOtpToValidEmail() async throws { }
 @Test func itCanRejectInvalidEmail() async throws { }
 @Test func willParseWalletApiModel() async throws { }
-```
-
-**Test plan ID prefix (`CrossmintClientTests` only)**
-
-When a test maps directly to a case in `SDK_TEST_PLAN.md`, prefix the function name with the plan ID and include it in the `@Test` display string:
-
-```swift
-@Test("AUTH-01: Send OTP to valid email returns emailSent status")
-func auth01_sendOtpToValidEmailReturnsEmailSent() async throws { }
 ```
 
 **Constants — `UPPER_SNAKE_CASE`**
@@ -442,7 +433,6 @@ When adding or migrating a test file:
 - [ ] Test type is `struct`, not `class`
 - [ ] `import Testing` (not `import XCTest`)
 - [ ] Test functions are camelCase, BDD-style, **no verb prefix**
-- [ ] Test plan ID prefix added when the test maps to `SDK_TEST_PLAN.md` (CrossmintClientTests only)
 - [ ] Mock files in `Mocks/`, named `Mock<Protocol>.swift`
 - [ ] JSON fixtures in `Resources/`, registered in `Package.swift`
 - [ ] Constants named `UPPER_SNAKE_CASE`
