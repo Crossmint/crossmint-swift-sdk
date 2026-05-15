@@ -1,6 +1,7 @@
 import Testing
 @testable import Wallet
 
+@Suite("ERC20Encoder Tests")
 struct ERC20EncoderTest {
     @Test("Valid input")
     func testValidInput() async throws {

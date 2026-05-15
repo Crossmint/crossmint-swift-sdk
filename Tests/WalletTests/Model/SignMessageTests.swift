@@ -3,6 +3,7 @@ import Testing
 import CrossmintCommonTypes
 import Foundation
 
+@Suite("SignMessage Tests")
 struct SignMessageTests {
 
     @Test

@@ -4,11 +4,12 @@ import Testing
 
 @testable import Wallet
 
+@Suite("Chain Tests")
 struct ChainTest {
     @Test(
-        "Will set unknown chain if the name is not known"
+        "Sets unknown chain when the name is not known"
     )
-    func willParseUnknownChains() async {
+    func parsesUnknownChains() async {
         let chain = getChain(
             """
             {
@@ -21,9 +22,9 @@ struct ChainTest {
     }
 
     @Test(
-        "Will use the expected type when the name is known"
+        "Uses expected type when the chain name is known"
     )
-    func willParseKnownChains() async {
+    func parsesKnownChains() async {
         let chain = getChain(
             """
             {
@@ -36,9 +37,9 @@ struct ChainTest {
     }
 
     @Test(
-        "Will parse solana chain"
+        "Parses Solana chain"
     )
-    func willParseSolanaChain() async {
+    func parsesSolanaChain() async {
         let chain = getChain(
             """
             {

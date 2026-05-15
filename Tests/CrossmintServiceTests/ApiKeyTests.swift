@@ -1,22 +1,23 @@
 import Testing
 @testable import CrossmintService
 
+@Suite("API Key Tests")
 struct ApiKeyTest {
     @Test(
-        "Will throw for every environment when the API key is old",
+        "Rejects old API key format for all environments",
         arguments: ["sk_live", "sk_test"]
     )
-    func willThrowWhenTheApiKeyIsOld(key: String) async throws {
+    func rejectsOldApiKeyFormat(key: String) async throws {
         #expect(throws: ApiKey.Error.oldKey) {
             try ApiKey(key: key)
         }
     }
 
     @Test(
-        "Will throw if the API key does not start with the correct prefix",
+        "Rejects API key that does not start with the correct prefix",
         arguments: ApiKeyUsageOriginPrefix.allCases
     )
-    func willThrowIfTheApiKeyDoesNotStartWithTheCorrectPrefix(prefix: ApiKeyUsageOriginPrefix) async throws {
+    func rejectsApiKeyWithWrongPrefix(prefix: ApiKeyUsageOriginPrefix) async throws {
         let expectedError = ApiKey.Error.malformedKey(
             // swiftlint:disable:next line_length
             "Malformed API key. Must starts with \(ApiKeyUsageOriginPrefix.client.rawValue) or \(ApiKeyUsageOriginPrefix.server.rawValue)"
@@ -28,10 +29,10 @@ struct ApiKeyTest {
     }
 
     @Test(
-        "Will extract the expected environment from the API key",
+        "Extracts the expected environment from the API key",
         arguments: ApiKeyEnvironmentPrefix.allCases
     )
-    func willExtractTheExpectedEnvironmentFromTheApiKey(prefix: ApiKeyEnvironmentPrefix) async throws {
+    func extractsEnvironmentFromApiKey(prefix: ApiKeyEnvironmentPrefix) async throws {
         let key = "\(ApiKeyUsageOriginPrefix.client.rawValue)_\(prefix.rawValue)"
         let apiKey = try ApiKey(key: key)
         #expect(apiKey.environment == prefix.expectedEnvironment)

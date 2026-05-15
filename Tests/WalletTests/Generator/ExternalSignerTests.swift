@@ -2,14 +2,15 @@ import Foundation
 import Testing
 @testable import Wallet
 
+@Suite("EVMKeyPairSigner Tests")
 struct ExternalSignerTest {
     private let invalidPrivateKey = "invalid key."
     private let validPrivateKey = "133185142a89f6fe2be363c0dcbc1d2e701cbe8c0de5440aeae17c4d3fd28fbd"
 
     @Test(
-        "Will create a new address from a valid private key"
+        "Creates a new address from a valid private key"
     )
-    func willCreateANewAddressFromAValidPrivateKey() async throws {
+    func createsAddressFromValidPrivateKey() async throws {
         let signer = try EVMKeyPairSigner(
             privateKeyData: validPrivateKey.bytes
         )
@@ -22,9 +23,9 @@ struct ExternalSignerTest {
     }
 
     @Test(
-        "Will fail when the private key data provided is empty"
+        "Rejects empty private key data"
     )
-    func willFailWhenEmptyDataIsUsedAsPrivateKey() async throws {
+    func rejectsEmptyPrivateKeyData() async throws {
         #expect(throws: SignerError.invalidPrivateKey) {
             try EVMKeyPairSigner(
                 privateKeyData: []
@@ -32,8 +33,8 @@ struct ExternalSignerTest {
         }
     }
 
-    @Test("Will fail when private key is not valid")
-    func willFailWhenPrivateKeyIsNotValid() async throws {
+    @Test("Rejects invalid private key")
+    func rejectsInvalidPrivateKey() async throws {
         await #expect(throws: SignerError.invalidPrivateKey) {
             let signer = try EVMKeyPairSigner(privateKey: invalidPrivateKey)
             try await signer.initialize()
@@ -41,8 +42,8 @@ struct ExternalSignerTest {
         }
     }
 
-    @Test("Will get signature when private key is valid")
-    func willGetSignatureWhenPrivateKeyIsValid() async throws {
+    @Test("Returns signature for valid private key")
+    func returnsSignatureForValidPrivateKey() async throws {
         let message = "0x52769994aa43c041dad4d211d584bef75e03b318dc8d34a449f815aeb50b99c8"
         let privateKey = "e9b363f475d641078ffd02b477054f8b4c0d3442941bc3d69d15d151ce07be8f"
         // swiftlint:disable:next line_length

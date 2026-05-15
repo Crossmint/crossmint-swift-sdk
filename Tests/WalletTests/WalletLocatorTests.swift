@@ -2,9 +2,10 @@ import Testing
 
 @testable import Wallet
 
+@Suite("WalletLocator Tests")
 struct WalletLocatorTest {
     @Test(
-        "Will return the correct wallet locator for the given type",
+        "Returns the correct wallet locator for the given type",
         arguments: [
             (
                 "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d",
@@ -33,7 +34,7 @@ struct WalletLocatorTest {
             )
         ]
     )
-    func willReturnTheCorrectWalletLocatorForTheGivenType(expectAndActual: (String, WalletLocator))
+    func returnsCorrectWalletLocatorForGivenType(expectAndActual: (String, WalletLocator))
         async {
         #expect(expectAndActual.0 == expectAndActual.1.value)
     }

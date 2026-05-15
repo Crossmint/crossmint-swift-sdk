@@ -3,6 +3,7 @@ import Foundation
 import Testing
 @testable import Wallet
 
+@Suite("WalletBalance Tests")
 struct WalletBalanceSimpleTest {
 
     @Test("New Balance structure works correctly")

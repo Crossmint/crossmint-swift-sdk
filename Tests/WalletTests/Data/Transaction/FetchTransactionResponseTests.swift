@@ -4,9 +4,10 @@ import TestsUtils
 
 @testable import Wallet
 
+@Suite("FetchTransactionResponse Tests")
 struct FetchTransactionResponseTest {
     @Test("Parse failed transactions")
-    func willParseAwaitingApprovalState() async throws {
+    func parsesFailedTransactionState() async throws {
         let response: EVMTransactionApiModel = try GetFromFile.getModelFrom(
             fileName: "FailedTransactionResponse",
             bundle: Bundle.module

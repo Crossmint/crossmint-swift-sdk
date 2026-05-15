@@ -5,6 +5,7 @@ import TestsUtils
 import Utils
 @testable import Wallet
 
+@Suite("EIP712 Tests")
 // swiftlint:disable:next type_body_length
 struct EIP712Tests {
 

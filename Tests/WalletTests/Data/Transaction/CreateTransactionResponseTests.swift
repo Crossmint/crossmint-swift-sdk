@@ -4,9 +4,10 @@ import TestsUtils
 
 @testable import Wallet
 
+@Suite("CreateTransactionResponse Tests")
 struct CreateTransactionResponseTest {
     @Test("Parse awaiting approval state")
-    func willParseAwaitingApprovalState() async throws {
+    func parsesAwaitingApprovalState() async throws {
         let response: EVMTransactionApiModel = try GetFromFile.getModelFrom(
             fileName: "CreateTransactionAwaitingApproval",
             bundle: Bundle.module
@@ -17,7 +18,7 @@ struct CreateTransactionResponseTest {
     }
 
     @Test("Parse Solana transaction state")
-    func willParseSolanaTransactionResponse() async throws {
+    func parsesSolanaTransactionResponse() async throws {
         let response: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
             fileName: "CreateSolanaTransactionResponse",
             bundle: Bundle.module

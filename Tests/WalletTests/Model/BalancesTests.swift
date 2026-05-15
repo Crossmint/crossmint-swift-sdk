@@ -3,11 +3,12 @@ import Foundation
 import Testing
 @testable import Wallet
 
+@Suite("Balances Tests")
 struct BalancesTest {
     @Test(
-        "Will handle Balance if the currency is not known"
+        "Handles Balance if the currency is not known"
     )
-    func willHandleBalanceIfTheCurrencyIsNotKnown() async {
+    func handlesUnknownCurrencyInBalance() async {
         let balances = getBalances("""
                 [
                   {
@@ -35,8 +36,8 @@ struct BalancesTest {
         #expect(balances[.unknown("new_currency")]?.total == 242)
     }
 
-    @Test("Will get the right values for each chain for a given currency")
-    func willGetTheRightValuesForEachChainForAGivenCurrency() async {
+    @Test("Returns the right values for each chain for a given currency")
+    func returnsCorrectValuesPerChainForCurrency() async {
         let balances = getBalances("""
                 [
                   {
@@ -77,8 +78,8 @@ struct BalancesTest {
         #expect(balance.chainBalances[.unknown(name: "unknown-chain")] == 123)
     }
 
-    @Test("Will get all balances for the same currency together.")
-    func willGetAllBalancesForTheSameCurrencyTogether() async {
+    @Test("Aggregates balances for the same currency")
+    func aggregatesBalancesForSameCurrency() async {
         let balances = getBalances("""
                 [
                   {
@@ -121,9 +122,9 @@ struct BalancesTest {
         #expect(usdc[.bsc] == 200)
     }
 
-    @Test("Will parse different balances")
+    @Test("Parses different balances")
     // swiftlint:disable:next function_body_length
-    func willGetDifferentTokensFromTheBalanceResponse() async {
+    func parsesDifferentBalanceTokens() async {
         let balances = getBalances("""
                 [
                   {

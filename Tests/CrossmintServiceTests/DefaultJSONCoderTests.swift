@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import CrossmintService
 
+@Suite("DefaultJSONCoder Tests")
 struct DefaultJSONCoderTest {
 
     private struct TestModel: Codable {
