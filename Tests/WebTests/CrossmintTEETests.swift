@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import Web
 
-@Suite("CrossmintTEE Tests")
+@Suite("CrossmintTEE Tests", .tags(.unit))
 @MainActor
 struct CrossmintTEETests {
     @MainActor

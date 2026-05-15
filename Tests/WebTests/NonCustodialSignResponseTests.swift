@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Web
 
-@Suite("NonCustodialSignResponse Tests")
+@Suite("NonCustodialSignResponse Tests", .tags(.unit))
 struct NonCustodialSignResponseTests {
 
     @Test("Decode successful sign response with signature and publicKey")
