@@ -6,19 +6,6 @@ import Testing
 @Suite("WebViewMessageHandler Tests")
 @MainActor
 struct WebViewMessageHandlerTests {
-    final class MockWebViewMessageHandlerDelegate: WebViewMessageHandlerDelegate {
-        var receivedMessages: [any WebViewMessage] = []
-        var receivedUnknownMessages: [(type: String, data: Data)] = []
-
-        func handleWebViewMessage<T: WebViewMessage>(_ message: T) {
-            receivedMessages.append(message)
-        }
-
-        func handleUnknownMessage(_ messageType: String, data: Data) {
-            receivedUnknownMessages.append((type: messageType, data: data))
-        }
-    }
-
     @Test("Process console.log message with data array")
     func testProcessConsoleLogMessage() throws {
         let handler = WebViewMessageHandler()
