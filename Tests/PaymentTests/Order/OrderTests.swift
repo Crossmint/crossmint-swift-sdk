@@ -4,7 +4,7 @@ import TestsUtils
 
 @testable import Payments
 
-struct OrderTest {
+struct OrderTests {
     @Test("Will parse a LineItemDeliveryToken")
     func willParseALineItemDeliveryToken() async throws {
         let lineItemDeliveryToken: LineItemDeliveryToken = try GetFromFile.getModelFrom(
