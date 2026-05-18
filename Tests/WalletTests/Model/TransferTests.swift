@@ -12,7 +12,7 @@ import TestsUtils
 
 @testable import Wallet
 
-@Suite("Transfer Tests")
+@Suite("Transfer Tests", .tags(.unit))
 struct TransferTests {
     @Test("Decodes a list transfers response")
     func decodesListTransfersResponse() async throws {

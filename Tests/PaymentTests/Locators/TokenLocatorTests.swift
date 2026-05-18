@@ -1,7 +1,7 @@
 import Testing
 @testable import Payments
 
-@Suite("Token Locator Tests")
+@Suite("Token Locator Tests", .tags(.unit))
 struct TokenLocatorTests {
     @Test(
         "Returns the correct token locator for the given type",

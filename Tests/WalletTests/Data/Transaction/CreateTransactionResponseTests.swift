@@ -4,7 +4,7 @@ import TestsUtils
 
 @testable import Wallet
 
-@Suite("CreateTransactionResponse Tests")
+@Suite("CreateTransactionResponse Tests", .tags(.unit))
 struct CreateTransactionResponseTest {
     @Test("Parse awaiting approval state")
     func parsesAwaitingApprovalState() async throws {

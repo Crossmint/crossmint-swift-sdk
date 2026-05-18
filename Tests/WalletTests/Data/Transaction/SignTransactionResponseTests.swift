@@ -4,7 +4,7 @@ import TestsUtils
 
 @testable import Wallet
 
-@Suite("SignTransactionResponse Tests")
+@Suite("SignTransactionResponse Tests", .tags(.unit))
 struct SignTransactionResponseTest {
     @Test("Parses transaction when signed")
     func parsesTransactionWhenSigned() async throws {

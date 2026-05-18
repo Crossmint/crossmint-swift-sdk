@@ -4,7 +4,7 @@ import TestsUtils
 
 @testable import Wallet
 
-@Suite("SmartWalletConfigResponse Tests")
+@Suite("SmartWalletConfigResponse Tests", .tags(.unit))
 struct SmartWalletConfigResponseTest {
     @Test("EOA wallet")
     func parsesEOAWallet() async throws {

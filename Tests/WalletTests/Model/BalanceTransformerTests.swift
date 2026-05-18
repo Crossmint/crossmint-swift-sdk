@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import Wallet
 
-@Suite("BalanceTransformer Tests")
+@Suite("BalanceTransformer Tests", .tags(.unit))
 struct BalanceTransformerTest {
 
     // MARK: - Helper Methods

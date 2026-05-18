@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import Wallet
 
-@Suite("Balances Tests")
+@Suite("Balances Tests", .tags(.unit))
 struct BalancesTest {
     @Test(
         "Handles Balance if the currency is not known"

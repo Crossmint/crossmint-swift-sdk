@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import Wallet
 
-@Suite("ChainBalance Tests")
+@Suite("ChainBalance Tests", .tags(.unit))
 struct ChainBalanceTest {
     @Test(
         "Normalizes decimal strings to match the number of decimals",

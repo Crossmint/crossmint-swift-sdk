@@ -4,7 +4,7 @@ import Testing
 
 @testable import Wallet
 
-@Suite("Chain Tests")
+@Suite("Chain Tests", .tags(.unit))
 struct ChainTest {
     @Test(
         "Sets unknown chain when the name is not known"

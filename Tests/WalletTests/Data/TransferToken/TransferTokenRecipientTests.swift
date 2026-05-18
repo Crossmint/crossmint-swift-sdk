@@ -5,7 +5,7 @@ import Utils
 
 @testable import Wallet
 
-@Suite("TransferTokenRecipient Tests")
+@Suite("TransferTokenRecipient Tests", .tags(.unit))
 struct TransferTokenRecipientTest {
     // swiftlint:disable:next force_try
     private let someEVMAddress = try! EVMAddress(

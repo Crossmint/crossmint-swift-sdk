@@ -4,7 +4,7 @@ import TestsUtils
 
 @testable import Wallet
 
-@Suite("WalletApiModel Tests")
+@Suite("WalletApiModel Tests", .tags(.unit))
 struct WalletApiModelTest {
     @Test(
         "Parses an EVM Passkey Wallet"

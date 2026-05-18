@@ -4,7 +4,7 @@ import TestsUtils
 
 @testable import Wallet
 
-@Suite("FetchTransactionResponse Tests")
+@Suite("FetchTransactionResponse Tests", .tags(.unit))
 struct FetchTransactionResponseTest {
     @Test("Parse failed transactions")
     func parsesFailedTransactionState() async throws {

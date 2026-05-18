@@ -2,7 +2,7 @@ import Testing
 
 @testable import Wallet
 
-@Suite("WalletLocator Tests")
+@Suite("WalletLocator Tests", .tags(.unit))
 struct WalletLocatorTest {
     @Test(
         "Returns the correct wallet locator for the given type",

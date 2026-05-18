@@ -4,7 +4,7 @@ import TestsUtils
 
 @testable import Payments
 
-@Suite("Order Tests")
+@Suite("Order Tests", .tags(.unit))
 struct OrderTests {
     @Test("Parses a LineItemDeliveryToken")
     func parsesLineItemDeliveryToken() async throws {

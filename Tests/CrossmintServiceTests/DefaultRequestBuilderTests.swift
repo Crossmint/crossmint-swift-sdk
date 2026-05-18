@@ -1,7 +1,7 @@
 import Testing
 @testable import CrossmintService
 
-@Suite("DefaultRequestBuilder Tests")
+@Suite("DefaultRequestBuilder Tests", .tags(.unit))
 struct DefaultRequestBuilderTest {
 
     // swiftlint:disable:next force_try

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Wallet
 
-@Suite("EVMKeyPairSigner Tests")
+@Suite("EVMKeyPairSigner Tests", .tags(.unit))
 struct ExternalSignerTest {
     private let invalidPrivateKey = "invalid key."
     private let validPrivateKey = "133185142a89f6fe2be363c0dcbc1d2e701cbe8c0de5440aeae17c4d3fd28fbd"

@@ -2,7 +2,7 @@ import Testing
 
 @testable import CrossmintCommonTypes
 
-@Suite("Admin Signer Data Tests")
+@Suite("Admin Signer Data Tests", .tags(.unit))
 struct AdminSignerDataTests {
 
     // MARK: - ExternalWalletSignerData

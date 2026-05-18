@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Testing
 @testable import Wallet
 
-@Suite("SignerRegistrationService Tests")
+@Suite("SignerRegistrationService Tests", .tags(.unit))
 struct SignerRegistrationServiceTests {
     private let chainType = ChainType.evm
     private let chainName = "polygon"

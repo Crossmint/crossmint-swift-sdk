@@ -1,7 +1,7 @@
 import Testing
 @testable import CrossmintService
 
-@Suite("API Key Tests")
+@Suite("API Key Tests", .tags(.unit))
 struct ApiKeyTest {
     @Test(
         "Rejects old API key format for all environments",
