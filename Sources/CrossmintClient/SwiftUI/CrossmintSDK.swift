@@ -10,6 +10,30 @@ import Web
 
 @MainActor private var sdkInstances = 0
 
+/// Entry point for the Crossmint SDK.
+///
+/// Call ``configure(apiKey:logLevel:)`` once at app startup before accessing ``shared``.
+/// Accessing ``shared`` before configuring causes a `fatalError`.
+///
+/// When using an email OTP signer, observe ``isOTPRequired`` to know when to display an OTP input,
+/// then call ``submit(otp:)`` with the code the user enters.
+///
+/// ## Example
+/// ```swift
+/// @main
+/// struct MyApp: App {
+///     init() {
+///         CrossmintSDK.configure(apiKey: "ck_development_...", logLevel: .warn)
+///     }
+///
+///     var body: some Scene {
+///         WindowGroup {
+///             ContentView()
+///                 .environmentObject(CrossmintSDK.shared)
+///         }
+///     }
+/// }
+/// ```
 @MainActor
 final public class CrossmintSDK: ObservableObject {
     @MainActor private static var _shared: CrossmintSDK?
@@ -24,8 +48,13 @@ final public class CrossmintSDK: ObservableObject {
         return instance
     }
 
-    /// Configures the SDK with the given API key. Must be called before accessing `CrossmintSDK.shared`.
-    /// Subsequent calls are ignored — the SDK can only be configured once per process.
+    /// Configures the SDK. Must be called once before accessing ``shared``.
+    ///
+    /// Subsequent calls are silently ignored — the SDK can only be configured once per process.
+    ///
+    /// - Parameters:
+    ///   - apiKey: A client API key (prefixed `ck_`).
+    ///   - logLevel: Controls SDK log verbosity. Defaults to `.error`.
     @MainActor public static func configure(apiKey: String, logLevel: LogLevel = .error) {
         guard _shared == nil else {
             Logger.sdk.warn("CrossmintSDK.configure() called after SDK is already configured — ignoring")
@@ -44,12 +73,17 @@ final public class CrossmintSDK: ObservableObject {
 
     let crossmintTEE: CrossmintTEE
 
+    /// Emits `true` when a pending transaction is waiting for the user to enter an email OTP.
     public var isOTPRequired: Published<Bool>.Publisher {
         crossmintTEE.$isOTPRequired
     }
+
+    /// Provides the OTP entered by the user to unblock the pending transaction.
     public func submit(otp: String) {
         crossmintTEE.provideOTP(otp)
     }
+
+    /// Cancels the pending transaction waiting for an OTP.
     public func cancelTransaction() {
         crossmintTEE.cancelOTP()
     }
@@ -95,6 +129,7 @@ final public class CrossmintSDK: ObservableObject {
         )
     }
 
+    /// Invalidates the server-side refresh token, clears the local session, and resets OTP state.
     public func logout() async {
         do {
             _ = try await authManager.logout()

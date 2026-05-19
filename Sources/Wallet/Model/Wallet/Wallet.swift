@@ -91,6 +91,11 @@ open class Wallet: @unchecked Sendable {
         return walletModel.config.recovery.toDomain.locator == locator
     }
 
+    /// Returns a page of NFTs owned by this wallet.
+    ///
+    /// - Parameters:
+    ///   - page: Zero-based page index.
+    ///   - nftsPerPage: Number of NFTs per page.
     public func nfts(page: Int, nftsPerPage: Int) async throws(WalletError) -> [NFT] {
         try await smartWalletService.getNFTs(
             .init(walletLocator: .address(blockchainAddress), chain: chain, page: page, perPage: nftsPerPage)
@@ -152,6 +157,11 @@ open class Wallet: @unchecked Sendable {
         )
     }
 
+    /// Returns balances for the requested tokens, always including the chain's native token and USDC.
+    ///
+    /// - Parameters:
+    ///   - tokens: Additional tokens to include. Native token and USDC are always fetched.
+    ///   - chains: Additional chains to query. The wallet's own chain is always included.
     public func balances(
         _ tokens: [CryptoCurrency] = [],
         _ chains: [Chain] = []
@@ -183,6 +193,13 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
+    /// Funds the wallet with test tokens from the Crossmint faucet.
+    ///
+    /// Only available in staging/development environments; throws in production.
+    ///
+    /// - Parameters:
+    ///   - token: The token to fund.
+    ///   - amount: Amount in the token's smallest unit (e.g. lamports for SOL, wei for ETH).
     public func fund(
         token: CryptoCurrency,
         amount: Int
