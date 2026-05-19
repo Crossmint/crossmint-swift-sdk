@@ -3,12 +3,13 @@ import Foundation
 import Testing
 @testable import Wallet
 
+@Suite("Balances Tests", .tags(.unit))
 struct BalancesTest {
     @Test(
         "Will handle Balance if the currency is not known"
     )
     func willHandleBalanceIfTheCurrencyIsNotKnown() async {
-        let balances = getBalances("""
+        let balances = decodeBalances(from: """
                 [
                   {
                     "symbol": "new_currency",
@@ -37,7 +38,7 @@ struct BalancesTest {
 
     @Test("Will get the right values for each chain for a given currency")
     func willGetTheRightValuesForEachChainForAGivenCurrency() async {
-        let balances = getBalances("""
+        let balances = decodeBalances(from: """
                 [
                   {
                     "symbol": "usdc",
@@ -79,7 +80,7 @@ struct BalancesTest {
 
     @Test("Will get all balances for the same currency together.")
     func willGetAllBalancesForTheSameCurrencyTogether() async {
-        let balances = getBalances("""
+        let balances = decodeBalances(from: """
                 [
                   {
                     "symbol": "usdc",
@@ -124,7 +125,7 @@ struct BalancesTest {
     @Test("Will parse different balances")
     // swiftlint:disable:next function_body_length
     func willGetDifferentTokensFromTheBalanceResponse() async {
-        let balances = getBalances("""
+        let balances = decodeBalances(from: """
                 [
                   {
                     "symbol": "eth",
@@ -181,12 +182,4 @@ struct BalancesTest {
         #expect(balances[.usdxm]?[.baseSepolia] == 30)
     }
 
-    private func getBalances(_ json: String) -> Balances {
-        guard let data = json.data(using: .utf8),
-                let balances = try? JSONDecoder().decode(Balances.self, from: data) else {
-            Issue.record("Failed to decode balances")
-            return Balances()
-        }
-        return balances
-    }
 }
