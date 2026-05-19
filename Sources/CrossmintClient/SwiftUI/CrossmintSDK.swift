@@ -1,7 +1,7 @@
 import CrossmintAuth
 import Combine
 @_exported import CrossmintCommonTypes
-@_exported import CrossmintService
+import CrossmintService
 import Logger
 import SwiftUI
 import Utils
@@ -87,7 +87,7 @@ final public class CrossmintSDK: ObservableObject {
                 auth: authManager,
                 webProxy: DefaultWebViewCommunicationProxy(),
                 apiKey: apiKey,
-                isProductionEnvironment: sdk.isProductionEnvironment
+                isProductionEnvironment: isProductionEnvironment
             )
         } catch {
             Logger.client.error("Invalid Crossmint API key provided: \(error)")
