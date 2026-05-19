@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Utils
 
-@Suite("HexUtil Tests")
+@Suite("HexUtil Tests", .tags(.unit))
 struct HexUtilTests {
 
     @Test("Convert valid hex digits")

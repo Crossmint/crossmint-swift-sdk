@@ -1,7 +1,7 @@
 import Testing
 @testable import Utils
 
-@Suite("Email Validation Tests")
+@Suite("Email Validation Tests", .tags(.unit))
 struct EmailValidationTests {
     @Test(
         "Rejects invalid emails",

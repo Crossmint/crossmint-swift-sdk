@@ -2,7 +2,7 @@ import Testing
 
 @testable import CrossmintCommonTypes
 
-@Suite("Solana Address and PublicKey tests")
+@Suite("Solana Address and PublicKey tests", .tags(.unit))
 struct SolanaPublicKeyAddressTests {
     @Test("Should parse a valid Solana public address")
     func shouldParseValidSolanaPublicAddress() throws {

@@ -3,7 +3,7 @@ import Testing
 @testable import Web
 @testable import Logger
 
-@Suite("WebViewMessageHandler Tests")
+@Suite("WebViewMessageHandler Tests", .tags(.unit))
 @MainActor
 struct WebViewMessageHandlerTests {
     final class MockWebViewMessageHandlerDelegate: WebViewMessageHandlerDelegate {

@@ -4,7 +4,11 @@
       "id" : "D5674AFA-547D-4078-84D6-493CEEF5A2DD",
       "name" : "Configuration 1",
       "options" : {
-
+        "tags" : {
+          "skippedTagIDs" : [
+            "staging"
+          ]
+        }
       }
     }
   ],

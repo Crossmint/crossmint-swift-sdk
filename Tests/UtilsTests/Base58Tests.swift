@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Utils
 
-@Suite("Base58 Tests")
+@Suite("Base58 Tests", .tags(.unit))
 struct Base58Tests {
 
     @Test("Decode valid address")

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Web
 
-@Suite("GetStatusResponse Tests")
+@Suite("GetStatusResponse Tests", .tags(.unit))
 struct GetStatusResponseTests {
 
     @Test("Decode new device response with signerStatus")
