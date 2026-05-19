@@ -1,9 +1,8 @@
 import CrossmintAuth
-import CrossmintService
 import Wallet
 
-public protocol ClientSDK {
+protocol ClientSDK {
     func crossmintWallets() -> CrossmintWallets
     var authManager: AuthManager { get }
-    var crossmintService: CrossmintService { get }
+    var isProductionEnvironment: Bool { get }
 }
