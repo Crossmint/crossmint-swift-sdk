@@ -1,9 +1,10 @@
 import Testing
 @testable import Payments
 
+@Suite("Token Locator Tests", .tags(.unit))
 struct TokenLocatorTests {
     @Test(
-        "Will return the correct token locator for the given type",
+        "Returns the correct token locator for the given type",
         arguments: [
             (
                 "solana:6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
@@ -25,7 +26,7 @@ struct TokenLocatorTests {
             )
         ]
     )
-    func willReturnTheCorrectTokenLocatorForTheGivenType(expectAndActual: (String, TokenLocator)) async {
+    func returnsCorrectTokenLocatorForGivenType(expectAndActual: (String, TokenLocator)) async {
         do {
             let tokenLocator = try TokenLocator(string: expectAndActual.0)
             #expect(tokenLocator.description == expectAndActual.1.description)

@@ -4,9 +4,10 @@ import TestsUtils
 
 @testable import Payments
 
+@Suite("Order Tests", .tags(.unit))
 struct OrderTests {
-    @Test("Will parse a LineItemDeliveryToken")
-    func willParseALineItemDeliveryToken() async throws {
+    @Test("Parses a LineItemDeliveryToken")
+    func parsesLineItemDeliveryToken() async throws {
         let lineItemDeliveryToken: LineItemDeliveryToken = try GetFromFile.getModelFrom(
             fileName: "GetLineItemDeliveryToken",
             bundle: Bundle.module
@@ -26,8 +27,8 @@ struct OrderTests {
         }
     }
 
-    @Test("Will parse a SolanaLineItemDeliveryToken of exact out type")
-    func willParseALineOutItemDeliveryToken() async throws {
+    @Test("Parses a SolanaLineItemDeliveryToken of exact out type")
+    func parsesSolanaLineItemDeliveryTokenExactOut() async throws {
         let lineItemDeliveryToken: LineItemDeliveryToken = try GetFromFile.getModelFrom(
             fileName: "SolanaLineItemDeliveryTokenOut",
             bundle: Bundle.module

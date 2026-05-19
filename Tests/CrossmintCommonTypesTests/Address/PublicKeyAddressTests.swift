@@ -2,6 +2,7 @@ import Testing
 
 @testable import CrossmintCommonTypes
 
+@Suite("Public Key Address Tests", .tags(.unit))
 struct PublicAddressTest {
     @Test("Should parse a valid EVM public address")
     func shouldParseValidEVMPublicAddress() throws {

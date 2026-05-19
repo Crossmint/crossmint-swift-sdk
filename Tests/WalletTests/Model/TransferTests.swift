@@ -12,9 +12,10 @@ import TestsUtils
 
 @testable import Wallet
 
+@Suite("Transfer Tests", .tags(.unit))
 struct TransferTests {
-    @Test("Will decode a list transfers response")
-    func willDecodeListTransfersResponse() async throws {
+    @Test("Decodes a list transfers response")
+    func decodesListTransfersResponse() async throws {
         let response: TransferListApiModel = try GetFromFile.getModelFrom(
             fileName: "ListTransfersResponse",
             bundle: Bundle.module
@@ -23,8 +24,8 @@ struct TransferTests {
         #expect(response.data.count == 3)
     }
 
-    @Test("Will map outgoing transfer correctly")
-    func willMapOutgoingTransfer() async throws {
+    @Test("Maps outgoing transfer correctly")
+    func mapsOutgoingTransferCorrectly() async throws {
         let response: TransferListApiModel = try GetFromFile.getModelFrom(
             fileName: "ListTransfersResponse",
             bundle: Bundle.module
@@ -41,8 +42,8 @@ struct TransferTests {
         #expect(transfer.transactionHash == "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
     }
 
-    @Test("Will map incoming transfer correctly")
-    func willMapIncomingTransfer() async throws {
+    @Test("Maps incoming transfer correctly")
+    func mapsIncomingTransferCorrectly() async throws {
         let response: TransferListApiModel = try GetFromFile.getModelFrom(
             fileName: "ListTransfersResponse",
             bundle: Bundle.module
@@ -57,8 +58,8 @@ struct TransferTests {
         #expect(transfer.amount == Decimal(string: "0.05"))
     }
 
-    @Test("Will parse ISO8601 date with fractional seconds")
-    func willParseDateWithFractionalSeconds() async throws {
+    @Test("Parses ISO8601 date with fractional seconds")
+    func parsesISO8601DateWithFractionalSeconds() async throws {
         let response: TransferListApiModel = try GetFromFile.getModelFrom(
             fileName: "ListTransfersResponse",
             bundle: Bundle.module
@@ -81,8 +82,8 @@ struct TransferTests {
         #expect(components.second == 30)
     }
 
-    @Test("Will parse ISO8601 date without fractional seconds")
-    func willParseDateWithoutFractionalSeconds() async throws {
+    @Test("Parses ISO8601 date without fractional seconds")
+    func parsesISO8601DateWithoutFractionalSeconds() async throws {
         let response: TransferListApiModel = try GetFromFile.getModelFrom(
             fileName: "ListTransfersResponse",
             bundle: Bundle.module

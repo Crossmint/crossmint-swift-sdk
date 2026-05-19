@@ -4,9 +4,10 @@ import TestsUtils
 
 @testable import Wallet
 
+@Suite("SmartWalletConfigResponse Tests", .tags(.unit))
 struct SmartWalletConfigResponseTest {
     @Test("EOA wallet")
-    func willParseEOAWallet() async throws {
+    func parsesEOAWallet() async throws {
         let response: SmartWalletConfigResponse = try GetFromFile.getModelFrom(
             fileName: "SmartWalletConfigResponseEOA",
             bundle: Bundle.module
@@ -16,7 +17,7 @@ struct SmartWalletConfigResponseTest {
     }
 
     @Test("Passkeys wallet")
-    func willParsePasskeysWallet() async throws {
+    func parsesPasskeysWallet() async throws {
         let response: SmartWalletConfigResponse = try GetFromFile.getModelFrom(
             fileName: "SmartWalletConfigResponsePasskeys",
             bundle: Bundle.module

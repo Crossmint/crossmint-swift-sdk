@@ -4,6 +4,7 @@ import Testing
 
 @testable import CrossmintService
 
+@Suite("RequestEncodingUtility Tests", .tags(.unit))
 struct RequestEncodingUtilityTest {
 
     struct TestRequest: Encodable {

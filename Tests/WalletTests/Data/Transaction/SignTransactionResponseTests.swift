@@ -4,9 +4,10 @@ import TestsUtils
 
 @testable import Wallet
 
+@Suite("SignTransactionResponse Tests", .tags(.unit))
 struct SignTransactionResponseTest {
-    @Test("Will parse transaction when signed")
-    func willParseTransactionWhenSigned() async throws {
+    @Test("Parses transaction when signed")
+    func parsesTransactionWhenSigned() async throws {
         let response: EVMTransactionApiModel = try GetFromFile.getModelFrom(
             fileName: "SignTransactionResponse",
             bundle: Bundle.module

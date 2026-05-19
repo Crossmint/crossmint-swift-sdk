@@ -4,11 +4,12 @@ import TestsUtils
 
 @testable import Wallet
 
+@Suite("WalletApiModel Tests", .tags(.unit))
 struct WalletApiModelTest {
     @Test(
-        "Will parse an EVM Passkey Wallet"
+        "Parses an EVM Passkey Wallet"
     )
-    func willParseEVMPasskeyWallet() async throws {
+    func parsesEVMPasskeyWallet() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletPasskey",
             bundle: Bundle.module
@@ -18,9 +19,9 @@ struct WalletApiModelTest {
     }
 
     @Test(
-        "Will parse an EVM keypair Wallet"
+        "Parses an EVM keypair Wallet"
     )
-    func willParseEVMKeypairWallet() async throws {
+    func parsesEVMKeypairWallet() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletEVMKeypair",
             bundle: Bundle.module
@@ -33,9 +34,9 @@ struct WalletApiModelTest {
     }
 
     @Test(
-        "Will parse a Solana keypair Wallet"
+        "Parses a Solana keypair Wallet"
     )
-    func willParseSolanaKeypairWallet() async throws {
+    func parsesSolanaKeypairWallet() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletSolanaKeypair",
             bundle: Bundle.module
@@ -48,9 +49,9 @@ struct WalletApiModelTest {
     }
 
     @Test(
-        "Will parse an EVM API key Wallet"
+        "Parses an EVM API key Wallet"
     )
-    func willParseEVMApiKeyWallet() async throws {
+    func parsesEVMApiKeyWallet() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletEVMApiKey",
             bundle: Bundle.module
@@ -63,9 +64,9 @@ struct WalletApiModelTest {
     }
 
     @Test(
-        "Will parse an EVM email Wallet"
+        "Parses an EVM email Wallet"
     )
-    func willParseEVMEmailWallet() async throws {
+    func parsesEVMEmailWallet() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletEVMEmail",
             bundle: Bundle.module
@@ -78,9 +79,9 @@ struct WalletApiModelTest {
     }
 
     @Test(
-        "Will parse a Solana email Wallet"
+        "Parses a Solana email Wallet"
     )
-    func willParseSolanaEmailWallet() async throws {
+    func parsesSolanaEmailWallet() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletSolanaEmail",
             bundle: Bundle.module
@@ -93,9 +94,9 @@ struct WalletApiModelTest {
     }
 
     @Test(
-        "Will parse an EVM phone Wallet"
+        "Parses an EVM phone Wallet"
     )
-    func willParseEVMPhoneWallet() async throws {
+    func parsesEVMPhoneWallet() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletEVMPhone",
             bundle: Bundle.module

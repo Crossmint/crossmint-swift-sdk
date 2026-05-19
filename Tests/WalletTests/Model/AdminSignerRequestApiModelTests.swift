@@ -3,6 +3,7 @@ import Foundation
 import Testing
 @testable import Wallet
 
+@Suite("AdminSignerRequestApiModel Tests", .tags(.unit))
 struct AdminSignerRequestApiModelTests {
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()

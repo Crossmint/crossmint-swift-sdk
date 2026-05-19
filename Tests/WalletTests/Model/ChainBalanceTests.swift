@@ -3,9 +3,10 @@ import Foundation
 import Testing
 @testable import Wallet
 
+@Suite("ChainBalance Tests", .tags(.unit))
 struct ChainBalanceTest {
     @Test(
-        "Will normalize decimal strings to match the number of decimals",
+        "Normalizes decimal strings to match the number of decimals",
         arguments: [
             (18, "0.1", "100000000000000000"),
             (6, "1", "1000000"),
@@ -17,7 +18,7 @@ struct ChainBalanceTest {
         ]
     )
     // swiftlint:disable:next large_tuple
-    func willNormalizeDecimalStrings(values: (Int, String, String?)) async {
+    func normalizesDecimalStringsToMatchDecimals(values: (Int, String, String?)) async {
         let balance = ChainBalances(total: .zero, decimals: values.0, chainBalances: [:])
         #expect(balance.convertToBaseUnits(values.1) == values.2)
     }

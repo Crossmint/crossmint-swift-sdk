@@ -4,6 +4,7 @@ import Testing
 
 @testable import Wallet
 
+@Suite("TransferTokenLocator Tests", .tags(.unit))
 struct TransferTokenLocatorTest {
     // swiftlint:disable:next force_try
     private let someSolanaAddress = try! SolanaAddress(
