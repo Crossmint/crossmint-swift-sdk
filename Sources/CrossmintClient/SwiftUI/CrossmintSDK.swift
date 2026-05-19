@@ -95,7 +95,7 @@ final public class CrossmintSDK: ObservableObject {
         }
     }
 
-    public func logout() async throws {
+    public func logout() {
         crossmintTEE.resetState()
     }
 

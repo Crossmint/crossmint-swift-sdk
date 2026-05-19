@@ -80,7 +80,7 @@ struct PlaygroundView: View {
 
     private func signOut() async {
         try? await crossmintAuthManager.logout()
-        try? await CrossmintSDK.shared.logout()
+        CrossmintSDK.shared.logout()
         authenticationStatus = .nonAuthenticated
     }
 }
