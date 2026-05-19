@@ -1,7 +1,7 @@
 import Testing
 @testable import Payments
 
-struct TokenLocatorTest {
+struct TokenLocatorTests {
     @Test(
         "Will return the correct token locator for the given type",
         arguments: [
