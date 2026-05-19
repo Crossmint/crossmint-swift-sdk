@@ -3,17 +3,8 @@ import Foundation
 import Testing
 @testable import Wallet
 
+@Suite("BalanceTransformer Tests", .tags(.unit))
 struct BalanceTransformerTest {
-
-    // MARK: - Helper Methods
-
-    private func createBalances(from json: String) -> Balances {
-        guard let data = json.data(using: .utf8),
-              let balances = try? JSONDecoder().decode(Balances.self, from: data) else {
-            return Balances()
-        }
-        return balances
-    }
 
     // MARK: - Basic Functionality Tests
 
@@ -64,7 +55,7 @@ struct BalanceTransformerTest {
         ]
         """
 
-        let balances = createBalances(from: balancesJson)
+        let balances = decodeBalances(from: balancesJson)
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
@@ -106,7 +97,7 @@ struct BalanceTransformerTest {
         ]
         """
 
-        let balances = createBalances(from: balancesJson)
+        let balances = decodeBalances(from: balancesJson)
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
@@ -144,7 +135,7 @@ struct BalanceTransformerTest {
         ]
         """
 
-        let balances = createBalances(from: balancesJson)
+        let balances = decodeBalances(from: balancesJson)
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
@@ -195,7 +186,7 @@ struct BalanceTransformerTest {
         ]
         """
 
-        let balances = createBalances(from: balancesJson)
+        let balances = decodeBalances(from: balancesJson)
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .sol,
@@ -270,7 +261,7 @@ struct BalanceTransformerTest {
         ]
         """
 
-        let balances = createBalances(from: balancesJson)
+        let balances = decodeBalances(from: balancesJson)
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
@@ -348,7 +339,7 @@ struct BalanceTransformerTest {
         ]
         """
 
-        let balances = createBalances(from: balancesJson)
+        let balances = decodeBalances(from: balancesJson)
         // Request includes native token and USDC which should be filtered out
         let result = BalanceTransformer.transform(
             from: balances,
@@ -411,7 +402,7 @@ struct BalanceTransformerTest {
         ]
         """
 
-        let balances = createBalances(from: balancesJson)
+        let balances = decodeBalances(from: balancesJson)
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
