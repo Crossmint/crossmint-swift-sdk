@@ -12,7 +12,7 @@ import Web
 
 @MainActor
 final public class CrossmintSDK: ObservableObject {
-    nonisolated(unsafe) private static var _shared: CrossmintSDK?
+    private static var _shared: CrossmintSDK?
 
     public static var shared: CrossmintSDK {
         guard let shared = _shared else {
