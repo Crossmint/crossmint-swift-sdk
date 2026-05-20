@@ -4,6 +4,7 @@ import CryptoKit
 import DeviceSigner
 import Logger
 import SecureStorage
+import Web
 
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
@@ -106,6 +107,48 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
 
         return wallet
+    }
+
+    public func getOrCreate(
+        chain: Chain,
+        signer: WalletSigner,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        let concreteSigner = await makeSigner(from: signer, chain: chain)
+        if let existing = try await getWallet(chain: chain, recovery: concreteSigner, options: options) {
+            return existing
+        }
+        return try await createWallet(chain: chain, recovery: concreteSigner, options: options)
+    }
+
+    @MainActor
+    private func makeSigner(from walletSigner: WalletSigner, chain: Chain) -> any Signer {
+        switch walletSigner.config {
+        case let .email(email, onAuthRequired):
+            return makeEmailSigner(email: email, onAuthRequired: onAuthRequired, chain: chain)
+        case let .passkey(name, host):
+            return PasskeySigner(name: name, host: host)
+        case .apiKey:
+            return ApiKeySigner(adminSigner: ApiKeySignerData())
+        }
+    }
+
+    @MainActor
+    private func makeEmailSigner(
+        email: String,
+        onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void,
+        chain: Chain
+    ) -> any Signer {
+        switch chain.chainType {
+        case .evm:
+            return EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
+        case .solana:
+            return SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
+        case .stellar:
+            return StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
+        case .unknown:
+            return EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
+        }
     }
 
     private func assertValid(_ chain: Chain) throws(WalletError) {
