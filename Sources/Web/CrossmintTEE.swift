@@ -1,6 +1,5 @@
 // swiftlint:disable file_length
 import CrossmintAuth
-import Combine
 import Logger
 
 extension Logger {
@@ -40,6 +39,7 @@ public final class CrossmintTEE: ObservableObject {
         let transaction: String
         let keyType: String
         let encoding: String
+        let onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
         let callback: (Result<String, CrossmintTEE.Error>) -> Void
         let timeoutTask: Task<Void, Never>
     }
@@ -52,9 +52,6 @@ public final class CrossmintTEE: ObservableObject {
     private let auth: AuthManager
     private let apiKey: String
     public var email: String?
-
-    private var otpContinuation: CheckedContinuation<String, Swift.Error>?
-    @Published public var isOTPRequired = false
 
     init(
         auth: AuthManager,
@@ -86,13 +83,15 @@ public final class CrossmintTEE: ObservableObject {
     public func signTransaction(
         transaction: String,
         keyType: String,
-        encoding: String
+        encoding: String,
+        onAuthRequired: (@Sendable (OTPFlow) async -> Void)? = nil
     ) async throws(Error) -> String {
         if case .completed = handshakeState {
             return try await executeSignTransaction(
                 transaction: transaction,
                 keyType: keyType,
-                encoding: encoding
+                encoding: encoding,
+                onAuthRequired: onAuthRequired
             )
         }
 
@@ -106,14 +105,20 @@ public final class CrossmintTEE: ObservableObject {
             break
         }
 
-        return try await queueSignRequest(transaction: transaction, keyType: keyType, encoding: encoding)
+        return try await queueSignRequest(
+            transaction: transaction,
+            keyType: keyType,
+            encoding: encoding,
+            onAuthRequired: onAuthRequired
+        )
     }
 
     // swiftlint:disable:next function_body_length
     private func executeSignTransaction(
         transaction: String,
         keyType: String,
-        encoding: String
+        encoding: String,
+        onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
     ) async throws(Error) -> String {
         guard let jwt = await auth.jwt else {
             Logger.tee.warn("JWT is missing, cannot proceed with signing")
@@ -143,8 +148,14 @@ public final class CrossmintTEE: ObservableObject {
                     throw .generic("Invalid NCS status")
                 }
 
-                let otpCode: String = try await waitForOTP()
-                _ = try await validate(otpCode: otpCode, jwt: jwt)
+                guard let onAuthRequired else { throw .authMissing }
+                do {
+                    try await waitForOTP(jwt: jwt, onAuthRequired: onAuthRequired)
+                } catch let teeError as CrossmintTEE.Error {
+                    throw teeError
+                } catch {
+                    throw .generic(error.localizedDescription)
+                }
 
                 return try await sign(
                     .init(
@@ -416,28 +427,40 @@ public final class CrossmintTEE: ObservableObject {
         return "email:\(email)"
     }
 
-    private func waitForOTP() async throws(Error) -> String {
+    private func waitForOTP(
+        jwt: String,
+        onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void
+    ) async throws {
         Logger.tee.debug(LogEvents.otpWait)
-        do {
-            let otp = try await withCheckedThrowingContinuation { continuation in
-                self.otpContinuation?.resume(throwing: Error.newerSignatureRequested)
-                self.otpContinuation = continuation
-                self.isOTPRequired = true
-            }
-            Logger.tee.debug(LogEvents.otpReceived)
-            return otp
-        } catch CrossmintTEE.Error.userCancelled {
-            Logger.tee.warn(LogEvents.otpCancelled)
-            throw .userCancelled
-        } catch Error.newerSignatureRequested {
-            Logger.tee.warn(LogEvents.otpSuperseded)
-            throw .newerSignatureRequested
-        } catch {
-            Logger.tee.error(LogEvents.otpError, attributes: [
-                "error": "\(error.localizedDescription)"
-            ])
-            throw .generic("Unknown error happened: \(error.localizedDescription)")
+        guard let email else { throw Error.authMissing }
+        let signer = OTPFlow.Signer.email(email)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Swift.Error>) in
+            let flow = OTPFlow(
+                signer: signer,
+                sendOTP: { [weak self] in
+                    guard let self else { return }
+                    _ = try await self.startOnboarding(jwt: jwt, authId: try self.getAuthId())
+                },
+                verifyOTP: { [weak self] code in
+                    guard let self else {
+                        continuation.resume(throwing: CrossmintTEE.Error.generic("TEE deallocated"))
+                        return
+                    }
+                    do {
+                        _ = try await self.validate(otpCode: code, jwt: jwt)
+                        continuation.resume()
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                },
+                cancel: {
+                    continuation.resume(throwing: CrossmintTEE.Error.userCancelled)
+                }
+            )
+            Task { await onAuthRequired(flow) }
         }
+        Logger.tee.debug(LogEvents.otpReceived)
     }
 
     private func sign(
@@ -478,20 +501,6 @@ public final class CrossmintTEE: ObservableObject {
         }
     }
 
-    public func provideOTP(_ code: String) {
-        Logger.tee.debug(LogEvents.otpProvided)
-        otpContinuation?.resume(returning: code)
-        otpContinuation = nil
-        isOTPRequired = false
-    }
-
-    public func cancelOTP() {
-        Logger.tee.debug(LogEvents.otpUserCancelled)
-        otpContinuation?.resume(throwing: CrossmintTEE.Error.userCancelled)
-        otpContinuation = nil
-        isOTPRequired = false
-    }
-
     @discardableResult
     public static func start(
         auth: AuthManager,
@@ -514,7 +523,8 @@ extension CrossmintTEE {
     fileprivate func queueSignRequest(
         transaction: String,
         keyType: String,
-        encoding: String
+        encoding: String,
+        onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
     ) async throws(Error) -> String {
         let requestId = UUID()
         Logger.tee.debug(LogEvents.queueEnqueue, attributes: [
@@ -532,6 +542,7 @@ extension CrossmintTEE {
                         transaction: transaction,
                         keyType: keyType,
                         encoding: encoding,
+                        onAuthRequired: onAuthRequired,
                         callback: { result in
                             switch result {
                             case .success(let value):
@@ -615,7 +626,8 @@ extension CrossmintTEE {
             let result = try await executeSignTransaction(
                 transaction: request.transaction,
                 keyType: request.keyType,
-                encoding: request.encoding
+                encoding: request.encoding,
+                onAuthRequired: request.onAuthRequired
             )
             Logger.tee.debug(LogEvents.queueProcessSuccess, attributes: [
                 "queue.requestId": request.id.uuidString
