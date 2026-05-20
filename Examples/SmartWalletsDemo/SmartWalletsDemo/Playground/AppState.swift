@@ -23,6 +23,7 @@ final class AppState {
     var isLoadingBalance: Bool = false
     var isCreatingWallet: Bool = false
     var walletErrorMessage: String?
+    var pendingOTPFlow: OTPFlow?
 
     // Per-chain state
     private var walletCache: [SupportedChain: Wallet] = [:]
@@ -105,6 +106,30 @@ final class AppState {
         }
 
         isCreatingWallet = false
+    }
+
+    func loadOrCreateWallet(email: String) async {
+        let chain = selectedChain
+        guard !loadingChains.contains(chain) else { return }
+
+        notFoundChains.remove(chain)
+        balance = nil
+        loadingChains.insert(chain)
+        walletErrorMessage = nil
+
+        do {
+            let w = try await getOrCreateWallet(chain: chain, email: email)
+            walletCache[chain] = w
+            if chain == selectedChain {
+                await fetchBalance()
+            }
+        } catch {
+            if chain == selectedChain {
+                walletErrorMessage = error.userMessage
+            }
+        }
+
+        loadingChains.remove(chain)
     }
 
     /// Switches chain without re-fetching if the wallet is already cached.
@@ -241,6 +266,29 @@ final class AppState {
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
                 recovery: StellarSigners.email(email)
+            )
+        }
+    }
+
+    private func getOrCreateWallet(chain: SupportedChain, email: String) async throws -> Wallet {
+        let signer = WalletSigner.email(email) { [weak self] flow in
+            await MainActor.run { self?.pendingOTPFlow = flow }
+        }
+        switch chain {
+        case .evm:
+            return try await sdk.crossmintWallets.getOrCreate(
+                chain: EVMChain.baseSepolia,
+                signer: signer
+            )
+        case .solana:
+            return try await sdk.crossmintWallets.getOrCreate(
+                chain: SolanaChain.solana,
+                signer: signer
+            )
+        case .stellar:
+            return try await sdk.crossmintWallets.getOrCreate(
+                chain: StellarChain.stellar,
+                signer: signer
             )
         }
     }

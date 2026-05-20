@@ -2,11 +2,11 @@ import SwiftUI
 import CrossmintClient
 
 struct OTPValidatorView: View {
-    private let sdk: CrossmintSDK = .shared
+    let flow: OTPFlow
 
-    @State private var verificationCode: String = ""
-    @State private var showAlert: Bool = false
-    @State private var alertMessage: String = ""
+    @State private var verificationCode = ""
+    @State private var isVerifying = false
+    @State private var errorMessage: String?
     @State private var opacity: Double = 0
 
     var body: some View {
@@ -15,9 +15,7 @@ struct OTPValidatorView: View {
                 Text("OTP Verification")
                     .font(.title3)
                     .fontWeight(.bold)
-
                 Spacer()
-
                 Button(action: dismiss) {
                     Image(systemName: "xmark")
                         .font(.system(size: 16))
@@ -29,6 +27,17 @@ struct OTPValidatorView: View {
             }
             .padding(.top, 20)
 
+            switch flow.signer {
+            case .email(let addr):
+                Text("Code sent to \(addr)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            case .phone(let num):
+                Text("Code sent to \(num)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             CustomTextField(
                 placeholder: "Verification code",
                 text: $verificationCode,
@@ -38,11 +47,21 @@ struct OTPValidatorView: View {
             .autocapitalization(.none)
             .disableAutocorrection(true)
 
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+
             PrimaryButton(
-                text: "Verify",
-                action: verifyCode,
-                isDisabled: verificationCode.isEmpty
+                text: isVerifying ? "Verifying…" : "Verify",
+                action: verify,
+                isDisabled: verificationCode.isEmpty || isVerifying
             )
+
+            Button("Resend code") { resend() }
+                .font(.caption)
+                .foregroundColor(.secondary)
 
             Spacer()
         }
@@ -50,33 +69,28 @@ struct OTPValidatorView: View {
         .background(Color(.systemBackground))
         .opacity(opacity)
         .onAppear {
-            withAnimation(AnimationConstants.easeIn()) {
-                opacity = 1
-            }
-        }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Alert"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            withAnimation(AnimationConstants.easeIn()) { opacity = 1 }
         }
     }
 
-    private func verifyCode() {
-        guard !verificationCode.isEmpty else { return }
-        sdk.submit(otp: verificationCode)
+    private func verify() {
+        isVerifying = true
+        errorMessage = nil
+        Task {
+            do {
+                try await flow.verifyOTP(code: verificationCode)
+            } catch {
+                errorMessage = error.localizedDescription
+                isVerifying = false
+            }
+        }
     }
 
     private func dismiss() {
-        withAnimation(AnimationConstants.easeOut()) {
-            opacity = 0
-        }
-        sdk.cancelTransaction()
+        flow.cancel()
     }
 
-    private func showAlert(with message: String) {
-        alertMessage = message
-        showAlert = true
+    private func resend() {
+        Task { try? await flow.sendOTP() }
     }
-}
-
-#Preview {
-    OTPValidatorView()
 }

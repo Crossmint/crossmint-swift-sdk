@@ -59,6 +59,7 @@ struct PlaygroundView: View {
             }
         }
         .environment(appState)
+        .otpSheet(flow: Bindable(appState).pendingOTPFlow)
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
             case .signers:
