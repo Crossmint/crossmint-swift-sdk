@@ -23,6 +23,7 @@ protocol EmailSigner: Signer {
     var encoding: String { get async }
     var email: String? { get async }
     var isInitialized: Bool { get async }
+    var onAuthRequired: (@Sendable (OTPFlow) async -> Void)? { get }
 
     func load() async throws(EmailSignerError)
     func processMessage(_ message: String) -> String
@@ -31,13 +32,14 @@ protocol EmailSigner: Signer {
 extension EmailSigner {
     @MainActor
     public func sign(message: String) async throws(SignerError) -> String {
-        guard let crossmintTEE = crossmintTEE else { throw .notStarted }
+        guard let crossmintTEE else { throw .notStarted }
         crossmintTEE.email = await email
         do {
             return try await crossmintTEE.signTransaction(
                 transaction: processMessage(message),
-                keyType: keyType,
-                encoding: encoding
+                keyType: await keyType,
+                encoding: await encoding,
+                onAuthRequired: onAuthRequired
             )
         } catch CrossmintTEE.Error.userCancelled {
             throw .cancelled

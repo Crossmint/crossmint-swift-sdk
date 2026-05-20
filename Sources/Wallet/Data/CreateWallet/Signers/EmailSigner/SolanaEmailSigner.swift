@@ -44,9 +44,23 @@ public final class SolanaEmailSigner: EmailSigner, Sendable {
     }
 
     nonisolated public let signerType: SignerType = .email
+    public let onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
 
     public init(email: String, crossmintTEE: CrossmintTEE?) {
         self.crossmintTEE = crossmintTEE
+        self.onAuthRequired = nil
+        Task {
+            await state.update(email: email)
+        }
+    }
+
+    public init(
+        email: String,
+        crossmintTEE: CrossmintTEE?,
+        onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void
+    ) {
+        self.crossmintTEE = crossmintTEE
+        self.onAuthRequired = onAuthRequired
         Task {
             await state.update(email: email)
         }
