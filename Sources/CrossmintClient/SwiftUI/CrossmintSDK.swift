@@ -1,12 +1,11 @@
 import CrossmintAuth
-import Combine
 @_exported import CrossmintCommonTypes
 @_exported import CrossmintService
 import Logger
 import SwiftUI
 import Utils
 @_exported import Wallet
-import Web
+@_exported import Web
 
 @MainActor private var sdkInstances = 0
 
@@ -45,16 +44,6 @@ final public class CrossmintSDK: ObservableObject {
     public let crossmintService: CrossmintService
 
     let crossmintTEE: CrossmintTEE
-
-    public var isOTPRequired: Published<Bool>.Publisher {
-        crossmintTEE.$isOTPRequired
-    }
-    public func submit(otp: String) {
-        crossmintTEE.provideOTP(otp)
-    }
-    public func cancelTransaction() {
-        crossmintTEE.cancelOTP()
-    }
 
     public var isProductionEnvironment: Bool {
         crossmintService.isProductionEnvironment
