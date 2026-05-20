@@ -147,6 +147,7 @@ let package = Package(
             name: "WalletTests",
             dependencies: [
                 "Wallet",
+                "SecureStorage",
                 "TestsUtils"
             ],
             resources: [

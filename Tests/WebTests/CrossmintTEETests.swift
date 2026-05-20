@@ -194,18 +194,15 @@ struct CrossmintTEETests {
             try await fixture.tee.signTransaction(
                 transaction: CrossmintTEETestHelpers.createTestTransaction(),
                 keyType: "keyType",
-                encoding: "encoding"
+                encoding: "encoding",
+                onAuthRequired: { flow in
+                    try? await flow.verifyOTP("123456")
+                }
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        #expect(fixture.tee.isOTPRequired == true)
-
-        fixture.tee.provideOTP("123456")
-
         let signature = try await signTask.value
         #expect(signature == "0xsignature456")
-        #expect(fixture.tee.isOTPRequired == false)
 
         fixture.verifyOnboardingRequests(email: "test@example.com", otp: "123456")
     }
@@ -286,33 +283,32 @@ struct CrossmintTEETests {
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
 
+        let flowBox = OTPFlowBox()
         let signTask = Task {
             try await fixture.tee.signTransaction(
                 transaction: CrossmintTEETestHelpers.createTestTransaction(),
                 keyType: "keyType",
-                encoding: "encoding"
+                encoding: "encoding",
+                onAuthRequired: { flow in
+                    flowBox.store(flow)
+                }
             )
         }
 
         try await Task.sleep(nanoseconds: 100_000_000)
-        #expect(fixture.tee.isOTPRequired == true)
-
-        fixture.tee.cancelOTP()
+        let flow = try #require(flowBox.value)
+        flow.cancel()
 
         await #expect(throws: CrossmintTEE.Error.userCancelled) {
             _ = try await signTask.value
         }
-
-        #expect(fixture.tee.isOTPRequired == false)
     }
 
-    @Test("isOTPRequired property updates correctly")
-    func testIsOTPRequiredPropertyUpdates() async throws {
+    @Test("OTP flow completes signing after verification")
+    func testOTPFlowCompletesSigning() async throws {
         let fixture = TestFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
-
-        #expect(fixture.tee.isOTPRequired == false)
 
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
@@ -322,18 +318,15 @@ struct CrossmintTEETests {
             try await fixture.tee.signTransaction(
                 transaction: CrossmintTEETestHelpers.createTestTransaction(),
                 keyType: "keyType",
-                encoding: "encoding"
+                encoding: "encoding",
+                onAuthRequired: { flow in
+                    try? await flow.verifyOTP("123456")
+                }
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        #expect(fixture.tee.isOTPRequired == true)
-
-        fixture.tee.provideOTP("123456")
-
-        _ = try await signTask.value
-
-        #expect(fixture.tee.isOTPRequired == false)
+        let signature = try await signTask.value
+        #expect(signature == "0xsignature789")
     }
 
     @Test("Cancelling second duplicate request does not affect first")
