@@ -39,7 +39,6 @@ struct SplashScreen: View {
     @State private var transitionOpacity: Double = 0
     @State private var error: Error?
 
-
     @ViewBuilder
     private var splashContent: some View {
         ZStack {

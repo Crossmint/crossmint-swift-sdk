@@ -77,6 +77,14 @@ final public class CrossmintSDK: ObservableObject {
         await authManager.setJWT(jwt)
     }
 
+    private struct Components {
+        let sdk: ClientSDK
+        let wallets: CrossmintWallets
+        let authManager: CrossmintAuthManager
+        let service: CrossmintService
+        let tee: CrossmintTEE
+    }
+
     private init(apiKey: String) {
         sdkInstances += 1
         if sdkInstances > 1 {
@@ -88,14 +96,6 @@ final public class CrossmintSDK: ObservableObject {
         authManager = components.authManager
         crossmintService = components.service
         crossmintTEE = components.tee
-    }
-
-    private struct Components {
-        let sdk: ClientSDK
-        let wallets: CrossmintWallets
-        let authManager: CrossmintAuthManager
-        let service: CrossmintService
-        let tee: CrossmintTEE
     }
 
     private static func makeComponents(apiKey: String) -> Components {
