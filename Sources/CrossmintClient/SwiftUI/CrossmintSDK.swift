@@ -121,7 +121,11 @@ final public class CrossmintSDK: ObservableObject {
     }
 
     public func logout() async {
-        _ = try? await authManager.logout()
+        do {
+            _ = try await authManager.logout()
+        } catch {
+            Logger.sdk.warn("Logout request failed: \(error) — clearing local state anyway")
+        }
         crossmintTEE.resetState()
     }
 
