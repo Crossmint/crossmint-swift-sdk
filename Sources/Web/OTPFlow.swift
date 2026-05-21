@@ -3,12 +3,10 @@ import Foundation
 public struct OTPFlow: Sendable, Identifiable {
     public enum Signer: Sendable {
         case email(String)
-        case phone(String)
 
         var locator: String {
             switch self {
-            case .email(let addr): "email:\(addr)"
-            case .phone(let num): "phone:\(num)"
+            case .email(let address): "email:\(address)"
             }
         }
     }

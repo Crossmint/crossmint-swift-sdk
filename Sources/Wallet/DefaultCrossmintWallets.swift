@@ -147,6 +147,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         case .stellar:
             return StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
         case .unknown:
+            Logger.smartWallet.warn("Unknown chain type for email signer, defaulting to EVM")
             return EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
         }
     }

@@ -83,8 +83,7 @@ import Testing
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        let flow = try #require(flowBox.value)
+        let flow = try await waitForFlow(flowBox)
         try await flow.verifyOTP("123456")
 
         let signature = try await signTask.value
@@ -113,8 +112,7 @@ import Testing
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        let flow = try #require(flowBox.value)
+        let flow = try await waitForFlow(flowBox)
         flow.cancel()
 
         await #expect(throws: CrossmintTEE.Error.userCancelled) {
@@ -145,8 +143,7 @@ import Testing
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        let flow = try #require(flowBox.value)
+        let flow = try await waitForFlow(flowBox)
 
         try? await flow.sendOTP()
 
@@ -206,8 +203,8 @@ import Testing
         #expect(signature == "0xsignature_email")
 
         switch signerBox.value {
-        case .email(let addr):
-            #expect(addr == testEmail)
+        case .email(let address):
+            #expect(address == testEmail)
         default:
             Issue.record("Expected email signer but got \(String(describing: signerBox.value))")
         }
@@ -216,14 +213,18 @@ import Testing
 
 // MARK: - Helpers
 
-/// Thread-safe box for capturing an OTPFlow from a @Sendable closure.
+/// Uses @unchecked Sendable because it is written once before the sleep and read once after.
+func waitForFlow(_ box: OTPFlowBox, delay: UInt64 = 100_000_000) async throws -> OTPFlow {
+    try await Task.sleep(nanoseconds: delay)
+    return try #require(box.value)
+}
+
 final class OTPFlowBox: @unchecked Sendable {
     private var _value: OTPFlow?
     func store(_ flow: OTPFlow) { _value = flow }
     var value: OTPFlow? { _value }
 }
 
-/// Thread-safe box for capturing an OTPFlow.Signer from a @Sendable closure.
 final class OTPSignerBox: @unchecked Sendable {
     private var _value: OTPFlow.Signer?
     func store(_ signer: OTPFlow.Signer) { _value = signer }

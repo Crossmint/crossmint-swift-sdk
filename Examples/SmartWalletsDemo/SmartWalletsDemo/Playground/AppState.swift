@@ -118,8 +118,8 @@ final class AppState {
         walletErrorMessage = nil
 
         do {
-            let w = try await getOrCreateWallet(chain: chain, email: email)
-            walletCache[chain] = w
+            let wallet = try await getOrCreateWallet(chain: chain, email: email)
+            walletCache[chain] = wallet
             if chain == selectedChain {
                 await fetchBalance()
             }
@@ -129,6 +129,7 @@ final class AppState {
             }
         }
 
+        pendingOTPFlow = nil
         loadingChains.remove(chain)
     }
 

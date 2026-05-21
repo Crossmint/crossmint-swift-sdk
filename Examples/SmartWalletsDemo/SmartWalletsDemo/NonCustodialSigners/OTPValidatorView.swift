@@ -28,12 +28,8 @@ struct OTPValidatorView: View {
             .padding(.top, 20)
 
             switch flow.signer {
-            case .email(let addr):
-                Text("Code sent to \(addr)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            case .phone(let num):
-                Text("Code sent to \(num)")
+            case .email(let address):
+                Text("Code sent to \(address)")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -77,11 +73,11 @@ struct OTPValidatorView: View {
         isVerifying = true
         errorMessage = nil
         Task {
+            defer { isVerifying = false }
             do {
-                try await flow.verifyOTP(code: verificationCode)
+                try await flow.verifyOTP(verificationCode)
             } catch {
                 errorMessage = error.localizedDescription
-                isVerifying = false
             }
         }
     }

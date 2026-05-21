@@ -76,7 +76,7 @@ struct SignersView: View {
             AddSignerSheet()
                 .environment(appState)
         }
-        .otpSheet()
+        .otpSheet(flow: Bindable(appState).pendingOTPFlow)
     }
 
     @ViewBuilder

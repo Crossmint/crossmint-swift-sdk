@@ -121,7 +121,7 @@ struct TransferView: View {
             }
         }
         .interactiveDismissDisabled(isSending)
-        .otpSheet()
+        .otpSheet(flow: Bindable(appState).pendingOTPFlow)
     }
 
     private func send() async {

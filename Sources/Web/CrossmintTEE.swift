@@ -434,33 +434,41 @@ public final class CrossmintTEE: ObservableObject {
         Logger.tee.debug(LogEvents.otpWait)
         guard let email else { throw Error.authMissing }
         let signer = OTPFlow.Signer.email(email)
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Swift.Error>) in
-            let flow = OTPFlow(
-                signer: signer,
-                sendOTP: { [weak self] in
-                    guard let self else { return }
-                    _ = try await self.startOnboarding(jwt: jwt, authId: try self.getAuthId())
-                },
-                verifyOTP: { [weak self] code in
-                    guard let self else {
-                        continuation.resume(throwing: CrossmintTEE.Error.generic("TEE deallocated"))
-                        return
-                    }
-                    do {
-                        _ = try await self.validate(otpCode: code, jwt: jwt)
-                        continuation.resume()
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
-                },
-                cancel: {
-                    continuation.resume(throwing: CrossmintTEE.Error.userCancelled)
-                }
-            )
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Swift.Error>) in
+            let flow = makeOTPFlow(jwt: jwt, signer: signer, continuation: continuation)
             Task { await onAuthRequired(flow) }
         }
         Logger.tee.debug(LogEvents.otpReceived)
+    }
+
+    private func makeOTPFlow(
+        jwt: String,
+        signer: OTPFlow.Signer,
+        continuation: CheckedContinuation<Void, any Swift.Error>
+    ) -> OTPFlow {
+        OTPFlow(
+            signer: signer,
+            sendOTP: { [weak self] in
+                guard let self else { return }
+                let authId = try await self.getAuthId()
+                _ = try await self.startOnboarding(jwt: jwt, authId: authId)
+            },
+            verifyOTP: { [weak self] code in
+                guard let self else {
+                    continuation.resume(throwing: CrossmintTEE.Error.generic("TEE deallocated"))
+                    return
+                }
+                do {
+                    _ = try await self.validate(otpCode: code, jwt: jwt)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            },
+            cancel: {
+                continuation.resume(throwing: CrossmintTEE.Error.userCancelled)
+            }
+        )
     }
 
     private func sign(

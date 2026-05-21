@@ -97,7 +97,7 @@ struct SigningView: View {
             }
         }
         .interactiveDismissDisabled(isSigning)
-        .otpSheet()
+        .otpSheet(flow: Bindable(appState).pendingOTPFlow)
     }
 
     private func sign() async {

@@ -129,7 +129,7 @@ struct AddSignerSheet: View {
             }
         }
         .interactiveDismissDisabled(isAdding)
-        .otpSheet()
+        .otpSheet(flow: Bindable(appState).pendingOTPFlow)
     }
 
     private var passkeyHost: String {

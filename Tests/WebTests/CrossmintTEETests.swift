@@ -295,8 +295,7 @@ struct CrossmintTEETests {
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        let flow = try #require(flowBox.value)
+        let flow = try await waitForFlow(flowBox)
         flow.cancel()
 
         await #expect(throws: CrossmintTEE.Error.userCancelled) {
