@@ -8,4 +8,4 @@
 import CrossmintClient
 
 let crossmintApiKey = "ck_staging_YOUR_API_KEY"
-var authManager: CrossmintAuthManager { CrossmintSDK.shared.authManager }
+@MainActor var authManager: CrossmintAuthManager { CrossmintSDK.shared.authManager }
