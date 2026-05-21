@@ -3,7 +3,6 @@ import CrossmintService
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
-    var authHeaders: [String: String] { [:] }
     var isProductionEnvironment: Bool { false }
 
     // MARK: - addSigner
@@ -81,12 +80,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
     func transferToken(
-        chainType: String,
-        tokenLocator: String,
-        recipient: String,
-        amount: String,
-        signer: String?,
-        idempotencyKey: String?
+        _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         throw TransactionError.transactionGeneric("not implemented")
     }

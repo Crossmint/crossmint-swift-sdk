@@ -1,21 +1,21 @@
 import CrossmintCommonTypes
 
-protocol SignatureRequestProtocol: Encodable {}
-
-extension SignTypedDataRequest: SignatureRequestProtocol {}
-extension SignMessageRequest: SignatureRequestProtocol {}
-
 public struct CreateSignatureRequest {
-    let request: any SignatureRequestProtocol
-    let chainType: ChainType
+    public enum Body {
+        case message(SignMessageRequest)
+        case typedData(SignTypedDataRequest)
+    }
 
-    public init(signTypedDataRequest: SignTypedDataRequest, chainType: ChainType) {
-        self.request = signTypedDataRequest
+    public let body: Body
+    public let chainType: ChainType
+
+    public init(signMessageRequest: SignMessageRequest, chainType: ChainType) {
+        self.body = .message(signMessageRequest)
         self.chainType = chainType
     }
 
-    public init(signMessageRequest: SignMessageRequest, chainType: ChainType) {
-        self.request = signMessageRequest
+    public init(signTypedDataRequest: SignTypedDataRequest, chainType: ChainType) {
+        self.body = .typedData(signTypedDataRequest)
         self.chainType = chainType
     }
 }
