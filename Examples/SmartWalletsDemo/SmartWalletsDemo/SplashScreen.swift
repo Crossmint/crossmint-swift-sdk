@@ -38,9 +38,7 @@ struct SplashScreen: View {
     @State private var authenticationStatus: AuthenticationStatus?
     @State private var transitionOpacity: Double = 0
     @State private var error: Error?
-    private var authManager: CrossmintAuthManager {
-        CrossmintSDK.shared.authManager
-    }
+
 
     @ViewBuilder
     private var splashContent: some View {

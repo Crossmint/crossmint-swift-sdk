@@ -10,10 +10,6 @@ struct VerificationView: View {
     @State private var alertMessage: String = ""
     @State private var opacity: Double = 0
 
-    private var authManager: CrossmintAuthManager {
-        CrossmintSDK.shared.authManager
-    }
-
     let email: String
 
     var body: some View {
@@ -89,9 +85,8 @@ struct VerificationView: View {
                         opacity = 0
                     }
 
-                    DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                        authenticationStatus = authStatus
-                    }
+                    try? await Task.sleep(for: .seconds(AnimationConstants.duration))
+                    authenticationStatus = authStatus
                 }
             } catch {
                 isVerifying = false
@@ -120,9 +115,8 @@ struct VerificationView: View {
 
         Task {
             _ = await authManager.reset()
-            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                authenticationStatus = .nonAuthenticated
-            }
+            try? await Task.sleep(for: .seconds(AnimationConstants.duration))
+            authenticationStatus = .nonAuthenticated
         }
     }
 
