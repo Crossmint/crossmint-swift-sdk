@@ -41,12 +41,7 @@ final public class CrossmintSDK: ObservableObject {
         _shared = CrossmintSDK(apiKey: apiKey)
     }
 
-    /// Configures the SDK from a `Configuration` value. Must be called before accessing `CrossmintSDK.shared`.
-    @MainActor public static func configure(with configuration: Configuration) {
-        configure(apiKey: configuration.apiKey, logLevel: configuration.logLevel)
-    }
-
-    private let sdk: ClientSDK
+private let sdk: ClientSDK
 
     public let crossmintWallets: CrossmintWallets
     public let authManager: CrossmintAuthManager
