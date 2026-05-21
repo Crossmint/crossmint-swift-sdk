@@ -102,6 +102,7 @@ final class AppState {
             walletCache[chain] = w
             notFoundChains.remove(chain)
             await fetchBalance()
+            await loadSigners()
         } catch {
             walletErrorMessage = error.userMessage
         }
