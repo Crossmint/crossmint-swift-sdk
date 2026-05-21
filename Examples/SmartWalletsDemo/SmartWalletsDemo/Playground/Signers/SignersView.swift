@@ -11,7 +11,6 @@ struct SignersView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAddSigner = false
     @State private var removingSignerLocator: String?
-    @State private var fetchedSigners: [WalletDelegatedSignerConfigApiModel] = []
     @State private var isLoadingSigners = false
 
     private var isRemovingSigner: Bool { removingSignerLocator != nil }
@@ -25,14 +24,14 @@ struct SignersView: View {
                 recoverySection()
 
                 Section("Signers") {
-                    if fetchedSigners.isEmpty && !isLoadingSigners {
+                    if appState.delegatedSigners.isEmpty && !isLoadingSigners {
                         ContentUnavailableView(
                             "No Signers",
                             systemImage: "person.badge.key",
                             description: Text("No delegated signers are registered on this wallet.")
                         )
                     } else {
-                        ForEach(fetchedSigners, id: \.locator) { signer in
+                        ForEach(appState.delegatedSigners, id: \.locator) { signer in
                             if let locator = signer.locator {
                                 SignerRow(
                                     locator: locator,
@@ -93,9 +92,9 @@ struct SignersView: View {
     }
 
     private func loadSigners() async {
-        guard let wallet = appState.wallet else { return }
+        guard appState.wallet != nil else { return }
         isLoadingSigners = true
-        fetchedSigners = (try? await wallet.signers()) ?? []
+        await appState.loadSigners()
         isLoadingSigners = false
     }
 
