@@ -12,6 +12,9 @@ struct SignersView: View {
     @State private var showAddSigner = false
     @State private var removingSignerLocator: String?
     @State private var isLoadingSigners = false
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+    @State private var showAlert = false
 
     private var isRemovingSigner: Bool { removingSignerLocator != nil }
 
@@ -21,9 +24,6 @@ struct SignersView: View {
             return (locator: locator, model: signer)
         }
     }
-    @State private var alertTitle = ""
-    @State private var alertMessage = ""
-    @State private var showAlert = false
 
     var body: some View {
         NavigationStack {
