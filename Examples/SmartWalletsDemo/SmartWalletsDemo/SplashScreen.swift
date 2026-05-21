@@ -38,7 +38,7 @@ struct SplashScreen: View {
     @State private var authenticationStatus: AuthenticationStatus?
     @State private var transitionOpacity: Double = 0
     @State private var error: Error?
-    private var authManager: AuthManager {
+    private var authManager: CrossmintAuthManager {
         CrossmintSDK.shared.authManager
     }
 
@@ -130,7 +130,7 @@ struct SplashScreen: View {
         guard authenticationStatus == nil else { return }
         isLoading = true
         do {
-            authenticationStatus = try await crossmintAuthManager.authenticationStatus
+            authenticationStatus = try await authManager.authenticationStatus
         } catch {
             if case .signInRequired = error {
                 self.error = .invalidCredentialsStored

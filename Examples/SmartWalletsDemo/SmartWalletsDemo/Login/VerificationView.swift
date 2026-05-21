@@ -2,8 +2,6 @@ import SwiftUI
 import CrossmintClient
 
 struct VerificationView: View {
-    private let sdk: CrossmintSDK = .shared
-
     @Binding var authenticationStatus: AuthenticationStatus?
 
     @State private var verificationCode: String = ""
@@ -12,8 +10,8 @@ struct VerificationView: View {
     @State private var alertMessage: String = ""
     @State private var opacity: Double = 0
 
-    private var authManager: AuthManager {
-        sdk.authManager
+    private var authManager: CrossmintAuthManager {
+        CrossmintSDK.shared.authManager
     }
 
     let email: String
@@ -82,7 +80,7 @@ struct VerificationView: View {
         isVerifying = true
         Task {
             do {
-                let status = try await crossmintAuthManager.confirmEmailOtp(email: email, code: verificationCode)
+                let status = try await authManager.confirmEmailOtp(email: email, code: verificationCode)
 
                 isVerifying = false
 
@@ -106,7 +104,7 @@ struct VerificationView: View {
     private func resendCode() {
         Task {
             do {
-                try await crossmintAuthManager.sendEmailOtp(email: email)
+                try await authManager.sendEmailOtp(email: email)
                 showAlert(with: "A new verification code has been sent to your email.")
             } catch {
                 showAlert(with: "Error sending new code: \(error.localizedDescription)")
@@ -121,7 +119,7 @@ struct VerificationView: View {
         }
 
         Task {
-            _ = await crossmintAuthManager.reset()
+            _ = await authManager.reset()
             DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
                 authenticationStatus = .nonAuthenticated
             }

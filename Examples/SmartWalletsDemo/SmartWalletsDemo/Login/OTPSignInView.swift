@@ -74,7 +74,7 @@ struct OTPSignInView: View {
         isSigningIn = true
         Task {
             do {
-                try await crossmintAuthManager.sendEmailOtp(email: email)
+                try await CrossmintSDK.shared.authManager.sendEmailOtp(email: email)
                 isSigningIn = false
                 showOTPVerification = true
             } catch let authError as AuthManagerError {
