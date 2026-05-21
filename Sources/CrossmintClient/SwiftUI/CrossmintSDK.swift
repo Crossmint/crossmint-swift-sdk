@@ -30,6 +30,8 @@ final public class CrossmintSDK: ObservableObject {
         return instance
     }
 
+    /// Configures the SDK with the given API key. Must be called before accessing `CrossmintSDK.shared`.
+    /// Subsequent calls are ignored — the SDK can only be configured once per process.
     @MainActor public static func configure(apiKey: String, logLevel: LogLevel = .error) {
         guard _shared == nil else {
             Logger.sdk.warn("CrossmintSDK.configure() called after SDK is already configured — ignoring")
@@ -39,6 +41,7 @@ final public class CrossmintSDK: ObservableObject {
         _shared = CrossmintSDK(apiKey: apiKey)
     }
 
+    /// Configures the SDK from a `Configuration` value. Must be called before accessing `CrossmintSDK.shared`.
     @MainActor public static func configure(with configuration: Configuration) {
         configure(apiKey: configuration.apiKey, logLevel: configuration.logLevel)
     }
@@ -65,6 +68,11 @@ final public class CrossmintSDK: ObservableObject {
         crossmintService.isProductionEnvironment
     }
 
+    /// Sets a JWT for authentication. Use this when authenticating with an externally obtained token
+    /// rather than through the built-in OTP flow.
+    ///
+    /// - Note: Unlike the TypeScript SDK's synchronous `setJwt`, this is `async` because it
+    ///   updates actor-isolated state on `CrossmintAuthManager`.
     public func setJWT(_ jwt: String) async {
         await authManager.setJWT(jwt)
     }
@@ -74,18 +82,37 @@ final public class CrossmintSDK: ObservableObject {
         if sdkInstances > 1 {
             Logger.sdk.error("Multiple SDK instances created, behaviour is undefined")
         }
+        let components = Self.makeComponents(apiKey: apiKey)
+        sdk = components.sdk
+        crossmintWallets = components.wallets
+        authManager = components.authManager
+        crossmintService = components.service
+        crossmintTEE = components.tee
+    }
 
+    private struct Components {
+        let sdk: ClientSDK
+        let wallets: CrossmintWallets
+        let authManager: CrossmintAuthManager
+        let service: CrossmintService
+        let tee: CrossmintTEE
+    }
+
+    private static func makeComponents(apiKey: String) -> Components {
         do {
-            sdk = try CrossmintClient.sdk(key: apiKey)
+            let sdk = try CrossmintClient.sdk(key: apiKey)
             let authManager = sdk.authManager
-            self.crossmintWallets = sdk.crossmintWallets()
-            self.authManager = authManager
-            self.crossmintService = sdk.crossmintService
-            self.crossmintTEE = CrossmintTEE.start(
-                auth: authManager,
-                webProxy: DefaultWebViewCommunicationProxy(),
-                apiKey: apiKey,
-                isProductionEnvironment: sdk.crossmintService.isProductionEnvironment
+            return Components(
+                sdk: sdk,
+                wallets: sdk.crossmintWallets(),
+                authManager: authManager,
+                service: sdk.crossmintService,
+                tee: CrossmintTEE.start(
+                    auth: authManager,
+                    webProxy: DefaultWebViewCommunicationProxy(),
+                    apiKey: apiKey,
+                    isProductionEnvironment: sdk.crossmintService.isProductionEnvironment
+                )
             )
         } catch {
             Logger.client.error("Invalid Crossmint API key provided: \(error)")
@@ -93,7 +120,7 @@ final public class CrossmintSDK: ObservableObject {
         }
     }
 
-    public func logout() async throws {
+    public func logout() async {
         _ = try? await authManager.logout()
         crossmintTEE.resetState()
     }
