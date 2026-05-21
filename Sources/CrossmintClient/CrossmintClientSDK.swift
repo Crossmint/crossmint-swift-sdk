@@ -10,9 +10,9 @@ public final class CrossmintClientSDK: ClientSDK, Sendable {
     private let secureStorage: SecureStorage
     private let secureWalletStorage: SecureWalletStorage
     public let crossmintService: CrossmintService
-    public let authManager: any CrossmintAuth.AuthManager
+    public let authManager: CrossmintAuthManager
 
-    init(apiKey: ApiKey, authManager: AuthManager? = nil) {
+    init(apiKey: ApiKey, authManager: CrossmintAuthManager? = nil) {
         self.apiKey = apiKey
 
         guard let bundleId = Bundle.main.bundleIdentifier else {

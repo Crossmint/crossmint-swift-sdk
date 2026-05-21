@@ -26,16 +26,17 @@ final class InstanceTracker: ObservableObject, Sendable {
 }
 
 extension View {
-    public func crossmintNonCustodialSigner(_ sdk: CrossmintSDK) -> some View {
-        self.modifier(CrossmintNonCustodialSignerViewModifier(sdk: sdk))
+    public func crossmintNonCustodialSigner() -> some View {
+        self.modifier(CrossmintNonCustodialSignerViewModifier())
     }
 }
 
 private struct CrossmintNonCustodialSignerViewModifier: ViewModifier {
     private let crossmintTEE: CrossmintTEE
 
-    init(sdk: CrossmintSDK) {
-        crossmintTEE = sdk.crossmintTEE
+    @MainActor
+    init() {
+        crossmintTEE = CrossmintSDK.shared.crossmintTEE
     }
 
     func body(content: Content) -> some View {

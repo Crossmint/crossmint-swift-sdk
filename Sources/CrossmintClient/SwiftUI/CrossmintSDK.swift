@@ -12,36 +12,41 @@ import Web
 
 @MainActor
 final public class CrossmintSDK: ObservableObject {
-    nonisolated(unsafe) private static var _shared: CrossmintSDK?
+    @MainActor private static var _shared: CrossmintSDK?
 
-    public static var shared: CrossmintSDK {
-        guard let shared = _shared else {
-            let newInstance = CrossmintSDK()
-            _shared = newInstance
-            return newInstance
+    @MainActor public static var shared: CrossmintSDK {
+        #if DEBUG
+        if _shared == nil, let envApiKey = ProcessInfo.processInfo.environment["CROSSMINT_API_KEY"] {
+            Logger.client.info("Using API key from the environment variable.")
+            configure(apiKey: envApiKey)
         }
-        return shared
+        #endif
+        guard let instance = _shared else {
+            fatalError(
+                "CrossmintSDK is not configured. " +
+                "Call CrossmintSDK.configure(apiKey:) before accessing CrossmintSDK.shared."
+            )
+        }
+        return instance
     }
 
-    public static func shared(
-        apiKey: String,
-        authManager: AuthManager? = nil,
-        logLevel: LogLevel = .error
-    ) -> CrossmintSDK {
-        if let existing = _shared {
-            return existing
+    @MainActor public static func configure(apiKey: String, logLevel: LogLevel = .error) {
+        guard _shared == nil else {
+            Logger.sdk.warn("CrossmintSDK.configure() called after SDK is already configured — ignoring")
+            return
         }
-
         Logger.level = logLevel
-        let newInstance = CrossmintSDK(apiKey: apiKey, authManager: authManager)
-        _shared = newInstance
-        return newInstance
+        _shared = CrossmintSDK(apiKey: apiKey)
+    }
+
+    @MainActor public static func configure(with configuration: Configuration) {
+        configure(apiKey: configuration.apiKey, logLevel: configuration.logLevel)
     }
 
     private let sdk: ClientSDK
 
     public let crossmintWallets: CrossmintWallets
-    public let authManager: AuthManager
+    public let authManager: CrossmintAuthManager
     public let crossmintService: CrossmintService
 
     let crossmintTEE: CrossmintTEE
@@ -60,29 +65,18 @@ final public class CrossmintSDK: ObservableObject {
         crossmintService.isProductionEnvironment
     }
 
-    private convenience init() {
-        #if DEBUG
-            if let apiKey = ProcessInfo.processInfo.environment["CROSSMINT_API_KEY"] {
-                Logger.client.info("Using API key from the environment variable.")
-                self.init(apiKey: apiKey)
-                return
-            }
-        #endif
-        Logger.client.error("Crossmint SDK requires an API key")
-        fatalError(
-            "Crossmint SDK requires an API key. " +
-            "Please call CrossmintSDK.shared(apiKey:) before accessing CrossmintSDK.shared"
-        )
+    public func setJWT(_ jwt: String) async {
+        await authManager.setJWT(jwt)
     }
 
-    private init(apiKey: String, authManager: AuthManager? = nil) {
+    private init(apiKey: String) {
         sdkInstances += 1
         if sdkInstances > 1 {
             Logger.sdk.error("Multiple SDK instances created, behaviour is undefined")
         }
 
         do {
-            sdk = try CrossmintClient.sdk(key: apiKey, authManager: authManager)
+            sdk = try CrossmintClient.sdk(key: apiKey)
             let authManager = sdk.authManager
             self.crossmintWallets = sdk.crossmintWallets()
             self.authManager = authManager
@@ -100,6 +94,7 @@ final public class CrossmintSDK: ObservableObject {
     }
 
     public func logout() async throws {
+        _ = try? await authManager.logout()
         crossmintTEE.resetState()
     }
 
