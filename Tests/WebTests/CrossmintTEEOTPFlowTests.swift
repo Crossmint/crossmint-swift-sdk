@@ -202,7 +202,7 @@ import Testing
                 keyType: "keyType",
                 encoding: "encoding",
                 onAuthRequired: { flow in
-                    signerBox.store(flow.signer)
+                    signerBox.store(flow.email)
                     try? await flow.verifyOTP("000000")
                 }
             )
@@ -210,20 +210,14 @@ import Testing
 
         let signature = try await signTask.value
         #expect(signature == "0xsignature_email")
-
-        switch signerBox.value {
-        case .email(let address):
-            #expect(address == testEmail)
-        default:
-            Issue.record("Expected email signer but got \(String(describing: signerBox.value))")
-        }
+        #expect(signerBox.value == testEmail)
     }
 }
 
 // MARK: - Helpers
 
 final class OTPSignerBox: @unchecked Sendable {
-    private var _value: OTPFlow.Signer?
-    func store(_ signer: OTPFlow.Signer) { _value = signer }
-    var value: OTPFlow.Signer? { _value }
+    private var _value: String?
+    func store(_ email: String) { _value = email }
+    var value: String? { _value }
 }

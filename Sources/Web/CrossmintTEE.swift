@@ -420,9 +420,8 @@ public final class CrossmintTEE: ObservableObject {
     ) async throws(Error) {
         Logger.tee.debug(LogEvents.otpWait)
         guard let email else { throw Error.authMissing }
-        let signer = OTPFlow.Signer.email(email)
         let (stream, streamContinuation) = AsyncThrowingStream<Void, any Swift.Error>.makeStream()
-        let flow = makeOTPFlow(jwt: jwt, signer: signer, continuation: streamContinuation)
+        let flow = makeOTPFlow(jwt: jwt, email: email, continuation: streamContinuation)
         Logger.tee.debug(LogEvents.otpCallbackFired)
         Task { await onAuthRequired(flow) }
         do {
@@ -438,11 +437,11 @@ public final class CrossmintTEE: ObservableObject {
 
     private func makeOTPFlow(
         jwt: String,
-        signer: OTPFlow.Signer,
+        email: String,
         continuation: AsyncThrowingStream<Void, any Swift.Error>.Continuation
     ) -> OTPFlow {
         OTPFlow(
-            signer: signer,
+            email: email,
             sendOTP: { [weak self] in
                 guard let self else { throw CrossmintTEE.Error.generic("TEE deallocated") }
                 let authId = try await self.getAuthId()

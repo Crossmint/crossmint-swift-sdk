@@ -28,12 +28,9 @@ struct OTPValidatorView: View {
             }
             .padding(.top, 20)
 
-            switch flow.signer {
-            case .email(let address):
-                Text("Code sent to \(address)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            Text("Code sent to \(flow.email)")
+                .font(.caption)
+                .foregroundColor(.secondary)
 
             CustomTextField(
                 placeholder: "Verification code",

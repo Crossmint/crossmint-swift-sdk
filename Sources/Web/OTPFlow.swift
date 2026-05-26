@@ -14,19 +14,8 @@ import Foundation
 /// }
 /// ```
 public struct OTPFlow: Sendable, Identifiable {
-    /// The signer that triggered this authentication challenge.
-    public enum Signer: Sendable {
-        case email(String)
-
-        var locator: String {
-            switch self {
-            case .email(let address): "email:\(address)"
-            }
-        }
-    }
-
-    /// The signer that triggered this challenge.
-    public let signer: Signer
+    /// The email address the OTP was sent to.
+    public let email: String
 
     /// Requests a new OTP to be sent to the user. Call this when the user taps "Resend".
     public let sendOTP: @Sendable () async throws -> Void
@@ -37,8 +26,6 @@ public struct OTPFlow: Sendable, Identifiable {
     /// Cancels the authentication challenge and fails the pending wallet operation.
     public let cancel: @Sendable () -> Void
 
-    /// A unique identifier for this flow instance. Each new challenge gets a fresh `UUID` so
-    /// SwiftUI's `sheet(item:)` correctly presents a new sheet even when the same email triggers
-    /// back-to-back operations.
+    /// A unique identifier for this flow instance.
     public let id = UUID()
 }
