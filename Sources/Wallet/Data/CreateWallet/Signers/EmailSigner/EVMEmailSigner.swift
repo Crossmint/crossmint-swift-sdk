@@ -17,7 +17,6 @@ public final class EVMEmailSigner: EmailSigner, Sendable {
         }
     }
 
-    // Hardcoded for EVM
     public var keyType: String {
         get async {
             "secp256k1"

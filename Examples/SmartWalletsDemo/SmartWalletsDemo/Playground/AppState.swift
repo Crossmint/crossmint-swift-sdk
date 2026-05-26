@@ -272,27 +272,50 @@ final class AppState {
     }
 
     private func getOrCreateWallet(chain: SupportedChain, email: String) async throws -> Wallet {
-        let signer = WalletSigner.email(email) { [weak self] flow in
-            guard let self else { return }
-            self.pendingOTPFlow = flow
-        }
         let options = WalletOptions(deviceSigner: true)
+        let onAuthRequired: @MainActor (OTPFlow) async -> Void = { [weak self] flow in
+            self?.pendingOTPFlow = flow
+        }
         switch chain {
         case .evm:
-            if let wallet = try await sdk.crossmintWallets.getWallet(chain: EVMChain.baseSepolia, signer: signer, options: options) {
-                return wallet
-            }
-            return try await sdk.crossmintWallets.createWallet(chain: EVMChain.baseSepolia, signer: signer, options: options)
+            if let wallet = try await sdk.crossmintWallets.getWallet(
+                chain: EVMChain.baseSepolia,
+                recovery: EVMSigners.email(email),
+                options: options,
+                onAuthRequired: onAuthRequired
+            ) { return wallet }
+            return try await sdk.crossmintWallets.createWallet(
+                chain: EVMChain.baseSepolia,
+                recovery: EVMSigners.email(email),
+                options: options,
+                onAuthRequired: onAuthRequired
+            )
         case .solana:
-            if let wallet = try await sdk.crossmintWallets.getWallet(chain: SolanaChain.solana, signer: signer, options: options) {
-                return wallet
-            }
-            return try await sdk.crossmintWallets.createWallet(chain: SolanaChain.solana, signer: signer, options: options)
+            if let wallet = try await sdk.crossmintWallets.getWallet(
+                chain: SolanaChain.solana,
+                recovery: SolanaSigners.email(email),
+                options: options,
+                onAuthRequired: onAuthRequired
+            ) { return wallet }
+            return try await sdk.crossmintWallets.createWallet(
+                chain: SolanaChain.solana,
+                recovery: SolanaSigners.email(email),
+                options: options,
+                onAuthRequired: onAuthRequired
+            )
         case .stellar:
-            if let wallet = try await sdk.crossmintWallets.getWallet(chain: StellarChain.stellar, signer: signer, options: options) {
-                return wallet
-            }
-            return try await sdk.crossmintWallets.createWallet(chain: StellarChain.stellar, signer: signer, options: options)
+            if let wallet = try await sdk.crossmintWallets.getWallet(
+                chain: StellarChain.stellar,
+                recovery: StellarSigners.email(email),
+                options: options,
+                onAuthRequired: onAuthRequired
+            ) { return wallet }
+            return try await sdk.crossmintWallets.createWallet(
+                chain: StellarChain.stellar,
+                recovery: StellarSigners.email(email),
+                options: options,
+                onAuthRequired: onAuthRequired
+            )
         }
     }
 }

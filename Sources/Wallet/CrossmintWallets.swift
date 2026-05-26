@@ -1,29 +1,20 @@
 import CrossmintCommonTypes
+import Web
 
 /// Entry point for all wallet operations.
 public protocol CrossmintWallets: Sendable {
     func getWallet(
         chain: Chain,
         recovery: any Signer,
-        options: WalletOptions?
+        options: WalletOptions?,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)?
     ) async throws(WalletError) -> Wallet?
 
     func createWallet(
         chain: Chain,
         recovery: any Signer,
-        options: WalletOptions?
-    ) async throws(WalletError) -> Wallet
-
-    func getWallet(
-        chain: Chain,
-        signer: WalletSigner,
-        options: WalletOptions?
-    ) async throws(WalletError) -> Wallet?
-
-    func createWallet(
-        chain: Chain,
-        signer: WalletSigner,
-        options: WalletOptions?
+        options: WalletOptions?,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)?
     ) async throws(WalletError) -> Wallet
 }
 
@@ -33,12 +24,14 @@ extension CrossmintWallets {
     public func getWallet(
         chain: EVMChain,
         recovery: EVMSigners,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> EVMWallet? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         ) else { return nil }
         guard let evmWallet = wallet as? EVMWallet else {
             throw WalletError.walletInvalidType("Expected EVMWallet for chain \(chain.name)")
@@ -49,12 +42,14 @@ extension CrossmintWallets {
     public func getWallet(
         chain: SolanaChain,
         recovery: SolanaSigners,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> SolanaWallet? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         ) else { return nil }
         guard let solanaWallet = wallet as? SolanaWallet else {
             throw WalletError.walletInvalidType("Expected SolanaWallet for chain \(chain.name)")
@@ -65,12 +60,14 @@ extension CrossmintWallets {
     public func getWallet(
         chain: StellarChain,
         recovery: StellarSigners,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> StellarWallet? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         ) else { return nil }
         guard let stellarWallet = wallet as? StellarWallet else {
             throw WalletError.walletInvalidType("Expected StellarWallet for chain \(chain.name)")
@@ -81,12 +78,14 @@ extension CrossmintWallets {
     public func getWallet<C: ChainWithSigners>(
         chain: C,
         recovery: C.SpecificSigner,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> C.WalletType? {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         ) else { return nil }
         guard let typed = wallet as? C.WalletType else {
             throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
@@ -99,12 +98,14 @@ extension CrossmintWallets {
     public func createWallet(
         chain: EVMChain,
         recovery: EVMSigners,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> EVMWallet {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         )
         guard let evmWallet = wallet as? EVMWallet else {
             throw WalletError.walletInvalidType("Expected EVMWallet for chain \(chain.name)")
@@ -115,12 +116,14 @@ extension CrossmintWallets {
     public func createWallet(
         chain: SolanaChain,
         recovery: SolanaSigners,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> SolanaWallet {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         )
         guard let solanaWallet = wallet as? SolanaWallet else {
             throw WalletError.walletInvalidType("Expected SolanaWallet for chain \(chain.name)")
@@ -131,12 +134,14 @@ extension CrossmintWallets {
     public func createWallet(
         chain: StellarChain,
         recovery: StellarSigners,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> StellarWallet {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         )
         guard let stellarWallet = wallet as? StellarWallet else {
             throw WalletError.walletInvalidType("Expected StellarWallet for chain \(chain.name)")
@@ -147,39 +152,15 @@ extension CrossmintWallets {
     public func createWallet<C: ChainWithSigners>(
         chain: C,
         recovery: C.SpecificSigner,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> C.WalletType {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
+            options: options,
+            onAuthRequired: onAuthRequired
         )
-        guard let typed = wallet as? C.WalletType else {
-            throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
-        }
-        return typed
-    }
-
-    // MARK: - WalletSigner convenience overloads
-
-    public func getWallet<C: ChainWithSigners>(
-        chain: C,
-        signer: WalletSigner,
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> C.WalletType? {
-        guard let wallet = try await getWallet(chain: Chain(chain.name), signer: signer, options: options) else { return nil }
-        guard let typed = wallet as? C.WalletType else {
-            throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
-        }
-        return typed
-    }
-
-    public func createWallet<C: ChainWithSigners>(
-        chain: C,
-        signer: WalletSigner,
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> C.WalletType {
-        let wallet = try await createWallet(chain: Chain(chain.name), signer: signer, options: options)
         guard let typed = wallet as? C.WalletType else {
             throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
         }

@@ -61,6 +61,24 @@ struct CrossmintTEEOTPFlowFixture {
             response: CrossmintTEETestHelpers.createNonCustodialSignResponse(signature: signature)
         )
     }
+
+    func startSigningAndCaptureFlow() async -> (signTask: Task<String, any Error>, flow: OTPFlow?) {
+        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
+        let signTask = Task {
+            try await tee.signTransaction(
+                transaction: CrossmintTEETestHelpers.createTestTransaction(),
+                keyType: "keyType",
+                encoding: "encoding",
+                onAuthRequired: { flow in
+                    flowContinuation.yield(flow)
+                    flowContinuation.finish()
+                }
+            )
+        }
+        var receivedFlow: OTPFlow?
+        for await flow in flowStream { receivedFlow = flow }
+        return (signTask, receivedFlow)
+    }
 }
 
 final class OTPEmailCapture: @unchecked Sendable {

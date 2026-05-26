@@ -23,23 +23,8 @@ import Testing
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature_otp")
 
-        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
-
-        let signTask = Task {
-            try await fixture.tee.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
-                keyType: "keyType",
-                encoding: "encoding",
-                onAuthRequired: { flow in
-                    flowContinuation.yield(flow)
-                    flowContinuation.finish()
-                }
-            )
-        }
-
-        var receivedFlow: OTPFlow?
-        for await flow in flowStream { receivedFlow = flow }
-        let flow = try #require(receivedFlow)
+        let (signTask, capturedFlow) = await fixture.startSigningAndCaptureFlow()
+        let flow = try #require(capturedFlow)
         try await flow.verifyOTP("123456")
 
         let signature = try await signTask.value
@@ -55,23 +40,8 @@ import Testing
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
 
-        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
-
-        let signTask = Task {
-            try await fixture.tee.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
-                keyType: "keyType",
-                encoding: "encoding",
-                onAuthRequired: { flow in
-                    flowContinuation.yield(flow)
-                    flowContinuation.finish()
-                }
-            )
-        }
-
-        var receivedFlow: OTPFlow?
-        for await flow in flowStream { receivedFlow = flow }
-        let flow = try #require(receivedFlow)
+        let (signTask, capturedFlow) = await fixture.startSigningAndCaptureFlow()
+        let flow = try #require(capturedFlow)
         flow.cancel()
 
         await #expect(throws: CrossmintTEE.Error.userCancelled) {
@@ -89,25 +59,10 @@ import Testing
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature_resend")
 
-        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
+        let (signTask, capturedFlow) = await fixture.startSigningAndCaptureFlow()
+        let flow = try #require(capturedFlow)
 
-        let signTask = Task {
-            try await fixture.tee.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
-                keyType: "keyType",
-                encoding: "encoding",
-                onAuthRequired: { flow in
-                    flowContinuation.yield(flow)
-                    flowContinuation.finish()
-                }
-            )
-        }
-
-        var receivedFlow: OTPFlow?
-        for await flow in flowStream { receivedFlow = flow }
-        let flow = try #require(receivedFlow)
-
-        try? await flow.sendOTP()
+        try await flow.sendOTP()
 
         let startOnboardingRequests = fixture.webProxy.sentMessages(ofType: StartOnboardingRequest.self)
         // First startOnboarding was called during newDevice handling, second via sendOTP

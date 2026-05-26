@@ -23,7 +23,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     public func getWallet(
         chain: Chain,
         recovery: any Signer,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> Wallet? {
         try assertValid(chain)
 
@@ -32,6 +33,9 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             "signerType": recovery.signerType.rawValue
         ])
 
+        let effectiveSigner = try await resolveEmailSigner(
+            recovery: recovery, onAuthRequired: onAuthRequired, chain: chain
+        )
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
         let walletApiModel: WalletApiModel
         do {
@@ -52,12 +56,12 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
-            signer: recovery,
+            signer: effectiveSigner,
             options: options,
             deviceSignerStorage: deviceSignerStorage
         )
 
-        await loadSignerIfNeeded(recovery)
+        await loadSignerIfNeeded(effectiveSigner)
 
         return wallet
     }
@@ -65,13 +69,17 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     public func createWallet(
         chain: Chain,
         recovery: any Signer,
-        options: WalletOptions? = nil
+        options: WalletOptions? = nil,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(WalletError) -> Wallet {
         try assertValid(chain)
 
+        let effectiveSigner = try await resolveEmailSigner(
+            recovery: recovery, onAuthRequired: onAuthRequired, chain: chain
+        )
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
         let walletApiModel = try await createWalletApiModel(
-            signer: recovery,
+            signer: effectiveSigner,
             chainType: chain.chainType,
             walletType: .smart,
             options: options,
@@ -81,43 +89,28 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
-            signer: recovery,
+            signer: effectiveSigner,
             options: options,
             deviceSignerStorage: deviceSignerStorage
         )
 
-        await loadSignerIfNeeded(recovery)
+        await loadSignerIfNeeded(effectiveSigner)
 
         return wallet
     }
 
-    public func getWallet(
-        chain: Chain,
-        signer: WalletSigner,
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> Wallet? {
-        let concreteSigner = try await makeSigner(from: signer, chain: chain)
-        return try await getWallet(chain: chain, recovery: concreteSigner, options: options)
-    }
-
-    public func createWallet(
-        chain: Chain,
-        signer: WalletSigner,
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> Wallet {
-        let concreteSigner = try await makeSigner(from: signer, chain: chain)
-        return try await createWallet(chain: chain, recovery: concreteSigner, options: options)
-    }
-
-    private func makeSigner(from walletSigner: WalletSigner, chain: Chain) async throws(WalletError) -> any Signer {
-        switch walletSigner.config {
-        case let .email(email, onAuthRequired):
-            return try await makeEmailSigner(email: email, onAuthRequired: onAuthRequired, chain: chain)
-        case let .passkey(name, host):
-            return PasskeySigner(name: name, host: host)
-        case .apiKey:
-            return ApiKeySigner(adminSigner: ApiKeySignerData())
+    @MainActor
+    private func resolveEmailSigner(
+        recovery: any Signer,
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)?,
+        chain: Chain
+    ) async throws(WalletError) -> any Signer {
+        guard let emailSigner = recovery as? any EmailSigner,
+              let onAuthRequired,
+              let email = await emailSigner.email else {
+            return recovery
         }
+        return try makeEmailSigner(email: email, onAuthRequired: onAuthRequired, chain: chain)
     }
 
     @MainActor
@@ -324,7 +317,9 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) async {
         let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
         guard !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) else { return }
-        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) else { return }
+        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(
+            in: walletApiModel, storage: storage
+        ) else { return }
 
         do {
             try await storage.mapAddressToKey(

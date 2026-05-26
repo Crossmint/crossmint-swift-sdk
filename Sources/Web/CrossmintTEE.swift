@@ -127,17 +127,20 @@ public final class CrossmintTEE: ObservableObject {
         switch response.status {
         case .success:
             guard let signerStatus = response.signerStatus else {
-                Logger.tee.error(LogEvents.getStatusError, attributes: ["error": "Status response missing signerStatus field"])
+                Logger.tee.error(
+                    LogEvents.getStatusError,
+                    attributes: ["error": "Status response missing signerStatus field"]
+                )
                 throw .generic("Signer status missing from response")
             }
             switch signerStatus {
             case .newDevice:
                 guard let onAuthRequired else { throw .authMissing }
                 try await handleNewDevice(jwt: jwt, onAuthRequired: onAuthRequired)
-                return try await performSign(jwt: jwt, transaction: transaction, keyType: keyType, encoding: encoding)
             case .ready:
-                return try await performSign(jwt: jwt, transaction: transaction, keyType: keyType, encoding: encoding)
+                break
             }
+            return try await performSign(jwt: jwt, transaction: transaction, keyType: keyType, encoding: encoding)
         case .error:
             Logger.tee.error(LogEvents.getStatusError, attributes: ["error": response.errorMessage ?? "Unknown error"])
             throw .generic(response.errorMessage ?? "Unknown error")
@@ -422,8 +425,10 @@ public final class CrossmintTEE: ObservableObject {
         guard let email else { throw Error.authMissing }
         let (stream, streamContinuation) = AsyncThrowingStream<Void, any Swift.Error>.makeStream()
         let flow = makeOTPFlow(jwt: jwt, email: email, continuation: streamContinuation)
-        Logger.tee.debug(LogEvents.otpCallbackFired)
-        Task { await onAuthRequired(flow) }
+        Task {
+            Logger.tee.debug(LogEvents.otpCallbackFired)
+            await onAuthRequired(flow)
+        }
         do {
             for try await _ in stream {}
         } catch let teeError as CrossmintTEE.Error {
@@ -442,29 +447,38 @@ public final class CrossmintTEE: ObservableObject {
     ) -> OTPFlow {
         OTPFlow(
             email: email,
-            sendOTP: { [weak self] in
-                guard let self else { throw CrossmintTEE.Error.generic("TEE deallocated") }
-                let authId = try await self.getAuthId()
-                _ = try await self.startOnboarding(jwt: jwt, authId: authId)
-            },
-            verifyOTP: { [weak self] code in
-                guard let self else {
-                    continuation.finish(throwing: CrossmintTEE.Error.generic("TEE deallocated"))
-                    return
-                }
-                do {
-                    _ = try await self.validate(otpCode: code, jwt: jwt)
-                    continuation.finish()
-                } catch let teeError as CrossmintTEE.Error {
-                    continuation.finish(throwing: teeError)
-                } catch {
-                    continuation.finish(throwing: CrossmintTEE.Error.generic(error.localizedDescription))
-                }
-            },
-            cancel: {
-                continuation.finish(throwing: CrossmintTEE.Error.userCancelled)
-            }
+            sendOTP: makeSendOTPClosure(jwt: jwt),
+            verifyOTP: makeVerifyOTPClosure(jwt: jwt, continuation: continuation),
+            cancel: { continuation.finish(throwing: CrossmintTEE.Error.userCancelled) }
         )
+    }
+
+    private func makeSendOTPClosure(jwt: String) -> @Sendable () async throws -> Void {
+        { [weak self] in
+            guard let self else { throw CrossmintTEE.Error.generic("TEE deallocated") }
+            let authId = try await self.getAuthId()
+            _ = try await self.startOnboarding(jwt: jwt, authId: authId)
+        }
+    }
+
+    private func makeVerifyOTPClosure(
+        jwt: String,
+        continuation: AsyncThrowingStream<Void, any Swift.Error>.Continuation
+    ) -> @Sendable (String) async throws -> Void {
+        { [weak self] code in
+            guard let self else {
+                continuation.finish(throwing: CrossmintTEE.Error.generic("TEE deallocated"))
+                return
+            }
+            do {
+                _ = try await self.validate(otpCode: code, jwt: jwt)
+                continuation.finish()
+            } catch let teeError as CrossmintTEE.Error {
+                continuation.finish(throwing: teeError)
+            } catch {
+                continuation.finish(throwing: CrossmintTEE.Error.generic(error.localizedDescription))
+            }
+        }
     }
 
     private func sign(
