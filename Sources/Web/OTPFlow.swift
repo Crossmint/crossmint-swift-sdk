@@ -1,3 +1,10 @@
+//
+//  OTPFlow.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 20/05/26.
+//
+
 import Foundation
 
 /// Encapsulates a pending OTP authentication challenge.
