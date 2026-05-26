@@ -43,14 +43,30 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         lastApproveSignatureRequest = request
     }
 
-    // MARK: - Unused stubs
+    // MARK: - getWallet
+
+    var getWalletResult: WalletApiModel?
+    var getWalletCallCount = 0
+    var getWalletShouldThrow = false
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        throw WalletError.walletGeneric("not implemented")
+        getWalletCallCount += 1
+        if getWalletShouldThrow { throw WalletError.walletGeneric("get wallet error") }
+        guard let result = getWalletResult else { throw WalletError.walletNotFound }
+        return result
     }
 
+    // MARK: - createWallet
+
+    var createWalletResult: WalletApiModel?
+    var createWalletCallCount = 0
+
     func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
-        throw WalletError.walletGeneric("not implemented")
+        createWalletCallCount += 1
+        guard let result = createWalletResult else {
+            throw WalletError.walletGeneric("createWalletResult not configured")
+        }
+        return result
     }
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {

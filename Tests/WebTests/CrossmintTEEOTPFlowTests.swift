@@ -13,63 +13,9 @@ import Testing
 @Suite("CrossmintTEE OTP Flow", .tags(.unit))
 @MainActor struct CrossmintTEEOTPFlowTests {
 
-    @MainActor
-    struct TestFixture {
-        let authManager = MockAuthManager()
-        let webProxy = MockWebViewCommunicationProxy()
-        let apiKey = "test-api-key"
-        let tee: CrossmintTEE
-
-        init() {
-            self.tee = CrossmintTEE(
-                auth: authManager,
-                webProxy: webProxy,
-                apiKey: apiKey,
-                isProductionEnvironment: true
-            )
-        }
-
-        func setupAuthentication(email: String = "test@example.com") async {
-            await authManager.setJWT(CrossmintTEETestHelpers.createTestJWT())
-            tee.email = email
-        }
-
-        func setupHandshake() async throws {
-            let handshakeResponse = CrossmintTEETestHelpers.createHandshakeResponse(verificationId: "test123")
-            webProxy.configureResponse(for: HandshakeResponse.self, response: handshakeResponse)
-            try await tee.load()
-        }
-
-        func configureNewDevice() {
-            let statusResponse = CrossmintTEETestHelpers.createGetStatusResponse(
-                status: .success,
-                signerStatus: .newDevice
-            )
-            webProxy.configureResponse(for: GetStatusResponse.self, response: statusResponse)
-        }
-
-        func configureOnboardingFlow() {
-            webProxy.configureResponse(
-                for: StartOnboardingResponse.self,
-                response: CrossmintTEETestHelpers.createStartOnboardingResponse()
-            )
-            webProxy.configureResponse(
-                for: CompleteOnboardingResponse.self,
-                response: CrossmintTEETestHelpers.createCompleteOnboardingResponse()
-            )
-        }
-
-        func configureSignResponse(signature: String) {
-            webProxy.configureResponse(
-                for: NonCustodialSignResponse.self,
-                response: CrossmintTEETestHelpers.createNonCustodialSignResponse(signature: signature)
-            )
-        }
-    }
-
     @Test("Sign succeeds after OTP verification")
-    func signSucceedsAfterOTPVerification() async throws {
-        let fixture = TestFixture()
+    func succeedsAfterOTPVerification() async throws {
+        let fixture = CrossmintTEEOTPFlowFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
 
@@ -101,8 +47,8 @@ import Testing
     }
 
     @Test("Sign throws userCancelled when flow is cancelled")
-    func signThrowsUserCancelledWhenCancelled() async throws {
-        let fixture = TestFixture()
+    func throwsUserCancelledWhenFlowIsCancelled() async throws {
+        let fixture = CrossmintTEEOTPFlowFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
 
@@ -134,8 +80,8 @@ import Testing
     }
 
     @Test("sendOTP triggers startOnboarding again")
-    func sendOTPTriggersStartOnboardingAgain() async throws {
-        let fixture = TestFixture()
+    func triggersNewOnboardingRequestOnSendOTP() async throws {
+        let fixture = CrossmintTEEOTPFlowFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
 
@@ -172,8 +118,8 @@ import Testing
     }
 
     @Test("Sign throws authMissing when no callback provided for new device")
-    func signThrowsAuthMissingWhenNoCallback() async throws {
-        let fixture = TestFixture()
+    func throwsAuthMissingWithoutCallback() async throws {
+        let fixture = CrossmintTEEOTPFlowFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
 
@@ -190,18 +136,18 @@ import Testing
         }
     }
 
-    @Test("onAuthRequired receives email signer with correct address")
-    func onAuthRequiredReceivesEmailSigner() async throws {
-        let testEmail = "test@example.com"
-        let fixture = TestFixture()
-        await fixture.setupAuthentication(email: testEmail)
+    @Test("onAuthRequired receives correct email address")
+    func onAuthRequiredReceivesCorrectEmail() async throws {
+        let TEST_EMAIL = "test@example.com"
+        let fixture = CrossmintTEEOTPFlowFixture()
+        await fixture.setupAuthentication(email: TEST_EMAIL)
         try await fixture.setupHandshake()
 
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature_email")
 
-        let signerBox = OTPSignerBox()
+        let emailCapture = OTPEmailCapture()
 
         let signTask = Task {
             try await fixture.tee.signTransaction(
@@ -209,7 +155,7 @@ import Testing
                 keyType: "keyType",
                 encoding: "encoding",
                 onAuthRequired: { flow in
-                    signerBox.store(flow.email)
+                    emailCapture.store(flow.email)
                     try? await flow.verifyOTP("000000")
                 }
             )
@@ -217,14 +163,6 @@ import Testing
 
         let signature = try await signTask.value
         #expect(signature == "0xsignature_email")
-        #expect(signerBox.value == testEmail)
+        #expect(emailCapture.value == TEST_EMAIL)
     }
-}
-
-// MARK: - Helpers
-
-final class OTPSignerBox: @unchecked Sendable {
-    private var _value: String?
-    func store(_ email: String) { _value = email }
-    var value: String? { _value }
 }
