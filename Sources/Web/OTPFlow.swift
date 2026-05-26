@@ -16,5 +16,5 @@ public struct OTPFlow: Sendable, Identifiable {
     public let verifyOTP: @Sendable (_ code: String) async throws -> Void
     public let cancel: @Sendable () -> Void
 
-    public var id: String { signer.locator }
+    public let id = UUID()
 }

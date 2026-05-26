@@ -23,7 +23,7 @@ protocol EmailSigner: Signer {
     var encoding: String { get async }
     var email: String? { get async }
     var isInitialized: Bool { get async }
-    var onAuthRequired: (@Sendable (OTPFlow) async -> Void)? { get }
+    var onAuthRequired: (@MainActor (OTPFlow) async -> Void)? { get }
 
     func load() async throws(EmailSignerError)
     func processMessage(_ message: String) -> String

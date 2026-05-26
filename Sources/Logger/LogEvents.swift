@@ -94,6 +94,9 @@ public enum LogEvents {
     /// Waiting for user OTP input
     public static let otpWait = "signer.otp.wait"
 
+    /// onAuthRequired callback fired — caller notified of pending OTP
+    public static let otpCallbackFired = "signer.otp.callbackFired"
+
     /// OTP received from user
     public static let otpReceived = "signer.otp.received"
 

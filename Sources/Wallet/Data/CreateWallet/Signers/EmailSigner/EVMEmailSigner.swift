@@ -43,12 +43,12 @@ public final class EVMEmailSigner: EmailSigner, Sendable {
     }
 
     nonisolated public let signerType: SignerType = .email
-    let onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
+    let onAuthRequired: (@MainActor (OTPFlow) async -> Void)?
 
-    public init(
+    init(
         email: String,
         crossmintTEE: CrossmintTEE?,
-        onAuthRequired: (@Sendable (OTPFlow) async -> Void)? = nil
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) {
         self.crossmintTEE = crossmintTEE
         self.onAuthRequired = onAuthRequired

@@ -6,6 +6,7 @@ struct OTPValidatorView: View {
 
     @State private var verificationCode = ""
     @State private var isVerifying = false
+    @State private var verificationSucceeded = false
     @State private var errorMessage: String?
     @State private var opacity: Double = 0
 
@@ -50,14 +51,15 @@ struct OTPValidatorView: View {
             }
 
             PrimaryButton(
-                text: isVerifying ? "Verifying…" : "Verify",
+                text: verificationSucceeded ? "Verified — signing…" : (isVerifying ? "Verifying…" : "Verify"),
                 action: verify,
-                isDisabled: verificationCode.isEmpty || isVerifying
+                isDisabled: verificationCode.isEmpty || isVerifying || verificationSucceeded
             )
 
             Button("Resend code") { resend() }
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .disabled(verificationSucceeded)
 
             Spacer()
         }
@@ -73,10 +75,11 @@ struct OTPValidatorView: View {
         isVerifying = true
         errorMessage = nil
         Task {
-            defer { isVerifying = false }
             do {
                 try await flow.verifyOTP(verificationCode)
+                verificationSucceeded = true
             } catch {
+                isVerifying = false
                 errorMessage = error.localizedDescription
             }
         }

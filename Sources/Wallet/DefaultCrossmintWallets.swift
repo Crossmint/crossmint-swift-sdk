@@ -57,16 +57,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             deviceSignerStorage: deviceSignerStorage
         )
 
-        do {
-            try await (recovery as? any EmailSigner)?.load()
-        } catch {
-            Logger.smartWallet.warn(
-                """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
-"""
-            )
-        }
+        await loadSignerIfNeeded(recovery)
 
         return wallet
     }
@@ -95,16 +86,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             deviceSignerStorage: deviceSignerStorage
         )
 
-        do {
-            try await (recovery as? any EmailSigner)?.load()
-        } catch {
-            Logger.smartWallet.warn(
-                """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
-"""
-            )
-        }
+        await loadSignerIfNeeded(recovery)
 
         return wallet
     }
@@ -141,7 +123,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     @MainActor
     private func makeEmailSigner(
         email: String,
-        onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void,
+        onAuthRequired: @escaping @MainActor (OTPFlow) async -> Void,
         chain: Chain
     ) throws(WalletError) -> any Signer {
         switch chain.chainType {
@@ -153,6 +135,19 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             return StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
         case .unknown:
             throw WalletError.invalidChain(chain: chain)
+        }
+    }
+
+    private func loadSignerIfNeeded(_ signer: any Signer) async {
+        do {
+            try await (signer as? any EmailSigner)?.load()
+        } catch {
+            Logger.smartWallet.warn(
+                """
+There was an error initializing the Email signer. \(error.errorDescription)
+Review if the .crossmintEnvironmentObject modifier is used as expected.
+"""
+            )
         }
     }
 

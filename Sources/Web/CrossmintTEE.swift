@@ -39,7 +39,7 @@ public final class CrossmintTEE: ObservableObject {
         let transaction: String
         let keyType: String
         let encoding: String
-        let onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
+        let onAuthRequired: (@MainActor (OTPFlow) async -> Void)?
         let callback: (Result<String, CrossmintTEE.Error>) -> Void
         let timeoutTask: Task<Void, Never>
     }
@@ -84,7 +84,7 @@ public final class CrossmintTEE: ObservableObject {
         transaction: String,
         keyType: String,
         encoding: String,
-        onAuthRequired: (@Sendable (OTPFlow) async -> Void)? = nil
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)? = nil
     ) async throws(Error) -> String {
         if case .completed = handshakeState {
             return try await executeSignTransaction(
@@ -117,7 +117,7 @@ public final class CrossmintTEE: ObservableObject {
         transaction: String,
         keyType: String,
         encoding: String,
-        onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)?
     ) async throws(Error) -> String {
         guard let jwt = await auth.jwt else {
             Logger.tee.warn("JWT is missing, cannot proceed with signing")
@@ -146,7 +146,7 @@ public final class CrossmintTEE: ObservableObject {
 
     private func handleNewDevice(
         jwt: String,
-        onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void
+        onAuthRequired: @escaping @MainActor (OTPFlow) async -> Void
     ) async throws(Error) {
         let authId = try getAuthId()
         let onboardingResponse = try await startOnboarding(jwt: jwt, authId: authId)
@@ -416,19 +416,21 @@ public final class CrossmintTEE: ObservableObject {
 
     private func waitForOTP(
         jwt: String,
-        onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void
+        onAuthRequired: @escaping @MainActor (OTPFlow) async -> Void
     ) async throws(Error) {
         Logger.tee.debug(LogEvents.otpWait)
         guard let email else { throw Error.authMissing }
         let signer = OTPFlow.Signer.email(email)
         let (stream, streamContinuation) = AsyncThrowingStream<Void, any Swift.Error>.makeStream()
         let flow = makeOTPFlow(jwt: jwt, signer: signer, continuation: streamContinuation)
+        Logger.tee.debug(LogEvents.otpCallbackFired)
         Task { await onAuthRequired(flow) }
         do {
             for try await _ in stream {}
         } catch let teeError as CrossmintTEE.Error {
             throw teeError
         } catch {
+            if error is CancellationError { throw .userCancelled }
             throw .generic(error.localizedDescription)
         }
         Logger.tee.debug(LogEvents.otpReceived)
@@ -527,7 +529,7 @@ extension CrossmintTEE {
         transaction: String,
         keyType: String,
         encoding: String,
-        onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
+        onAuthRequired: (@MainActor (OTPFlow) async -> Void)?
     ) async throws(Error) -> String {
         let requestId = UUID()
         Logger.tee.debug(LogEvents.queueEnqueue, attributes: [
@@ -665,4 +667,3 @@ extension CrossmintTEE {
         }
     }
 }
-

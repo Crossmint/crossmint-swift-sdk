@@ -163,14 +163,8 @@ private final class GetOrCreateMockWalletService: SmartWalletService, @unchecked
 
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
-    // swiftlint:disable:next function_parameter_count
     func transferToken(
-        chainType: String,
-        tokenLocator: String,
-        recipient: String,
-        amount: String,
-        signer: String?,
-        idempotencyKey: String?
+        _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         throw TransactionError.transactionGeneric("not implemented")
     }
