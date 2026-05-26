@@ -189,17 +189,17 @@ extension CrossmintWallets {
 
 /// Options that control wallet creation and session behavior.
 public struct WalletOptions: Sendable {
-    public let deviceSigner: Bool
     let experimentalCallbacks: ExperimentalCallbacks?
+    public let deviceSigner: Bool
 
     public init(deviceSigner: Bool = false) {
-        self.deviceSigner = deviceSigner
         self.experimentalCallbacks = nil
+        self.deviceSigner = deviceSigner
     }
 
     init(deviceSigner: Bool = false, experimentalCallbacks: ExperimentalCallbacks?) {
-        self.deviceSigner = deviceSigner
         self.experimentalCallbacks = experimentalCallbacks
+        self.deviceSigner = deviceSigner
     }
 }
 

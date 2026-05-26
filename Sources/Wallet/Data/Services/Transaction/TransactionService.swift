@@ -1,10 +1,3 @@
-//
-//  TransactionService.swift
-//  CrossmintSDK
-//
-//  Created by Tomas Martins on 21/05/26.
-//
-
 public protocol TransactionService: Sendable {
     func createTransaction(
         _ request: CreateTransactionRequest
