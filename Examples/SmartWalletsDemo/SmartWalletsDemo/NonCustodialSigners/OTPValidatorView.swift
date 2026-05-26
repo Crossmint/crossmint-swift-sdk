@@ -87,6 +87,12 @@ struct OTPValidatorView: View {
     }
 
     private func resend() {
-        Task { try? await flow.sendOTP() }
+        Task {
+            do {
+                try await flow.sendOTP()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 }

@@ -283,19 +283,22 @@ struct CrossmintTEETests {
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
 
-        let flowBox = OTPFlowBox()
+        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
         let signTask = Task {
             try await fixture.tee.signTransaction(
                 transaction: CrossmintTEETestHelpers.createTestTransaction(),
                 keyType: "keyType",
                 encoding: "encoding",
                 onAuthRequired: { flow in
-                    flowBox.store(flow)
+                    flowContinuation.yield(flow)
+                    flowContinuation.finish()
                 }
             )
         }
 
-        let flow = try await waitForFlow(flowBox)
+        var receivedFlow: OTPFlow?
+        for await flow in flowStream { receivedFlow = flow }
+        let flow = try #require(receivedFlow)
         flow.cancel()
 
         await #expect(throws: CrossmintTEE.Error.userCancelled) {

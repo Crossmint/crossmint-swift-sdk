@@ -44,7 +44,7 @@ public final class SolanaEmailSigner: EmailSigner, Sendable {
     }
 
     nonisolated public let signerType: SignerType = .email
-    public let onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
+    let onAuthRequired: (@Sendable (OTPFlow) async -> Void)?
 
     public init(
         email: String,

@@ -109,23 +109,28 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         return wallet
     }
 
-    public func getOrCreate(
+    public func getWallet(
+        chain: Chain,
+        signer: WalletSigner,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet? {
+        let concreteSigner = try await makeSigner(from: signer, chain: chain)
+        return try await getWallet(chain: chain, recovery: concreteSigner, options: options)
+    }
+
+    public func createWallet(
         chain: Chain,
         signer: WalletSigner,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet {
-        let concreteSigner = await makeSigner(from: signer, chain: chain)
-        if let existing = try await getWallet(chain: chain, recovery: concreteSigner, options: options) {
-            return existing
-        }
+        let concreteSigner = try await makeSigner(from: signer, chain: chain)
         return try await createWallet(chain: chain, recovery: concreteSigner, options: options)
     }
 
-    @MainActor
-    private func makeSigner(from walletSigner: WalletSigner, chain: Chain) -> any Signer {
+    private func makeSigner(from walletSigner: WalletSigner, chain: Chain) async throws(WalletError) -> any Signer {
         switch walletSigner.config {
         case let .email(email, onAuthRequired):
-            return makeEmailSigner(email: email, onAuthRequired: onAuthRequired, chain: chain)
+            return try await makeEmailSigner(email: email, onAuthRequired: onAuthRequired, chain: chain)
         case let .passkey(name, host):
             return PasskeySigner(name: name, host: host)
         case .apiKey:
@@ -138,7 +143,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         email: String,
         onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void,
         chain: Chain
-    ) -> any Signer {
+    ) throws(WalletError) -> any Signer {
         switch chain.chainType {
         case .evm:
             return EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
@@ -147,8 +152,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         case .stellar:
             return StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
         case .unknown:
-            Logger.smartWallet.warn("Unknown chain type for email signer, defaulting to EVM")
-            return EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared, onAuthRequired: onAuthRequired)
+            throw WalletError.invalidChain(chain: chain)
         }
     }
 

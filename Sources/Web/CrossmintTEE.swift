@@ -113,7 +113,6 @@ public final class CrossmintTEE: ObservableObject {
         )
     }
 
-    // swiftlint:disable:next function_body_length
     private func executeSignTransaction(
         transaction: String,
         keyType: String,
@@ -124,63 +123,51 @@ public final class CrossmintTEE: ObservableObject {
             Logger.tee.warn("JWT is missing, cannot proceed with signing")
             throw .jwtRequired
         }
-
-        let response = try await self.tryGetStatus(jwt: jwt, maxAttempts: 3)
+        let response = try await tryGetStatus(jwt: jwt, maxAttempts: 3)
         switch response.status {
         case .success:
             guard let signerStatus = response.signerStatus else {
-                Logger.tee.error(LogEvents.getStatusError, attributes: [
-                    "error": "Status response missing signerStatus field"
-                ])
+                Logger.tee.error(LogEvents.getStatusError, attributes: ["error": "Status response missing signerStatus field"])
                 throw .generic("Signer status missing from response")
             }
             switch signerStatus {
             case .newDevice:
-                let onboardingResponse = try await startOnboarding(
-                    jwt: jwt,
-                    authId: try getAuthId()
-                )
-
-                guard onboardingResponse.status == .success else {
-                    Logger.tee.error(LogEvents.onboardingError, attributes: [
-                        "error": onboardingResponse.errorMessage ?? "Unknown error"
-                    ])
-                    throw .generic("Invalid NCS status")
-                }
-
                 guard let onAuthRequired else { throw .authMissing }
-                do {
-                    try await waitForOTP(jwt: jwt, onAuthRequired: onAuthRequired)
-                } catch let teeError as CrossmintTEE.Error {
-                    throw teeError
-                } catch {
-                    throw .generic(error.localizedDescription)
-                }
-
-                return try await sign(
-                    .init(
-                        jwt: jwt,
-                        apiKey: apiKey,
-                        messageBytes: transaction,
-                        keyType: keyType,
-                        encoding: encoding)
-                ).stringValue
+                try await handleNewDevice(jwt: jwt, onAuthRequired: onAuthRequired)
+                return try await performSign(jwt: jwt, transaction: transaction, keyType: keyType, encoding: encoding)
             case .ready:
-                return try await sign(
-                    .init(
-                        jwt: jwt,
-                        apiKey: apiKey,
-                        messageBytes: transaction,
-                        keyType: keyType,
-                        encoding: encoding)
-                ).stringValue
+                return try await performSign(jwt: jwt, transaction: transaction, keyType: keyType, encoding: encoding)
             }
         case .error:
-            Logger.tee.error(LogEvents.getStatusError, attributes: [
-                "error": response.errorMessage ?? "Unknown error"
-            ])
+            Logger.tee.error(LogEvents.getStatusError, attributes: ["error": response.errorMessage ?? "Unknown error"])
             throw .generic(response.errorMessage ?? "Unknown error")
         }
+    }
+
+    private func handleNewDevice(
+        jwt: String,
+        onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void
+    ) async throws(Error) {
+        let authId = try getAuthId()
+        let onboardingResponse = try await startOnboarding(jwt: jwt, authId: authId)
+        guard onboardingResponse.status == .success else {
+            Logger.tee.error(LogEvents.onboardingError, attributes: [
+                "error": onboardingResponse.errorMessage ?? "Unknown error"
+            ])
+            throw .generic("Invalid NCS status")
+        }
+        try await waitForOTP(jwt: jwt, onAuthRequired: onAuthRequired)
+    }
+
+    private func performSign(
+        jwt: String,
+        transaction: String,
+        keyType: String,
+        encoding: String
+    ) async throws(Error) -> String {
+        try await sign(
+            .init(jwt: jwt, apiKey: apiKey, messageBytes: transaction, keyType: keyType, encoding: encoding)
+        ).stringValue
     }
 
     public func resetState() {
@@ -430,13 +417,19 @@ public final class CrossmintTEE: ObservableObject {
     private func waitForOTP(
         jwt: String,
         onAuthRequired: @escaping @Sendable (OTPFlow) async -> Void
-    ) async throws {
+    ) async throws(Error) {
         Logger.tee.debug(LogEvents.otpWait)
         guard let email else { throw Error.authMissing }
         let signer = OTPFlow.Signer.email(email)
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Swift.Error>) in
-            let flow = makeOTPFlow(jwt: jwt, signer: signer, continuation: continuation)
-            Task { await onAuthRequired(flow) }
+        let (stream, streamContinuation) = AsyncThrowingStream<Void, any Swift.Error>.makeStream()
+        let flow = makeOTPFlow(jwt: jwt, signer: signer, continuation: streamContinuation)
+        Task { await onAuthRequired(flow) }
+        do {
+            for try await _ in stream {}
+        } catch let teeError as CrossmintTEE.Error {
+            throw teeError
+        } catch {
+            throw .generic(error.localizedDescription)
         }
         Logger.tee.debug(LogEvents.otpReceived)
     }
@@ -444,29 +437,31 @@ public final class CrossmintTEE: ObservableObject {
     private func makeOTPFlow(
         jwt: String,
         signer: OTPFlow.Signer,
-        continuation: CheckedContinuation<Void, any Swift.Error>
+        continuation: AsyncThrowingStream<Void, any Swift.Error>.Continuation
     ) -> OTPFlow {
         OTPFlow(
             signer: signer,
             sendOTP: { [weak self] in
-                guard let self else { return }
+                guard let self else { throw CrossmintTEE.Error.generic("TEE deallocated") }
                 let authId = try await self.getAuthId()
                 _ = try await self.startOnboarding(jwt: jwt, authId: authId)
             },
             verifyOTP: { [weak self] code in
                 guard let self else {
-                    continuation.resume(throwing: CrossmintTEE.Error.generic("TEE deallocated"))
+                    continuation.finish(throwing: CrossmintTEE.Error.generic("TEE deallocated"))
                     return
                 }
                 do {
                     _ = try await self.validate(otpCode: code, jwt: jwt)
-                    continuation.resume()
+                    continuation.finish()
+                } catch let teeError as CrossmintTEE.Error {
+                    continuation.finish(throwing: teeError)
                 } catch {
-                    continuation.resume(throwing: error)
+                    continuation.finish(throwing: CrossmintTEE.Error.generic(error.localizedDescription))
                 }
             },
             cancel: {
-                continuation.resume(throwing: CrossmintTEE.Error.userCancelled)
+                continuation.finish(throwing: CrossmintTEE.Error.userCancelled)
             }
         )
     }
@@ -670,3 +665,4 @@ extension CrossmintTEE {
         }
     }
 }
+

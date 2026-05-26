@@ -70,7 +70,7 @@ import Testing
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature_otp")
 
-        let flowBox = OTPFlowBox()
+        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
 
         let signTask = Task {
             try await fixture.tee.signTransaction(
@@ -78,12 +78,15 @@ import Testing
                 keyType: "keyType",
                 encoding: "encoding",
                 onAuthRequired: { flow in
-                    flowBox.store(flow)
+                    flowContinuation.yield(flow)
+                    flowContinuation.finish()
                 }
             )
         }
 
-        let flow = try await waitForFlow(flowBox)
+        var receivedFlow: OTPFlow?
+        for await flow in flowStream { receivedFlow = flow }
+        let flow = try #require(receivedFlow)
         try await flow.verifyOTP("123456")
 
         let signature = try await signTask.value
@@ -99,7 +102,7 @@ import Testing
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
 
-        let flowBox = OTPFlowBox()
+        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
 
         let signTask = Task {
             try await fixture.tee.signTransaction(
@@ -107,12 +110,15 @@ import Testing
                 keyType: "keyType",
                 encoding: "encoding",
                 onAuthRequired: { flow in
-                    flowBox.store(flow)
+                    flowContinuation.yield(flow)
+                    flowContinuation.finish()
                 }
             )
         }
 
-        let flow = try await waitForFlow(flowBox)
+        var receivedFlow: OTPFlow?
+        for await flow in flowStream { receivedFlow = flow }
+        let flow = try #require(receivedFlow)
         flow.cancel()
 
         await #expect(throws: CrossmintTEE.Error.userCancelled) {
@@ -130,7 +136,7 @@ import Testing
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature_resend")
 
-        let flowBox = OTPFlowBox()
+        let (flowStream, flowContinuation) = AsyncStream<OTPFlow>.makeStream()
 
         let signTask = Task {
             try await fixture.tee.signTransaction(
@@ -138,12 +144,15 @@ import Testing
                 keyType: "keyType",
                 encoding: "encoding",
                 onAuthRequired: { flow in
-                    flowBox.store(flow)
+                    flowContinuation.yield(flow)
+                    flowContinuation.finish()
                 }
             )
         }
 
-        let flow = try await waitForFlow(flowBox)
+        var receivedFlow: OTPFlow?
+        for await flow in flowStream { receivedFlow = flow }
+        let flow = try #require(receivedFlow)
 
         try? await flow.sendOTP()
 
@@ -212,18 +221,6 @@ import Testing
 }
 
 // MARK: - Helpers
-
-/// Uses @unchecked Sendable because it is written once before the sleep and read once after.
-func waitForFlow(_ box: OTPFlowBox, delay: UInt64 = 100_000_000) async throws -> OTPFlow {
-    try await Task.sleep(nanoseconds: delay)
-    return try #require(box.value)
-}
-
-final class OTPFlowBox: @unchecked Sendable {
-    private var _value: OTPFlow?
-    func store(_ flow: OTPFlow) { _value = flow }
-    var value: OTPFlow? { _value }
-}
 
 final class OTPSignerBox: @unchecked Sendable {
     private var _value: OTPFlow.Signer?

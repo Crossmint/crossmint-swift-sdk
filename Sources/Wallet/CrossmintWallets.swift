@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 
+/// Entry point for all wallet operations.
 public protocol CrossmintWallets: Sendable {
     func getWallet(
         chain: Chain,
@@ -13,7 +14,13 @@ public protocol CrossmintWallets: Sendable {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
 
-    func getOrCreate(
+    func getWallet(
+        chain: Chain,
+        signer: WalletSigner,
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet?
+
+    func createWallet(
         chain: Chain,
         signer: WalletSigner,
         options: WalletOptions?
@@ -153,66 +160,26 @@ extension CrossmintWallets {
         return typed
     }
 
-    // MARK: - getOrCreate convenience overloads
+    // MARK: - WalletSigner convenience overloads
 
-    public func getOrCreate(
-        chain: EVMChain,
+    public func getWallet<C: ChainWithSigners>(
+        chain: C,
         signer: WalletSigner,
         options: WalletOptions? = nil
-    ) async throws(WalletError) -> EVMWallet {
-        let wallet = try await getOrCreate(
-            chain: Chain(chain.name),
-            signer: signer,
-            options: options
-        )
-        guard let evmWallet = wallet as? EVMWallet else {
-            throw WalletError.walletInvalidType("Expected EVMWallet for chain \(chain.name)")
+    ) async throws(WalletError) -> C.WalletType? {
+        guard let wallet = try await getWallet(chain: Chain(chain.name), signer: signer, options: options) else { return nil }
+        guard let typed = wallet as? C.WalletType else {
+            throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
         }
-        return evmWallet
+        return typed
     }
 
-    public func getOrCreate(
-        chain: SolanaChain,
-        signer: WalletSigner,
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> SolanaWallet {
-        let wallet = try await getOrCreate(
-            chain: Chain(chain.name),
-            signer: signer,
-            options: options
-        )
-        guard let solanaWallet = wallet as? SolanaWallet else {
-            throw WalletError.walletInvalidType("Expected SolanaWallet for chain \(chain.name)")
-        }
-        return solanaWallet
-    }
-
-    public func getOrCreate(
-        chain: StellarChain,
-        signer: WalletSigner,
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> StellarWallet {
-        let wallet = try await getOrCreate(
-            chain: Chain(chain.name),
-            signer: signer,
-            options: options
-        )
-        guard let stellarWallet = wallet as? StellarWallet else {
-            throw WalletError.walletInvalidType("Expected StellarWallet for chain \(chain.name)")
-        }
-        return stellarWallet
-    }
-
-    public func getOrCreate<C: ChainWithSigners>(
+    public func createWallet<C: ChainWithSigners>(
         chain: C,
         signer: WalletSigner,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> C.WalletType {
-        let wallet = try await getOrCreate(
-            chain: Chain(chain.name),
-            signer: signer,
-            options: options
-        )
+        let wallet = try await createWallet(chain: Chain(chain.name), signer: signer, options: options)
         guard let typed = wallet as? C.WalletType else {
             throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
         }
@@ -220,13 +187,14 @@ extension CrossmintWallets {
     }
 }
 
-public struct WalletOptions {
-    let experimentalCallbacks: ExperimentalCallbacks?
+/// Options that control wallet creation and session behavior.
+public struct WalletOptions: Sendable {
     public let deviceSigner: Bool
+    let experimentalCallbacks: ExperimentalCallbacks?
 
     public init(deviceSigner: Bool = false) {
-        self.experimentalCallbacks = nil
         self.deviceSigner = deviceSigner
+        self.experimentalCallbacks = nil
     }
 
     init(deviceSigner: Bool = false, experimentalCallbacks: ExperimentalCallbacks?) {
@@ -235,7 +203,7 @@ public struct WalletOptions {
     }
 }
 
-protocol ExperimentalCallbacks {
+protocol ExperimentalCallbacks: Sendable {
     func onWalletCreationStart()
     func onTransactionStart()
 }

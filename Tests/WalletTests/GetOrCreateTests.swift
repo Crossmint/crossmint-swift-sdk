@@ -27,11 +27,11 @@ private func makeTestWalletApiModel(address: String = "0x12345678901234567890123
     return try! decoder.decode(WalletApiModel.self, from: Data(json.utf8))
 }
 
-@Suite("DefaultCrossmintWallets.getOrCreate", .tags(.unit))
+@Suite("DefaultCrossmintWallets WalletSigner overloads", .tags(.unit))
 @MainActor struct GetOrCreateTests {
 
-    @Test("Returns existing wallet when getWallet succeeds")
-    func returnsExistingWalletWhenFound() async throws {
+    @Test("getWallet(signer:) returns existing wallet")
+    func getWalletReturnsExistingWallet() async throws {
         let service = GetOrCreateMockWalletService()
         service.getWalletResult = makeTestWalletApiModel(address: "0x1111111111111111111111111111111111111111")
         let wallets = DefaultCrossmintWallets(
@@ -39,35 +39,51 @@ private func makeTestWalletApiModel(address: String = "0x12345678901234567890123
             secureWalletStorage: GetOrCreateMockSecureStorage()
         )
 
-        let signer = WalletSigner.email("test@example.com") { _ in }
-        let wallet = try await wallets.getOrCreate(
+        let wallet = try await wallets.getWallet(
             chain: Chain("base-sepolia"),
-            signer: signer
+            signer: .email("test@example.com") { _ in }
         )
 
-        #expect(wallet.address == "0x1111111111111111111111111111111111111111")
+        #expect(wallet?.address == "0x1111111111111111111111111111111111111111")
         #expect(service.getWalletCallCount == 1)
         #expect(service.createWalletCallCount == 0)
     }
 
-    @Test("Creates wallet when getWallet returns nil")
-    func createsWalletWhenNotFound() async throws {
+    @Test("getWallet(signer:) returns nil when wallet not found")
+    func getWalletReturnsNilWhenNotFound() async throws {
         let service = GetOrCreateMockWalletService()
         service.getWalletResult = nil
+        let wallets = DefaultCrossmintWallets(
+            service: service,
+            secureWalletStorage: GetOrCreateMockSecureStorage()
+        )
+
+        let wallet = try await wallets.getWallet(
+            chain: Chain("base-sepolia"),
+            signer: .email("test@example.com") { _ in }
+        )
+
+        #expect(wallet == nil)
+        #expect(service.getWalletCallCount == 1)
+        #expect(service.createWalletCallCount == 0)
+    }
+
+    @Test("createWallet(signer:) creates and returns wallet")
+    func createWalletCreatesWallet() async throws {
+        let service = GetOrCreateMockWalletService()
         service.createWalletResult = makeTestWalletApiModel(address: "0x2222222222222222222222222222222222222222")
         let wallets = DefaultCrossmintWallets(
             service: service,
             secureWalletStorage: GetOrCreateMockSecureStorage()
         )
 
-        let signer = WalletSigner.email("test@example.com") { _ in }
-        let wallet = try await wallets.getOrCreate(
+        let wallet = try await wallets.createWallet(
             chain: Chain("base-sepolia"),
-            signer: signer
+            signer: .email("test@example.com") { _ in }
         )
 
         #expect(wallet.address == "0x2222222222222222222222222222222222222222")
-        #expect(service.getWalletCallCount == 1)
+        #expect(service.getWalletCallCount == 0)
         #expect(service.createWalletCallCount == 1)
     }
 
@@ -80,12 +96,10 @@ private func makeTestWalletApiModel(address: String = "0x12345678901234567890123
             secureWalletStorage: GetOrCreateMockSecureStorage()
         )
 
-        let signer = WalletSigner.email("test@example.com") { _ in }
-
         await #expect(throws: WalletError.self) {
-            _ = try await wallets.getOrCreate(
+            _ = try await wallets.getWallet(
                 chain: Chain("base-sepolia"),
-                signer: signer
+                signer: .email("test@example.com") { _ in }
             )
         }
     }

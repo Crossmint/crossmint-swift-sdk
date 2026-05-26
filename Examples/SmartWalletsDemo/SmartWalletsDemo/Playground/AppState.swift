@@ -273,24 +273,20 @@ final class AppState {
 
     private func getOrCreateWallet(chain: SupportedChain, email: String) async throws -> Wallet {
         let signer = WalletSigner.email(email) { [weak self] flow in
-            await MainActor.run { self?.pendingOTPFlow = flow }
+            guard let self else { return }
+            await MainActor.run { self.pendingOTPFlow = flow }
         }
+        let options = WalletOptions(deviceSigner: true)
         switch chain {
         case .evm:
-            return try await sdk.crossmintWallets.getOrCreate(
-                chain: EVMChain.baseSepolia,
-                signer: signer
-            )
+            return try await sdk.crossmintWallets.getWallet(chain: EVMChain.baseSepolia, signer: signer, options: options)
+                ?? (try await sdk.crossmintWallets.createWallet(chain: EVMChain.baseSepolia, signer: signer, options: options))
         case .solana:
-            return try await sdk.crossmintWallets.getOrCreate(
-                chain: SolanaChain.solana,
-                signer: signer
-            )
+            return try await sdk.crossmintWallets.getWallet(chain: SolanaChain.solana, signer: signer, options: options)
+                ?? (try await sdk.crossmintWallets.createWallet(chain: SolanaChain.solana, signer: signer, options: options))
         case .stellar:
-            return try await sdk.crossmintWallets.getOrCreate(
-                chain: StellarChain.stellar,
-                signer: signer
-            )
+            return try await sdk.crossmintWallets.getWallet(chain: StellarChain.stellar, signer: signer, options: options)
+                ?? (try await sdk.crossmintWallets.createWallet(chain: StellarChain.stellar, signer: signer, options: options))
         }
     }
 }
