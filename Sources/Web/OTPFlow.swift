@@ -3,21 +3,14 @@ import Foundation
 /// Encapsulates a pending OTP authentication challenge.
 ///
 /// Passed to the `onAuthRequired` closure on ``WalletSigner/email(_:onAuthRequired:)`` when the
-/// wallet operation requires the user to prove ownership of the associated email address. Present
-/// UI that lets the user enter the code, then call ``verifyOTP(_:)`` to complete authentication or
-/// ``cancel()`` to abort the operation.
-///
-/// ```swift
-/// WalletSigner.email(email) { flow in
-///     // show your OTP sheet
-///     self.pendingOTPFlow = flow
-/// }
-/// ```
+/// wallet operation requires the user to prove ownership of the associated email address.
+/// Call ``verifyOTP(_:)`` with the code the user enters to complete authentication,
+/// or ``cancel()`` to abort the pending wallet operation.
 public struct OTPFlow: Sendable, Identifiable {
     /// The email address the OTP was sent to.
     public let email: String
 
-    /// Requests a new OTP to be sent to the user. Call this when the user taps "Resend".
+    /// Triggers a new OTP to be sent to the same email address.
     public let sendOTP: @Sendable () async throws -> Void
 
     /// Submits the code the user entered. Throws if the code is incorrect or the flow has already completed.
