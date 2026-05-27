@@ -32,6 +32,7 @@ final class AppState {
 
     // Signer selection (shared across Transfer/Signing/Signers)
     private(set) var selectedSignerLocator: String?
+    private(set) var delegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
 
     private let sdk: CrossmintSDK = .shared
 
@@ -75,6 +76,7 @@ final class AppState {
                 // Only update UI state if still on the same chain
                 if chain == selectedChain {
                     await fetchBalance()
+                    await loadSigners()
                     preloadOtherChains(email: email)
                 }
             } else {
@@ -100,6 +102,7 @@ final class AppState {
             walletCache[chain] = w
             notFoundChains.remove(chain)
             await fetchBalance()
+            await loadSigners()
         } catch {
             walletErrorMessage = error.userMessage
         }
@@ -107,16 +110,24 @@ final class AppState {
         isCreatingWallet = false
     }
 
+    func loadSigners() async {
+        delegatedSigners = (try? await wallet?.signers()) ?? []
+        guard selectedSignerLocator == nil, let locator = firstSelectableLocator() else { return }
+        await selectSigner(locator: locator)
+    }
+
     /// Switches chain without re-fetching if the wallet is already cached.
     func switchChain(_ chain: SupportedChain, email: String) async {
         guard chain != selectedChain else { return }
         selectedChain = chain
         selectedSignerLocator = nil
+        delegatedSigners = []
         walletErrorMessage = nil
         balance = nil
 
         if walletCache[chain] != nil {
             await fetchBalance()
+            await loadSigners()
         } else if !notFoundChains.contains(chain) {
             await loadWallet(email: email)
         }
@@ -196,6 +207,13 @@ final class AppState {
                 loadingChains.remove(chain)
             }
         }
+    }
+
+    private func firstSelectableLocator() -> String? {
+        if let recovery = recoveryLocator, signerConfig(for: recovery) != nil { return recovery }
+        return delegatedSigners
+            .compactMap { $0.locator ?? $0.signer }
+            .first { signerConfig(for: $0) != nil }
     }
 
     private func signerConfig(for locator: String) -> SignerConfig? {

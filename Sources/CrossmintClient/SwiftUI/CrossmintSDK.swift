@@ -1,7 +1,7 @@
 import CrossmintAuth
 import Combine
 @_exported import CrossmintCommonTypes
-@_exported import CrossmintService
+import CrossmintService
 import Logger
 import SwiftUI
 import Utils
