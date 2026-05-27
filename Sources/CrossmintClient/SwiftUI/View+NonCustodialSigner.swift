@@ -32,9 +32,11 @@ extension View {
 }
 
 private struct CrossmintNonCustodialSignerViewModifier: ViewModifier {
+    private let crossmintTEE: CrossmintTEE = CrossmintSDK.shared.crossmintTEE
+
     func body(content: Content) -> some View {
         ZStack {
-            HiddenEmailSignersView(crossmintTEE: CrossmintSDK.shared.crossmintTEE)
+            HiddenEmailSignersView(crossmintTEE: crossmintTEE)
                 .environmentObject(InstanceTracker(name: "HiddenEmailSignersView"))
             content
         }
