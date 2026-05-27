@@ -1,7 +1,7 @@
 import CrossmintAuth
 import Combine
 @_exported import CrossmintCommonTypes
-@_exported import CrossmintService
+import CrossmintService
 import Logger
 import SwiftUI
 import Utils
@@ -12,7 +12,7 @@ import Web
 
 @MainActor
 final public class CrossmintSDK: ObservableObject {
-    nonisolated(unsafe) private static var _shared: CrossmintSDK?
+    private static var _shared: CrossmintSDK?
 
     public static var shared: CrossmintSDK {
         guard let shared = _shared else {
@@ -42,7 +42,7 @@ final public class CrossmintSDK: ObservableObject {
 
     public let crossmintWallets: CrossmintWallets
     public let authManager: AuthManager
-    public let crossmintService: CrossmintService
+    public let isProductionEnvironment: Bool
 
     let crossmintTEE: CrossmintTEE
 
@@ -54,10 +54,6 @@ final public class CrossmintSDK: ObservableObject {
     }
     public func cancelTransaction() {
         crossmintTEE.cancelOTP()
-    }
-
-    public var isProductionEnvironment: Bool {
-        crossmintService.isProductionEnvironment
     }
 
     private convenience init() {
@@ -86,12 +82,12 @@ final public class CrossmintSDK: ObservableObject {
             let authManager = sdk.authManager
             self.crossmintWallets = sdk.crossmintWallets()
             self.authManager = authManager
-            self.crossmintService = sdk.crossmintService
+            self.isProductionEnvironment = sdk.isProductionEnvironment
             self.crossmintTEE = CrossmintTEE.start(
                 auth: authManager,
                 webProxy: DefaultWebViewCommunicationProxy(),
                 apiKey: apiKey,
-                isProductionEnvironment: sdk.crossmintService.isProductionEnvironment
+                isProductionEnvironment: isProductionEnvironment
             )
         } catch {
             Logger.client.error("Invalid Crossmint API key provided: \(error)")
@@ -99,7 +95,7 @@ final public class CrossmintSDK: ObservableObject {
         }
     }
 
-    public func logout() async throws {
+    public func logout() {
         crossmintTEE.resetState()
     }
 

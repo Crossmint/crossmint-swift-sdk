@@ -5,12 +5,12 @@ import Logger
 import SecureStorage
 import Wallet
 
-public final class CrossmintClientSDK: ClientSDK, Sendable {
+final class CrossmintClientSDK: ClientSDK, Sendable {
     private let apiKey: ApiKey
     private let secureStorage: SecureStorage
     private let secureWalletStorage: SecureWalletStorage
-    public let crossmintService: CrossmintService
-    public let authManager: any CrossmintAuth.AuthManager
+    private let crossmintService: CrossmintService
+    let authManager: any CrossmintAuth.AuthManager
 
     init(apiKey: ApiKey, authManager: AuthManager? = nil) {
         self.apiKey = apiKey
@@ -34,7 +34,11 @@ public final class CrossmintClientSDK: ClientSDK, Sendable {
         }
     }
 
-    public func crossmintWallets() -> CrossmintWallets {
+    var isProductionEnvironment: Bool {
+        crossmintService.isProductionEnvironment
+    }
+
+    func crossmintWallets() -> CrossmintWallets {
         DefaultCrossmintWallets(
             service: DefaultSmartWalletService(
                 crossmintService: crossmintService,

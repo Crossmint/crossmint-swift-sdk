@@ -2,8 +2,8 @@ import CrossmintService
 import Logger
 import CrossmintAuth
 
-public actor CrossmintClient {
-    public enum Error: Swift.Error {
+actor CrossmintClient {
+    enum Error: Swift.Error {
         case invalidApiKeyType
     }
 
@@ -16,7 +16,7 @@ public actor CrossmintClient {
         self.apiKey = apiKey
     }
 
-    public static func sdk(key: String, authManager: AuthManager? = nil) throws -> ClientSDK {
+    static func sdk(key: String, authManager: AuthManager? = nil) throws -> ClientSDK {
         lock.lock()
         defer { lock.unlock() }
 
