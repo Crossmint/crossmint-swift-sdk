@@ -8,7 +8,7 @@ all: build
 # ==========================================
 
 # Simulator destination for builds and tests
-SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1
+SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5
 
 # Scheme names
 SDK_SCHEME := CrossmintClientSDK
