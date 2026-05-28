@@ -7,7 +7,7 @@ public protocol RecoverableWallet: Wallet {
     /// Returns `true` when the wallet's admin signer is no longer accessible on this device.
     func needsRecovery() async -> Bool
 
-    /// Registers a new signer on the wallet and sets it as the active signer.
+    /// Registers a new signer on the wallet.
     func addSigner(_ config: SignerConfig) async throws
 
     /// Switches the active signer without registering a new one.

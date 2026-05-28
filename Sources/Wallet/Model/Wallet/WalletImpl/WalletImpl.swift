@@ -26,7 +26,7 @@ internal actor WalletImpl {
     var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 
-    var onTransactionStart: (() -> Void)?
+    var onTransactionStart: (@Sendable () -> Void)?
 
     var address: String { blockchainAddress.description }
     var locator: WalletLocator { .address(blockchainAddress) }
@@ -40,7 +40,7 @@ internal actor WalletImpl {
         deviceSignerService: DeviceSignerService,
         signerRegistrationService: SignerRegistrationService,
         deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
-        onTransactionStart: (() -> Void)? = nil
+        onTransactionStart: (@Sendable () -> Void)? = nil
     ) {
         self.blockchainAddress = blockchainAddress
         self.chain = chain
