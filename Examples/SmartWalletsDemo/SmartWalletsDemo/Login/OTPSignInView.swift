@@ -31,6 +31,7 @@ struct OTPSignInView: View {
             .autocapitalization(.none)
             .disableAutocorrection(true)
             .textContentType(.emailAddress)
+            .accessibilityIdentifier("email-input")
 
             PrimaryButton(
                 text: "Sign in",
@@ -38,6 +39,7 @@ struct OTPSignInView: View {
                 isLoading: isSigningIn,
                 isDisabled: email.isEmpty
             )
+            .accessibilityIdentifier("send-code-button")
 
             Spacer()
 
