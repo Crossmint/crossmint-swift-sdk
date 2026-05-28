@@ -10,6 +10,7 @@ struct OTPSignInView: View {
     @State private var alertMessage = ""
     @State private var showOTPVerification = false
     @State private var verifiedAuthStatus: AuthenticationStatus?
+    @State private var requestId: String?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -51,11 +52,14 @@ struct OTPSignInView: View {
             Alert(title: Text("Alert"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
         .sheet(isPresented: $showOTPVerification) {
-            VerificationView(
-                authenticationStatus: $verifiedAuthStatus,
-                email: email
-            )
-            .presentationDetents([.medium])
+            if let requestId {
+                VerificationView(
+                    authenticationStatus: $verifiedAuthStatus,
+                    email: email,
+                    requestId: requestId
+                )
+                .presentationDetents([.medium])
+            }
         }
         .onChange(of: verifiedAuthStatus) { _, value in
             guard let value else { return }
@@ -74,10 +78,11 @@ struct OTPSignInView: View {
         isSigningIn = true
         Task {
             do {
-                try await authManager.sendEmailOtp(email: email)
+                let otp = try await CrossmintSDK.shared.authClient.sendOTP(to: email)
+                requestId = otp.requestId
                 isSigningIn = false
                 showOTPVerification = true
-            } catch let authError as AuthManagerError {
+            } catch let authError as AuthError {
                 isSigningIn = false
                 alertMessage = authError.errorMessage
                 showAlert = true

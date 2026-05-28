@@ -143,8 +143,8 @@ public actor CrossmintAuthManager: AuthManager {
         _authenticationStatus = authStatus
     }
 
-    private func normalizeEmail(_ email: String) -> String {
-        email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    internal func establishSession(oneTimeSecret: String) async throws(AuthError) {
+        try await refreshJWT(oneTimeSecret)
     }
 
     private func startEmailValidation(email: String) async throws(AuthError) -> OTPAuthenticationStatus {

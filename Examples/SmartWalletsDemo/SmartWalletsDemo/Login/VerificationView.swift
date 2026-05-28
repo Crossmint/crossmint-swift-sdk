@@ -9,8 +9,15 @@ struct VerificationView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var opacity: Double = 0
+    @State private var currentRequestId: String
 
     let email: String
+
+    init(authenticationStatus: Binding<AuthenticationStatus?>, email: String, requestId: String) {
+        self._authenticationStatus = authenticationStatus
+        self.email = email
+        self._currentRequestId = State(initialValue: requestId)
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -72,22 +79,11 @@ struct VerificationView: View {
 
     private func verifyCode() {
         guard !verificationCode.isEmpty else { return }
-
         isVerifying = true
         Task {
             do {
-                let status = try await authManager.confirmEmailOtp(email: email, code: verificationCode)
-
-                isVerifying = false
-
-                if case let .authenticationStatus(authStatus) = status, case .authenticated = authStatus {
-                    withAnimation(AnimationConstants.easeOut()) {
-                        opacity = 0
-                    }
-
-                    try? await Task.sleep(for: .seconds(AnimationConstants.duration))
-                    authenticationStatus = authStatus
-                }
+                let authStatus = try await resolveSession(for: verificationCode)
+                await animateSuccess(authStatus: authStatus)
             } catch {
                 isVerifying = false
                 showAlert(with: "Error: \(error.localizedDescription)")
@@ -96,10 +92,26 @@ struct VerificationView: View {
         }
     }
 
+    private func resolveSession(for code: String) async throws -> AuthenticationStatus {
+        let session = try await CrossmintSDK.shared.authClient.verifyOTP(code: code, requestId: currentRequestId)
+        // secret is empty here because this status is only used to signal the authenticated state up the
+        // view tree. The actual refresh token lives inside CrossmintAuthManager, which was populated by
+        // verifyOTP via establishSession. Logout flows through authManager, not this binding.
+        return .authenticated(email: session.user.email, jwt: session.jwt, secret: "")
+    }
+
+    private func animateSuccess(authStatus: AuthenticationStatus) async {
+        isVerifying = false
+        withAnimation(AnimationConstants.easeOut()) { opacity = 0 }
+        try? await Task.sleep(for: .seconds(AnimationConstants.duration))
+        authenticationStatus = authStatus
+    }
+
     private func resendCode() {
         Task {
             do {
-                try await authManager.sendEmailOtp(email: email)
+                let otp = try await CrossmintSDK.shared.authClient.sendOTP(to: email)
+                currentRequestId = otp.requestId
                 showAlert(with: "A new verification code has been sent to your email.")
             } catch {
                 showAlert(with: "Error sending new code: \(error.localizedDescription)")
@@ -114,7 +126,6 @@ struct VerificationView: View {
         }
 
         Task {
-            _ = await authManager.reset()
             try? await Task.sleep(for: .seconds(AnimationConstants.duration))
             authenticationStatus = .nonAuthenticated
         }
@@ -129,6 +140,7 @@ struct VerificationView: View {
 #Preview {
     VerificationView(
         authenticationStatus: .constant(nil),
-        email: "example@email.com"
+        email: "example@email.com",
+        requestId: "preview-request-id"
     )
 }
