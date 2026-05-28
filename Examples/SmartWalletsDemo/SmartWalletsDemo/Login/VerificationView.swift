@@ -2,8 +2,6 @@ import SwiftUI
 import CrossmintClient
 
 struct VerificationView: View {
-    private let sdk: CrossmintSDK = .shared
-
     @Binding var authenticationStatus: AuthenticationStatus?
 
     @State private var verificationCode: String = ""
@@ -11,10 +9,6 @@ struct VerificationView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var opacity: Double = 0
-
-    private var authManager: AuthManager {
-        sdk.authManager
-    }
 
     let email: String
 
@@ -82,7 +76,7 @@ struct VerificationView: View {
         isVerifying = true
         Task {
             do {
-                let status = try await crossmintAuthManager.confirmEmailOtp(email: email, code: verificationCode)
+                let status = try await authManager.confirmEmailOtp(email: email, code: verificationCode)
 
                 isVerifying = false
 
@@ -91,9 +85,8 @@ struct VerificationView: View {
                         opacity = 0
                     }
 
-                    DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                        authenticationStatus = authStatus
-                    }
+                    try? await Task.sleep(for: .seconds(AnimationConstants.duration))
+                    authenticationStatus = authStatus
                 }
             } catch {
                 isVerifying = false
@@ -106,7 +99,7 @@ struct VerificationView: View {
     private func resendCode() {
         Task {
             do {
-                try await crossmintAuthManager.sendEmailOtp(email: email)
+                try await authManager.sendEmailOtp(email: email)
                 showAlert(with: "A new verification code has been sent to your email.")
             } catch {
                 showAlert(with: "Error sending new code: \(error.localizedDescription)")
@@ -121,10 +114,9 @@ struct VerificationView: View {
         }
 
         Task {
-            _ = await crossmintAuthManager.reset()
-            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                authenticationStatus = .nonAuthenticated
-            }
+            _ = await authManager.reset()
+            try? await Task.sleep(for: .seconds(AnimationConstants.duration))
+            authenticationStatus = .nonAuthenticated
         }
     }
 

@@ -77,7 +77,7 @@ struct JWTSignInView: View {
         }
         isSigningIn = true
         Task {
-            await crossmintAuthManager.setJWT(token)
+            await CrossmintSDK.shared.setJWT(token)
             let authStatus = AuthenticationStatus.authenticated(email: email, jwt: token, secret: "")
             withAnimation(AnimationConstants.easeInOut()) {
                 authenticationStatus = authStatus

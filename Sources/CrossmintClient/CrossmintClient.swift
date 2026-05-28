@@ -16,7 +16,7 @@ actor CrossmintClient {
         self.apiKey = apiKey
     }
 
-    static func sdk(key: String, authManager: AuthManager? = nil) throws -> ClientSDK {
+    static func sdk(key: String, authManager: CrossmintAuthManager? = nil) throws -> ClientSDK {
         lock.lock()
         defer { lock.unlock() }
 
