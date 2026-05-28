@@ -3,14 +3,7 @@ import Foundation
 import Utils
 
 public struct Transaction: Sendable, CustomStringConvertible {
-    let smartWalletService: SmartWalletService
-
-    public enum Status: Sendable {
-        case pending
-        case success
-        case failed
-        case awaitingApproval
-    }
+    public typealias Status = TransactionStatus
 
     public struct OnChainData: Sendable {
         public let userOperation: UserOperation?
@@ -142,7 +135,6 @@ public struct Transaction: Sendable, CustomStringConvertible {
     public let error: Error?
 
     public init(
-        smartWalletService: SmartWalletService,
         id: String,
         status: Status,
         onChain: OnChainData,
@@ -152,7 +144,6 @@ public struct Transaction: Sendable, CustomStringConvertible {
         approvals: Approvals?,
         error: Error?
     ) {
-        self.smartWalletService = smartWalletService
         self.id = id
         self.status = status
         self.onChain = onChain
@@ -165,11 +156,22 @@ public struct Transaction: Sendable, CustomStringConvertible {
 
     public var description: String {
         // swiftlint:disable:next line_length
-         "id: \(id), status: \(status), onChain: \(onChain), params: \(params), walletType: \(walletType), createdAt: \(createdAt), approvals: \(String(describing: approvals)), error: \(String(describing: error))"
+        "id: \(id), status: \(status), onChain: \(onChain), params: \(params), walletType: \(walletType), createdAt: \(createdAt), approvals: \(String(describing: approvals)), error: \(String(describing: error))"
+    }
+
+    internal func toTransactionResult() -> TransactionResult {
+        TransactionResult(
+            transactionId: id,
+            hash: onChain.txId ?? onChain.userOperationHash,
+            explorerLink: onChain.explorerLink
+        )
+    }
+
+    internal func toPendingTransaction() -> PendingTransaction {
+        PendingTransaction(id: id, status: status)
     }
 
     internal func toCompleted() -> TransactionCompleted? {
-        // Only convert if transaction is successful and has required fields
         guard status == .success,
               let txId = onChain.txId,
               let explorerLink = onChain.explorerLink else {
