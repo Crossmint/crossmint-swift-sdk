@@ -94,9 +94,7 @@ struct VerificationView: View {
 
     private func resolveSession(for code: String) async throws -> AuthenticationStatus {
         let session = try await CrossmintSDK.shared.authClient.verifyOTP(code: code, requestId: currentRequestId)
-        // secret is empty here because this status is only used to signal the authenticated state up the
-        // view tree. The actual refresh token lives inside CrossmintAuthManager, which was populated by
-        // verifyOTP via establishSession. Logout flows through authManager, not this binding.
+        // secret is intentionally empty — refresh state lives in CrossmintAuthManager, not this binding
         return .authenticated(email: session.user.email, jwt: session.jwt, secret: "")
     }
 
@@ -110,8 +108,8 @@ struct VerificationView: View {
     private func resendCode() {
         Task {
             do {
-                let otp = try await CrossmintSDK.shared.authClient.sendOTP(to: email)
-                currentRequestId = otp.requestId
+                let otpRequest = try await CrossmintSDK.shared.authClient.sendOTP(to: email)
+                currentRequestId = otpRequest.requestId
                 showAlert(with: "A new verification code has been sent to your email.")
             } catch {
                 showAlert(with: "Error sending new code: \(error.localizedDescription)")

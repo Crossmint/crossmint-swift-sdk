@@ -143,8 +143,12 @@ public actor CrossmintAuthManager: AuthManager {
         _authenticationStatus = authStatus
     }
 
-    internal func establishSession(oneTimeSecret: String) async throws(AuthError) {
-        try await refreshJWT(oneTimeSecret)
+    internal func establishSession(oneTimeSecret: String) async throws(AuthError) -> (jwt: String, email: String) {
+        let authStatus = try await refreshJWT(oneTimeSecret)
+        guard case let .authenticated(email, jwt, _) = authStatus else {
+            throw AuthError.generic("Session could not be established")
+        }
+        return (jwt: jwt, email: email)
     }
 
     private func startEmailValidation(email: String) async throws(AuthError) -> OTPAuthenticationStatus {

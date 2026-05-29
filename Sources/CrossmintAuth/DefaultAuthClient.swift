@@ -5,7 +5,7 @@ public actor DefaultAuthClient: AuthClient {
     private let authManager: CrossmintAuthManager
     private var pendingEmailsByRequestId: [String: String] = [:]
 
-    public init(authService: AuthService, authManager: CrossmintAuthManager) {
+    package init(authService: AuthService, authManager: CrossmintAuthManager) {
         self.authService = authService
         self.authManager = authManager
     }
@@ -27,15 +27,9 @@ public actor DefaultAuthClient: AuthClient {
         let tokenResponse = try await authService.validateToken(
             ValidateTokenRequest(email: email, token: code, emailID: requestId)
         )
-        try await authManager.establishSession(oneTimeSecret: tokenResponse.oneTimeSecret)
-        guard let jwt = await authManager.jwt else {
-            throw AuthError.generic("Session could not be established")
-        }
-        guard let userEmail = await authManager.email else {
-            throw AuthError.generic("Session could not be established")
-        }
+        let session = try await authManager.establishSession(oneTimeSecret: tokenResponse.oneTimeSecret)
         pendingEmailsByRequestId.removeValue(forKey: requestId)
-        return AuthSession(jwt: jwt, user: AuthUser(email: userEmail))
+        return AuthSession(jwt: session.jwt, user: AuthUser(email: session.email))
     }
 
     public func logout() async {

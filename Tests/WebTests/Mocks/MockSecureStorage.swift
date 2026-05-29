@@ -1,5 +1,6 @@
 import SecureStorage
 
+// @unchecked Sendable: safe because each test creates a fresh instance and calls are sequential via actor isolation
 final class MockSecureStorage: SecureStorage, @unchecked Sendable {
     private var oneTimeSecret: String?
     private var jwt: String?

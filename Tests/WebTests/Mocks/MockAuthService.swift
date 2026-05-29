@@ -1,6 +1,7 @@
 import Foundation
 @testable import CrossmintAuth
 
+// @unchecked Sendable: safe because each test creates a fresh instance and calls are sequential via actor isolation
 final class MockAuthService: AuthService, @unchecked Sendable {
 
     // MARK: - Call tracking
