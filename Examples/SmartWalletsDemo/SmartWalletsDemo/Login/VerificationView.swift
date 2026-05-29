@@ -40,6 +40,7 @@ struct VerificationView: View {
             )
             .autocapitalization(.none)
             .disableAutocorrection(true)
+            .accessibilityIdentifier("otp-input")
 
             PrimaryButton(
                 text: "Verify",
@@ -47,6 +48,7 @@ struct VerificationView: View {
                 isLoading: isVerifying,
                 isDisabled: verificationCode.isEmpty
             )
+            .accessibilityIdentifier("verify-button")
 
             SecondaryButton(
                 text: "Resend code",
