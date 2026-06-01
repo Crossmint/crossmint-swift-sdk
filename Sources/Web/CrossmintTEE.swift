@@ -56,6 +56,11 @@ public final class CrossmintTEE: ObservableObject {
     private var otpContinuation: CheckedContinuation<String, Swift.Error>?
     @Published public var isOTPRequired = false
 
+    // When set, signTransaction uses the native path instead of the WebView.
+    // The delegate handles API calls, master secret management, and local signing.
+    // Set via CrossmintSDK.enableNativeSigning() after configure().
+    public var nativeSigningDelegate: (any NativeSigningDelegate)?
+
     init(
         auth: AuthManager,
         webProxy: WebViewCommunicationProxy,
@@ -88,6 +93,9 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
+        if let delegate = nativeSigningDelegate {
+            return try await nativeSignTransaction(transaction: transaction, keyType: keyType, encoding: encoding, delegate: delegate)
+        }
         if case .completed = handshakeState {
             return try await executeSignTransaction(
                 transaction: transaction,
@@ -647,6 +655,53 @@ extension CrossmintTEE {
             let request = signRequestQueue.removeFirst()
             request.timeoutTask.cancel()
             request.callback(.failure(error))
+        }
+    }
+}
+
+// MARK: - Native signing delegate protocol
+
+// Implement this and assign to CrossmintTEE.shared?.nativeSigningDelegate to replace
+// the WebView with native crypto. See DefaultNativeSigningDelegate in the Wallet target.
+public protocol NativeSigningDelegate: Sendable {
+    func hasOnboarded(forSignerID signerID: String) -> Bool
+    func startOnboarding(signerID: String, authID: String) async throws
+    func completeOnboarding(signerID: String, otp: String) async throws
+    func sign(signerID: String, transaction: String, keyType: String, encoding: String) async throws -> String
+}
+
+// MARK: - Native sign path (internal to CrossmintTEE so it can call waitForOTP)
+
+extension CrossmintTEE {
+    fileprivate func nativeSignTransaction(
+        transaction: String,
+        keyType: String,
+        encoding: String,
+        delegate: any NativeSigningDelegate
+    ) async throws(Error) -> String {
+        guard let email = email else { throw .authMissing }
+        let signerID = "email:\(email)"
+
+        if !delegate.hasOnboarded(forSignerID: signerID) {
+            do {
+                try await delegate.startOnboarding(signerID: signerID, authID: signerID)
+            } catch {
+                throw .generic("start-onboarding failed: \(error)")
+            }
+            let otp = try await waitForOTP()
+            do {
+                try await delegate.completeOnboarding(signerID: signerID, otp: otp)
+            } catch {
+                throw .generic("complete-onboarding failed: \(error)")
+            }
+        }
+
+        do {
+            return try await delegate.sign(
+                signerID: signerID, transaction: transaction, keyType: keyType, encoding: encoding
+            )
+        } catch {
+            throw .generic("native signing failed: \(error)")
         }
     }
 }

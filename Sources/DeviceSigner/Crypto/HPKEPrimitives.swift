@@ -9,7 +9,7 @@ import Foundation
 //
 // HKDF is implemented directly over HMAC<SHA256> to avoid reliance on the
 // CryptoKit HKDF.extract/expand interface which is not available on all iOS 15 builds.
-enum HPKEPrimitives {
+public enum HPKEPrimitives {
 
     // MARK: - Suite IDs (RFC 9180 §5)
 
@@ -55,7 +55,7 @@ enum HPKEPrimitives {
     // LabeledExtract(salt, label, ikm, suite_id):
     //   labeled_ikm = "HPKE-v1" || suite_id || label || ikm
     //   return Extract(salt, labeled_ikm)
-    static func labeledExtract(salt: Data?, label: String, ikm: Data, suiteID: Data) -> Data {
+    public static func labeledExtract(salt: Data?, label: String, ikm: Data, suiteID: Data) -> Data {
         var labeled = Data("HPKE-v1".utf8)
         labeled.append(suiteID)
         labeled.append(Data(label.utf8))
@@ -66,7 +66,7 @@ enum HPKEPrimitives {
     // LabeledExpand(prk, label, info, L, suite_id):
     //   labeled_info = I2OSP(L, 2) || "HPKE-v1" || suite_id || label || info
     //   return Expand(prk, labeled_info, L)
-    static func labeledExpand(prk: Data, label: String, info: Data, length: Int, suiteID: Data) -> Data {
+    public static func labeledExpand(prk: Data, label: String, info: Data, length: Int, suiteID: Data) -> Data {
         var labeled = Data()
         labeled.append(UInt8((length >> 8) & 0xFF))
         labeled.append(UInt8(length & 0xFF))
@@ -79,11 +79,11 @@ enum HPKEPrimitives {
 
     // MARK: - DHKEM(P-256, HKDF-SHA256) §4.1
 
-    struct EncapResult {
+    public struct EncapResult {
         /// 65-byte uncompressed serialization of the ephemeral public key (sent to recipient).
-        let enc: Data
+        public let enc: Data
         /// 32-byte KEM shared secret (drives the HPKE key schedule).
-        let sharedSecret: Data
+        public let sharedSecret: Data
     }
 
     // DH output + kem_context → 32-byte shared secret.
@@ -93,7 +93,7 @@ enum HPKEPrimitives {
     }
 
     // Encap: generate ephemeral key, ECDH with recipient.
-    static func encap(recipientPublicKey: P256.KeyAgreement.PublicKey) throws -> EncapResult {
+    public static func encap(recipientPublicKey: P256.KeyAgreement.PublicKey) throws -> EncapResult {
         let ephemeral = P256.KeyAgreement.PrivateKey()
         let dh = try ephemeral.sharedSecretFromKeyAgreement(with: recipientPublicKey)
             .withUnsafeBytes { Data($0) }
@@ -104,7 +104,7 @@ enum HPKEPrimitives {
     }
 
     // Decap with an in-memory P-256 key.
-    static func decap(enc: Data, recipientPrivateKey: P256.KeyAgreement.PrivateKey) throws -> Data {
+    public static func decap(enc: Data, recipientPrivateKey: P256.KeyAgreement.PrivateKey) throws -> Data {
         let pkE = try P256.KeyAgreement.PublicKey(x963Representation: enc) // validates on-curve
         let dh = try recipientPrivateKey.sharedSecretFromKeyAgreement(with: pkE)
             .withUnsafeBytes { Data($0) }
@@ -114,7 +114,7 @@ enum HPKEPrimitives {
     }
 
     // Decap with a Secure Enclave key — the scalar multiplication stays inside the SE.
-    static func decapSE(enc: Data, recipientPrivateKey: SecureEnclave.P256.KeyAgreement.PrivateKey) throws -> Data {
+    public static func decapSE(enc: Data, recipientPrivateKey: SecureEnclave.P256.KeyAgreement.PrivateKey) throws -> Data {
         let pkE = try P256.KeyAgreement.PublicKey(x963Representation: enc)
         let dh = try recipientPrivateKey.sharedSecretFromKeyAgreement(with: pkE)
             .withUnsafeBytes { Data($0) }
@@ -148,18 +148,18 @@ enum HPKEPrimitives {
 
     // MARK: - Seal / Open (single-shot, sequence number 0)
 
-    struct SealResult {
+    public struct SealResult {
         /// 65-byte encapsulated key to transmit to the recipient alongside the ciphertext.
-        let enc: Data
+        public let enc: Data
         /// AES-256-GCM ciphertext concatenated with the 16-byte authentication tag.
-        let ciphertext: Data
+        public let ciphertext: Data
     }
 
-    enum HPKEError: Error {
+    public enum HPKEError: Error {
         case ciphertextTooShort
     }
 
-    static func seal(
+    public static func seal(
         plaintext: Data,
         recipientPublicKey: P256.KeyAgreement.PublicKey,
         info: Data = Data(),
@@ -174,7 +174,7 @@ enum HPKEPrimitives {
         return SealResult(enc: r.enc, ciphertext: ct)
     }
 
-    static func open(
+    public static func open(
         enc: Data,
         ciphertext: Data,
         recipientPrivateKey: P256.KeyAgreement.PrivateKey,
@@ -185,7 +185,7 @@ enum HPKEPrimitives {
         return try openInner(sharedSecret: sharedSecret, ciphertext: ciphertext, info: info, aad: aad)
     }
 
-    static func openSE(
+    public static func openSE(
         enc: Data,
         ciphertext: Data,
         recipientPrivateKey: SecureEnclave.P256.KeyAgreement.PrivateKey,

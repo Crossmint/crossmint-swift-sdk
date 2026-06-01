@@ -4,20 +4,20 @@ import Foundation
 // Derives blockchain signing keys from the 32-byte master secret returned by the TEE.
 // Derivation logic must match open-signer's shared/cryptography exactly so that the
 // same master secret produces the same public key on both sides.
-enum MasterSecretDerivation {
+public enum MasterSecretDerivation {
 
     // MARK: - Ed25519 (Solana, Stellar)
 
     // JS: first 32 bytes of master_secret are used directly as the Ed25519 seed.
     // Reference: open-signer/shared/cryptography/src/algorithms/asymmetric/ed25519.ts
-    static func ed25519PrivateKey(from masterSecret: Data) throws -> Curve25519.Signing.PrivateKey {
+    public static func ed25519PrivateKey(from masterSecret: Data) throws -> Curve25519.Signing.PrivateKey {
         guard masterSecret.count >= 32 else { throw DerivationError.invalidMasterSecret }
         return try Curve25519.Signing.PrivateKey(rawRepresentation: masterSecret.prefix(32))
     }
 
     // Sign message bytes with the Ed25519 key derived from master secret.
     // Returns the raw 64-byte signature.
-    static func signEd25519(message: Data, masterSecret: Data) throws -> Data {
+    public static func signEd25519(message: Data, masterSecret: Data) throws -> Data {
         let key = try ed25519PrivateKey(from: masterSecret)
         return try Data(key.signature(for: message))
     }
@@ -26,7 +26,7 @@ enum MasterSecretDerivation {
 
     // JS: SHA256(master_secret || "secp256k1-derivation-path"), retry if invalid scalar.
     // Reference: open-signer/shared/cryptography/src/algorithms/asymmetric/secp256k1.ts
-    static func secp256k1PrivateKeyBytes(from masterSecret: Data) -> Data {
+    public static func secp256k1PrivateKeyBytes(from masterSecret: Data) -> Data {
         let label = Data("secp256k1-derivation-path".utf8)
         var input = masterSecret
         input.append(label)
@@ -39,7 +39,7 @@ enum MasterSecretDerivation {
 
     // MARK: - Errors
 
-    enum DerivationError: Error {
+    public enum DerivationError: Error {
         case invalidMasterSecret
     }
 

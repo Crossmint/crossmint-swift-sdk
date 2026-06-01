@@ -36,6 +36,7 @@ final public class CrossmintSDK: ObservableObject {
     }
 
     private let sdk: ClientSDK
+    private let apiKey: String
 
     public let crossmintWallets: CrossmintWallets
     public let authManager: CrossmintAuthManager
@@ -81,6 +82,7 @@ final public class CrossmintSDK: ObservableObject {
         }
 
         let authManager = innerSdk.authManager
+        self.apiKey = apiKey
         sdk = innerSdk
         crossmintWallets = innerSdk.crossmintWallets()
         self.authManager = authManager
@@ -90,6 +92,20 @@ final public class CrossmintSDK: ObservableObject {
             webProxy: DefaultWebViewCommunicationProxy(),
             apiKey: apiKey,
             isProductionEnvironment: innerSdk.crossmintService.isProductionEnvironment
+        )
+    }
+
+    // Activates the native signing path — replaces WebView/iframe with on-device HPKE
+    // key agreement and local key derivation. Safe to call after configure().
+    //
+    // Server-side requirement: the TEE's start-onboarding endpoint must accept
+    // `native: true` to return its P-256 pubkey and send a plain OTP (no FPE).
+    // Coordinate with Max before enabling in production.
+    @MainActor
+    public func enableNativeSigning() {
+        crossmintTEE.nativeSigningDelegate = DefaultNativeSigningDelegate(
+            apiKey: apiKey,
+            isProduction: crossmintService.isProductionEnvironment
         )
     }
 
