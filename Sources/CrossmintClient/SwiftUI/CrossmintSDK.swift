@@ -69,6 +69,7 @@ final public class CrossmintSDK: ObservableObject {
     public let crossmintWallets: CrossmintWallets
     public let authManager: CrossmintAuthManager
     public let crossmintService: CrossmintService
+    /// Standalone auth client for explicit OTP lifecycle management. See ``AuthClient``.
     public let authClient: AuthClient
 
     let crossmintTEE: CrossmintTEE
