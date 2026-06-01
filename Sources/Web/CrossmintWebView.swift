@@ -45,7 +45,10 @@ public struct CrossmintWebView: UIViewRepresentable {
 
         configuration.userContentController = userContentController
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        // Use a nonzero initial frame so iOS considers the WebView composited from creation.
+        // A .zero frame can cause ActivityState::IsVisible to be unset, which triggers
+        // updateThrottleState() to drop the foreground assertion on the WebContent process.
+        let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 1, height: 1), configuration: configuration)
         webView.navigationDelegate = webViewCommunicationProxy
 #if DEBUG
         if #available(iOS 16.4, *) {
