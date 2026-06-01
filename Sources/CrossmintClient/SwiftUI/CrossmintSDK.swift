@@ -40,7 +40,7 @@ final public class CrossmintSDK: ObservableObject {
     public let crossmintWallets: CrossmintWallets
     public let authManager: CrossmintAuthManager
     public let crossmintService: CrossmintService
-    public let authClient: any AuthClient
+    public let authClient: AuthClient
 
     let crossmintTEE: CrossmintTEE
 
