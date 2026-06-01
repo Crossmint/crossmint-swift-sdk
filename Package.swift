@@ -191,6 +191,14 @@ let package = Package(
                 "CrossmintService",
                 "Http"
             ]
+        ),
+        .testTarget(
+            name: "DeviceSignerTests",
+            dependencies: [
+                "DeviceSigner",
+                "Wallet"
+            ],
+            plugins: basePlugins
         )
     ]
 )
