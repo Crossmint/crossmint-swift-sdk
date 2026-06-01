@@ -1,3 +1,10 @@
+//
+//  DefaultAuthClient.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 6/1/26.
+//
+
 import Utils
 
 public actor DefaultAuthClient: AuthClient {
@@ -33,7 +40,7 @@ public actor DefaultAuthClient: AuthClient {
     }
 
     public func logout() async {
-        try? await authManager.logout()
+        _ = try? await authManager.logout()
         pendingEmailsByRequestId.removeAll()
     }
 }

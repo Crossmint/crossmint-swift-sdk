@@ -1,3 +1,10 @@
+//
+//  DefaultAuthClientTests.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 6/1/26.
+//
+
 import Testing
 @testable import CrossmintAuth
 
