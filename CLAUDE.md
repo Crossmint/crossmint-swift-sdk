@@ -187,6 +187,43 @@ Services make exactly one API call per method — no orchestration, no polling. 
 
 Expose behavior through protocols, keep concrete types internal. If the protocol lives in `CrossmintCore`, the implementation lives in the feature module (`CrossmintWalletsImpl`, etc.). External consumers only import protocols and public value types.
 
+### Naming
+
+Variable names must not duplicate the type or the name of the containing object:
+
+```swift
+// Bad — duplicates type info, duplicates containing type name
+struct Wallet {
+    var walletAddress: String   // "wallet" already in Wallet
+    var isValid: Bool           // "is" prefix duplicates Bool
+    var creationDate: Date      // "Date" redundant
+}
+
+// Good
+struct Wallet {
+    var address: String
+    var valid: Bool
+    var createdOn: Date
+}
+```
+
+Avoid vague verbs (`manage`, `handle`, `process`) in function and type names — they obscure responsibility. Use specific action names: `validateOrder`, `persistPayment`, `signTransaction`.
+
+Functions should do one thing. A name that requires "and" is a signal to split: `validateAndPersist` → `validate` + `persist`.
+
+### Abstraction Discipline
+
+Inline code unless the abstraction meets one of these criteria:
+- It self-documents a non-obvious relationship or hides significant complexity
+- It maintains state the algorithm requires across iterations
+- It has multiple, current implementations (e.g. a protocol with two concrete types in active use)
+
+A helper function that just renames a call, or a type that wraps only one thing, adds indirection without value. Remove it.
+
+### Business Logic Placement
+
+Business logic lives in orchestrators (and clients for simple cases), not in services. Services are generic and unaware of business context — they make API calls and return data. Orchestrators coordinate, retry, poll, and decide. Never let a service embed flow logic; never let a client embed multi-step coordination that warrants an orchestrator.
+
 ### Actors for Mutable Async State
 
 Use `actor` for any type that holds mutable state accessed from multiple async contexts. Never use `@unchecked Sendable` — fix the root cause (isolate to an actor or make the state immutable). If a framework type requires `@unchecked Sendable` on a mock, that is acceptable, but document why.
@@ -236,7 +273,11 @@ The same applies to stored properties: if a property is only read during `init`,
 
 ### Error Type Requirements
 
-All new error types must conform to `CrossmintError`. Error codes use `SCREAMING_SNAKE_CASE` (e.g., `WALLET_NOT_FOUND`). Provide a `recoverySuggestion` whenever the developer can take a specific action to fix the problem.
+All new error types must conform to `CrossmintError`. Error codes use `SCREAMING_SNAKE_CASE` (e.g., `WALLET_NOT_FOUND`). Provide a `recoverySuggestion` whenever the developer can take a specific action to fix the problem. Errors communicate exactly two things: whether the caller should retry, and whether the fault is theirs or the system's. Don't create subclasses or cases beyond what's needed to express those two distinctions.
+
+### Function Inputs
+
+Functions should depend only on what they use. Prefer passing specific values over large objects when only a subset of fields is needed — this keeps the function usable in a wider range of contexts and makes its dependencies explicit.
 
 ### Complexity Threshold
 
@@ -325,6 +366,20 @@ struct WalletCreationTests { ... }
 
 Staging tests: mark with `(STAG)` in the `@Test` display name and tag `.staging`. Use GUID-based Mailnesia detection for OTP (RSS items are not sorted chronologically).
 
+### Test Philosophy
+
+Hard-to-write tests are a signal to refactor production code, not to add test complexity. Tests are consumers of production interfaces — a test that requires a complex setup is asking for a cleaner dependency injection point or more expressive return values.
+
+When assertion logic grows complex (e.g. asserting 20 individual fields across multiple tests), that logic belongs on the production type as a method (like `isEqual`), not in the test.
+
+Each test case should be a distinct set of inputs and an expected output. Fix only the values relevant to what you're asserting and randomize everything else — incidental state should be invisible so readers immediately see what the test proves.
+
+Build a testing fabric where each layer tests different assumptions. Avoid tests that only verify data routing (a mocked value passes through unchanged, a parameter is forwarded to a dependency) — they mirror production logic and share its blind spots. Focus on boundary conditions and transformations.
+
+Mocks should only be used when there is no alternative — typically for resources unavailable in a test sandbox (network, disk, external services). Prefer factory-created objects with real or randomized data over mocks wherever possible.
+
+Tests must be fully isolated. Shared global state causes order-dependent failures that are expensive to diagnose.
+
 ### Hard Bans
 
 - No `@Suite(.serialized)` — causes a Swift compiler ICE. Use actor or Task coordination instead.
@@ -351,9 +406,14 @@ Staging tests: mark with `(STAG)` in the `@Test` display name and tag `.staging`
 
 - **Hardcoding environment or API version strings.** Environment comes from the API key. API versions come from a centralized constant or the OpenAPI generated client.
 
-## Scott's Best Practices
+## Documentation Rules
 
-TODO: Scott's best-practices documents were not found in Linear during the WAL-10266 update (searched all workspace documents and filtered by creator). Once located, add a summary here covering naming conventions, function length, comment style, public API discipline, and cross-SDK consistency rules.
+Document only what cannot be derived from the code or its version history. Source: `best-practices/documentation.md` and `best-practices/code/README.md`.
+
+- Comments and doc comments should only explain **why**, never **what** or **how** — if the what requires explanation, the code needs to be renamed or restructured.
+- TODOs should describe why something is suboptimal, not propose solutions (solutions change; the underlying problem is what matters).
+- Place documentation alongside the authoritative source whose scope it belongs to: code comments for code-level context, PR descriptions for why a decision was made, Linear issues for why it needs to change.
+- State each idea exactly once. Don't preview in an introduction what the detail immediately below already covers.
 
 ## Development Workflow
 
