@@ -7,10 +7,10 @@ import Security
 // The Keychain uses hardware-backed keys (managed by the Secure Enclave) to
 // encrypt items stored with kSecAttrAccessibleWhenUnlockedThisDeviceOnly.
 // Items cannot be moved to another device or read while locked.
-public enum MasterSecretStore {
+package enum MasterSecretStore {
     private static let service = "com.crossmint.devicesigner.mastersecret"
 
-    public static func save(_ masterSecret: Data, forSignerID signerID: String) throws {
+    package static func save(_ masterSecret: Data, forSignerID signerID: String) throws {
         let delete: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -29,7 +29,7 @@ public enum MasterSecretStore {
         guard status == errSecSuccess else { throw StoreError.saveFailed(status) }
     }
 
-    public static func load(forSignerID signerID: String) -> Data? {
+    package static func load(forSignerID signerID: String) -> Data? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -43,11 +43,11 @@ public enum MasterSecretStore {
         return data
     }
 
-    public static func exists(forSignerID signerID: String) -> Bool {
+    package static func exists(forSignerID signerID: String) -> Bool {
         load(forSignerID: signerID) != nil
     }
 
-    public static func delete(forSignerID signerID: String) {
+    package static func delete(forSignerID signerID: String) {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -56,7 +56,7 @@ public enum MasterSecretStore {
         SecItemDelete(query as CFDictionary)
     }
 
-    public enum StoreError: Error {
+    package enum StoreError: Error {
         case saveFailed(OSStatus)
     }
 }
