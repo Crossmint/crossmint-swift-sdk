@@ -19,7 +19,7 @@ make test
 make ci-test
 
 # Run specific test target
-xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=latest" test
+xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=latest" test
 ```
 
 ### Linting
@@ -418,11 +418,9 @@ Document only what cannot be derived from the code or its version history. Sourc
 ## Development Workflow
 
 1. All code must pass SwiftLint checks before merging (`make lint`).
-2. Tests run on iPhone 16 Pro simulator by default.
+2. Tests run on iPhone 17 Pro simulator by default.
 3. The SDK uses Swift Package Manager for dependency management.
 4. SwiftLint is integrated as a build tool plugin.
-5. Run `/afeight-review` before opening any PR.
-6. Run `/sdk-compare` whenever changing or adding anything on the public API surface — the TypeScript SDK (wallets-v1) is the canonical reference.
-7. Set these environment variables when running the demo app:
+5. Set these environment variables when running the demo app:
    - `CROSSMINT_API_KEY` — your Crossmint API key
    - `CROSSMINT_WHITELISTED_DOMAIN` — whitelisted domain for the SDK
