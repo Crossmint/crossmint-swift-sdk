@@ -30,6 +30,7 @@ struct SignInView: View {
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
+                    .accessibilityIdentifier("signin-with-crossmint-button")
 
                     Button { navigateToJWT = true } label: {
                         Text("Sign in with your JWT")
