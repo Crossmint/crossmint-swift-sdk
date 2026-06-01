@@ -29,7 +29,7 @@ public final class OSLoggerProvider: LoggerProvider {
         os_log(.info, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
-    func warn(_ message: String, attributes: [String: any Encodable]?) {
+    func warning(_ message: String, attributes: [String: any Encodable]?) {
         os_log(.default, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 

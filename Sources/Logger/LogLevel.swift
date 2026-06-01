@@ -10,6 +10,8 @@ import Foundation
 public enum LogLevel: Int, Sendable {
     case debug
     case info
-    case warn
+    case warning
     case error
+    /// Silences all SDK log output.
+    case none
 }

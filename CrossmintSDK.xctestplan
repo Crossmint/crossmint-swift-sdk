@@ -64,6 +64,13 @@
         "identifier" : "DeviceSignerTests",
         "name" : "DeviceSignerTests"
       }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "LoggerTests",
+        "name" : "LoggerTests"
+      }
     }
   ],
   "version" : 1

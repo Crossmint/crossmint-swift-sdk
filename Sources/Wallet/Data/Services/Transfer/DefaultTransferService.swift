@@ -100,7 +100,7 @@ struct DefaultTransferService: TransferService {
             ])
             return result
         } catch {
-            Logger.smartWallet.warn(LogEvents.apiListTransfersError, attributes: ["error": "\(error)"])
+            Logger.smartWallet.warning(LogEvents.apiListTransfersError, attributes: ["error": "\(error)"])
             throw error
         }
     }

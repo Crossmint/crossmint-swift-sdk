@@ -193,6 +193,13 @@ let package = Package(
             ],
             plugins: basePlugins
         ),
+        .testTarget(
+            name: "LoggerTests",
+            dependencies: [
+                "Logger"
+            ],
+            plugins: basePlugins
+        ),
         .target(
             name: "TestsUtils",
             dependencies: [

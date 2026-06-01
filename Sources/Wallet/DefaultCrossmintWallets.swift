@@ -59,7 +59,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         do {
             try await (recovery as? any EmailSigner)?.load()
         } catch {
-            Logger.smartWallet.warn(
+            Logger.smartWallet.warning(
                 """
 There was an error initializing the Email signer. \(error.errorDescription)
 Review if the .crossmintEnvironmentObject modifier is used as expected.
@@ -97,7 +97,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         do {
             try await (recovery as? any EmailSigner)?.load()
         } catch {
-            Logger.smartWallet.warn(
+            Logger.smartWallet.warning(
                 """
 There was an error initializing the Email signer. \(error.errorDescription)
 Review if the .crossmintEnvironmentObject modifier is used as expected.
@@ -175,7 +175,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                     "publicKeyBase64Prefix": String(publicKeyBase64.prefix(16))
                 ])
             } catch {
-                Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: [
                     "error": "\(error)"
                 ])
                 // Continue wallet creation without device signer
@@ -202,7 +202,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                     )
                 } catch {
                     try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
-                    Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+                    Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: [
                         "error": "\(error)"
                     ])
                 }
@@ -292,7 +292,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 "address": walletApiModel.address
             ])
         } catch {
-            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: [
+            Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: [
                 "error": "\(error)"
             ])
         }

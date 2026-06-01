@@ -109,7 +109,7 @@ extension Transfer {
     static func map(_ apiModel: TransferApiModel) -> Transfer? {
         let timestamp = Self.parseDate(apiModel.completedAt) ?? Date()
         guard let type = TransferType(rawValue: apiModel.type) else {
-            Logger.smartWallet.warn("Unrecognized transfer type", attributes: [
+            Logger.smartWallet.warning("Unrecognized transfer type", attributes: [
                 "type": apiModel.type
             ])
             return nil

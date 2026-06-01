@@ -121,7 +121,7 @@ final class DeviceSignerService: Sendable {
             try await register(storage: storage, signer: signer)
             Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: ["address": address])
         } catch {
-            Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: ["error": "\(error)"])
+            Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: ["error": "\(error)"])
             if case .deviceSignerNotSupported = error {
                 throw error
             }

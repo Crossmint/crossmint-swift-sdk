@@ -54,12 +54,12 @@ public class WebViewMessageHandler {
 
     public func processIncomingMessage(_ messageBody: Any) {
         guard let messageData = extractMessageData(from: messageBody) else {
-            Logger.web.warn("Failed to extract message data from: \(messageBody)")
+            Logger.web.warning("Failed to extract message data from: \(messageBody)")
             return
         }
 
         guard let messageTypeInfo = extractMessageType(from: messageData) else {
-            Logger.web.warn("Failed to extract message type from message data: \(messageBody)")
+            Logger.web.warning("Failed to extract message type from message data: \(messageBody)")
             return
         }
 
@@ -86,7 +86,7 @@ public class WebViewMessageHandler {
             delegate?.handleWebViewMessage(decodedMessage)
         } else {
             // Log unknown message before delegating
-            Logger.web.warn(
+            Logger.web.warning(
                 "Unknown message type: \(messageTypeInfo), " +
                 "data: \(String(data: messageData, encoding: .utf8) ?? "nil")"
             )
@@ -105,7 +105,7 @@ public class WebViewMessageHandler {
 
     private func extractMessageType(from data: Data) -> String? {
         guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-            Logger.web.warn("Failed to deserialize message data as JSON dictionary")
+            Logger.web.warning("Failed to deserialize message data as JSON dictionary")
             return nil
         }
 
@@ -120,7 +120,7 @@ public class WebViewMessageHandler {
             case .error:
                 Logger.web.error(logMessage)
             case .warn:
-                Logger.web.warn(logMessage)
+                Logger.web.warning(logMessage)
             case .debug:
                 Logger.web.debug(logMessage)
             case .info, .log, .trace:
