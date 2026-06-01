@@ -1,6 +1,6 @@
 import CrossmintCommonTypes
 import Logger
 
-extension WalletImpl {
+extension WalletCore {
     // TODO: WAL-9976 — implement query delegation
 }

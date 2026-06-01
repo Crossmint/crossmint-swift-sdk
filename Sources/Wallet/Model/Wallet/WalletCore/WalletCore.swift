@@ -6,8 +6,8 @@ import Foundation
 ///
 /// The three concrete wallet types (`EVMWallet`, `SolanaWallet`, `StellarWallet`) each hold an
 /// instance of this actor and forward protocol method calls to it. Actor isolation replaces the
-/// `@unchecked Sendable` annotation that was required on the old `Wallet` class.
-internal actor WalletImpl {
+/// `@unchecked Sendable` annotation on the old `Wallet` class.
+internal actor WalletCore {
     let blockchainAddress: Address
     let chain: Chain
     let config: WalletConfig
