@@ -14,24 +14,18 @@ extension WalletCore {
 
     func addSigner(_ config: SignerConfig) async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart)
-        do {
-            switch config {
-            case .device:
-                let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
-                try await registerDeviceSigner(storage: storage)
-                deviceSignerKeyStorage = storage
-            case .email, .phone, .externalWallet, .apiKey:
-                guard let locator = config.locator else { return }
-                try await registerLocatorSigner(locator)
-            case .passkey(let name, let host):
-                try await registerPasskeySigner(name: name, host: host)
-            }
-            Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
-        } catch {
-            Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
-            guard let walletError = error as? WalletError else { throw WalletError.walletGeneric(error.localizedDescription) }
-            throw walletError
+        switch config {
+        case .device:
+            let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
+            try await registerDeviceSigner(storage: storage)
+            deviceSignerKeyStorage = storage
+        case .email, .phone, .externalWallet, .apiKey:
+            guard let locator = config.locator else { return }
+            try await registerLocatorSigner(locator)
+        case .passkey(let name, let host):
+            try await registerPasskeySigner(name: name, host: host)
         }
+        Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
     }
 
     func useSigner(_ config: SignerConfig) async throws(WalletError) {
@@ -39,12 +33,7 @@ extension WalletCore {
         case .device:
             try await activateDeviceSigner()
         case .email(let email):
-            let signerLocator = "email:\(email)"
-            guard await signerIsRegistered(signerLocator) else { throw .signerNotRegistered(signerLocator) }
-            let chainType = chain.chainType
-            let newSigner: any Signer = await MainActor.run { WalletCore.makeEmailSigner(email: email, chainType: chainType) }
-            selectedSigner = newSigner
-            selectedSignerLocator = signerLocator
+            try await activateEmailSigner(email: email)
         case .phone:
             throw WalletError.walletGeneric("Phone OTP signing is not yet supported on iOS.")
         case .externalWallet(let walletAddress):
@@ -54,24 +43,14 @@ extension WalletCore {
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:
-            let signerLocator = self.config.recovery.locator
-            guard await signerIsRegistered(signerLocator) else { throw .signerNotRegistered(signerLocator) }
-            guard let apiKeyData = self.config.recovery as? ApiKeySignerData else {
-                throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
-            }
-            selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
-            selectedSignerLocator = signerLocator
+            try await activateApiKeySigner()
         }
     }
 
     func recover() async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletRecoverStart)
         await ensureSignerInitialized()
-        guard needsRecovery else {
-            Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
-            return
-        }
-        guard !deviceSignerApproved else {
+        guard needsRecovery, !deviceSignerApproved else {
             Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
             return
         }
@@ -122,11 +101,18 @@ extension WalletCore {
     }
 
     func resolveActiveSigner() async -> any Signer {
+        if let selected = selectedSigner { return selected }
         var resolved: any Signer = signer
         if let passkey = config.recovery as? PasskeySignerData, let passkeySigner = resolved as? PasskeySigner {
             resolved = await passkeySigner.updateAdminSigner(passkey)
         }
         return resolved
+    }
+
+    func buildSignRequest(signer: any Signer, message: String) async throws -> SignRequestApi {
+        let signature = try await signer.sign(message: message)
+        let approvals = try await signer.approvals(withSignature: signature)
+        return SignRequestApi(approvals: approvals)
     }
 
     // MARK: - Private helpers
@@ -144,30 +130,48 @@ extension WalletCore {
         deviceSignerApproved = true
     }
 
+    private func activateEmailSigner(email: String) async throws(WalletError) {
+        let signerLocator = "email:\(email)"
+        guard await signerIsRegistered(signerLocator) else { throw .signerNotRegistered(signerLocator) }
+        let chainType = chain.chainType
+        let newSigner: any Signer = await MainActor.run { WalletCore.makeEmailSigner(email: email, chainType: chainType) }
+        selectedSigner = newSigner
+        selectedSignerLocator = signerLocator
+    }
+
+    private func activateApiKeySigner() async throws(WalletError) {
+        let signerLocator = self.config.recovery.locator
+        guard await signerIsRegistered(signerLocator) else { throw .signerNotRegistered(signerLocator) }
+        guard let apiKeyData = self.config.recovery as? ApiKeySignerData else {
+            throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
+        }
+        selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
+        selectedSignerLocator = signerLocator
+    }
+
     private func activatePasskeySigner(name: String, host: String) async throws(WalletError) {
-        let walletModel: WalletApiModel
-        do {
-            walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        } catch {
-            throw .walletGeneric("Failed to fetch wallet config")
-        }
-        let passkeyLocator = walletModel.config.signers?
-            .compactMap(\.locator)
-            .first(where: { $0.hasPrefix("passkey:") })
-        let signerLocator: String
-        if let delegatedLocator = passkeyLocator {
-            signerLocator = delegatedLocator
-        } else if config.recovery is PasskeySignerData {
-            signerLocator = config.recovery.locator
-        } else {
-            throw .signerNotRegistered("passkey:\(name)")
-        }
+        let signerLocator = try await resolvePasskeySignerLocator(name: name)
         let credentialId = String(signerLocator.dropFirst("passkey:".count))
         let passkeyData = PasskeySignerData(id: credentialId, name: name, publicKey: .init(x: "0", y: "0"))
         let passkeySigner = PasskeySigner(name: name, host: host)
         _ = await passkeySigner.updateAdminSigner(passkeyData)
         selectedSigner = passkeySigner
         selectedSignerLocator = signerLocator
+    }
+
+    private func resolvePasskeySignerLocator(name: String) async throws(WalletError) -> String {
+        let walletModel: WalletApiModel
+        do {
+            walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        } catch {
+            throw .walletGeneric("Failed to fetch wallet config")
+        }
+        let delegatedLocator = walletModel.config.signers?
+            .compactMap(\.locator)
+            .first(where: { $0.hasPrefix("passkey:") })
+        if let delegatedLocator { return delegatedLocator }
+        if config.recovery is PasskeySignerData { return config.recovery.locator }
+        throw .signerNotRegistered("passkey:\(name)")
     }
 
     private func registerDeviceSigner(storage: any DeviceSignerKeyStorage) async throws(WalletError) {
@@ -199,7 +203,7 @@ extension WalletCore {
         return walletModel.config.recovery.toDomain.locator == signerLocator
     }
 
-    func makeDeviceSignerStorage() -> any DeviceSignerKeyStorage {
+    private func makeDeviceSignerStorage() -> any DeviceSignerKeyStorage {
         let seStorage = SecureEnclaveKeyStorage()
         return seStorage.isAvailable() ? seStorage : KeychainKeyStorage()
     }
