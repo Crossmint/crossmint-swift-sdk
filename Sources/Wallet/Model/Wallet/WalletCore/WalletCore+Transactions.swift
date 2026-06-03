@@ -5,7 +5,7 @@ import Logger
 
 extension WalletCore {
     func sendTransaction(_ params: TransactionParams) async throws(TransactionError) -> TransactionResult {
-        do { try await preAuthIfNeeded() } catch { throw .transactionGeneric(error.errorMessage) }
+        try await preAuth()
         onTransactionStart?()
         let request = try makeTransactionRequest(params)
         let created = try await createRawTransaction(request)
@@ -22,7 +22,7 @@ extension WalletCore {
     }
 
     func createTransaction(_ params: TransactionParams) async throws(TransactionError) -> PendingTransaction {
-        do { try await preAuthIfNeeded() } catch { throw .transactionGeneric(error.errorMessage) }
+        try await preAuth()
         onTransactionStart?()
         let request = try makeTransactionRequest(params)
         return try await createRawTransaction(request).toPendingTransaction()
@@ -30,7 +30,7 @@ extension WalletCore {
 
     func approve(transactionId: String) async throws(TransactionError) -> TransactionResult {
         Logger.smartWallet.info(LogEvents.walletApproveStart, attributes: ["transactionId": transactionId])
-        do { try await preAuthIfNeeded() } catch { throw .transactionGeneric(error.errorMessage) }
+        try await preAuth()
         let transaction = try await fetchTransaction(withId: transactionId)
         let signed = try await signTransactionIfRequired(transaction)
         let completed = try await pollToCompletion(signed)
@@ -40,7 +40,7 @@ extension WalletCore {
 
     func send(to recipient: String, token: String, amount: Decimal) async throws(TransactionError) -> TransactionResult {
         Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: ["recipient": recipient, "token": token, "amount": "\(amount)"])
-        do { try await preAuthIfNeeded() } catch { throw .transactionGeneric(error.errorMessage) }
+        try await preAuth()
         onTransactionStart?()
         if let storage = deviceSignerKeyStorage {
             await deviceSignerService.ensureRegistered(storage: storage, signer: await resolveActiveSigner())
@@ -65,26 +65,30 @@ extension WalletCore {
 
     // MARK: - Private
 
+    private func preAuth() async throws(TransactionError) {
+        do { try await preAuthIfNeeded() } catch { throw .transactionGeneric(error.errorMessage) }
+    }
+
     private func makeTransactionRequest(_ params: TransactionParams) throws(TransactionError) -> any TransactionRequest {
         switch params {
-        case .evm(let p):
+        case .evm(let evmParams):
             guard let evmChain = EVMChain(chain.name) else {
                 throw .transactionGeneric("EVM transaction params require an EVM chain wallet")
             }
-            guard let evmAddress = try? EVMAddress(address: p.to) else {
-                throw .transactionGeneric("Invalid EVM address: \(p.to)")
+            guard let evmAddress = try? EVMAddress(address: evmParams.to) else {
+                throw .transactionGeneric("Invalid EVM address: \(evmParams.to)")
             }
             return CreateEVMTransactionRequest(
                 contractAddress: evmAddress,
-                value: p.value ?? "0",
-                data: p.data ?? "0x",
+                value: evmParams.value ?? "0",
+                data: evmParams.data ?? "0x",
                 chain: evmChain,
                 signer: selectedSignerLocator ?? config.recovery.locator
             )
-        case .solana(let p):
-            return CreateSolanaTransactionRequest(transaction: p.serializedTransaction)
-        case .stellar(let p):
-            return CreateStellarTransactionRequest(transaction: p.serializedTransaction)
+        case .solana(let solanaParams):
+            return CreateSolanaTransactionRequest(transaction: solanaParams.serializedTransaction)
+        case .stellar(let stellarParams):
+            return CreateStellarTransactionRequest(transaction: stellarParams.serializedTransaction)
         }
     }
 
@@ -144,15 +148,10 @@ extension WalletCore {
     }
 
     private func approveTransactionWithActiveSigner(transactionId: String, message: String) async throws(TransactionError) {
-        let activeSigner: any Signer
-        if let selected = selectedSigner {
-            activeSigner = selected
-        } else {
-            activeSigner = await resolveActiveSigner()
-        }
+        let activeSigner = await resolveActiveSigner()
         do {
             try await activeSigner.initialize(smartWalletService)
-            let request = SignRequestApi(approvals: try await activeSigner.approvals(withSignature: try await activeSigner.sign(message: message)))
+            let request = try await buildSignRequest(signer: activeSigner, message: message)
             _ = try await smartWalletService.signTransaction(.init(transactionId: transactionId, apiRequest: request, chainType: chain.chainType))
         } catch {
             throw mapToTransactionError(error)
@@ -162,7 +161,7 @@ extension WalletCore {
     private func pollToCompletion(_ transaction: Transaction) async throws(TransactionError) -> Transaction {
         var current = transaction
         while current.status == .pending || current.status == .awaitingApproval {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { throw .userCancelled }
             current = try await fetchTransaction(withId: current.id)
         }
         return current
