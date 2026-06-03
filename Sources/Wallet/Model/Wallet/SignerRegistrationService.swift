@@ -1,7 +1,7 @@
 import CrossmintCommonTypes
 import Foundation
 
-final class SignerRegistrationService {
+final class SignerRegistrationService: Sendable {
     private let smartWalletService: SmartWalletService
     private let chainType: ChainType
     private let chainName: String

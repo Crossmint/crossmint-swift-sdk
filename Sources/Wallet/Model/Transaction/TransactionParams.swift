@@ -25,13 +25,9 @@ public struct SolanaTransactionParams: Sendable {
 }
 
 public struct StellarTransactionParams: Sendable {
-    public let contractId: String
-    public let method: String
-    public let args: [String: String]
+    public let serializedTransaction: String
 
-    public init(contractId: String, method: String, args: [String: String] = [:]) {
-        self.contractId = contractId
-        self.method = method
-        self.args = args
+    public init(serializedTransaction: String) {
+        self.serializedTransaction = serializedTransaction
     }
 }

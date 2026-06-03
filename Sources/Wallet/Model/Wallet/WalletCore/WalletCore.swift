@@ -24,7 +24,7 @@ internal actor WalletCore {
     var needsRecovery: Bool = false
     var deviceSignerApproved: Bool = false
     var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
-    var signerInitializationTask: Task<Void, Never>?
+    var signerInitialized: Bool = false
 
     var onTransactionStart: (@Sendable () -> Void)?
 

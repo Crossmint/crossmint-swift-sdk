@@ -3,7 +3,7 @@ import DeviceSigner
 import Foundation
 import Logger
 
-final class DeviceSignerService {
+final class DeviceSignerService: Sendable {
     private let smartWalletService: SmartWalletService
     private let chainType: ChainType
     private let chainName: String

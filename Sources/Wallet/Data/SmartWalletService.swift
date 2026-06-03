@@ -4,4 +4,5 @@ public protocol SmartWalletService:
     TransferService,
     BalanceService,
     NFTService,
-    SignatureService {}
+    SignatureService,
+    Sendable {}

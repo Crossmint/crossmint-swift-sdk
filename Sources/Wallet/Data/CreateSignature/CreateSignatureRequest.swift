@@ -1,6 +1,6 @@
 import CrossmintCommonTypes
 
-public struct CreateSignatureRequest {
+public struct CreateSignatureRequest: @unchecked Sendable {
     public enum Body {
         case message(SignMessageRequest)
         case typedData(SignTypedDataRequest)
