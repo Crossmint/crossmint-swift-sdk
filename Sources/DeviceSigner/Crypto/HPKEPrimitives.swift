@@ -114,7 +114,10 @@ public enum HPKEPrimitives {
     }
 
     // Decap with a Secure Enclave key — the scalar multiplication stays inside the SE.
-    public static func decapSE(enc: Data, recipientPrivateKey: SecureEnclave.P256.KeyAgreement.PrivateKey) throws -> Data {
+    public static func decapSE(
+        enc: Data,
+        recipientPrivateKey: SecureEnclave.P256.KeyAgreement.PrivateKey
+    ) throws -> Data {
         let pkE = try P256.KeyAgreement.PublicKey(x963Representation: enc)
         let dh = try recipientPrivateKey.sharedSecretFromKeyAgreement(with: pkE)
             .withUnsafeBytes { Data($0) }
@@ -169,7 +172,9 @@ public enum HPKEPrimitives {
         let ks = keySchedule(sharedSecret: r.sharedSecret, info: info)
         let nonce = try AES.GCM.Nonce(data: ks.baseNonce)
         let box = try AES.GCM.seal(plaintext, using: ks.key, nonce: nonce, authenticating: aad)
-        var ct = box.ciphertext
+        // Data(...) normalizes to a 0-based buffer; CryptoKit's box.ciphertext can be a
+        // slice with a non-zero startIndex, which trips up callers that index from 0.
+        var ct = Data(box.ciphertext)
         ct.append(box.tag)
         return SealResult(enc: r.enc, ciphertext: ct)
     }
