@@ -52,10 +52,10 @@ struct PlaygroundView: View {
                         Button("Sign Out", role: .destructive) {
                             Task { await signOut() }
                         }
-                        .accessibilityIdentifier("logout-button")
                     } label: {
                         Image(systemName: "person.circle")
                     }
+                    .accessibilityIdentifier("logout-button")
                 }
             }
         }
