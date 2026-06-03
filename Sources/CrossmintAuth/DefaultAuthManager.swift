@@ -31,7 +31,8 @@ public actor CrossmintAuthManager: AuthManager {
     public var authenticationStatus: AuthenticationStatus {
         get async throws(AuthError) {
             guard let authenticationStatus = _authenticationStatus else {
-                return try await performJWTRefresh(with: getOneTimeSecret())
+                let secret = await getOneTimeSecret()
+                return try await performJWTRefresh(with: secret)
             }
             return authenticationStatus
         }
@@ -202,13 +203,8 @@ public actor CrossmintAuthManager: AuthManager {
         }
     }
 
-    private func getOneTimeSecret() async throws(AuthError) -> String {
-        do {
-            return try await secureStorage.getOneTimeSecret() ?? ""
-        } catch {
-            _authenticationStatus = nil
-            throw AuthError.generic("No one time secret found")
-        }
+    private func getOneTimeSecret() async -> String {
+        return (try? await secureStorage.getOneTimeSecret()) ?? ""
     }
 
     private func performJWTRefresh(with oneTimeSecret: String) async throws(AuthError) -> AuthenticationStatus {
