@@ -6,10 +6,12 @@ import Testing
 
 // Validates HPKEPrimitives and MasterSecretDerivation against:
 //   1. Round-trip seal/open (in-memory key)
-//   2. RFC 9180 Appendix A.3 test vectors for DHKEM(P-256,HKDF-SHA256)/HKDF-SHA256/AES-256-GCM
-//      base mode — populate `rfcVectors` below from the published spec to enable those tests.
-//   3. Master secret → Ed25519 key derivation consistency
-
+//   2. A real hpke-js interop vector (the server's exact suite), proving wire compatibility
+//   3. Master secret → Ed25519 / secp256k1 key derivation consistency
+//
+// Serialized: these are fast crypto unit tests, and serial execution keeps the
+// run deterministic (parallel workers cascade-fail if any one process exits).
+@Suite(.serialized)
 struct HPKEPrimitivesTests {
 
     // MARK: - HKDF labeled helpers
@@ -44,8 +46,10 @@ struct HPKEPrimitivesTests {
             salt: nil, label: "prk", ikm: Data(repeating: 1, count: 32),
             suiteID: HPKEPrimitives.kemSuiteID
         )
-        let out12 = HPKEPrimitives.labeledExpand(prk: prk, label: "key", info: Data(), length: 12, suiteID: HPKEPrimitives.hpkeSuiteID)
-        let out32 = HPKEPrimitives.labeledExpand(prk: prk, label: "key", info: Data(), length: 32, suiteID: HPKEPrimitives.hpkeSuiteID)
+        let out12 = HPKEPrimitives.labeledExpand(
+            prk: prk, label: "key", info: Data(), length: 12, suiteID: HPKEPrimitives.hpkeSuiteID)
+        let out32 = HPKEPrimitives.labeledExpand(
+            prk: prk, label: "key", info: Data(), length: 32, suiteID: HPKEPrimitives.hpkeSuiteID)
         #expect(out12.count == 12)
         #expect(out32.count == 32)
         // Different lengths → different outputs (the length prefix in labeled_info ensures this)
@@ -78,7 +82,8 @@ struct HPKEPrimitivesTests {
     @Test func sealOpenRoundTrip_emptyPlaintext() throws {
         let recipientKey = P256.KeyAgreement.PrivateKey()
         let sealed = try HPKEPrimitives.seal(plaintext: Data(), recipientPublicKey: recipientKey.publicKey)
-        let recovered = try HPKEPrimitives.open(enc: sealed.enc, ciphertext: sealed.ciphertext, recipientPrivateKey: recipientKey)
+        let recovered = try HPKEPrimitives.open(
+            enc: sealed.enc, ciphertext: sealed.ciphertext, recipientPrivateKey: recipientKey)
         #expect(recovered == Data())
     }
 
@@ -113,44 +118,39 @@ struct HPKEPrimitivesTests {
         let plaintext = Data("tamper test".utf8)
         let sealed = try HPKEPrimitives.seal(plaintext: plaintext, recipientPublicKey: key.publicKey)
         var bad = sealed.ciphertext
-        bad[0] ^= 0xFF // flip first byte
+        bad[bad.startIndex] ^= 0xFF // flip first byte (startIndex-safe for Data slices)
         #expect(throws: (any Error).self) {
             _ = try HPKEPrimitives.open(enc: sealed.enc, ciphertext: bad, recipientPrivateKey: key)
         }
     }
 
-    // MARK: - RFC 9180 A.3 interop vectors
-    // Populate these from https://www.rfc-editor.org/rfc/rfc9180#appendix-A.3
-    // to confirm bit-exact compatibility with hpke-js and other implementations.
+    // MARK: - hpke-js interop vector
+    // Generated with the server's exact suite: @hpke/core 1.7.5,
+    // DhkemP256HkdfSha256 / HkdfSha256 / Aes256Gcm (the `createHpkeSuite()` config).
+    // This is the path that matters: the TEE service seals, the device opens.
+    // Regenerate with /tmp/hpke-interop/gen.mjs if the suite ever changes.
 
-    @Test func rfcA3_sharedSecret() throws {
-        // skEm — ephemeral sender private key (hex, 32 bytes)
-        let skEmHex  = "4995788ef2d484cc60401c6e6f69c5c48bbd0f9e3a12e98d66e34ea40e8e6a"
-        // pkRm — recipient public key (uncompressed, hex, 65 bytes)
-        let pkRmHex  = "04fe8c19ce0905191ebc298a9245792531f26f0cece2460639e8bc39cb7f706a826a779b4cf969b8a0e539c7f62fb3d30ad6aa8f80e30f1d128aafd68a2ce72ea0"
-        // shared_secret — expected KEM shared secret (hex, 32 bytes)
-        let expectedHex = "c0d26aeab536609a572b07695d933b589dcf363ff9d93c93adea537aeabb8cb"
+    @Test func hpkeJsInterop_opensServerCiphertext() throws {
+        let recipientPrivHex = "b714ae29d2d50ed0ab9256d32374eb970ce8a31048dbceff58e72eeeac937718"
+        let encHex = "0420426f9a5c972057af70daf09f5e08de978b383c804c38f6482fc503293a583f" +
+            "cc0a60f8ccfe99dd2e804cdf6ec7b018b03e3a2664955d377a91f7a62022b591"
+        let ctHex = "e8b4930ce1499697e66717c8699917baa7ec340a49dea94414065252c1f2b513fdbd"
 
-        guard let skEm = Data(hexString: skEmHex),
-              let pkRm = Data(hexString: pkRmHex),
-              let expected = Data(hexString: expectedHex) else {
-            Issue.record("Fix hex strings above to match RFC 9180 A.3 exactly")
-            return
-        }
+        let privData = try #require(Data(hexString: recipientPrivHex))
+        let priv = try P256.KeyAgreement.PrivateKey(rawRepresentation: privData)
+        let encData = try #require(Data(hexString: encHex))
+        let ctData = try #require(Data(hexString: ctHex))
 
-        let recipientPub  = try P256.KeyAgreement.PublicKey(x963Representation: pkRm)
-        let ephemeralPriv = try P256.KeyAgreement.PrivateKey(rawRepresentation: skEm)
+        let plaintext = try HPKEPrimitives.open(
+            enc: encData,
+            ciphertext: ctData,
+            recipientPrivateKey: priv,
+            info: Data("crossmint-interop-v1".utf8),
+            aad: Data("aad-12345".utf8)
+        )
 
-        // Manually run DHKEM decap with the known ephemeral key to verify the shared secret
-        let enc = ephemeralPriv.publicKey.x963Representation
-        let dh  = try ephemeralPriv.sharedSecretFromKeyAgreement(with: recipientPub)
-            .withUnsafeBytes { Data($0) }
-        var kemContext = enc
-        kemContext.append(pkRm)
-        let prk = HPKEPrimitives.labeledExtract(salt: nil, label: "eae_prk", ikm: dh, suiteID: HPKEPrimitives.kemSuiteID)
-        let sharedSecret = HPKEPrimitives.labeledExpand(prk: prk, label: "shared_secret", info: kemContext, length: 32, suiteID: HPKEPrimitives.kemSuiteID)
-
-        #expect(sharedSecret == expected, "KEM shared secret must match RFC 9180 A.3 vector")
+        // If this matches, our hand-rolled HPKE is bit-compatible with hpke-js on the receive path.
+        #expect(String(data: plaintext, encoding: .utf8) == "hello from hpke-js")
     }
 
     // MARK: - Master secret derivation
@@ -194,7 +194,7 @@ struct HPKEPrimitivesTests {
             0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
             0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
             0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B,
-            0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41,
+            0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41
         ])
         if expected.lexicographicallyPrecedes(secp256k1Order) && expected.contains(where: { $0 != 0 }) {
             #expect(derived == expected)

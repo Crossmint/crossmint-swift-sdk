@@ -195,8 +195,7 @@ let package = Package(
         .testTarget(
             name: "DeviceSignerTests",
             dependencies: [
-                "DeviceSigner",
-                "Wallet"
+                "DeviceSigner"
             ],
             plugins: basePlugins
         )
