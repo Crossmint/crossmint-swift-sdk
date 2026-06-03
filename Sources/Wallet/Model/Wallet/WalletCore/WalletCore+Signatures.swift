@@ -14,10 +14,10 @@ extension WalletCore {
 
     func signTypedData(_ typedData: EIP712.TypedData, signer: (any AdminSignerData)? = nil) async throws(SignatureError) -> SignatureResult {
         Logger.smartWallet.info(LogEvents.evmSignTypedDataStart)
-        let effectiveSigner = signer ?? config.recovery
-        let signatureRequest = typedData.toSignTypedDataRequest(chain: chain, signer: effectiveSigner, isSmartWalletSignature: true)
+        let adminSigner = signer ?? config.recovery
+        let signatureRequest = typedData.toSignTypedDataRequest(chain: chain, signer: adminSigner, isSmartWalletSignature: true)
         let request = CreateSignatureRequest(signTypedDataRequest: signatureRequest, chainType: chain.chainType)
-        return try await orchestrateSignature(request: request, signer: effectiveSigner)
+        return try await orchestrateSignature(request: request, signer: adminSigner)
     }
 
     // MARK: - Private
@@ -50,15 +50,10 @@ extension WalletCore {
     }
 
     private func approveSignatureWithActiveSigner(signatureId: String, message: String) async throws(SignatureError) {
-        let activeSigner: any Signer
-        if let selected = selectedSigner {
-            activeSigner = selected
-        } else {
-            activeSigner = await resolveActiveSigner()
-        }
+        let activeSigner = await resolveActiveSigner()
         let request: SignRequestApi
         do {
-            request = SignRequestApi(approvals: try await activeSigner.approvals(withSignature: try await activeSigner.sign(message: message)))
+            request = try await buildSignRequest(signer: activeSigner, message: message)
         } catch {
             guard let signerError = error as? SignerError else { throw .approvalFailed }
             switch signerError {
@@ -73,7 +68,7 @@ extension WalletCore {
     private func pollSignatureToCompletion(signatureId: String, chainType: ChainType) async throws(SignatureError) -> any SignatureApiModel {
         var signature = try await smartWalletService.fetchSignature(signatureId, chainType: chainType)
         while signature.status == "awaiting-approval" || signature.status == "pending" {
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            do { try await Task.sleep(nanoseconds: 500_000_000) } catch { throw .userCancelled }
             signature = try await smartWalletService.fetchSignature(signatureId, chainType: chainType)
         }
         return signature
