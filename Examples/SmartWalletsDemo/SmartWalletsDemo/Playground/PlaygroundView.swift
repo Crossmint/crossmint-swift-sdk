@@ -56,6 +56,7 @@ struct PlaygroundView: View {
                     } label: {
                         Image(systemName: "person.circle")
                     }
+                    .accessibilityIdentifier("logout-button")
                 }
             }
         }
