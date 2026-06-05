@@ -224,41 +224,49 @@ final class AppState {
     }
 
     private func fetchWallet(chain: SupportedChain, email: String) async throws -> Wallet? {
+        let options = WalletOptions(deviceSigner: true)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.getWallet(
                 chain: EVMChain.baseSepolia,
-                recovery: EVMSigners.email(email)
+                recovery: EVMSigners.email(email),
+                options: options
             )
         case .solana:
             return try await sdk.crossmintWallets.getWallet(
                 chain: SolanaChain.solana,
-                recovery: SolanaSigners.email(email)
+                recovery: SolanaSigners.email(email),
+                options: options
             )
         case .stellar:
             return try await sdk.crossmintWallets.getWallet(
                 chain: StellarChain.stellar,
-                recovery: StellarSigners.email(email)
+                recovery: StellarSigners.email(email),
+                options: options
             )
         }
     }
 
     private func makeWallet(chain: SupportedChain, email: String) async throws -> Wallet {
+        let options = WalletOptions(deviceSigner: true)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.createWallet(
                 chain: EVMChain.baseSepolia,
-                recovery: EVMSigners.email(email)
+                recovery: EVMSigners.email(email),
+                options: options
             )
         case .solana:
             return try await sdk.crossmintWallets.createWallet(
                 chain: SolanaChain.solana,
-                recovery: SolanaSigners.email(email)
+                recovery: SolanaSigners.email(email),
+                options: options
             )
         case .stellar:
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
-                recovery: StellarSigners.email(email)
+                recovery: StellarSigners.email(email),
+                options: options
             )
         }
     }
