@@ -204,7 +204,12 @@ public actor CrossmintAuthManager: AuthManager {
     }
 
     private func getOneTimeSecret() async -> String {
-        return (try? await secureStorage.getOneTimeSecret()) ?? ""
+        do {
+            return try await secureStorage.getOneTimeSecret() ?? ""
+        } catch {
+            Logger.auth.error("Failed to read one-time secret from keychain, treating as non-authenticated: \(error.localizedDescription)")
+            return ""
+        }
     }
 
     private func performJWTRefresh(with oneTimeSecret: String) async throws(AuthError) -> AuthenticationStatus {
