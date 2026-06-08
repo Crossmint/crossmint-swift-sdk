@@ -35,7 +35,7 @@ struct ActivityView: View {
                     List(transfers) { transfer in
                         TransferRow(transfer: transfer)
                     }
-                    .refreshable { await loadTransfers() }
+                    .refreshable { await loadTransfers(isRefresh: true) }
                 }
             }
             .navigationTitle("Activity")
@@ -49,9 +49,9 @@ struct ActivityView: View {
         .task { await loadTransfers() }
     }
 
-    private func loadTransfers() async {
+    private func loadTransfers(isRefresh: Bool = false) async {
         guard let wallet = appState.wallet else { return }
-        isLoading = true
+        if !isRefresh { isLoading = true }
         errorMessage = nil
         do {
             let result = try await wallet.listTransfers(tokens: appState.selectedChain.balanceCurrencies)

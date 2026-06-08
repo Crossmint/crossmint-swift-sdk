@@ -224,12 +224,8 @@ public actor CrossmintAuthManager: AuthManager {
             _authenticationStatus = authStatus
             return authStatus
         } catch {
-            if case .signInRequired = error {
-                _authenticationStatus = .nonAuthenticated
-            } else {
-                _authenticationStatus = nil
-            }
-            throw error
+            _authenticationStatus = .nonAuthenticated
+            throw AuthError.signInRequired
         }
     }
 }
