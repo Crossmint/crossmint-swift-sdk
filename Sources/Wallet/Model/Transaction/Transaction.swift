@@ -159,18 +159,6 @@ public struct Transaction: Sendable, CustomStringConvertible {
         "id: \(id), status: \(status), onChain: \(onChain), params: \(params), walletType: \(walletType), createdAt: \(createdAt), approvals: \(String(describing: approvals)), error: \(String(describing: error))"
     }
 
-    internal func toTransactionResult() -> TransactionResult {
-        TransactionResult(
-            transactionId: id,
-            hash: onChain.txId ?? onChain.userOperationHash,
-            explorerLink: onChain.explorerLink
-        )
-    }
-
-    internal func toPendingTransaction() -> PendingTransaction {
-        PendingTransaction(id: id, status: status)
-    }
-
     internal func toCompleted() -> TransactionCompleted? {
         guard status == .success,
               let txId = onChain.txId,
