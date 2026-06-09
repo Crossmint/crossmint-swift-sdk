@@ -8,8 +8,8 @@ struct OTPSignInView: View {
     @State private var isSigningIn = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @State private var showOTPVerification = false
     @State private var verifiedAuthStatus: AuthenticationStatus?
+    @State private var pendingOTPRequest: OTPRequest?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -52,16 +52,17 @@ struct OTPSignInView: View {
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Alert"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
-        .sheet(isPresented: $showOTPVerification) {
+        .sheet(item: $pendingOTPRequest) { request in
             VerificationView(
                 authenticationStatus: $verifiedAuthStatus,
-                email: email
+                email: email,
+                requestId: request.requestId
             )
             .presentationDetents([.medium])
         }
         .onChange(of: verifiedAuthStatus) { _, value in
             guard let value else { return }
-            showOTPVerification = false
+            pendingOTPRequest = nil
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(AnimationConstants.duration))
                 withAnimation(AnimationConstants.easeInOut()) {
@@ -76,10 +77,10 @@ struct OTPSignInView: View {
         isSigningIn = true
         Task {
             do {
-                try await authManager.sendEmailOtp(email: email)
+                let otpRequest = try await CrossmintSDK.shared.authClient.sendOTP(to: email)
                 isSigningIn = false
-                showOTPVerification = true
-            } catch let authError as AuthManagerError {
+                pendingOTPRequest = otpRequest
+            } catch let authError as AuthError {
                 isSigningIn = false
                 alertMessage = authError.errorMessage
                 showAlert = true

@@ -1,68 +1,37 @@
-import Foundation
 import Testing
 @testable import CrossmintAuth
-import SecureStorage
 
+@Suite("AuthManager", .tags(.unit))
 struct CrossmintAuthManagerTests {
     private let authManager = CrossmintAuthManager(
-        authService: StubAuthService(),
-        secureStorage: StubSecureStorage()
+        authService: MockAuthService(),
+        secureStorage: MockSecureStorage()
     )
 
-    @Test("Throws invalidInput when OTP code is empty")
-    func throwsOnEmptyCode() async {
+    @Test func rejectsEmptyOtpCode() async {
         await #expect(throws: AuthManagerError.invalidInput("OTP code cannot be empty")) {
             _ = try await authManager.confirmEmailOtp(email: "user@example.com", code: "")
         }
     }
 
-    @Test("Throws invalidInput when OTP code is whitespace only")
-    func throwsOnWhitespaceCode() async {
+    @Test func rejectsWhitespaceOtpCode() async {
         await #expect(throws: AuthManagerError.invalidInput("OTP code cannot be empty")) {
             _ = try await authManager.confirmEmailOtp(email: "user@example.com", code: "   ")
         }
     }
 
-    @Test("Does not throw when sending email OTP")
-    func doesNotThrowOnSendEmailOtp() async throws {
+    @Test func sendsOtpToValidEmail() async throws {
         try await authManager.sendEmailOtp(email: "user@example.com")
     }
 
-    @Test("Does not throw when OTP code is non-empty")
-    func doesNotThrowOnNonEmptyCode() async throws {
+    @Test func authenticatesWithValidOtpCode() async throws {
         try await authManager.sendEmailOtp(email: "user@example.com")
         _ = try await authManager.confirmEmailOtp(email: "user@example.com", code: "123456")
     }
-}
 
-// MARK: - Test Doubles
-
-private struct StubAuthService: AuthService {
-    func validateEmail(_ request: ValidateEmailRequest) async throws(AuthError) -> ValidateEmailResponse {
-        ValidateEmailResponse(emailId: "test-email-id")
+    @Test func establishesSessionFromOneTimeSecret() async throws {
+        let session = try await authManager.establishSession(oneTimeSecret: "test-secret")
+        #expect(session.jwt == "test-jwt")
+        #expect(session.email == "user@example.com")
     }
-
-    func validateToken(_ request: ValidateTokenRequest) async throws(AuthError) -> ValidateTokenResponse {
-        ValidateTokenResponse(callbackUrl: "", oneTimeSecret: "test-secret")
-    }
-
-    func refreshJWT(_ request: RefreshJWTRequest) async throws(AuthError) -> RefreshJWTResponse {
-        RefreshJWTResponse(
-            jwt: "test-jwt",
-            refresh: .init(secret: "test-secret", expiresAt: Date().addingTimeInterval(3600)),
-            user: .init(id: "test-id", email: "user@example.com")
-        )
-    }
-
-    func logout(_ request: LogoutRequest) async throws(AuthError) {}
-}
-
-private struct StubSecureStorage: SecureStorage {
-    func getOneTimeSecret() async throws(SecureStorageError) -> String? { nil }
-    func storeOneTimeSecret(_ secret: String) async throws(SecureStorageError) {}
-    func getJWT() async throws(SecureStorageError) -> String? { nil }
-    func storeJWT(_ secret: String) async throws(SecureStorageError) {}
-    func getEmail() async throws(SecureStorageError) -> String? { nil }
-    func storeEmail(_ email: String) async throws(SecureStorageError) {}
-    func clear() {}
 }
