@@ -28,4 +28,10 @@ struct CrossmintAuthManagerTests {
         try await authManager.sendEmailOtp(email: "user@example.com")
         _ = try await authManager.confirmEmailOtp(email: "user@example.com", code: "123456")
     }
+
+    @Test func establishesSessionFromOneTimeSecret() async throws {
+        let session = try await authManager.establishSession(oneTimeSecret: "test-secret")
+        #expect(session.jwt == "test-jwt")
+        #expect(session.email == "user@example.com")
+    }
 }
