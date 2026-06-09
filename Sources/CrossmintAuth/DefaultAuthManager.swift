@@ -31,7 +31,8 @@ public actor CrossmintAuthManager: AuthManager {
     public var authenticationStatus: AuthenticationStatus {
         get async throws(AuthError) {
             guard let authenticationStatus = _authenticationStatus else {
-                return try await performJWTRefresh(with: getOneTimeSecret())
+                let secret = await getOneTimeSecret()
+                return try await performJWTRefresh(with: secret)
             }
             return authenticationStatus
         }
@@ -143,8 +144,12 @@ public actor CrossmintAuthManager: AuthManager {
         _authenticationStatus = authStatus
     }
 
-    private func normalizeEmail(_ email: String) -> String {
-        email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    internal func establishSession(oneTimeSecret: String) async throws(AuthError) -> (jwt: String, email: String) {
+        let authStatus = try await refreshJWT(oneTimeSecret)
+        guard case let .authenticated(email, jwt, _) = authStatus else {
+            throw AuthError.generic("Session could not be established")
+        }
+        return (jwt: jwt, email: email)
     }
 
     private func startEmailValidation(email: String) async throws(AuthError) -> OTPAuthenticationStatus {
@@ -202,12 +207,12 @@ public actor CrossmintAuthManager: AuthManager {
         }
     }
 
-    private func getOneTimeSecret() async throws(AuthError) -> String {
+    private func getOneTimeSecret() async -> String {
         do {
             return try await secureStorage.getOneTimeSecret() ?? ""
         } catch {
-            _authenticationStatus = nil
-            throw AuthError.generic("No one time secret found")
+            Logger.auth.error("Failed to read one-time secret from keychain, treating as non-authenticated: \(error.localizedDescription)")
+            return ""
         }
     }
 
@@ -223,12 +228,8 @@ public actor CrossmintAuthManager: AuthManager {
             _authenticationStatus = authStatus
             return authStatus
         } catch {
-            if case .signInRequired = error {
-                _authenticationStatus = .nonAuthenticated
-            } else {
-                _authenticationStatus = nil
-            }
-            throw error
+            _authenticationStatus = .nonAuthenticated
+            throw AuthError.signInRequired
         }
     }
 }

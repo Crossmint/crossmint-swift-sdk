@@ -40,6 +40,7 @@ final public class CrossmintSDK: ObservableObject {
     public let crossmintWallets: CrossmintWallets
     public let authManager: CrossmintAuthManager
     public let crossmintService: CrossmintService
+    public let authClient: AuthClient
 
     let crossmintTEE: CrossmintTEE
 
@@ -84,6 +85,7 @@ final public class CrossmintSDK: ObservableObject {
         sdk = innerSdk
         crossmintWallets = innerSdk.crossmintWallets()
         self.authManager = authManager
+        self.authClient = innerSdk.authClient
         crossmintService = innerSdk.crossmintService
         crossmintTEE = CrossmintTEE.start(
             auth: authManager,
@@ -99,6 +101,7 @@ final public class CrossmintSDK: ObservableObject {
         } catch {
             Logger.sdk.warn("Logout request failed: \(error) — clearing local state anyway")
         }
+        await authClient.logout()
         crossmintTEE.resetState()
     }
 

@@ -17,7 +17,9 @@ private struct OTPSheetModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: $showOTPView) { OTPValidatorView() }
+            .sheet(isPresented: $showOTPView, onDismiss: { @MainActor in
+                CrossmintSDK.shared.cancelTransaction()
+            }) { OTPValidatorView() }
             .onReceive(CrossmintSDK.shared.isOTPRequired) { showOTPView = $0 }
     }
 }
