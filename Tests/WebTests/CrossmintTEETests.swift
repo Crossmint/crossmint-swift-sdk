@@ -1,6 +1,7 @@
 import CrossmintAuth
 import Foundation
 import Testing
+import WebKit
 @testable import Web
 
 @Suite("CrossmintTEE Tests", .tags(.unit))
@@ -104,6 +105,12 @@ struct CrossmintTEETests {
             #expect(completeOnboardingRequest != nil)
             #expect(completeOnboardingRequest?.data.data.onboardingAuthentication.encryptedOtp == otp)
         }
+    }
+
+    @Test("Signer data store is non-persistent so no signer state is written to disk")
+    func testSignerDataStoreIsNonPersistent() {
+        let fixture = TestFixture()
+        #expect(fixture.tee.signerDataStore.isPersistent == false)
     }
 
     @Test("Successfully completes handshake on first attempt")
