@@ -101,6 +101,7 @@ final public class CrossmintSDK: ObservableObject {
         } catch {
             Logger.sdk.warn("Logout request failed: \(error) — clearing local state anyway")
         }
+        await authClient.logout()
         crossmintTEE.resetState()
     }
 
