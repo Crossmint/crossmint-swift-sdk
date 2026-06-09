@@ -30,6 +30,9 @@ public struct CrossmintWebView: UIViewRepresentable {
         Task { @MainActor in try? await tee.load() }
 
         let configuration = WKWebViewConfiguration()
+        // Force the signer web view onto the TEE's non-persistent store so no signer
+        // state is written to disk and each cold start re-runs OTP onboarding.
+        configuration.websiteDataStore = tee.signerDataStore
         let userContentController = WKUserContentController()
 
         let communicationScript = WKUserScript(

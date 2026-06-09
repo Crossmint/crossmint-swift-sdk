@@ -2,6 +2,7 @@
 import CrossmintAuth
 import Combine
 import Logger
+import WebKit
 
 extension Logger {
     static let tee = Logger(category: "TEE")
@@ -45,6 +46,12 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     public let webProxy: WebViewCommunicationProxy
+
+    // Non-persistent (in-memory) data store for the signer web view. iOS doesn't
+    // guarantee cross-launch persistence for this embedded, non-interactive WKWebView,
+    // so rather than relying on it we re-run OTP onboarding once per cold start. Held as
+    // one reused instance so the credential survives view re-creation within a session.
+    let signerDataStore: WKWebsiteDataStore = .nonPersistent()
 
     private let url: URL
     private var handshakeState: HandshakeState = .idle
