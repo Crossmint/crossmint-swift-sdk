@@ -95,6 +95,12 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
+        // Force an OTP on every signature: wipe the signer's in-memory storage (the
+        // frame's device identity key lives in IndexedDB) and reset the session, so the
+        // web app reloads as a brand-new device and re-runs the OTP onboarding.
+        await clearSignerStorageForReonboarding()
+        resetState()
+
         if case .completed = handshakeState {
             return try await executeSignTransaction(
                 transaction: transaction,
@@ -185,6 +191,17 @@ public final class CrossmintTEE: ObservableObject {
         failAllQueuedRequests(with: .generic("State was reset"))
         webProxy.resetLoadedContent()
         Logger.tee.debug(LogEvents.resetStateSuccess)
+    }
+
+    /// Clears all signer web storage (including the frame's device identity key in
+    /// IndexedDB) so the next handshake comes up as a brand-new device. Used to force
+    /// the OTP onboarding to run again on every signature.
+    private func clearSignerStorageForReonboarding() async {
+        Logger.tee.debug("Clearing signer web storage to force re-onboarding for this signature")
+        await signerDataStore.removeData(
+            ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
+            modifiedSince: .distantPast
+        )
     }
 
     public func load() async throws(Error) {
