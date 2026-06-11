@@ -13,7 +13,7 @@ struct AuthenticatedCrossmintService: CrossmintService {
         _ endpoint: Endpoint,
         errorType: E.Type,
         _ transform: (NetworkError) -> E?
-    ) async throws(E) -> T where T: Decodable, E: ServiceError {
+    ) async throws(E) -> T where T: Decodable, E: CrossmintMappableError {
         try await base.executeRequest(await withAuth(endpoint), errorType: errorType, transform)
     }
 
@@ -21,7 +21,7 @@ struct AuthenticatedCrossmintService: CrossmintService {
         _ endpoint: Endpoint,
         errorType: E.Type,
         _ transform: (NetworkError) -> E?
-    ) async throws(E) where E: ServiceError {
+    ) async throws(E) where E: CrossmintMappableError {
         try await base.executeRequest(await withAuth(endpoint), errorType: errorType, transform)
     }
 
@@ -29,7 +29,7 @@ struct AuthenticatedCrossmintService: CrossmintService {
         _ endpoint: Endpoint,
         errorType: E.Type,
         _ transform: (NetworkError) -> E?
-    ) async throws(E) -> Data where E: ServiceError {
+    ) async throws(E) -> Data where E: CrossmintMappableError {
         try await base.executeRequestForRawData(await withAuth(endpoint), errorType: errorType, transform)
     }
 

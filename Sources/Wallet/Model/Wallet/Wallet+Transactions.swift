@@ -15,7 +15,7 @@ extension Wallet {
         do {
             try await preAuthIfNeeded()
         } catch {
-            throw .transactionGeneric(error.errorMessage)
+            throw .transactionGeneric(error.message)
         }
 
         do {
@@ -171,7 +171,7 @@ extension Wallet {
         _ transactionRequest: any TransactionRequest
     ) async throws(TransactionError) -> Transaction? {
         do { try await preAuthIfNeeded() } catch {
-            throw .transactionGeneric(error.errorMessage)
+            throw .transactionGeneric(error.message)
         }
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
@@ -207,7 +207,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         idempotencyKey: String? = nil
     ) async throws(TransactionError) -> Transaction? {
         do { try await preAuthIfNeeded() } catch {
-            throw .transactionGeneric(error.errorMessage)
+            throw .transactionGeneric(error.message)
         }
         onTransactionStart?()
         if let storage = deviceSignerKeyStorage {
