@@ -62,11 +62,7 @@ final class SignerRegistrationService: Sendable {
         do {
             try await signer.initialize(smartWalletService)
             for approval in pending {
-                let signRequest = SignRequestApi(
-                    approvals: try await signer.approvals(
-                        withSignature: try await signer.sign(message: approval.message)
-                    )
-                )
+                let signRequest = try await makeSignRequest(signer: signer, message: approval.message)
                 try await smartWalletService.approveSignature(
                     .init(transactionId: signatureId, apiRequest: signRequest, chainType: chainType)
                 )
@@ -90,11 +86,7 @@ final class SignerRegistrationService: Sendable {
             guard let pending = transaction.approvals?.pending, !pending.isEmpty else { return }
             try await signer.initialize(smartWalletService)
             for approval in pending {
-                let signRequest = SignRequestApi(
-                    approvals: try await signer.approvals(
-                        withSignature: try await signer.sign(message: approval.message)
-                    )
-                )
+                let signRequest = try await makeSignRequest(signer: signer, message: approval.message)
                 _ = try await smartWalletService.signTransaction(
                     .init(transactionId: transactionId, apiRequest: signRequest, chainType: chainType)
                 )
@@ -102,5 +94,13 @@ final class SignerRegistrationService: Sendable {
         } catch {
             throw WalletError.walletGeneric("Failed to approve signer registration: \(error)")
         }
+    }
+
+    private func makeSignRequest(signer: any Signer, message: String) async throws(SignerError) -> SignRequestApi {
+        SignRequestApi(
+            approvals: try await signer.approvals(
+                withSignature: try await signer.sign(message: message)
+            )
+        )
     }
 }
