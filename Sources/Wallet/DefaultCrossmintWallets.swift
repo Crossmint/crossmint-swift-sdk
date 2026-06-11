@@ -78,13 +78,12 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         try assertValid(chain)
 
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
-        let creationDeviceSignerStorage = chain.chainType == .solana ? nil : deviceSignerStorage
         let walletApiModel = try await createWalletApiModel(
             signer: recovery,
             chainType: chain.chainType,
             walletType: .smart,
             options: options,
-            deviceSignerStorage: creationDeviceSignerStorage
+            deviceSignerStorage: deviceSignerStorage
         )
 
         let wallet = try buildWallet(
@@ -166,7 +165,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         var delegatedSigners: [DelegatedSignerEntry]?
         var pendingPublicKeyBase64: String?
 
-        if let storage = deviceSignerStorage {
+        if let storage = deviceSignerStorage, chainType != .solana {
             do {
                 let publicKeyBase64 = try await storage.generateKey(address: nil)
                 let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
