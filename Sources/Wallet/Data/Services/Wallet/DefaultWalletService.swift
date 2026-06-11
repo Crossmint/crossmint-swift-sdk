@@ -121,8 +121,8 @@ struct DefaultWalletService: WalletService {
             .meWalletSigners(chainType: chainType, body: bodyData),
             errorType: WalletError.self
         ) { networkError in
-            Self.deviceSignerNotSupportedError(code: networkError.serviceErrorCode,
-                                               message: networkError.serviceErrorMessage)
+            deviceSignerNotSupportedError(code: networkError.serviceErrorCode,
+                                          message: networkError.serviceErrorMessage)
         }
         guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {
             throw WalletError.walletGeneric("Failed to decode signer registration response")
@@ -130,10 +130,8 @@ struct DefaultWalletService: WalletService {
         return result
     }
 
-    private static let deviceSignerNotSupportedCode = "DEVICE_SIGNER_NOT_SUPPORTED"
-
-    private static func deviceSignerNotSupportedError(code: String?, message: String?) -> WalletError? {
-        guard code == deviceSignerNotSupportedCode else { return nil }
+    private func deviceSignerNotSupportedError(code: String?, message: String?) -> WalletError? {
+        guard code == "DEVICE_SIGNER_NOT_SUPPORTED" else { return nil }
         return .deviceSignerNotSupported(
             message ?? "Device signers are not supported for this wallet's provider."
         )
