@@ -55,9 +55,9 @@ extension Wallet {
     /// registered but the private key is missing on the current device. This generates a new key,
     /// registers it with Crossmint, and awaits approval from the existing admin signer.
     ///
-    /// If the wallet's provider does not support device signers (e.g. a Squads-backed Solana
-    /// wallet), this returns without error and signing stays on the recovery signer; the
-    /// rejection is remembered so registration is not retried for this wallet instance.
+    /// If the wallet's provider does not support device signers, this returns without error
+    /// and signing stays on the recovery signer; the rejection is remembered so registration
+    /// is not retried for this wallet instance.
     ///
     /// - Throws: ``WalletError`` if recovery fails or there is no device signer configured.
     public func recover() async throws(WalletError) {

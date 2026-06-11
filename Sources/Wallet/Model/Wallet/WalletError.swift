@@ -16,10 +16,10 @@ public enum WalletError: CrossmintError {
     case invalidChain(chain: Chain)
     case invalidToken(token: CryptoCurrency)
     case signerNotRegistered(String)
-    /// The wallet's underlying provider does not support device signers
-    /// (e.g. a Squads-backed Solana wallet). Surfaced from the backend's
-    /// stable `DEVICE_SIGNER_NOT_SUPPORTED` error code; ``Wallet/recover()``
-    /// catches it and falls back to the recovery signer.
+    /// The wallet's underlying provider does not support device signers,
+    /// surfaced from the backend's stable `DEVICE_SIGNER_NOT_SUPPORTED`
+    /// error code. ``Wallet/recover()`` catches it and falls back to the
+    /// recovery signer.
     case deviceSignerNotSupported(String)
 
     public var code: String {
