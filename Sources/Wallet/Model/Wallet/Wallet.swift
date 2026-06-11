@@ -28,6 +28,9 @@ open class Wallet: @unchecked Sendable {
     var selectedSignerLocator: String?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
+    // Set when the backend rejects device-signer registration with DEVICE_SIGNER_NOT_SUPPORTED
+    // (e.g. Squads on Solana) so registration isn't retried; signing stays on the recovery signer.
+    var _deviceSignerUnsupported: Bool = false
     var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 

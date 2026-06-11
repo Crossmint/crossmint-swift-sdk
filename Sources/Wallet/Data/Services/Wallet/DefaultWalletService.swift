@@ -120,11 +120,24 @@ struct DefaultWalletService: WalletService {
         let responseData = try await crossmintService.executeRequestForRawData(
             .meWalletSigners(chainType: chainType, body: bodyData),
             errorType: WalletError.self
-        )
+        ) { networkError in
+            Self.deviceSignerNotSupportedError(code: networkError.serviceErrorCode,
+                                               message: networkError.serviceErrorMessage)
+        }
         guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {
             throw WalletError.walletGeneric("Failed to decode signer registration response")
         }
         return result
+    }
+
+    // Must match the backend constant, which returns this code on a 400 response.
+    private static let deviceSignerNotSupportedCode = "DEVICE_SIGNER_NOT_SUPPORTED"
+
+    private static func deviceSignerNotSupportedError(code: String?, message: String?) -> WalletError? {
+        guard code == deviceSignerNotSupportedCode else { return nil }
+        return .deviceSignerNotSupported(
+            message ?? "Device signers are not supported for this wallet's provider."
+        )
     }
 
     private func signerRegistrationChain(chainType: ChainType, chainName: String) -> String? {

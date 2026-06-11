@@ -54,6 +54,9 @@ final class DeviceSignerService: Sendable {
         } catch {
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+            if case .deviceSignerNotSupported = error {
+                throw error
+            }
             throw WalletError.walletGeneric("Failed to register device signer: \(error)")
         }
 
@@ -92,7 +95,9 @@ final class DeviceSignerService: Sendable {
         return "device:\(publicKeyBase64)"
     }
 
-    func ensureRegistered(storage: any DeviceSignerKeyStorage, signer: any Signer) async {
+    // Best-effort: failures are swallowed so a transfer never breaks on registration, except
+    // deviceSignerNotSupported, rethrown so the wallet can remember it and stop retrying.
+    func ensureRegistered(storage: any DeviceSignerKeyStorage, signer: any Signer) async throws(WalletError) {
         guard await storage.getKey(address: address) == nil else { return }
         Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: ["address": address])
         do {
@@ -100,6 +105,9 @@ final class DeviceSignerService: Sendable {
             Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerSuccess, attributes: ["address": address])
         } catch {
             Logger.smartWallet.warn(LogEvents.walletAddDelegatedSignerError, attributes: ["error": "\(error)"])
+            if case .deviceSignerNotSupported = error {
+                throw error
+            }
         }
     }
 

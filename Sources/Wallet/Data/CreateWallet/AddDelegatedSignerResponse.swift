@@ -8,6 +8,19 @@ public struct ChainRegistrationEntry: Decodable {
     public let approvals: RegistrationApprovals?
 }
 
+/// Pending transaction returned when registering a signer on Solana/Stellar wallets,
+/// which approve registrations through a regular transaction instead of the per-chain
+/// entries EVM returns under `chains`.
+public struct RegistrationTransaction: Decodable {
+    public let id: String?
+}
+
 public struct AddDelegatedSignerResponse: Decodable {
     public let chains: [String: ChainRegistrationEntry]?
+    public let transaction: RegistrationTransaction?
+
+    init(chains: [String: ChainRegistrationEntry]?, transaction: RegistrationTransaction? = nil) {
+        self.chains = chains
+        self.transaction = transaction
+    }
 }

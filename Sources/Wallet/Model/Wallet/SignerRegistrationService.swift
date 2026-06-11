@@ -39,12 +39,26 @@ final class SignerRegistrationService: Sendable {
     }
 
     func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {
-        guard let chainEntry = registration.chains?[chainName],
-              chainEntry.status == "awaiting-approval",
-              let signatureId = chainEntry.id,
-              let pending = chainEntry.approvals?.pending, !pending.isEmpty
-        else { return }
+        if let chainEntry = registration.chains?[chainName],
+           chainEntry.status == "awaiting-approval",
+           let signatureId = chainEntry.id,
+           let pending = chainEntry.approvals?.pending, !pending.isEmpty {
+            try await approveSignatureRegistration(signatureId: signatureId, pending: pending, signer: signer)
+            return
+        }
 
+        // Solana and Stellar registrations carry a pending transaction instead of
+        // per-chain entries; its approvals must be fetched and signed to finish.
+        if let transactionId = registration.transaction?.id {
+            try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
+        }
+    }
+
+    private func approveSignatureRegistration(
+        signatureId: String,
+        pending: [ApprovalEntry],
+        signer: any Signer
+    ) async throws(WalletError) {
         do {
             try await signer.initialize(smartWalletService)
             for approval in pending {
@@ -55,6 +69,34 @@ final class SignerRegistrationService: Sendable {
                 )
                 try await smartWalletService.approveSignature(
                     .init(transactionId: signatureId, apiRequest: signRequest, chainType: chainType)
+                )
+            }
+        } catch {
+            throw WalletError.walletGeneric("Failed to approve signer registration: \(error)")
+        }
+    }
+
+    private func approveRegistrationTransaction(
+        transactionId: String,
+        signer: any Signer
+    ) async throws(WalletError) {
+        do {
+            let transactionModel = try await smartWalletService.fetchTransaction(
+                .init(transactionId: transactionId, chainType: chainType)
+            )
+            guard let transaction = transactionModel.toDomain(withService: smartWalletService) else {
+                throw TransactionError.transactionGeneric("Failed to decode signer registration transaction")
+            }
+            guard let pending = transaction.approvals?.pending, !pending.isEmpty else { return }
+            try await signer.initialize(smartWalletService)
+            for approval in pending {
+                let signRequest = SignRequestApi(
+                    approvals: try await signer.approvals(
+                        withSignature: try await signer.sign(message: approval.message)
+                    )
+                )
+                _ = try await smartWalletService.signTransaction(
+                    .init(transactionId: transactionId, apiRequest: signRequest, chainType: chainType)
                 )
             }
         } catch {

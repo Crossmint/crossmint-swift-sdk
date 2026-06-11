@@ -44,6 +44,23 @@ public enum NetworkError: LocalizedError {
         }
     }
 
+    /// The stable `code` field from the error response body, when present.
+    ///
+    /// The Crossmint API attaches machine-readable codes (e.g. `DEVICE_SIGNER_NOT_SUPPORTED`)
+    /// to some error responses so callers can branch on them instead of parsing messages.
+    public var serviceErrorCode: String? {
+        guard let errorData = errorData else { return nil }
+        do {
+            guard let jsonObject = try JSONSerialization.jsonObject(with: errorData, options: []) as? [String: Any],
+                  let code = jsonObject["code"] as? String else {
+                return nil
+            }
+            return code
+        } catch {
+            return nil
+        }
+    }
+
     private var errorData: Data? {
         switch self {
         case .badRequest(let data),

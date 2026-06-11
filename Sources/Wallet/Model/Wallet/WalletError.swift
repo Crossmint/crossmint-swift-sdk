@@ -16,6 +16,11 @@ public enum WalletError: CrossmintError {
     case invalidChain(chain: Chain)
     case invalidToken(token: CryptoCurrency)
     case signerNotRegistered(String)
+    /// The wallet's underlying provider does not support device signers
+    /// (e.g. a Squads-backed Solana wallet). Surfaced from the backend's
+    /// stable `DEVICE_SIGNER_NOT_SUPPORTED` error code; ``Wallet/recover()``
+    /// catches it and falls back to the recovery signer.
+    case deviceSignerNotSupported(String)
 
     public var code: String {
         switch self {
@@ -32,6 +37,7 @@ public enum WalletError: CrossmintError {
         case .invalidChain: "INVALID_CHAIN"
         case .invalidToken: "INVALID_TOKEN"
         case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
+        case .deviceSignerNotSupported: "DEVICE_SIGNER_NOT_SUPPORTED"
         }
     }
 
@@ -59,6 +65,8 @@ public enum WalletError: CrossmintError {
             "Invalid token: \(token.name)"
         case .signerNotRegistered(let locator):
             "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
+        case .deviceSignerNotSupported(let message):
+            message
         }
     }
 
@@ -74,6 +82,8 @@ public enum WalletError: CrossmintError {
             "Check the list of supported chains for this environment."
         case .walletLocatorError:
             "Ensure the wallet locator is in the correct format."
+        case .deviceSignerNotSupported:
+            "Use the recovery signer or another registered signer for this wallet."
         default:
             nil
         }
