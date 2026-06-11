@@ -11,7 +11,8 @@ private final class SpyProvider: LoggerProvider, @unchecked Sendable {
     func error(_ message: String, attributes: [String: Encodable]?) { calls.append("error") }
 }
 
-@Suite("LogLevel.none suppresses all output")
+// Serialized: both tests mutate the shared Logger.level global and would race in parallel
+@Suite("LogLevel.none suppresses all output", .serialized)
 struct LogLevelNoneTests {
     @Test("none rawValue is greater than error rawValue")
     func noneRawValueIsAboveError() {
