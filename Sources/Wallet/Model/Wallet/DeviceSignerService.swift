@@ -60,22 +60,24 @@ final class DeviceSignerService: Sendable {
             throw WalletError.walletGeneric("Failed to register device signer: \(error)")
         }
 
-        if let chainEntry = registration.chains?[chainName],
-           chainEntry.status == "awaiting-approval",
-           let signatureId = chainEntry.id {
+        let chainEntry = registration.chains?[chainName]
+        let pendingApprovalId = chainEntry?.status == "awaiting-approval" ? chainEntry?.id : registration.transaction?.id
+        if let pendingApprovalId {
             Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerAwaitingApproval, attributes: [
-                "signatureId": signatureId
+                "approvalId": pendingApprovalId
             ])
-            do {
-                try await registrationService.approveIfNeeded(registration: registration, signer: signer)
+        }
+        do {
+            try await registrationService.approveIfNeeded(registration: registration, signer: signer)
+            if let pendingApprovalId {
                 Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerApproved, attributes: [
-                    "signatureId": signatureId
+                    "approvalId": pendingApprovalId
                 ])
-            } catch {
-                try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
-                Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
-                throw error
             }
+        } catch {
+            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+            Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
+            throw error
         }
 
         do {
