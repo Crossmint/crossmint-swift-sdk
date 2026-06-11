@@ -47,8 +47,6 @@ final class SignerRegistrationService: Sendable {
             return
         }
 
-        // Solana and Stellar registrations carry a pending transaction instead of
-        // per-chain entries; its approvals must be fetched and signed to finish.
         if let transactionId = registration.transaction?.id {
             try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
         }

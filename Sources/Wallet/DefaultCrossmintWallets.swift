@@ -78,9 +78,6 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         try assertValid(chain)
 
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
-        // Solana skips the eager attach: device-signer support depends on the wallet's
-        // provider, only known server-side. The first recover() registers the signer
-        // instead, falling back to the recovery signer if the provider rejects it.
         let creationDeviceSignerStorage = chain.chainType == .solana ? nil : deviceSignerStorage
         let walletApiModel = try await createWalletApiModel(
             signer: recovery,

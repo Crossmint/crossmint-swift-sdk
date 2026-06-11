@@ -1,8 +1,6 @@
 import DeviceSigner
 import Foundation
 
-/// In-memory `DeviceSignerKeyStorage` that tracks deletions, so tests can assert
-/// key-wipe behavior without touching the Keychain.
 final class MockDeviceSignerKeyStorage: DeviceSignerKeyStorage, @unchecked Sendable {
     private(set) var keysByAddress: [String: String] = [:]
     private(set) var pendingKeys: Set<String> = []

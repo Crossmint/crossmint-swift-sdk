@@ -258,8 +258,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 )
             } catch {
                 if case .deviceSignerNotSupported = error {
-                    // The provider rejected the device signer; remember it and let the
-                    // transfer continue on the recovery signer.
                     _deviceSignerUnsupported = true
                 }
             }

@@ -95,8 +95,6 @@ final class DeviceSignerService: Sendable {
         return "device:\(publicKeyBase64)"
     }
 
-    // Best-effort: failures are swallowed so a transfer never breaks on registration, except
-    // deviceSignerNotSupported, rethrown so the wallet can remember it and stop retrying.
     func ensureRegistered(storage: any DeviceSignerKeyStorage, signer: any Signer) async throws(WalletError) {
         guard await storage.getKey(address: address) == nil else { return }
         Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: ["address": address])

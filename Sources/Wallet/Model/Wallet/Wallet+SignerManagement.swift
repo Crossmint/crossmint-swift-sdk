@@ -64,8 +64,6 @@ extension Wallet {
         Logger.smartWallet.info(LogEvents.walletRecoverStart)
         await signerInitializationTask?.value
         if _deviceSignerUnsupported {
-            // The provider already rejected device signers for this wallet — there is
-            // nothing to recover; signing stays on the recovery signer.
             Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
             _needsRecovery = false
             return
@@ -96,8 +94,6 @@ extension Wallet {
         }
     }
 
-    // Provider support is only known server-side, so the rejection is remembered to stop
-    // further registration attempts and the unusable local key is wiped.
     private func fallBackToRecoverySigner(storage: any DeviceSignerKeyStorage) async {
         Logger.smartWallet.info(LogEvents.walletRecoverDeviceSignerUnsupported)
         try? await storage.deleteKey(address: address)

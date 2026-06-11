@@ -13,8 +13,6 @@ struct DefaultCrossmintWalletsTests {
         func getPrivateKey(forEmail email: String) -> String? { nil }
     }
 
-    // Solana must not include a device signer in the create request: provider support is
-    // only known server-side, so registration defers to the first recover().
     @Test
     func skipsEagerDeviceSignerAttachForSolanaWallets() async throws {
         let walletService = MockSmartWalletService()

@@ -130,7 +130,6 @@ struct DefaultWalletService: WalletService {
         return result
     }
 
-    // Must match the backend constant, which returns this code on a 400 response.
     private static let deviceSignerNotSupportedCode = "DEVICE_SIGNER_NOT_SUPPORTED"
 
     private static func deviceSignerNotSupportedError(code: String?, message: String?) -> WalletError? {
