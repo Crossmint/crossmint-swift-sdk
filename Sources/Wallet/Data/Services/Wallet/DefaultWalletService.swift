@@ -121,8 +121,10 @@ struct DefaultWalletService: WalletService {
             .meWalletSigners(chainType: chainType, body: bodyData),
             errorType: WalletError.self
         ) { networkError in
-            deviceSignerNotSupportedError(code: networkError.serviceErrorCode,
-                                          message: networkError.serviceErrorMessage)
+            deviceSignerNotSupportedError(
+                code: networkError.serviceErrorCode,
+                message: networkError.serviceErrorMessage
+            )
         }
         guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {
             throw WalletError.walletGeneric("Failed to decode signer registration response")
