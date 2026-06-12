@@ -90,3 +90,13 @@ jobs:
         gh release create "${{ inputs.version }}" \
           --title "Release ${{ inputs.version }}" \
           --generate-notes
+
+  # The tag above is pushed with GITHUB_TOKEN, whose events don't trigger
+  # workflows — call the docs generation workflow directly instead.
+  generate-docs:
+    name: Generate SDK Reference Docs
+    needs: release
+    uses: ./.github/workflows/sdk-reference-docs-generate.yml
+    with:
+      ref: ${{ inputs.version }}
+    secrets: inherit

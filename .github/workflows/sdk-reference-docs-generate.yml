@@ -1,0 +1,82 @@
+name: SDK Reference Docs Generate
+# On every version tag, generates the Swift SDK reference docs (DocC → MDX),
+# uploads them as an artifact, and dispatches to crossbit-main where the receiver
+# workflow copies them into the Mintlify docs and opens a PR for review.
+# Releases created by release.yml use GITHUB_TOKEN, whose events don't trigger
+# workflows — release.yml calls this workflow directly via workflow_call instead.
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to generate docs from (defaults to the triggering ref)"
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to generate docs from"
+        required: false
+        type: string
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-reference-docs-generate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-docs:
+    name: Generate SDK Reference Docs
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.5'
+
+      - name: Generate MDX docs
+        run: make docs DOCS_OUTPUT=sdk-reference/wallets/swift
+
+      - name: Verify docs were generated
+        run: |
+          if [ -z "$(find sdk-reference/ -name '*.mdx' -print -quit)" ]; then
+            echo "No MDX files generated"
+            exit 1
+          fi
+
+      - name: Upload generated docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-reference-docs
+          path: sdk-reference/
+          retention-days: 7
+
+      - name: Generate App Token
+        id: generate_app_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.CROSSMINT_DEPLOY_BOT_APP_ID }}
+          private-key: ${{ secrets.CROSSMINT_DEPLOY_BOT_PRIVATE_KEY }}
+          owner: Paella-Labs
+          repositories: crossbit-main
+
+      - name: Dispatch to crossbit-main
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4
+        with:
+          token: ${{ steps.generate_app_token.outputs.token }}
+          repository: Paella-Labs/crossbit-main
+          event-type: sdk-reference-docs-update
+          client-payload: '{"run_id": "${{ github.run_id }}", "packages": "swift", "source_repo": "Crossmint/crossmint-swift-sdk", "source_ref": ${{ toJSON(inputs.ref || github.ref_name) }}}'
