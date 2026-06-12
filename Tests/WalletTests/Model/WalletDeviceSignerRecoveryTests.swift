@@ -91,6 +91,24 @@ struct WalletDeviceSignerRecoveryTests {
         }
 
         @Test
+        func remembersTheRejectionFromAnExplicitAddSigner() async throws {
+            let walletService = MockSmartWalletService()
+            let storage = MockDeviceSignerKeyStorage()
+            let wallet = try makeRejectedSolanaWallet(walletService: walletService, storage: storage)
+
+            await #expect {
+                try await wallet.addSigner(.device)
+            } throws: { error in
+                guard case .deviceSignerNotSupported = error as? WalletError else { return false }
+                return true
+            }
+
+            #expect(await wallet.needsRecovery() == false)
+            try await wallet.recover()
+            #expect(walletService.addSignerCallCount == 1)
+        }
+
+        @Test
         func throwsTypedErrorWhenSelectingTheDeviceSigner() async throws {
             let walletService = MockSmartWalletService()
             let storage = MockDeviceSignerKeyStorage()

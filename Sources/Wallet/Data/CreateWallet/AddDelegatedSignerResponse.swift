@@ -12,15 +12,10 @@ public struct ChainRegistrationEntry: Decodable {
 /// which approve registrations through a regular transaction instead of the per-chain
 /// entries EVM returns under `chains`.
 public struct RegistrationTransaction: Decodable {
-    public let id: String?
+    public let id: String
 }
 
 public struct AddDelegatedSignerResponse: Decodable {
     public let chains: [String: ChainRegistrationEntry]?
     public let transaction: RegistrationTransaction?
-
-    init(chains: [String: ChainRegistrationEntry]?, transaction: RegistrationTransaction? = nil) {
-        self.chains = chains
-        self.transaction = transaction
-    }
 }

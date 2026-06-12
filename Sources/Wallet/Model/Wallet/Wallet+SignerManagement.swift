@@ -45,6 +45,10 @@ extension Wallet {
             guard let walletError = error as? WalletError else {
                 throw WalletError.walletGeneric(error.localizedDescription)
             }
+            if case .deviceSignerNotSupported = walletError {
+                _deviceSignerUnsupported = true
+                _needsRecovery = false
+            }
             throw walletError
         }
     }
