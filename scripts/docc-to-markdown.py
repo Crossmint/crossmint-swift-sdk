@@ -154,73 +154,6 @@ def render_content(content: list, indent: int = 0, base_heading_level: int = 2, 
     return "".join(result)
 
 
-def is_inherited_or_extension(data: dict) -> bool:
-    """Check if documentation is inherited from another module (e.g., SwiftUI, Foundation)."""
-    metadata = data.get("metadata", {})
-
-    # Check if it's a default implementation or extension
-    role = metadata.get("role", "")
-    if role in ("collectionGroup",):
-        return True
-
-    # Check extendedModule - if it extends an Apple framework, skip
-    extended_module = metadata.get("extendedModule", "")
-    apple_modules = {
-        "SwiftUI", "SwiftUICore", "Foundation", "Combine", "Swift",
-        "UIKit", "AppKit", "CoreFoundation", "Observation"
-    }
-    if extended_module in apple_modules:
-        return True
-
-    # Check if it's a synthesized symbol (from protocol extensions)
-    external_id = metadata.get("externalID", "")
-    if "SYNTHESIZED" in external_id:
-        return True
-
-    # Check related modules
-    modules = metadata.get("modules", [])
-    for module in modules:
-        related = module.get("relatedModules", [])
-        if any(rm in apple_modules for rm in related):
-            return True
-
-    # Check for extension symbols (usually have "-implementations" in the title)
-    title = metadata.get("title", "")
-    if "-implementations" in title.lower() or "-implementation" in title.lower():
-        return True
-
-    return False
-
-
-def has_documentation(data: dict) -> bool:
-    """Check if the symbol has actual user-written documentation."""
-    abstract = data.get("abstract", [])
-
-    # Empty abstract = no documentation
-    if not abstract:
-        return False
-
-    # Check for auto-generated "Inherited from" pattern
-    for item in abstract:
-        if item.get("type") == "text":
-            text = item.get("text", "")
-            if "Inherited from" in text:
-                return False
-
-    # Single text element = user-written documentation
-    if len(abstract) == 1 and abstract[0].get("type") == "text":
-        return True
-
-    # Multiple elements but contains user content (text + codeVoice for inline code)
-    # This captures docs like: "A publisher that emits `true` when..."
-    has_text = any(item.get("type") == "text" for item in abstract)
-    has_code_voice = any(item.get("type") == "codeVoice" for item in abstract)
-    if has_text and has_code_voice:
-        return True
-
-    return False
-
-
 def load_json_file(json_path: Path) -> dict | None:
     """Load and parse a JSON file."""
     try:
@@ -279,7 +212,7 @@ def render_child_symbol(data: dict, heading_level: int = 3) -> str:
     return "".join(md)
 
 
-def json_to_mdx(json_path: Path, data: dict, require_docs: bool = False) -> str | None:
+def json_to_mdx(json_path: Path, data: dict) -> str | None:
     """Convert a loaded DocC JSON document to MDX, including child symbols inline."""
     metadata = data.get("metadata", {})
     title = metadata.get("title", "")
@@ -287,13 +220,6 @@ def json_to_mdx(json_path: Path, data: dict, require_docs: bool = False) -> str 
 
     if not title:
         return None
-
-    # Skip symbols without actual documentation if required
-    if require_docs:
-        if not has_documentation(data):
-            return None
-        if is_inherited_or_extension(data):
-            return None
 
     references = data.get("references", {})
 
@@ -405,7 +331,6 @@ def is_top_level_symbol(json_path: Path, data_path: Path) -> bool:
 def generate_mdx_files(
     archive_path: Path,
     output_dir: Path,
-    require_docs: bool = False,
     modules: list[str] | None = None,
     written: dict[Path, Path] | None = None
 ) -> int:
@@ -421,8 +346,8 @@ def generate_mdx_files(
     if written is None:
         written = {}
 
-    # Process only top-level JSON files
-    for json_file in data_path.rglob("*.json"):
+    # Sorted so collisions resolve the same way regardless of filesystem order.
+    for json_file in sorted(data_path.rglob("*.json")):
         # Get relative path from data/documentation
         rel_path = json_file.relative_to(data_path)
 
@@ -443,7 +368,7 @@ def generate_mdx_files(
             continue
 
         # Convert to MDX with children inline
-        mdx_content = json_to_mdx(json_file, data, require_docs=require_docs)
+        mdx_content = json_to_mdx(json_file, data)
         if not mdx_content:
             continue
 
@@ -487,11 +412,6 @@ def main():
         help="Output directory for MDX files"
     )
     parser.add_argument(
-        "--documented-only",
-        action="store_true",
-        help="Only generate files for symbols with actual documentation"
-    )
-    parser.add_argument(
         "--modules", "-m",
         nargs="+",
         help="Only generate docs for specified modules (e.g., crossmintclient wallet)"
@@ -516,7 +436,6 @@ def main():
         count += generate_mdx_files(
             archive,
             args.output,
-            require_docs=args.documented_only,
             modules=args.modules,
             written=written
         )
