@@ -7,8 +7,7 @@ name: SDK Reference Docs Generate
 
 on:
   push:
-    tags:
-      - "[0-9]+.[0-9]+.[0-9]+*"
+    branches: ["tomas/dvrl-1199-docs-generate-workflow"]
   workflow_dispatch:
     inputs:
       ref:
@@ -45,7 +44,7 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.5'
+          xcode-version: "26.5"
 
       - name: Generate MDX docs
         run: make docs DOCS_OUTPUT=sdk-reference/wallets/swift
