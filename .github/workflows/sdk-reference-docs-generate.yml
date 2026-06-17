@@ -1,13 +1,18 @@
 name: SDK Reference Docs Generate
-# On every version tag, generates the Swift SDK reference docs (DocC → MDX),
-# uploads them as an artifact, and dispatches to crossbit-main where the receiver
-# workflow copies them into the Mintlify docs and opens a PR for review.
-# Releases created by release.yml use GITHUB_TOKEN, whose events don't trigger
-# workflows — release.yml calls this workflow directly via workflow_call instead.
+# On pushes to main that touch the SDK source or docs tooling, generates the
+# Swift SDK reference docs (DocC → MDX), uploads them as an artifact, and
+# dispatches to crossbit-main where the receiver workflow copies them into the
+# Mintlify docs and opens a PR for review.
+# Releases also invoke this workflow directly via workflow_call from release.yml.
 
 on:
   push:
-    branches: ["tomas/dvrl-1199-docs-generate-workflow"]
+    branches: ["main"]
+    paths:
+      - "Sources/**"
+      - "scripts/docc-to-markdown.py"
+      - "Makefile"
+      - "Package.swift"
   workflow_dispatch:
     inputs:
       ref:
