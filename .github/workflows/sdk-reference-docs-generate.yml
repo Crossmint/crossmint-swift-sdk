@@ -7,7 +7,7 @@ name: SDK Reference Docs Generate
 
 on:
   push:
-    branches: ["main"]
+    branches: ["tomas/dvrl-1199-docs-generate-workflow"]
     paths:
       - "Sources/**"
       - "scripts/docc-to-markdown.py"
