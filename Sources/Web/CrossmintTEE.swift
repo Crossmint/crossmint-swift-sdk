@@ -58,7 +58,7 @@ public final class CrossmintTEE: ObservableObject {
     private var otpContinuation: CheckedContinuation<String, Swift.Error>?
     @Published public var isOTPRequired = false
 
-    private static let ephemeralDeviceStorageQuery = "deviceStorage=memory"
+    private let usesEphemeralDeviceStorage = true
 
     init(
         auth: AuthManager,
@@ -75,8 +75,11 @@ public final class CrossmintTEE: ObservableObject {
         let signerBaseURL = isProductionEnvironment
             ? "https://signers.crossmint.com"
             : "https://staging.signers.crossmint.com"
+        let signerURL = usesEphemeralDeviceStorage
+            ? "\(signerBaseURL)?deviceStorage=memory"
+            : signerBaseURL
         // swiftlint:disable:next force_unwrapping
-        self.url = URL(string: "\(signerBaseURL)?\(Self.ephemeralDeviceStorageQuery)")!
+        self.url = URL(string: signerURL)!
         self.auth = auth
         self.apiKey = apiKey
     }
@@ -92,9 +95,11 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
-        // Re-onboard on every signature.
-        await signerStorage.clear()
-        resetState()
+        if usesEphemeralDeviceStorage {
+            // Re-onboard on every signature.
+            await signerStorage.clear()
+            resetState()
+        }
 
         if case .completed = handshakeState {
             return try await executeSignTransaction(
