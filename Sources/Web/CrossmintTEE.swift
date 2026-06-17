@@ -53,6 +53,10 @@ public final class CrossmintTEE: ObservableObject {
     private let apiKey: String
     public var email: String?
 
+    private var processTerminationRecoveryAttempts = 0
+    private let maxProcessTerminationRecoveryAttempts = 3
+    private var isRecovering = false
+
     private var otpContinuation: CheckedContinuation<String, Swift.Error>?
     @Published public var isOTPRequired = false
 
@@ -75,6 +79,12 @@ public final class CrossmintTEE: ObservableObject {
         // swiftlint:enable force_unwrapping
         self.auth = auth
         self.apiKey = apiKey
+
+        webProxy.onWebContentProcessTerminated = { [weak self] in
+            Task { @MainActor in
+                self?.recoverFromWebContentProcessTermination()
+            }
+        }
     }
 
     deinit {
@@ -175,9 +185,47 @@ public final class CrossmintTEE: ObservableObject {
     public func resetState() {
         Logger.tee.debug(LogEvents.resetStateStart)
         handshakeState = .idle
+        processTerminationRecoveryAttempts = 0
         failAllQueuedRequests(with: .generic("State was reset"))
         webProxy.resetLoadedContent()
         Logger.tee.debug(LogEvents.resetStateSuccess)
+    }
+
+    private func recoverFromWebContentProcessTermination() {
+        Logger.tee.warn(LogEvents.webProcessTerminated, attributes: [
+            "queue.size": "\(signRequestQueue.count)"
+        ])
+
+        guard !isRecovering else { return }
+        isRecovering = true
+        Task { [weak self] in
+            await self?.runWebContentProcessRecovery()
+        }
+    }
+
+    private func runWebContentProcessRecovery() async {
+        defer { isRecovering = false }
+        Logger.tee.info(LogEvents.webProcessRecoveryStart)
+
+        while processTerminationRecoveryAttempts < maxProcessTerminationRecoveryAttempts {
+            processTerminationRecoveryAttempts += 1
+            do {
+                try await establishSession()
+                Logger.tee.info(LogEvents.webProcessRecoverySuccess)
+                return
+            } catch {
+                Logger.tee.error(LogEvents.webProcessRecoveryError, attributes: [
+                    "recovery.attempt": "\(processTerminationRecoveryAttempts)",
+                    "recovery.maxAttempts": "\(maxProcessTerminationRecoveryAttempts)",
+                    "error": "\(error)"
+                ])
+            }
+        }
+
+        Logger.tee.error(LogEvents.webProcessRecoveryGivenUp)
+        let error = CrossmintTEE.Error.generic("Web content process repeatedly terminated")
+        handshakeState = .failed(error)
+        failAllQueuedRequests(with: error)
     }
 
     public func load() async throws(Error) {
@@ -203,31 +251,29 @@ public final class CrossmintTEE: ObservableObject {
             break
         }
 
-        handshakeState = .inProgress
-
         do {
-            do {
-                try await webProxy.loadURL(url)
-            } catch {
-                Logger.tee.error(LogEvents.loadError, attributes: [
-                    "error": "Failed to load TEE URL: \(error)"
-                ])
-                throw Error.urlNotAvailable
-            }
-
-            try await tryHandshake(maxAttempts: 3)
-            handshakeState = .completed
-            await processNextQueuedRequest()
-        } catch let teeError as CrossmintTEE.Error {
-            handshakeState = .failed(teeError)
-            failAllQueuedRequests(with: teeError)
-            throw teeError
+            try await establishSession()
         } catch {
-            let genericError = Error.generic("Handshake failed: \(error.localizedDescription)")
-            handshakeState = .failed(genericError)
-            failAllQueuedRequests(with: genericError)
-            throw genericError
+            handshakeState = .failed(error)
+            failAllQueuedRequests(with: error)
+            throw error
         }
+    }
+
+    private func establishSession() async throws(Error) {
+        handshakeState = .inProgress
+        do {
+            try await webProxy.loadURL(url)
+        } catch {
+            Logger.tee.error(LogEvents.loadError, attributes: [
+                "error": "Failed to load TEE URL: \(error)"
+            ])
+            throw Error.urlNotAvailable
+        }
+        try await tryHandshake(maxAttempts: 3)
+        handshakeState = .completed
+        processTerminationRecoveryAttempts = 0
+        await processNextQueuedRequest()
     }
 
     private func tryHandshake(maxAttempts: Int) async throws(Error) {

@@ -8,6 +8,7 @@ public protocol WebViewCommunicationProxy: AnyObject, WKNavigationDelegate, WKSc
     var webView: WKWebView? { get set }
     var onWebViewMessage: (any WebViewMessage) -> Void { get set }
     var onUnknownMessage: (String, Data) -> Void { get set }
+    var onWebContentProcessTerminated: () -> Void { get set }
 
     func loadURL(_ url: URL) async throws
     func resetLoadedContent()
@@ -36,6 +37,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     public weak var webView: WKWebView?
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
     public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
+    public var onWebContentProcessTerminated: () -> Void = {}
 
     private var loadedContent: URL?
     private var isPageLoaded = false
@@ -250,6 +252,20 @@ extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
         // Resume any waiting navigation continuation with error
         navigationContinuation?.resume(throwing: WebViewError.navigationFailed(error))
         navigationContinuation = nil
+    }
+
+    public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        Logger.web.error("Web content process terminated; resetting state for recovery")
+        isPageLoaded = false
+        loadedContent = nil
+        Task { @MainActor in
+            messageHandler.reset()
+        }
+
+        navigationContinuation?.resume(throwing: WebViewError.webContentProcessTerminated)
+        navigationContinuation = nil
+
+        onWebContentProcessTerminated()
     }
 }
 
