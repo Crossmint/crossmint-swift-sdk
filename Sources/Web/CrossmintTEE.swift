@@ -2,7 +2,6 @@
 import CrossmintAuth
 import Combine
 import Logger
-import WebKit
 
 extension Logger {
     static let tee = Logger(category: "TEE")
@@ -47,11 +46,7 @@ public final class CrossmintTEE: ObservableObject {
 
     public let webProxy: WebViewCommunicationProxy
 
-    // Non-persistent (in-memory) data store for the signer web view. iOS doesn't
-    // guarantee cross-launch persistence for this embedded, non-interactive WKWebView,
-    // so rather than relying on it we re-run OTP onboarding once per cold start. Held as
-    // one reused instance so the credential survives view re-creation within a session.
-    let signerDataStore: WKWebsiteDataStore = .nonPersistent()
+    let signerStorage = SignerWebStorage()
 
     private let url: URL
     private var handshakeState: HandshakeState = .idle
@@ -62,6 +57,8 @@ public final class CrossmintTEE: ObservableObject {
 
     private var otpContinuation: CheckedContinuation<String, Swift.Error>?
     @Published public var isOTPRequired = false
+
+    private static let ephemeralDeviceStorageQuery = "deviceStorage=memory"
 
     init(
         auth: AuthManager,
@@ -78,11 +75,8 @@ public final class CrossmintTEE: ObservableObject {
         let signerBaseURL = isProductionEnvironment
             ? "https://signers.crossmint.com"
             : "https://staging.signers.crossmint.com"
-        // deviceStorage=memory tells the signer to treat each frame load as a fresh
-        // device. Paired with the per-signature reset below, that means a fresh OTP
-        // onboarding on every signature.
         // swiftlint:disable:next force_unwrapping
-        self.url = URL(string: "\(signerBaseURL)?deviceStorage=memory")!
+        self.url = URL(string: "\(signerBaseURL)?\(Self.ephemeralDeviceStorageQuery)")!
         self.auth = auth
         self.apiKey = apiKey
     }
@@ -98,9 +92,8 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
-        // Force an OTP on every signature: reset the session and reload so the signer
-        // comes up as a brand-new device and re-runs the OTP onboarding.
-        await clearSignerStorageForReonboarding()
+        // Re-onboard on every signature.
+        await signerStorage.clear()
         resetState()
 
         if case .completed = handshakeState {
@@ -193,16 +186,6 @@ public final class CrossmintTEE: ObservableObject {
         failAllQueuedRequests(with: .generic("State was reset"))
         webProxy.resetLoadedContent()
         Logger.tee.debug(LogEvents.resetStateSuccess)
-    }
-
-    /// Clears all signer web storage so the next handshake comes up as a brand-new
-    /// device. Used to force the OTP onboarding to run again on every signature.
-    private func clearSignerStorageForReonboarding() async {
-        Logger.tee.debug("Clearing signer web storage to force re-onboarding for this signature")
-        await signerDataStore.removeData(
-            ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
-            modifiedSince: .distantPast
-        )
     }
 
     public func load() async throws(Error) {
