@@ -75,11 +75,14 @@ public final class CrossmintTEE: ObservableObject {
         }
 
         self.webProxy = webProxy
-        // swiftlint:disable force_unwrapping
-        self.url = isProductionEnvironment
-            ? URL(string: "https://signers.crossmint.com")!
-            : URL(string: "https://staging.signers.crossmint.com")!
-        // swiftlint:enable force_unwrapping
+        let signerBaseURL = isProductionEnvironment
+            ? "https://signers.crossmint.com"
+            : "https://staging.signers.crossmint.com"
+        // deviceStorage=memory tells the signer to treat each frame load as a fresh
+        // device. Paired with the per-signature reset below, that means a fresh OTP
+        // onboarding on every signature.
+        // swiftlint:disable:next force_unwrapping
+        self.url = URL(string: "\(signerBaseURL)?deviceStorage=memory")!
         self.auth = auth
         self.apiKey = apiKey
     }
@@ -95,9 +98,8 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
-        // Force an OTP on every signature: wipe the signer's in-memory storage (the
-        // frame's device identity key lives in IndexedDB) and reset the session, so the
-        // web app reloads as a brand-new device and re-runs the OTP onboarding.
+        // Force an OTP on every signature: reset the session and reload so the signer
+        // comes up as a brand-new device and re-runs the OTP onboarding.
         await clearSignerStorageForReonboarding()
         resetState()
 
@@ -193,9 +195,8 @@ public final class CrossmintTEE: ObservableObject {
         Logger.tee.debug(LogEvents.resetStateSuccess)
     }
 
-    /// Clears all signer web storage (including the frame's device identity key in
-    /// IndexedDB) so the next handshake comes up as a brand-new device. Used to force
-    /// the OTP onboarding to run again on every signature.
+    /// Clears all signer web storage so the next handshake comes up as a brand-new
+    /// device. Used to force the OTP onboarding to run again on every signature.
     private func clearSignerStorageForReonboarding() async {
         Logger.tee.debug("Clearing signer web storage to force re-onboarding for this signature")
         await signerDataStore.removeData(
