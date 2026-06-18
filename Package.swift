@@ -185,6 +185,13 @@ let package = Package(
             ],
             plugins: basePlugins
         ),
+        .testTarget(
+            name: "DeviceSignerTests",
+            dependencies: [
+                "DeviceSigner"
+            ],
+            plugins: basePlugins
+        ),
         .target(
             name: "TestsUtils",
             dependencies: [

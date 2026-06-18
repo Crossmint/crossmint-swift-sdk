@@ -5,13 +5,23 @@ import Security
 
 private let logger = Logger(subsystem: "com.crossmint.devicesigner", category: "KeychainStorage")
 
-private let service = "com.crossmint.devicesigner"
+/// Low-level item operations backing ``DeviceSignerKeychainStorage``.
+///
+/// Abstracted behind a protocol so the storage logic (rename, key lookup) can be
+/// exercised against an in-memory store in tests, where Keychain access is
+/// unavailable without app entitlements.
+protocol KeychainItemStore: Sendable {
+    func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError)
+    func load(tag: String, prompt: String?, authContext: LAContext?) -> Data?
+    func delete(tag: String) throws(DeviceSignerError)
+    func allTags(prefix: String) -> [String]
+}
 
-struct DeviceSignerKeychainStorage {
-    private static let pendingKeyPrefix = "crossmint.device.pending."
-    private static let walletKeyPrefix = "crossmint.device.wallet."
+/// `KeychainItemStore` backed by the system Keychain via `SecItem*`.
+struct SystemKeychainItemStore: KeychainItemStore {
+    private let service = "com.crossmint.devicesigner"
 
-    func save(_ data: Data, tag: String, accessControl: SecAccessControl? = nil) throws(DeviceSignerError) {
+    func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError) {
         let deleteQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -39,7 +49,7 @@ struct DeviceSignerKeychainStorage {
         }
     }
 
-    func load(tag: String, prompt: String? = nil, authContext: LAContext? = nil) -> Data? {
+    func load(tag: String, prompt: String?, authContext: LAContext?) -> Data? {
         var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
@@ -60,19 +70,15 @@ struct DeviceSignerKeychainStorage {
         return result as? Data
     }
 
-    func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
-        guard let data = load(tag: oldTag) else {
-            throw DeviceSignerError.keyNotFound
-        }
-        try delete(tag: oldTag)
-        try save(data, tag: newTag)
-    }
-
-    func hasMatchingKey(publicKeyBase64: String, reconstructPublicKey: (Data) -> String?) -> Bool {
-        if load(tag: "\(Self.pendingKeyPrefix)\(publicKeyBase64)") != nil { return true }
-        return allTags(prefix: Self.walletKeyPrefix).contains { tag in
-            guard let keyData = load(tag: tag) else { return false }
-            return reconstructPublicKey(keyData) == publicKeyBase64
+    func delete(tag: String) throws(DeviceSignerError) {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: tag
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw DeviceSignerError.storageError(status)
         }
     }
 
@@ -96,16 +102,51 @@ struct DeviceSignerKeychainStorage {
         }
         return items.compactMap { $0[kSecAttrAccount] as? String }.filter { $0.hasPrefix(prefix) }
     }
+}
+
+struct DeviceSignerKeychainStorage {
+    static let pendingKeyPrefix = "crossmint.device.pending."
+    static let walletKeyPrefix = "crossmint.device.wallet."
+
+    private let store: KeychainItemStore
+
+    init(store: KeychainItemStore = SystemKeychainItemStore()) {
+        self.store = store
+    }
+
+    func save(_ data: Data, tag: String, accessControl: SecAccessControl? = nil) throws(DeviceSignerError) {
+        try store.save(data, tag: tag, accessControl: accessControl)
+    }
+
+    func load(tag: String, prompt: String? = nil, authContext: LAContext? = nil) -> Data? {
+        store.load(tag: tag, prompt: prompt, authContext: authContext)
+    }
 
     func delete(tag: String) throws(DeviceSignerError) {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw DeviceSignerError.storageError(status)
+        try store.delete(tag: tag)
+    }
+
+    func allTags(prefix: String) -> [String] {
+        store.allTags(prefix: prefix)
+    }
+
+    func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
+        guard let data = load(tag: oldTag) else {
+            // The source item is gone. If the destination already holds a key, the
+            // mapping is effectively done, so a repeated rename is a no-op rather than
+            // a failure. Only when neither item exists is the key genuinely missing.
+            if load(tag: newTag) != nil { return }
+            throw DeviceSignerError.keyNotFound
+        }
+        try delete(tag: oldTag)
+        try save(data, tag: newTag)
+    }
+
+    func hasMatchingKey(publicKeyBase64: String, reconstructPublicKey: (Data) -> String?) -> Bool {
+        if load(tag: "\(Self.pendingKeyPrefix)\(publicKeyBase64)") != nil { return true }
+        return allTags(prefix: Self.walletKeyPrefix).contains { tag in
+            guard let keyData = load(tag: tag) else { return false }
+            return reconstructPublicKey(keyData) == publicKeyBase64
         }
     }
 }

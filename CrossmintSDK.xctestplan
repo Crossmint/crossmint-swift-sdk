@@ -57,6 +57,13 @@
         "identifier" : "UtilsTests",
         "name" : "UtilsTests"
       }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "DeviceSignerTests",
+        "name" : "DeviceSignerTests"
+      }
     }
   ],
   "version" : 1
