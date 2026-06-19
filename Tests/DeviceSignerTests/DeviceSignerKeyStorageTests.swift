@@ -74,12 +74,6 @@ struct DeviceSignerKeychainStorageTests {
         }
     }
 
-    @Test("hasMatchingKey is false when no key material is present")
-    func hasMatchingKeyFalseWhenAbsent() {
-        let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
-        #expect(keychain.hasMatchingKey(publicKeyBase64: "PUB") { _ in nil } == false)
-    }
-
     @Test("hasMatchingKey is true for a pending key")
     func hasMatchingKeyTrueForPending() throws {
         let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
@@ -93,6 +87,12 @@ struct DeviceSignerKeychainStorageTests {
         let keyData = Data("mapped".utf8)
         try keychain.save(keyData, tag: walletTag("0xabc"))
         #expect(keychain.hasMatchingKey(publicKeyBase64: "PUB") { $0 == keyData ? "PUB" : nil } == true)
+    }
+
+    @Test("hasMatchingKey is false when no key material is present")
+    func hasMatchingKeyFalseWhenAbsent() {
+        let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
+        #expect(keychain.hasMatchingKey(publicKeyBase64: "PUB") { _ in nil } == false)
     }
 
     @Test("hasMatchingKey reflects real presence, not generation history")

@@ -16,22 +16,13 @@ struct SystemKeychainItemStore: KeychainItemStore {
     private let service = "com.crossmint.devicesigner"
 
     func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError) {
-        let deleteQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag
-        ]
-        let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
+        let deleteStatus = SecItemDelete(itemQuery(tag: tag) as CFDictionary)
         guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
             throw DeviceSignerError.storageError(deleteStatus)
         }
 
-        var addQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag,
-            kSecValueData: data
-        ]
+        var addQuery = itemQuery(tag: tag)
+        addQuery[kSecValueData] = data
         if let accessControl {
             addQuery[kSecAttrAccessControl] = accessControl
         } else {
@@ -44,13 +35,9 @@ struct SystemKeychainItemStore: KeychainItemStore {
     }
 
     func load(tag: String, prompt: String?, authContext: LAContext?) -> Data? {
-        var query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne
-        ]
+        var query = itemQuery(tag: tag)
+        query[kSecReturnData] = true
+        query[kSecMatchLimit] = kSecMatchLimitOne
         if let authContext {
             query[kSecUseAuthenticationContext] = authContext
         } else if let prompt {
@@ -65,15 +52,18 @@ struct SystemKeychainItemStore: KeychainItemStore {
     }
 
     func delete(tag: String) throws(DeviceSignerError) {
-        let query: [CFString: Any] = [
+        let status = SecItemDelete(itemQuery(tag: tag) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw DeviceSignerError.storageError(status)
+        }
+    }
+
+    private func itemQuery(tag: String) -> [CFString: Any] {
+        [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
             kSecAttrAccount: tag
         ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw DeviceSignerError.storageError(status)
-        }
     }
 
     func allTags(prefix: String) -> [String] {
