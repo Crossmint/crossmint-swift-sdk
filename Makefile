@@ -1,4 +1,4 @@
-.PHONY: build test lint lint-fix clean resolve open build-evm-demo run-evm-demo
+.PHONY: build test lint lint-fix clean resolve open build-evm-demo run-evm-demo docs
 
 # Default task
 all: build
@@ -134,6 +134,29 @@ resolve:
 # Open in Xcode (macOS only)
 open:
 	open *.xcworkspace
+
+# ==========================================
+# Docs targets
+# ==========================================
+
+DOCC_BUILD_DIR := /tmp/crossmint-swift-sdk-docc
+DOCS_OUTPUT := docs/sdk-reference/wallets/swift
+
+# Build the DocC archive and generate MDX files (override output with DOCS_OUTPUT).
+# CrossmintClient is the umbrella module consumers import — its archive covers
+# exactly the re-exported public API surface.
+docs:
+	@echo "Building DocC archives..."
+	$(call run-with-xcbeautify,$(XCODEBUILD) docbuild \
+		-scheme $(SDK_SCHEME) \
+		-destination "$(SIMULATOR_DEST)" \
+		-derivedDataPath $(DOCC_BUILD_DIR) \
+		-skipPackagePluginValidation \
+		OTHER_DOCC_FLAGS="--fallback-display-name CrossmintSDK --fallback-bundle-identifier com.crossmint.sdk --fallback-bundle-version 1")
+	@archive="$(DOCC_BUILD_DIR)/Build/Products/Debug-iphonesimulator/CrossmintClient.doccarchive"; \
+	if [ ! -d "$$archive" ]; then echo "Error: $$archive not found"; exit 1; fi; \
+	echo "Generating MDX files from $$archive..."; \
+	python3 scripts/docc-to-markdown.py "$$archive" --output $(DOCS_OUTPUT)
 
 # ==========================================
 # Demo run targets
