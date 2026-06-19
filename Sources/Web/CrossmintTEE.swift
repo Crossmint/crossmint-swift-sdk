@@ -2,6 +2,7 @@
 import CrossmintAuth
 import Combine
 import Logger
+import WebKit
 
 extension Logger {
     static let tee = Logger(category: "TEE")
@@ -46,6 +47,10 @@ public final class CrossmintTEE: ObservableObject {
 
     public let webProxy: WebViewCommunicationProxy
 
+    private let signerStorage = SignerWebStorage()
+
+    var signerWebsiteDataStore: WKWebsiteDataStore { signerStorage.dataStore }
+
     private let url: URL
     private var handshakeState: HandshakeState = .idle
     private var signRequestQueue: [PendingSignRequest] = []
@@ -55,6 +60,8 @@ public final class CrossmintTEE: ObservableObject {
 
     private var otpContinuation: CheckedContinuation<String, Swift.Error>?
     @Published public var isOTPRequired = false
+
+    private static let ephemeralDeviceStorageQuery = "deviceStorage=memory"
 
     init(
         auth: AuthManager,
@@ -68,11 +75,11 @@ public final class CrossmintTEE: ObservableObject {
         }
 
         self.webProxy = webProxy
-        // swiftlint:disable force_unwrapping
-        self.url = isProductionEnvironment
-            ? URL(string: "https://signers.crossmint.com")!
-            : URL(string: "https://staging.signers.crossmint.com")!
-        // swiftlint:enable force_unwrapping
+        let signerBaseURL = isProductionEnvironment
+            ? "https://signers.crossmint.com"
+            : "https://staging.signers.crossmint.com"
+        // swiftlint:disable:next force_unwrapping
+        self.url = URL(string: "\(signerBaseURL)?\(Self.ephemeralDeviceStorageQuery)")!
         self.auth = auth
         self.apiKey = apiKey
     }
@@ -88,6 +95,10 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
+        // Re-onboard on every signature.
+        await signerStorage.clear()
+        resetState()
+
         if case .completed = handshakeState {
             return try await executeSignTransaction(
                 transaction: transaction,
