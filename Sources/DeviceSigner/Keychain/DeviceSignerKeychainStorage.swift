@@ -5,11 +5,6 @@ import Security
 
 private let logger = Logger(subsystem: "com.crossmint.devicesigner", category: "KeychainStorage")
 
-/// Low-level item operations backing ``DeviceSignerKeychainStorage``.
-///
-/// Abstracted behind a protocol so the storage logic (rename, key lookup) can be
-/// exercised against an in-memory store in tests, where Keychain access is
-/// unavailable without app entitlements.
 protocol KeychainItemStore: Sendable {
     func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError)
     func load(tag: String, prompt: String?, authContext: LAContext?) -> Data?
@@ -17,7 +12,6 @@ protocol KeychainItemStore: Sendable {
     func allTags(prefix: String) -> [String]
 }
 
-/// `KeychainItemStore` backed by the system Keychain via `SecItem*`.
 struct SystemKeychainItemStore: KeychainItemStore {
     private let service = "com.crossmint.devicesigner"
 
@@ -132,9 +126,6 @@ struct DeviceSignerKeychainStorage {
 
     func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
         guard let data = load(tag: oldTag) else {
-            // The source item is gone. If the destination already holds a key, the
-            // mapping is effectively done, so a repeated rename is a no-op rather than
-            // a failure. Only when neither item exists is the key genuinely missing.
             if load(tag: newTag) != nil { return }
             throw DeviceSignerError.keyNotFound
         }

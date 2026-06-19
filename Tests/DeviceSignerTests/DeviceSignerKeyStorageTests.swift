@@ -1,23 +1,9 @@
-//
-//  DeviceSignerKeyStorageTests.swift
-//  CrossmintSDK
-//
-//  Regression coverage for WAL-10734. The device signer fails with `keyNotFound`
-//  on devices where the private key is no longer present (for example after a
-//  restore onto new hardware, where the `ThisDeviceOnly` key does not survive).
-//
-//  These tests drive the keychain layer through an in-memory store so the
-//  rename/lookup logic is exercised without Keychain entitlements.
-//
-
 import Foundation
 import LocalAuthentication
 import Security
 import Testing
 @testable import DeviceSigner
 
-/// In-memory `KeychainItemStore` for tests. Each test gets its own instance, so no
-/// locking is needed; access within a test is sequential.
 final class InMemoryKeychainItemStore: KeychainItemStore, @unchecked Sendable {
     private var items: [String: Data] = [:]
 
@@ -49,8 +35,6 @@ struct DeviceSignerKeychainStorageTests {
         "\(DeviceSignerKeychainStorage.walletKeyPrefix)\(address)"
     }
 
-    // MARK: - rename / mapAddressToKey
-
     @Test("rename moves a pending key to the wallet-address tag")
     func renameMovesPendingToWallet() throws {
         let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
@@ -63,22 +47,17 @@ struct DeviceSignerKeychainStorageTests {
         #expect(keychain.load(tag: walletTag("0xabc")) == data)
     }
 
-    /// The defense-in-depth half of the fix: when the pending key is gone but the
-    /// address is already keyed, a repeated rename is a no-op rather than a failure.
     @Test("rename is a no-op when the destination already holds a key")
     func renameIdempotentWhenDestinationExists() throws {
         let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
         let data = Data("already-mapped".utf8)
         try keychain.save(data, tag: walletTag("0xabc"))
 
-        // No pending item exists, but the wallet-address tag does: must not throw.
         try keychain.rename(from: pendingTag("PUB"), to: walletTag("0xabc"))
 
         #expect(keychain.load(tag: walletTag("0xabc")) == data)
     }
 
-    /// When neither a pending nor a wallet-address item exists, the failure is a
-    /// typed `keyNotFound` the orchestration can branch on to trigger re-registration.
     @Test("rename throws keyNotFound when no key exists anywhere")
     func renameThrowsKeyNotFoundWhenNothingPresent() {
         let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
@@ -94,8 +73,6 @@ struct DeviceSignerKeychainStorageTests {
             return
         }
     }
-
-    // MARK: - hasMatchingKey (the honest hasKey primitive)
 
     @Test("hasMatchingKey is false when no key material is present")
     func hasMatchingKeyFalseWhenAbsent() {
@@ -118,10 +95,6 @@ struct DeviceSignerKeychainStorageTests {
         #expect(keychain.hasMatchingKey(publicKeyBase64: "PUB") { $0 == keyData ? "PUB" : nil } == true)
     }
 
-    /// The core of the production bug: once the key material is gone, `hasMatchingKey`
-    /// must report false. An index that only records "was this key ever generated
-    /// here" returns true and sends the SDK into a rename/sign loop that can never
-    /// succeed.
     @Test("hasMatchingKey reflects real presence, not generation history")
     func hasMatchingKeyFalseAfterDeletion() throws {
         let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
