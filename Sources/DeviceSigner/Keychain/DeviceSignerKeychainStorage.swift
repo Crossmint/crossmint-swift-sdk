@@ -5,29 +5,24 @@ import Security
 
 private let logger = Logger(subsystem: "com.crossmint.devicesigner", category: "KeychainStorage")
 
-private let service = "com.crossmint.devicesigner"
+protocol KeychainItemStore: Sendable {
+    func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError)
+    func load(tag: String, prompt: String?, authContext: LAContext?) -> Data?
+    func delete(tag: String) throws(DeviceSignerError)
+    func allTags(prefix: String) -> [String]
+}
 
-struct DeviceSignerKeychainStorage {
-    private static let pendingKeyPrefix = "crossmint.device.pending."
-    private static let walletKeyPrefix = "crossmint.device.wallet."
+struct SystemKeychainItemStore: KeychainItemStore {
+    private let service = "com.crossmint.devicesigner"
 
-    func save(_ data: Data, tag: String, accessControl: SecAccessControl? = nil) throws(DeviceSignerError) {
-        let deleteQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag
-        ]
-        let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
+    func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError) {
+        let deleteStatus = SecItemDelete(itemQuery(tag: tag) as CFDictionary)
         guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
             throw DeviceSignerError.storageError(deleteStatus)
         }
 
-        var addQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag,
-            kSecValueData: data
-        ]
+        var addQuery = itemQuery(tag: tag)
+        addQuery[kSecValueData] = data
         if let accessControl {
             addQuery[kSecAttrAccessControl] = accessControl
         } else {
@@ -39,14 +34,10 @@ struct DeviceSignerKeychainStorage {
         }
     }
 
-    func load(tag: String, prompt: String? = nil, authContext: LAContext? = nil) -> Data? {
-        var query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne
-        ]
+    func load(tag: String, prompt: String?, authContext: LAContext?) -> Data? {
+        var query = itemQuery(tag: tag)
+        query[kSecReturnData] = true
+        query[kSecMatchLimit] = kSecMatchLimitOne
         if let authContext {
             query[kSecUseAuthenticationContext] = authContext
         } else if let prompt {
@@ -60,20 +51,19 @@ struct DeviceSignerKeychainStorage {
         return result as? Data
     }
 
-    func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
-        guard let data = load(tag: oldTag) else {
-            throw DeviceSignerError.keyNotFound
+    func delete(tag: String) throws(DeviceSignerError) {
+        let status = SecItemDelete(itemQuery(tag: tag) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw DeviceSignerError.storageError(status)
         }
-        try delete(tag: oldTag)
-        try save(data, tag: newTag)
     }
 
-    func hasMatchingKey(publicKeyBase64: String, reconstructPublicKey: (Data) -> String?) -> Bool {
-        if load(tag: "\(Self.pendingKeyPrefix)\(publicKeyBase64)") != nil { return true }
-        return allTags(prefix: Self.walletKeyPrefix).contains { tag in
-            guard let keyData = load(tag: tag) else { return false }
-            return reconstructPublicKey(keyData) == publicKeyBase64
-        }
+    private func itemQuery(tag: String) -> [CFString: Any] {
+        [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: tag
+        ]
     }
 
     func allTags(prefix: String) -> [String] {
@@ -96,16 +86,48 @@ struct DeviceSignerKeychainStorage {
         }
         return items.compactMap { $0[kSecAttrAccount] as? String }.filter { $0.hasPrefix(prefix) }
     }
+}
+
+struct DeviceSignerKeychainStorage {
+    static let pendingKeyPrefix = "crossmint.device.pending."
+    static let walletKeyPrefix = "crossmint.device.wallet."
+
+    private let store: KeychainItemStore
+
+    init(store: KeychainItemStore = SystemKeychainItemStore()) {
+        self.store = store
+    }
+
+    func save(_ data: Data, tag: String, accessControl: SecAccessControl? = nil) throws(DeviceSignerError) {
+        try store.save(data, tag: tag, accessControl: accessControl)
+    }
+
+    func load(tag: String, prompt: String? = nil, authContext: LAContext? = nil) -> Data? {
+        store.load(tag: tag, prompt: prompt, authContext: authContext)
+    }
 
     func delete(tag: String) throws(DeviceSignerError) {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: tag
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw DeviceSignerError.storageError(status)
+        try store.delete(tag: tag)
+    }
+
+    func allTags(prefix: String) -> [String] {
+        store.allTags(prefix: prefix)
+    }
+
+    func rename(from oldTag: String, to newTag: String) throws(DeviceSignerError) {
+        guard let data = load(tag: oldTag) else {
+            if load(tag: newTag) != nil { return }
+            throw DeviceSignerError.keyNotFound
+        }
+        try delete(tag: oldTag)
+        try save(data, tag: newTag)
+    }
+
+    func hasMatchingKey(publicKeyBase64: String, reconstructPublicKey: (Data) -> String?) -> Bool {
+        if load(tag: "\(Self.pendingKeyPrefix)\(publicKeyBase64)") != nil { return true }
+        return allTags(prefix: Self.walletKeyPrefix).contains { tag in
+            guard let keyData = load(tag: tag) else { return false }
+            return reconstructPublicKey(keyData) == publicKeyBase64
         }
     }
 }
