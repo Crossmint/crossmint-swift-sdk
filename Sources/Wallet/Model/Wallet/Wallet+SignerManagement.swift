@@ -27,6 +27,7 @@ extension Wallet {
     /// - Throws: ``WalletError`` if registration fails.
     public func addSigner(_ config: SignerConfig) async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart)
+        await signerInitializationTask?.value
         do {
             switch config {
             case .device:
