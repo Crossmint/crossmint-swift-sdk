@@ -35,6 +35,12 @@ struct DeviceSignerKeychainStorageTests {
         "\(DeviceSignerKeychainStorage.walletKeyPrefix)\(address)"
     }
 
+    @Test("SoftwareDeviceSignerKeyStorage stays available as an alias for KeychainKeyStorage")
+    func softwareDeviceSignerKeyStorageAliasIsAvailable() {
+        let storage: any DeviceSignerKeyStorage = SoftwareDeviceSignerKeyStorage()
+        #expect(storage is KeychainKeyStorage)
+    }
+
     @Test("rename moves a pending key to the wallet-address tag")
     func renameMovesPendingToWallet() throws {
         let keychain = DeviceSignerKeychainStorage(store: InMemoryKeychainItemStore())
