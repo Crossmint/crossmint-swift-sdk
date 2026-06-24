@@ -192,8 +192,9 @@ public final class CrossmintTEE: ObservableObject {
                 guard attempt < Self.maxOnboardingAttempts else {
                     throw error
                 }
-                Logger.tee.warn(LogEvents.onboardingCompleteError, attributes: [
-                    "error": "Verification failed, reloading frame and re-onboarding (attempt \(attempt))"
+                Logger.tee.warn(LogEvents.onboardingReissued, attributes: [
+                    "attempt": "\(attempt)",
+                    "reason": "Onboarding could not be completed, reloading the frame and re-issuing the OTP"
                 ])
                 try await reloadFrameForReonboarding()
                 attempt += 1
