@@ -70,7 +70,7 @@ CrossmintSDK.shared                     (@MainActor final class)
 CrossmintWallets
   └── getOrCreate(chain:signer:options:) → Wallet subclass
 
-Wallet (open class — @unchecked Sendable; protocol refactor pending)
+Wallet (open class — @unchecked Sendable)
   ├── balances(_:_:) / nfts(page:nftsPerPage:) / listTransfers(tokens:)
   ├── signers() / signerIsRegistered(_:)
   └── EVMWallet / SolanaWallet / StellarWallet (chain-specific subclasses)
@@ -122,7 +122,7 @@ Http / Logger / Utils / Web ← infrastructure
 
 ### Wallet
 
-`Wallet` is an `open class` with `@unchecked Sendable`. The plan is to make it a public protocol with an internal concrete implementation, but that refactor is still pending. Sign/poll logic lives in `Wallet+Transactions.swift` extensions. Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
+`Wallet` is an `open class` with `@unchecked Sendable`. Sign/poll logic lives in `Wallet+Transactions.swift` extensions. Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
 
 Add `.crossmintNonCustodialSigner()` to your root view when using email/phone signers — this injects the hidden WebView required for TEE communication.
 
