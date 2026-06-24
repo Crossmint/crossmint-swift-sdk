@@ -55,7 +55,7 @@ make open
 
 ## Architecture Overview
 
-The Crossmint Swift SDK follows a layered architecture with a configured singleton as the entry point, domain services for API communication, and chain-specific `Wallet` subclasses as the primary consumer-facing type. The [Mobile SDK API Review EDD](https://linear.app/crossmint/project/mobile-sdk-api-review-182dfa4d5add/overview) defines the long-term target; these sections describe the current state, with notes where the two diverge.
+The Crossmint Swift SDK follows a layered architecture with a configured singleton as the entry point, domain services for API communication, and chain-specific `Wallet` subclasses as the primary consumer-facing type.
 
 ### Layered Architecture
 
@@ -120,11 +120,9 @@ SecureStorage         ← Keychain-based secure storage
 Http / Logger / Utils / Web ← infrastructure
 ```
 
-EDD target restructure: CrossmintCore, CrossmintWalletsImpl, CrossmintAuthImpl, CrossmintCheckoutImpl, CrossmintSDKProduct.
-
 ### Wallet
 
-`Wallet` is an `open class` with `@unchecked Sendable`. The EDD makes it a public protocol with an internal concrete implementation, but that refactor is still pending. Sign/poll logic was extracted into `Wallet+Transactions.swift` extensions (WAL-9976). Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
+`Wallet` is an `open class` with `@unchecked Sendable`. The plan is to make it a public protocol with an internal concrete implementation, but that refactor is still pending. Sign/poll logic lives in `Wallet+Transactions.swift` extensions. Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
 
 Add `.crossmintNonCustodialSigner()` to your root view when using email/phone signers — this injects the hidden WebView required for TEE communication.
 
@@ -132,15 +130,13 @@ Add `.crossmintNonCustodialSigner()` to your root view when using email/phone si
 
 The TEE WebView lives in the `Wallet` module (`CrossmintTEE`). It handles auto-recovery from WebKit content-process termination internally. TEE is an implementation detail of email/phone signers — developers never interact with it directly.
 
-The EDD targets a `TEEProvider` protocol with swappable implementations (WebView-based, mock for tests, Secure Enclave future), but that abstraction hasn't landed yet.
-
 ### Auth State
 
 `CrossmintAuthManager` manages JWT state, persisting it to keychain. `setJWT(_:)` on the singleton stores a developer-supplied token (no refresh). `AuthClient.verifyOTP()` stores a JWT from Crossmint-managed auth. HTTP requests in the `Wallet` module inject the current JWT via `AuthenticatedCrossmintService`.
 
 ### Error Protocol
 
-All error types conform to `CrossmintError` (WAL-9979, in progress):
+All new error types must conform to `CrossmintError`:
 
 ```swift
 public protocol CrossmintError: Error, Sendable {
@@ -153,9 +149,9 @@ public protocol CrossmintError: Error, Sendable {
 
 Domain errors: `WalletError`, `TransactionError`, `SignatureError`, `AuthError`.
 
-### Services vs Orchestrators
+### Services
 
-Services make exactly one API call per method — no orchestration, no polling. Orchestrators coordinate multi-step flows (signer init, create, sign, poll). Simple flows go client → service directly. Reach for an orchestrator only when a flow touches multiple services or requires retry/polling.
+Services make exactly one API call per method — no coordination, no polling. Multi-step flows (getOrCreate, sign + poll) live in the client (`DefaultCrossmintWallets`) or in `Wallet+Transactions.swift` extensions. Never embed flow logic or polling inside a service method.
 
 ## Code Conventions
 
@@ -198,7 +194,7 @@ A helper function that just renames a call, or a type that wraps only one thing,
 
 ### Business Logic Placement
 
-Business logic lives in orchestrators (and clients for simple cases), not in services. Services are generic and unaware of business context — they make API calls and return data. Orchestrators coordinate, retry, poll, and decide. Never let a service embed flow logic; never let a client embed multi-step coordination that warrants an orchestrator.
+Business logic lives in the client layer (`DefaultCrossmintWallets`, wallet extensions), not in services. Services are generic and unaware of business context — they make API calls and return data. Coordination, polling, and retry belong in the client or wallet layer.
 
 ### Actors for Mutable Async State
 
@@ -386,17 +382,17 @@ Tests must be fully isolated. Shared global state causes order-dependent failure
 
 - **Chaining optional access with complex fallbacks in one expression.** Break it into steps. One-liners that need a comment to explain what they do should be multiple lines.
 
-- **Adding an orchestrator for a single-service flow.** Orchestrators are only warranted when a flow coordinates multiple services or requires retry/polling state. A single API call goes client → service directly.
+- **Embedding flow logic in a service method.** Services make exactly one API call. Coordination, polling, and retry belong in the client or wallet layer.
 
 - **Hardcoding environment or API version strings.** Environment comes from the API key. API versions come from a centralized constant or the OpenAPI generated client.
 
 ## Documentation Rules
 
-Document only what cannot be derived from the code or its version history. Source: `best-practices/documentation.md` and `best-practices/code/README.md`.
+Document only what cannot be derived from the code or its version history.
 
 - Comments and doc comments should only explain **why**, never **what** or **how** — if the what requires explanation, the code needs to be renamed or restructured.
 - TODOs should describe why something is suboptimal, not propose solutions (solutions change; the underlying problem is what matters).
-- Place documentation alongside the authoritative source whose scope it belongs to: code comments for code-level context, PR descriptions for why a decision was made, Linear issues for why it needs to change.
+- Place documentation alongside the authoritative source whose scope it belongs to: code comments for code-level context, PR descriptions for why a decision was made.
 - State each idea exactly once. Don't preview in an introduction what the detail immediately below already covers.
 
 ## Development Workflow
