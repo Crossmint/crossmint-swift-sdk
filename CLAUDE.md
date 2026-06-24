@@ -55,88 +55,92 @@ make open
 
 ## Architecture Overview
 
-The Crossmint Swift SDK is being refactored toward a layered architecture defined in the [Mobile SDK API Review EDD](https://linear.app/crossmint/project/mobile-sdk-api-review-182dfa4d5add/overview). The sections below describe the **target architecture** — some parts are in flight. See the in-flight work list at the end of this section.
+The Crossmint Swift SDK follows a layered architecture with a configured singleton as the entry point, domain services for API communication, and chain-specific `Wallet` subclasses as the primary consumer-facing type. The [Mobile SDK API Review EDD](https://linear.app/crossmint/project/mobile-sdk-api-review-182dfa4d5add/overview) defines the long-term target; these sections describe the current state, with notes where the two diverge.
 
 ### Layered Architecture
 
 ```
-CrossmintSDK.shared                     (configured singleton — @MainActor)
-  ├── .wallets  (WalletClient protocol)
-  ├── .auth     (AuthClient protocol)
+CrossmintSDK.shared                     (@MainActor final class)
+  ├── .crossmintWallets  (CrossmintWallets)
+  ├── .authClient        (AuthClient protocol)
+  ├── .authManager       (CrossmintAuthManager)
+  ├── .crossmintService  (CrossmintService — internal detail, avoid in app code)
   └── setJWT(_:)
 
-WalletClient
-  └── getOrCreate(chain:signer:options:) → any Wallet
-  └── get(locator:) → any Wallet
+CrossmintWallets
+  └── getOrCreate(chain:signer:options:) → Wallet subclass
 
-Wallet (protocol — returned by WalletClient)
-  ├── send(to:token:amount:)
-  ├── sendTransaction(_:) / createTransaction(_:) / approve(transactionId:)
-  ├── signMessage(_:)
-  ├── balances(tokens:) / nfts(page:perPage:)
-  └── delegatedSigners() / addDelegatedSigner(_:)
+Wallet (open class — @unchecked Sendable; protocol refactor pending)
+  ├── balances(_:_:) / nfts(page:nftsPerPage:) / listTransfers(tokens:)
+  ├── signers() / signerIsRegistered(_:)
+  └── EVMWallet / SolanaWallet / StellarWallet (chain-specific subclasses)
+      [transaction/signing logic in Wallet+Transactions.swift extensions]
 
 --- INTERNAL ---
-Orchestrators (actors — coordinate multi-step flows)
-  ├── WalletOrchestrator   (getOrCreate flow)
-  └── TransactionOrchestrator  (send, sign, poll)
-
 Services (structs — single-responsibility API calls)
   WalletService / TransactionService / TransferService
-  BalanceService / NFTService / SignatureService
+  BalanceService / NFTService / SignatureService / SignerRegistrationService
 
 Infrastructure
-  AuthState (actor) / Logger / SecureStorage / HTTP Client
+  CrossmintAuth / Logger / SecureStorage / HTTP Client / DeviceSigner
 ```
 
 ### SDK Entry Point
 
-The singleton lives in `CrossmintCore`. Configuration wires together all clients:
+`CrossmintSDK` is a `@MainActor final class` in the `CrossmintClient` module:
 
 ```swift
-// Simple setup
-CrossmintSDK.configure(apiKey: "ck_staging_...")
+// Configure once, early in app startup
+CrossmintSDK.configure(apiKey: "ck_staging_...", logLevel: .error)
 
-// Advanced
-CrossmintSDK.configure(with: Configuration(apiKey: "ck_staging_...", logLevel: .debug))
+// Developer-managed auth (production — your backend issues the JWT)
+await CrossmintSDK.shared.setJWT(myJWT)
+await CrossmintSDK.shared.setJWT(nil)  // sign out
 
-// Custom auth (production)
-await CrossmintSDK.shared.setJWT(myJWTFromMyBackend)
-// Set to nil on sign out
+// Crossmint-managed auth (email/phone OTP)
+let authClient = CrossmintSDK.shared.authClient  // AuthClient protocol
+
+// Wallet access
+let wallets = CrossmintSDK.shared.crossmintWallets
 ```
 
-Environment (staging vs production) is decoded from the API key format — never pass it explicitly.
+Environment (staging vs production) is decoded from the API key format — never pass it explicitly. `crossmintService` is still a public property on the singleton but is an HTTP implementation detail — don't use it in application code.
 
-### Package Boundaries (Target)
+### Package Boundaries
 
 ```
-CrossmintCore          ← singleton shell, protocols, config, auth state, errors
-CrossmintTEE           ← TEEProvider protocol + MockTEEProvider (depends on Core)
-CrossmintWalletsImpl   ← wallet client, signers, orchestrators, services (depends on Core + TEE)
-CrossmintAuthImpl      ← auth client, OTP flow (depends on Core)
-CrossmintCheckoutImpl  ← checkout client + embedded view (depends on Core)
-CrossmintSDKProduct    ← assembly: configure() + wiring (depends on Core + TEE + all impls)
+CrossmintClient       ← SDK singleton (CrossmintSDK), SwiftUI integration, environment values
+CrossmintAuth         ← AuthClient protocol, OTP flow, JWT management
+Wallet                ← Wallet class, domain services, signers
+CrossmintCommonTypes  ← shared types (Chain, CryptoCurrency, BlockchainType, etc.)
+CrossmintService      ← HTTP client, request building, error mapping
+DeviceSigner          ← Secure Enclave key storage (zero external dependencies)
+Passkeys              ← Passkey authentication support
+SecureStorage         ← Keychain-based secure storage
+Http / Logger / Utils / Web ← infrastructure
 ```
 
-Public product imports: `CrossmintSDK` (everything), `CrossmintWallets`, `CrossmintAuth`.
+EDD target restructure: CrossmintCore, CrossmintWalletsImpl, CrossmintAuthImpl, CrossmintCheckoutImpl, CrossmintSDKProduct.
 
 ### Wallet
 
-`Wallet` is currently an `open class` with `@unchecked Sendable`. The target architecture (EDD) makes it a public protocol with an internal concrete implementation, but that refactor is still in progress. Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
+`Wallet` is an `open class` with `@unchecked Sendable`. The EDD makes it a public protocol with an internal concrete implementation, but that refactor is still pending. Sign/poll logic was extracted into `Wallet+Transactions.swift` extensions (WAL-9976). Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
 
 Add `.crossmintNonCustodialSigner()` to your root view when using email/phone signers — this injects the hidden WebView required for TEE communication.
 
 ### TEE Architecture
 
-`TEEProvider` is an internal protocol with swappable implementations: `WebViewTEEProvider` (current, WebView-based), `MockTEEProvider` (tests), and a future `DeviceTEEProvider` (Secure Enclave, no WebView). TEE is an implementation detail of email/phone signers — developers never interact with it directly.
+The TEE WebView lives in the `Wallet` module (`CrossmintTEE`). It handles auto-recovery from WebKit content-process termination internally. TEE is an implementation detail of email/phone signers — developers never interact with it directly.
+
+The EDD targets a `TEEProvider` protocol with swappable implementations (WebView-based, mock for tests, Secure Enclave future), but that abstraction hasn't landed yet.
 
 ### Auth State
 
-`AuthState` is an actor shared across all modules. `setJWT(_:)` on the singleton stores a developer-supplied token (no refresh). `AuthClient.verifyOTP()` stores both a JWT and refresh token and schedules auto-refresh. HTTP requests pick up the current token via `AuthMiddleware`.
+`CrossmintAuthManager` manages JWT state, persisting it to keychain. `setJWT(_:)` on the singleton stores a developer-supplied token (no refresh). `AuthClient.verifyOTP()` stores a JWT from Crossmint-managed auth. HTTP requests in the `Wallet` module inject the current JWT via `AuthenticatedCrossmintService`.
 
-### Error Protocol (Target)
+### Error Protocol
 
-All error types conform to `CrossmintError`:
+All error types conform to `CrossmintError` (WAL-9979, in progress):
 
 ```swift
 public protocol CrossmintError: Error, Sendable {
@@ -147,30 +151,17 @@ public protocol CrossmintError: Error, Sendable {
 }
 ```
 
-Domain errors: `WalletError`, `TransactionError`, `AuthError`, `SignerError`, `CheckoutError`.
+Domain errors: `WalletError`, `TransactionError`, `SignatureError`, `AuthError`.
 
 ### Services vs Orchestrators
 
 Services make exactly one API call per method — no orchestration, no polling. Orchestrators coordinate multi-step flows (signer init, create, sign, poll). Simple flows go client → service directly. Reach for an orchestrator only when a flow touches multiple services or requires retry/polling.
 
-### In-Flight Work (as of June 2026)
-
-| Issue | Summary | Status |
-|-------|---------|--------|
-| WAL-9974 / WAL-10195 / WAL-10196 | Singleton + configure() + setJWT | Done |
-| WAL-9977 | Auth client | Done |
-| WAL-9976 | Move sign/poll out of Wallet (extensions extracted; protocol refactor pending) | Done |
-| WAL-9978 / WAL-10194 | TEE refactor + TEEProvider protocol | Backlog |
-| WAL-9966 | OpenAPI HTTP client generation | Backlog |
-| WAL-9979 | Error protocol | In Progress |
-| WAL-9980 | Logging improvements | In Progress |
-| WAL-9981 | DocC documentation | In Progress (do last; API not stable) |
-
 ## Code Conventions
 
 ### Protocol-First Design
 
-Expose behavior through protocols, keep concrete types internal. If the protocol lives in `CrossmintCore`, the implementation lives in the feature module (`CrossmintWalletsImpl`, etc.). External consumers only import protocols and public value types.
+Expose behavior through protocols, keep concrete types internal. Protocols live in the same module as their primary consumer; implementations are `internal` or `package` unless they need to be subclassed. External consumers only import protocols and public value types.
 
 ### Naming
 
@@ -267,6 +258,14 @@ Functions should depend only on what they use. Prefer passing specific values ov
 ### Complexity Threshold
 
 Before adding background tasks, timers, or retry loops, check whether a simpler pre-call check would suffice, and whether the other SDKs (React Native, Kotlin) do the same thing. Complexity that isn't warranted by the feature and not matched cross-platform creates drift.
+
+### Swift Concurrency Patterns
+
+**Typed throws.** Use domain-typed errors where the failure set is known at the call site. The codebase uses `throws(WalletError)`, `throws(TransactionError)`, etc. Don't use untyped `throws` for internal methods whose errors are knowable — the compiler enforces exhaustiveness and eliminates the need for casts.
+
+**`@MainActor` propagation.** `CrossmintSDK` is `@MainActor`. Code that updates UI or calls into the singleton must run on the main actor. Use `await MainActor.run { }` to hop explicitly rather than `DispatchQueue.main.async` — that is UIKit-era code that breaks structured concurrency.
+
+**Structured concurrency.** Use `async let` for parallel independent calls. Use `TaskGroup` when the fan-out count is dynamic. Avoid `Task.detached` unless you explicitly need to break task inheritance (priority, cancellation, actor context) — detached tasks orphan work and make testing harder.
 
 ## Test Conventions
 
