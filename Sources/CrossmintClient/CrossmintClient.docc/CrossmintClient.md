@@ -35,6 +35,7 @@ Wallets are chain-specific: use ``EVMWallet`` for Ethereum-compatible chains and
 ### Transactions & Transfers
 
 - ``Transaction``
+- ``TransactionStatus``
 - ``TransactionSummary``
 - ``Transfer``
 - ``TransferListResult``
