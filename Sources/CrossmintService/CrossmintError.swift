@@ -1,4 +1,3 @@
-import Foundation
 import Http
 
 public protocol CrossmintError: Swift.Error, Sendable, CustomStringConvertible {

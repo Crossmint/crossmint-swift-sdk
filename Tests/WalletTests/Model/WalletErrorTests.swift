@@ -13,7 +13,7 @@ struct WalletErrorTests {
         let error = WalletError.walletNotFound
         #expect(error.code == "WALLET_NOT_FOUND")
         #expect(error.message == "Wallet not found")
-        #expect(error.recoverySuggestion != nil)
+        #expect(error.recoverySuggestion == "Create a wallet using wallets.getOrCreate(chain:signer:)")
         #expect(error.underlyingError == nil)
     }
 
@@ -29,7 +29,7 @@ struct WalletErrorTests {
     func signerNotRegistered() {
         let error = WalletError.signerNotRegistered("0xabc")
         #expect(error.code == "SIGNER_NOT_REGISTERED")
-        #expect(error.recoverySuggestion != nil)
+        #expect(error.recoverySuggestion == "Call addSigner before attempting operations that require this signer.")
         #expect(error.underlyingError == nil)
     }
 

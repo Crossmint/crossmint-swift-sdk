@@ -25,14 +25,14 @@ struct CrossmintErrorTests {
     func crossmintServiceErrorInvalidApiKey() {
         let error = CrossmintServiceError.invalidApiKey("key123")
         #expect(error.code == "INVALID_API_KEY")
-        #expect(error.recoverySuggestion != nil)
+        #expect(error.recoverySuggestion == "Verify your API key in the Crossmint developer console.")
     }
 
     @Test("CrossmintServiceError.timeout has recovery suggestion")
     func crossmintServiceErrorTimeout() {
         let error = CrossmintServiceError.timeout
         #expect(error.code == "TIMEOUT")
-        #expect(error.recoverySuggestion != nil)
+        #expect(error.recoverySuggestion == "Check your network connection and retry the request.")
     }
 
     @Test("CrossmintServiceError.invalidURL has expected code")
@@ -62,6 +62,6 @@ struct CrossmintErrorTests {
     @Test("CrossmintError description omits recovery section when nil")
     func descriptionOmitsRecoveryWhenNil() {
         let error = CrossmintServiceError.unknown
-        #expect(!error.description.contains("Recovery:"))
+        #expect(error.description == "[SERVICE_ERROR] Unknown error")
     }
 }
