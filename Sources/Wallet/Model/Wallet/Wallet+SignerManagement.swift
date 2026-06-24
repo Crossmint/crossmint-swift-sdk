@@ -124,6 +124,18 @@ extension Wallet {
 
     // MARK: - Internal
 
+    internal func updateSignerIfRequired() async -> any Signer {
+        var updatedSigner: any Signer = signer
+        if let passkey = config.recovery as? PasskeySignerData {
+            if let passkeySigner = updatedSigner as? PasskeySigner {
+                updatedSigner = await passkeySigner.updateAdminSigner(
+                    passkey
+                )
+            }
+        }
+        return updatedSigner
+    }
+
     internal func preAuthIfNeeded() async throws(WalletError) {
         await signerInitializationTask?.value
         if _needsRecovery {

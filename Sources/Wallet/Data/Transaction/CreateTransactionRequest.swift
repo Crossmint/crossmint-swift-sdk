@@ -1,6 +1,6 @@
 import CrossmintCommonTypes
 
-public struct CreateTransactionRequest {
+public struct CreateTransactionRequest: Sendable {
     let request: any TransactionRequest
     let chainType: ChainType
 }

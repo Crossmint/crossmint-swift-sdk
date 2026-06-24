@@ -1,1 +1,1 @@
-public protocol TransactionRequest: Encodable {}
+public protocol TransactionRequest: Encodable, Sendable {}
