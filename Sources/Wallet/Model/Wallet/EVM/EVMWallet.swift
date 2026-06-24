@@ -11,6 +11,10 @@ import Logger
 open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     public typealias SpecificChain = EVMChain
 
+    /// Casts a generic ``Wallet`` to ``EVMWallet``.
+    ///
+    /// Useful when you have a ``Wallet`` reference and need EVM-specific methods.
+    /// Throws ``WalletError`` if the wallet is not an EVM wallet.
     public static func from(wallet: Wallet) throws(WalletError) -> EVMWallet {
         guard let evmWallet = wallet as? EVMWallet else {
             throw .walletInvalidType("Cannot create an EVMWallet with the provided wallet")

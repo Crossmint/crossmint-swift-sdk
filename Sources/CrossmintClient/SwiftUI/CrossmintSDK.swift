@@ -38,6 +38,7 @@ import Web
 final public class CrossmintSDK: ObservableObject {
     @MainActor private static var _shared: CrossmintSDK?
 
+    /// The configured SDK instance. Access after calling ``configure(apiKey:logLevel:)``.
     @MainActor public static var shared: CrossmintSDK {
         guard let instance = _shared else {
             fatalError(
@@ -66,8 +67,11 @@ final public class CrossmintSDK: ObservableObject {
 
     private let sdk: ClientSDK
 
+    /// Factory for creating and retrieving smart wallets. See ``CrossmintWallets``.
     public let crossmintWallets: CrossmintWallets
+    /// Authentication manager for the email OTP flow. See ``CrossmintAuthManager``.
     public let authManager: CrossmintAuthManager
+    /// Low-level Crossmint service for direct API access.
     public let crossmintService: CrossmintService
     /// Standalone auth client for explicit OTP lifecycle management. See ``AuthClient``.
     public let authClient: AuthClient
@@ -89,6 +93,7 @@ final public class CrossmintSDK: ObservableObject {
         crossmintTEE.cancelOTP()
     }
 
+    /// Whether the SDK is running against the Crossmint production environment.
     public var isProductionEnvironment: Bool {
         crossmintService.isProductionEnvironment
     }
