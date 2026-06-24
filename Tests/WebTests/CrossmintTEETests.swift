@@ -85,6 +85,7 @@ struct CrossmintTEETests {
                 }
                 try await Task.sleep(nanoseconds: 50_000_000)
             }
+            throw CrossmintTEE.Error.generic("Timed out waiting for the OTP prompt")
         }
 
         func verifyHandshakeCompleted(verificationId: String) {
