@@ -12,8 +12,6 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
     var loadedURLs: [URL] = []
     var sentMessages: [any WebViewMessage] = []
     var resetCount = 0
-    // Cumulative count of complete-onboarding requests, not cleared by resetLoadedContent, so tests
-    // can assert that onboarding was retried across a frame reload.
     var completeOnboardingRequestCount = 0
 
     var shouldThrowOnLoad = false

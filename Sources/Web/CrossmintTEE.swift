@@ -166,13 +166,8 @@ public final class CrossmintTEE: ObservableObject {
         }
     }
 
-    /// Number of times onboarding is attempted within a single signature before giving up. One retry
-    /// covers the case where the signer frame is reloaded between sending and verifying the OTP.
     private static let maxOnboardingAttempts = 2
 
-    /// Onboard a new device and sign. If completing onboarding fails because the signer frame lost its
-    /// in-memory state (e.g. the web content process was terminated while waiting for the OTP), reload
-    /// the frame and re-onboard so the user gets a fresh code instead of the signature dead-ending.
     private func onboardThenSign(
         jwt: String,
         transaction: String,
@@ -216,8 +211,6 @@ public final class CrossmintTEE: ObservableObject {
         }
     }
 
-    /// Reload the signer frame and re-establish the handshake without disturbing the queue, so a fresh
-    /// onboarding can be started on a clean frame.
     private func reloadFrameForReonboarding() async throws(Error) {
         await signerStorage.clear()
         webProxy.resetLoadedContent()
