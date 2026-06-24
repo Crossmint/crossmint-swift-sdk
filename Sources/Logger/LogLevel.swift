@@ -12,6 +12,5 @@ public enum LogLevel: Int, Sendable {
     case info
     case warning
     case error
-    /// Silences all SDK log output.
     case none
 }
