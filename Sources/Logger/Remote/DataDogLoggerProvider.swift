@@ -282,7 +282,7 @@ actor DataDogLoggerProvider: LoggerProvider {
         case .error:
             return "error"
         case .none:
-            return "info"
+            return "none"
         }
     }
 
