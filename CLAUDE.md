@@ -120,24 +120,11 @@ CrossmintSDKProduct    ← assembly: configure() + wiring (depends on Core + TEE
 
 Public product imports: `CrossmintSDK` (everything), `CrossmintWallets`, `CrossmintAuth`.
 
-### Wallet Protocol & Signers
+### Wallet
 
-`Wallet` is a public protocol — not a class. The concrete implementation is internal `WalletImpl`. Chain-specific extensions (e.g. `EVMWallet`) add chain-unique methods.
+`Wallet` is currently an `open class` with `@unchecked Sendable`. The target architecture (EDD) makes it a public protocol with an internal concrete implementation, but that refactor is still in progress. Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
 
-Signer configuration uses a static-factory struct pattern for trailing-closure syntax:
-
-```swift
-let wallet = try await CrossmintSDK.shared.wallets.getOrCreate(
-    chain: .baseSepolia,
-    signer: .email("user@example.com", onAuthRequired: { flow in
-        // push flow into @State — closure returns immediately
-        // signer suspends internally until flow.verifyOTP() or flow.cancel()
-        await MainActor.run { otpFlow = flow }
-    })
-)
-```
-
-`OTPFlow` is a public struct with `sendOTP`, `verifyOTP`, and `cancel` closures. The signer suspends on a `CheckedContinuation` — the closure just delivers the flow object to the UI layer. Add `.crossmintWalletSigner()` to your root view when using email/phone signers.
+Add `.crossmintNonCustodialSigner()` to your root view when using email/phone signers — this injects the hidden WebView required for TEE communication.
 
 ### TEE Architecture
 
@@ -170,16 +157,14 @@ Services make exactly one API call per method — no orchestration, no polling. 
 
 | Issue | Summary | Status |
 |-------|---------|--------|
-| WAL-9974 / WAL-10195 / WAL-10196 | Singleton + configure() + setJWT | In Review / Done |
-| WAL-10193 | OTPFlow callback pattern | In Review |
-| WAL-9977 | Auth client | In Progress |
-| WAL-9976 | Move sign/poll out of Wallet | In Progress |
-| WAL-10312 | Move onAuthRequired to WalletOptions.Callbacks | Backlog |
+| WAL-9974 / WAL-10195 / WAL-10196 | Singleton + configure() + setJWT | Done |
+| WAL-9977 | Auth client | Done |
+| WAL-9976 | Move sign/poll out of Wallet (extensions extracted; protocol refactor pending) | Done |
 | WAL-9978 / WAL-10194 | TEE refactor + TEEProvider protocol | Backlog |
 | WAL-9966 | OpenAPI HTTP client generation | Backlog |
-| WAL-9979 | Error protocol | Todo |
-| WAL-9980 | Logging improvements | Todo |
-| WAL-9981 | DocC documentation | Todo (blocked — do last; API not stable) |
+| WAL-9979 | Error protocol | In Progress |
+| WAL-9980 | Logging improvements | In Progress |
+| WAL-9981 | DocC documentation | In Progress (do last; API not stable) |
 
 ## Code Conventions
 
