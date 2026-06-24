@@ -76,6 +76,17 @@ struct CrossmintTEETests {
             webProxy.configureResponse(for: GetStatusResponse.self, response: statusResponse)
         }
 
+        /// Polls until the OTP prompt is requested, up to ~5s, so timing-sensitive assertions don't
+        /// flake under load.
+        func waitForOTPRequired() async throws {
+            for _ in 0..<100 {
+                if tee.isOTPRequired {
+                    return
+                }
+                try await Task.sleep(nanoseconds: 50_000_000)
+            }
+        }
+
         func verifyHandshakeCompleted(verificationId: String) {
             let sentHandshakeRequest = webProxy.lastSentMessage(ofType: HandshakeRequest.self)
             #expect(sentHandshakeRequest != nil)
@@ -446,5 +457,48 @@ struct CrossmintTEETests {
         }
 
         #expect(successCount == 3)
+    }
+
+    @Test("Re-onboards with a fresh OTP when the frame reloads mid-onboarding")
+    func testReonboardsWhenFrameReloadsMidOnboarding() async throws {
+        let fixture = TestFixture()
+        await fixture.setupAuthentication()
+        try await fixture.setupHandshake()
+
+        fixture.configureNewDevice()
+        // Start-onboarding succeeds, but complete-onboarding is left unconfigured so the first
+        // verification times out — simulating the signer frame being terminated while waiting for
+        // the OTP, which loses the in-memory onboarding.
+        let startOnboardingResponse = CrossmintTEETestHelpers.createStartOnboardingResponse()
+        fixture.webProxy.configureResponse(for: StartOnboardingResponse.self, response: startOnboardingResponse)
+        fixture.configureSignResponse(signature: "0xsignature_reonboard")
+
+        let signTask = Task {
+            try await fixture.tee.signTransaction(
+                transaction: CrossmintTEETestHelpers.createTestTransaction(),
+                keyType: "keyType",
+                encoding: "encoding"
+            )
+        }
+
+        // First OTP prompt.
+        try await fixture.waitForOTPRequired()
+        #expect(fixture.tee.isOTPRequired == true)
+        fixture.tee.provideOTP("stale-otp")
+
+        // Verification fails, the frame reloads, and a fresh OTP is requested.
+        try await fixture.waitForOTPRequired()
+        #expect(fixture.tee.isOTPRequired == true)
+
+        // The new code now completes onboarding.
+        let completeOnboardingResponse = CrossmintTEETestHelpers.createCompleteOnboardingResponse()
+        fixture.webProxy.configureResponse(for: CompleteOnboardingResponse.self, response: completeOnboardingResponse)
+        fixture.tee.provideOTP("fresh-otp")
+
+        let signature = try await signTask.value
+        #expect(signature == "0xsignature_reonboard")
+        #expect(fixture.tee.isOTPRequired == false)
+        // Onboarding was completed twice: the stale attempt and the fresh one after the reload.
+        #expect(fixture.webProxy.completeOnboardingRequestCount == 2)
     }
 }
