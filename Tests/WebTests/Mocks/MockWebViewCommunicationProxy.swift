@@ -8,7 +8,7 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
     public weak var webView: WKWebView?
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
     public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
-    public var onWebContentProcessTerminated: () -> Void = {}
+    public var onWebContentProcessTerminated: @MainActor () -> Void = {}
 
     var loadedURLs: [URL] = []
     var sentMessages: [any WebViewMessage] = []

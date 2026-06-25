@@ -56,6 +56,7 @@ public final class CrossmintTEE: ObservableObject {
     private var processTerminationRecoveryAttempts = 0
     private let maxProcessTerminationRecoveryAttempts = 3
     private var isRecovering = false
+    private(set) var recoveryTask: Task<Void, Never>?
 
     private var otpContinuation: CheckedContinuation<String, Swift.Error>?
     @Published public var isOTPRequired = false
@@ -81,9 +82,7 @@ public final class CrossmintTEE: ObservableObject {
         self.apiKey = apiKey
 
         webProxy.onWebContentProcessTerminated = { [weak self] in
-            Task { @MainActor in
-                self?.recoverFromWebContentProcessTermination()
-            }
+            self?.recoverFromWebContentProcessTermination()
         }
     }
 
@@ -198,7 +197,7 @@ public final class CrossmintTEE: ObservableObject {
 
         guard !isRecovering else { return }
         isRecovering = true
-        Task { [weak self] in
+        recoveryTask = Task { [weak self] in
             await self?.runWebContentProcessRecovery()
         }
     }

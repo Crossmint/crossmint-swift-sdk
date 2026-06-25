@@ -8,7 +8,7 @@ public protocol WebViewCommunicationProxy: AnyObject, WKNavigationDelegate, WKSc
     var webView: WKWebView? { get set }
     var onWebViewMessage: (any WebViewMessage) -> Void { get set }
     var onUnknownMessage: (String, Data) -> Void { get set }
-    var onWebContentProcessTerminated: () -> Void { get set }
+    var onWebContentProcessTerminated: @MainActor () -> Void { get set }
 
     func loadURL(_ url: URL) async throws
     func resetLoadedContent()
@@ -37,7 +37,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
     public weak var webView: WKWebView?
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
     public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
-    public var onWebContentProcessTerminated: () -> Void = {}
+    public var onWebContentProcessTerminated: @MainActor () -> Void = {}
 
     private var loadedContent: URL?
     private var isPageLoaded = false

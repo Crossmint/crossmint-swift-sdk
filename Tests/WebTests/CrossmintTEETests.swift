@@ -402,10 +402,7 @@ struct CrossmintTEETests {
         #expect(fixture.webProxy.sentMessages(ofType: HandshakeRequest.self).count == 1)
 
         fixture.webProxy.onWebContentProcessTerminated()
-
-        for _ in 0..<200 where fixture.webProxy.sentMessages(ofType: HandshakeRequest.self).count < 2 {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await fixture.tee.recoveryTask?.value
 
         #expect(fixture.webProxy.loadedURLs.count == 2)
         #expect(fixture.webProxy.sentMessages(ofType: HandshakeRequest.self).count == 2)
