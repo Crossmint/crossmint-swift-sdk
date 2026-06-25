@@ -1,3 +1,10 @@
+//
+//  AuthClient.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 6/1/26.
+//
+
 /// Standalone authentication client for apps that manage auth independently of wallet operations.
 ///
 /// Access via ``CrossmintSDK/authClient``. For most apps the built-in email OTP flow through
