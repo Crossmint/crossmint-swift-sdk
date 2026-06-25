@@ -73,7 +73,7 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
     /// ## Example
     /// ```swift
     /// let summary = try await solanaWallet.sendTransaction(transaction: base64EncodedTx)
-    /// print("Signature:", summary.txId)
+    /// print("Signature:", summary.hash)
     /// ```
     public func sendTransaction(
         transaction: String
