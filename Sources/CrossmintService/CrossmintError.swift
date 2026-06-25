@@ -1,6 +1,7 @@
+import Foundation
 import Http
 
-public protocol CrossmintError: Swift.Error, Sendable, CustomStringConvertible {
+public protocol CrossmintError: Swift.Error, Sendable, LocalizedError, CustomStringConvertible {
     var code: String { get }
     var message: String { get }
     var recoverySuggestion: String? { get }
@@ -8,6 +9,8 @@ public protocol CrossmintError: Swift.Error, Sendable, CustomStringConvertible {
 }
 
 extension CrossmintError {
+    public var errorDescription: String? { message }
+
     public var description: String {
         var result = "[\(code)] \(message)"
         if let suggestion = recoverySuggestion {
