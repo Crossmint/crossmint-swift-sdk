@@ -183,6 +183,9 @@ public final class CrossmintTEE: ObservableObject {
 
     public func resetState() {
         Logger.tee.debug(LogEvents.resetStateStart)
+        recoveryTask?.cancel()
+        recoveryTask = nil
+        isRecovering = false
         handshakeState = .idle
         processTerminationRecoveryAttempts = 0
         failAllQueuedRequests(with: .generic("State was reset"))
@@ -203,7 +206,7 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     private func runWebContentProcessRecovery() async {
-        defer { isRecovering = false }
+        defer { if !Task.isCancelled { isRecovering = false } }
         Logger.tee.info(LogEvents.webProcessRecoveryStart)
 
         while processTerminationRecoveryAttempts < maxProcessTerminationRecoveryAttempts {
@@ -213,6 +216,7 @@ public final class CrossmintTEE: ObservableObject {
                 Logger.tee.info(LogEvents.webProcessRecoverySuccess)
                 return
             } catch {
+                if Task.isCancelled { return }
                 Logger.tee.error(LogEvents.webProcessRecoveryError, attributes: [
                     "recovery.attempt": "\(processTerminationRecoveryAttempts)",
                     "recovery.maxAttempts": "\(maxProcessTerminationRecoveryAttempts)",

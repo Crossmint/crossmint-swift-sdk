@@ -420,6 +420,22 @@ struct CrossmintTEETests {
         #expect(signature == "0xrecovered")
     }
 
+    @Test("resetState cancels an in-flight recovery and frees it to start again")
+    func testResetStateCancelsInFlightRecovery() async throws {
+        let fixture = TestFixture()
+        await fixture.setupAuthentication()
+        try await fixture.setupHandshake(verificationId: "test123")
+
+        fixture.webProxy.onWebContentProcessTerminated()
+        #expect(fixture.tee.recoveryTask != nil)
+
+        fixture.tee.resetState()
+        #expect(fixture.tee.recoveryTask == nil)
+
+        fixture.webProxy.onWebContentProcessTerminated()
+        #expect(fixture.tee.recoveryTask != nil)
+    }
+
     @Test("Multiple identical requests process independently")
     func testMultipleIdenticalRequestsProcessIndependently() async throws {
         let fixture = TestFixture()
