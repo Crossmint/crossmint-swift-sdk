@@ -142,29 +142,12 @@ public final class CrossmintTEE: ObservableObject {
             }
             switch signerStatus {
             case .newDevice:
-                let onboardingResponse = try await startOnboarding(
+                return try await onboardThenSign(
                     jwt: jwt,
-                    authId: try getAuthId()
+                    transaction: transaction,
+                    keyType: keyType,
+                    encoding: encoding
                 )
-
-                guard onboardingResponse.status == .success else {
-                    Logger.tee.error(LogEvents.onboardingError, attributes: [
-                        "error": onboardingResponse.errorMessage ?? "Unknown error"
-                    ])
-                    throw .generic("Invalid NCS status")
-                }
-
-                let otpCode: String = try await waitForOTP()
-                _ = try await validate(otpCode: otpCode, jwt: jwt)
-
-                return try await sign(
-                    .init(
-                        jwt: jwt,
-                        apiKey: apiKey,
-                        messageBytes: transaction,
-                        keyType: keyType,
-                        encoding: encoding)
-                ).stringValue
             case .ready:
                 return try await sign(
                     .init(
@@ -181,6 +164,68 @@ public final class CrossmintTEE: ObservableObject {
             ])
             throw .generic(response.errorMessage ?? "Unknown error")
         }
+    }
+
+    private static let maxOnboardingAttempts = 2
+
+    private func onboardThenSign(
+        jwt: String,
+        transaction: String,
+        keyType: String,
+        encoding: String
+    ) async throws(Error) -> String {
+        var attempt = 1
+        while true {
+            let onboardingResponse = try await startOnboarding(jwt: jwt, authId: try getAuthId())
+            guard onboardingResponse.status == .success else {
+                Logger.tee.error(LogEvents.onboardingError, attributes: [
+                    "error": onboardingResponse.errorMessage ?? "Unknown error"
+                ])
+                throw .generic("Invalid NCS status")
+            }
+
+            let otpCode: String = try await waitForOTP()
+
+            do {
+                _ = try await validate(otpCode: otpCode, jwt: jwt)
+            } catch {
+                guard attempt < Self.maxOnboardingAttempts else {
+                    throw error
+                }
+                Logger.tee.warn(LogEvents.onboardingReissued, attributes: [
+                    "attempt": "\(attempt)",
+                    "reason": "Onboarding could not be completed, reloading the frame and re-issuing the OTP"
+                ])
+                try await reloadFrameForReonboarding()
+                attempt += 1
+                continue
+            }
+
+            return try await sign(
+                .init(
+                    jwt: jwt,
+                    apiKey: apiKey,
+                    messageBytes: transaction,
+                    keyType: keyType,
+                    encoding: encoding)
+            ).stringValue
+        }
+    }
+
+    private func reloadFrameForReonboarding() async throws(Error) {
+        await signerStorage.clear()
+        webProxy.resetLoadedContent()
+
+        do {
+            try await webProxy.loadURL(url)
+        } catch {
+            Logger.tee.error(LogEvents.loadError, attributes: [
+                "error": "Failed to reload TEE URL: \(error)"
+            ])
+            throw Error.urlNotAvailable
+        }
+
+        try await tryHandshake(maxAttempts: 3)
     }
 
     public func resetState() {
