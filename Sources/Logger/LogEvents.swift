@@ -53,7 +53,7 @@ public enum LogEvents {
     public static let onboardingCompleteError = "signer.onboarding.complete.error"
 
     /// A fresh OTP was issued after onboarding could not be completed (e.g. the signer frame was reloaded mid-onboarding)
-    public static let onboardingReissued = "signer.onboarding.reissued"
+    public static let onboardingReissued = "tee.signer.onboarding.reissued"
 
     // MARK: - Sign Events
 
