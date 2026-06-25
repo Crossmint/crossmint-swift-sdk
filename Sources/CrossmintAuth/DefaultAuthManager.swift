@@ -7,7 +7,7 @@ import Utils
 ///
 /// ## OTP flow
 /// ```swift
-/// let auth = CrossmintSDK.shared.authManager as! CrossmintAuthManager
+/// let auth = CrossmintSDK.shared.authManager
 ///
 /// try await auth.sendEmailOtp(email: "user@example.com")
 /// // ... user enters the code from their inbox ...
