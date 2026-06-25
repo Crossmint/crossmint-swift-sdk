@@ -1,8 +1,8 @@
 @testable import Logger
 import Testing
 
-// Spy that records whether any log method was invoked.
-private final class SpyProvider: LoggerProvider, @unchecked Sendable {
+// Simulates a DataDog-like provider that always forwards regardless of Logger.level.
+private final class AlwaysOnSpy: LoggerProvider, @unchecked Sendable {
     var calls: [String] = []
 
     func debug(_ message: String, attributes: [String: Encodable]?) { calls.append("debug") }
@@ -11,21 +11,43 @@ private final class SpyProvider: LoggerProvider, @unchecked Sendable {
     func error(_ message: String, attributes: [String: Encodable]?) { calls.append("error") }
 }
 
-// Serialized: both tests mutate the shared Logger.level global and would race in parallel
-@Suite("LogLevel.none suppresses all output", .serialized)
+// Simulates an OSLog-like provider that respects Logger.level.
+private final class LevelRespectingSpy: LoggerProvider, @unchecked Sendable {
+    var calls: [String] = []
+
+    func debug(_ message: String, attributes: [String: Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.debug.rawValue else { return }
+        calls.append("debug")
+    }
+    func info(_ message: String, attributes: [String: Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.info.rawValue else { return }
+        calls.append("info")
+    }
+    func warning(_ message: String, attributes: [String: Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.warning.rawValue else { return }
+        calls.append("warning")
+    }
+    func error(_ message: String, attributes: [String: Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.error.rawValue else { return }
+        calls.append("error")
+    }
+}
+
+// Serialized: all tests mutate the shared Logger.level global and would race in parallel
+@Suite("LogLevel filtering", .serialized)
 struct LogLevelNoneTests {
     @Test("none rawValue is greater than error rawValue")
     func noneRawValueIsAboveError() {
         #expect(LogLevel.none.rawValue > LogLevel.error.rawValue)
     }
 
-    @Test("Logger emits nothing at level .none")
-    func loggerSilentAtNone() {
+    @Test("remote providers always receive logs regardless of level")
+    func remoteProviderIgnoresLogLevel() {
         let saved = Logger.level
         defer { Logger.level = saved }
 
         Logger.level = .none
-        let spy = SpyProvider()
+        let spy = AlwaysOnSpy()
         let logger = Logger(testProviders: [spy])
 
         logger.debug("d")
@@ -33,16 +55,16 @@ struct LogLevelNoneTests {
         logger.warning("w")
         logger.error("e")
 
-        #expect(spy.calls.isEmpty, "Expected no calls when level is .none, got: \(spy.calls)")
+        #expect(spy.calls == ["debug", "info", "warning", "error"])
     }
 
-    @Test("Logger emits at level .error")
-    func loggerEmitsAtError() {
+    @Test("console providers respect Logger.level")
+    func consoleProviderRespectsLogLevel() {
         let saved = Logger.level
         defer { Logger.level = saved }
 
         Logger.level = .error
-        let spy = SpyProvider()
+        let spy = LevelRespectingSpy()
         let logger = Logger(testProviders: [spy])
 
         logger.debug("d")
@@ -51,5 +73,22 @@ struct LogLevelNoneTests {
         logger.error("e")
 
         #expect(spy.calls == ["error"])
+    }
+
+    @Test("console providers emit nothing at level .none")
+    func consoleProviderSilentAtNone() {
+        let saved = Logger.level
+        defer { Logger.level = saved }
+
+        Logger.level = .none
+        let spy = LevelRespectingSpy()
+        let logger = Logger(testProviders: [spy])
+
+        logger.debug("d")
+        logger.info("i")
+        logger.warning("w")
+        logger.error("e")
+
+        #expect(spy.calls.isEmpty)
     }
 }

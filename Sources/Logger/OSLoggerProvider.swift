@@ -18,18 +18,22 @@ public final class OSLoggerProvider: LoggerProvider {
     }
 
     func debug(_ message: String, attributes: [String: any Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.debug.rawValue else { return }
         os_log(.debug, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
     func error(_ message: String, attributes: [String: any Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.error.rawValue else { return }
         os_log(.error, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
     func info(_ message: String, attributes: [String: any Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.info.rawValue else { return }
         os_log(.info, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
     func warning(_ message: String, attributes: [String: any Encodable]?) {
+        guard Logger.level.rawValue <= LogLevel.warning.rawValue else { return }
         os_log(.default, log: osLogger, "%{public}@", formatMessage(message, attributes: attributes))
     }
 
