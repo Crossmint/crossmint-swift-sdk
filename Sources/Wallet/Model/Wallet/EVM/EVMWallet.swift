@@ -6,8 +6,8 @@ import Logger
 
 /// A Crossmint smart wallet on an EVM-compatible chain.
 ///
-/// Obtain an instance via ``CrossmintWallets/getWallet(chain:recovery:options:)-8u7wh``
-/// or ``CrossmintWallets/createWallet(chain:recovery:options:)-4u0gh``.
+/// Obtain an instance via ``CrossmintWallets/getWallet(chain:recovery:options:)``
+/// or ``CrossmintWallets/createWallet(chain:recovery:options:)``.
 open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     public typealias SpecificChain = EVMChain
 

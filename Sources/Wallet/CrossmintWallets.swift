@@ -3,7 +3,7 @@ import CrossmintCommonTypes
 /// Factory for obtaining and creating Crossmint smart wallets.
 ///
 /// Obtain an instance from ``ClientSDK/crossmintWallets()`` or ``CrossmintSDK/crossmintWallets``.
-/// Prefer the chain-specific overloads (e.g. ``getWallet(chain:recovery:options:)-8u7wh``)
+/// Prefer the chain-specific overloads (e.g. ``getWallet(chain:recovery:options:)``)
 /// over the generic ones so you get a typed wallet back without an additional cast.
 ///
 /// ## Example

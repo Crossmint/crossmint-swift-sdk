@@ -153,7 +153,9 @@ public actor CrossmintAuthManager: AuthManager {
 
     /// Clears the local session state without contacting the server.
     ///
-    /// Prefer ``logout()`` to also revoke the server-side refresh token.
+    /// Use this when the server session is already gone (e.g. the refresh token expired or was
+    /// revoked externally) and you just need to reset local state. Prefer ``logout()`` when the
+    /// session is still valid and you want to revoke the server-side token as well.
     public func reset() async -> OTPAuthenticationStatus {
         otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
         return otpAuthenticationStatus
