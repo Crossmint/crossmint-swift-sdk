@@ -39,17 +39,33 @@ final class SignerRegistrationService: Sendable {
     }
 
     func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {
+        switch pendingApproval(in: registration) {
+        case let .signature(signatureId, pending):
+            try await approveSignatureRegistration(signatureId: signatureId, pending: pending, signer: signer)
+        case let .transaction(transactionId):
+            try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
+        case .notNeeded:
+            break
+        }
+    }
+
+    private enum PendingApproval {
+        case signature(id: String, pending: [ApprovalEntry])
+        case transaction(id: String)
+        case notNeeded
+    }
+
+    private func pendingApproval(in registration: AddDelegatedSignerResponse) -> PendingApproval {
         if let chainEntry = registration.chains?[chainName],
            chainEntry.status == "awaiting-approval",
            let signatureId = chainEntry.id,
            let pending = chainEntry.approvals?.pending, !pending.isEmpty {
-            try await approveSignatureRegistration(signatureId: signatureId, pending: pending, signer: signer)
-            return
+            return .signature(id: signatureId, pending: pending)
         }
-
         if let transaction = registration.transaction {
-            try await approveRegistrationTransaction(transactionId: transaction.id, signer: signer)
+            return .transaction(id: transaction.id)
         }
+        return .notNeeded
     }
 
     private func approveSignatureRegistration(
