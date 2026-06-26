@@ -129,6 +129,23 @@ public enum LogEvents {
     /// Missing email for authId
     public static let getAuthIdError = "signer.getAuthId.error"
 
+    // MARK: - Web Content Process Events
+
+    /// The web view's content process was terminated by the system
+    public static let webProcessTerminated = "signer.webProcess.terminated"
+
+    /// Starting recovery after a content process termination
+    public static let webProcessRecoveryStart = "signer.webProcess.recovery.start"
+
+    /// Recovery after a content process termination succeeded
+    public static let webProcessRecoverySuccess = "signer.webProcess.recovery.success"
+
+    /// Recovery after a content process termination failed
+    public static let webProcessRecoveryError = "signer.webProcess.recovery.error"
+
+    /// Gave up recovering after repeated content process terminations
+    public static let webProcessRecoveryGivenUp = "signer.webProcess.recovery.givenUp"
+
     // MARK: - Wallet Factory Events
 
     /// Getting wallet
