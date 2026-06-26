@@ -121,7 +121,7 @@ struct DefaultWalletService: WalletService {
             .meWalletSigners(chainType: chainType, body: bodyData),
             errorType: WalletError.self
         ) { networkError in
-            deviceSignerNotSupportedError(
+            mapToDeviceSignerNotSupportedErrorIfApplicable(
                 code: networkError.serviceErrorCode,
                 message: networkError.serviceErrorMessage
             )
@@ -132,7 +132,7 @@ struct DefaultWalletService: WalletService {
         return result
     }
 
-    private func deviceSignerNotSupportedError(code: String?, message: String?) -> WalletError? {
+    private func mapToDeviceSignerNotSupportedErrorIfApplicable(code: String?, message: String?) -> WalletError? {
         guard code == "DEVICE_SIGNER_NOT_SUPPORTED" else { return nil }
         return .deviceSignerNotSupported(
             message ?? "Device signers are not supported for this wallet's provider."
