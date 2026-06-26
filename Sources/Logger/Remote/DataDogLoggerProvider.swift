@@ -281,7 +281,7 @@ actor DataDogLoggerProvider: LoggerProvider {
             return "warn"
         case .error:
             return "error"
-        case .none:
+        case .silent:
             return "none"
         }
     }

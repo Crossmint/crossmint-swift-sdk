@@ -38,7 +38,7 @@ private final class LevelRespectingSpy: LoggerProvider, @unchecked Sendable {
 struct LogLevelNoneTests {
     @Test("none rawValue is greater than error rawValue")
     func noneRawValueIsAboveError() {
-        #expect(LogLevel.none.rawValue > LogLevel.error.rawValue)
+        #expect(LogLevel.silent.rawValue > LogLevel.error.rawValue)
     }
 
     @Test("remote providers always receive logs regardless of level")
@@ -46,7 +46,7 @@ struct LogLevelNoneTests {
         let saved = Logger.level
         defer { Logger.level = saved }
 
-        Logger.level = .none
+        Logger.level = .silent
         let spy = AlwaysOnSpy()
         let logger = Logger(testProviders: [spy])
 
@@ -75,12 +75,12 @@ struct LogLevelNoneTests {
         #expect(spy.calls == ["error"])
     }
 
-    @Test("console providers emit nothing at level .none")
+    @Test("console providers emit nothing at level .silent")
     func consoleProviderSilentAtNone() {
         let saved = Logger.level
         defer { Logger.level = saved }
 
-        Logger.level = .none
+        Logger.level = .silent
         let spy = LevelRespectingSpy()
         let logger = Logger(testProviders: [spy])
 

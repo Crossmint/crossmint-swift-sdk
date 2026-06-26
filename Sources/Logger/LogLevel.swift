@@ -12,5 +12,5 @@ public enum LogLevel: Int, Sendable {
     case info
     case warning
     case error
-    case none
+    case silent
 }
