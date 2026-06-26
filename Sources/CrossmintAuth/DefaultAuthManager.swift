@@ -83,7 +83,7 @@ public actor CrossmintAuthManager: AuthManager {
             jwtRefreshTimer?.invalidate()
             otpAuthenticationStatus = newStatus
         } catch {
-            throw AuthManagerError.serviceError(error.errorMessage)
+            throw AuthManagerError.serviceError(error.message)
         }
     }
 
@@ -104,7 +104,7 @@ public actor CrossmintAuthManager: AuthManager {
             )
             return otpAuthenticationStatus
         } catch {
-            throw AuthManagerError.serviceError(error.errorMessage)
+            throw AuthManagerError.serviceError(error.message)
         }
     }
 
@@ -124,7 +124,7 @@ public actor CrossmintAuthManager: AuthManager {
             return otpAuthenticationStatus
         } catch {
             Logger.auth.error("Error while logging out: \(error.localizedDescription)")
-            throw AuthManagerError.serviceError(error.errorMessage)
+            throw AuthManagerError.serviceError(error.message)
         }
     }
 

@@ -20,8 +20,6 @@ public enum DeviceSignerError: Error, Sendable {
     /// The message to sign could not be decoded.
     case invalidMessage
 
-    /// A machine-readable code identifying the error.
-    /// Intended to conform to `CrossmintError.code` when that protocol is introduced.
     public var code: String {
         switch self {
         case .keyNotFound:          "DEVICE_SIGNER_KEY_NOT_FOUND"
@@ -32,16 +30,29 @@ public enum DeviceSignerError: Error, Sendable {
         }
     }
 
-    /// Human-readable guidance on how to recover from the error, if applicable.
-    /// Intended to conform to `CrossmintError.recoverySuggestion` when that protocol is introduced.
+    public var message: String {
+        switch self {
+        case .keyNotFound:
+            "No device signer key found for this wallet."
+        case .keyGenerationFailed:
+            "Failed to generate a device signer key."
+        case .signingFailed:
+            "Failed to sign the message with the device signer key."
+        case .storageError(let status):
+            "Keychain operation failed with status \(status)."
+        case .invalidMessage:
+            "The message to sign could not be decoded."
+        }
+    }
+
     public var recoverySuggestion: String? {
         switch self {
         case .keyNotFound:
-            "The device signer key for this wallet was not found. The wallet may need to re-register a device signer."
+            "The wallet may need to re-register a device signer."
         case .keyGenerationFailed:
-            "Key generation failed. Ensure the device has sufficient storage and the app has Keychain access."
+            "Ensure the device has sufficient storage and the app has Keychain access."
         case .storageError:
-            "A Keychain error occurred. Ensure the app has Keychain entitlements and the device is unlocked."
+            "Ensure the app has Keychain entitlements and the device is unlocked."
         case .signingFailed, .invalidMessage:
             nil
         }

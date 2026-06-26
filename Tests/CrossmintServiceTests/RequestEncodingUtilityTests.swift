@@ -25,7 +25,7 @@ struct RequestEncodingUtilityTest {
         }
     }
 
-    enum MockServiceError: ServiceError {
+    enum MockServiceError: CrossmintMappableError {
         case serviceError(CrossmintServiceError)
         case customError(String)
 
@@ -37,17 +37,22 @@ struct RequestEncodingUtilityTest {
             .customError(error.localizedDescription)
         }
 
-        var errorMessage: String {
+        var code: String {
             switch self {
-            case .serviceError(let error):
-                return error.errorMessage
-            case .customError(let message):
-                return message
+            case .serviceError(let error): error.code
+            case .customError: "CUSTOM_ERROR"
+            }
+        }
+
+        var message: String {
+            switch self {
+            case .serviceError(let error): error.message
+            case .customError(let detail): detail
             }
         }
     }
 
-    enum AnotherMockServiceError: ServiceError {
+    enum AnotherMockServiceError: CrossmintMappableError {
         case wrapped(CrossmintServiceError)
         case other(String)
 
@@ -59,12 +64,17 @@ struct RequestEncodingUtilityTest {
             .other(error.localizedDescription)
         }
 
-        var errorMessage: String {
+        var code: String {
             switch self {
-            case .wrapped(let error):
-                return "Wrapped: \(error.errorMessage)"
-            case .other(let message):
-                return "Other: \(message)"
+            case .wrapped(let error): error.code
+            case .other: "OTHER_ERROR"
+            }
+        }
+
+        var message: String {
+            switch self {
+            case .wrapped(let error): "Wrapped: \(error.message)"
+            case .other(let detail): "Other: \(detail)"
             }
         }
     }
@@ -142,10 +152,8 @@ struct RequestEncodingUtilityTest {
             errorType: MockServiceError.self
         )
 
-        // Verify we got valid JSON data
         #expect(result.count > 0)
 
-        // Verify it's valid JSON by decoding
         let json = try JSONSerialization.jsonObject(with: result) as? [String: Any]
         #expect(json?["name"] as? String == "real_test")
         #expect(json?["value"] as? Int == 999)
@@ -271,8 +279,8 @@ struct RequestEncodingUtilityTest {
         }
     }
 
-    @Test("Works with different ServiceError types")
-    func worksWithDifferentServiceErrorTypes() {
+    @Test("Works with different CrossmintMappableError types")
+    func worksWithDifferentCrossmintMappableErrorTypes() {
         let expectedData = Data("type_test".utf8)
         let mockCoder = MockSuccessJSONCoder(expectedData: expectedData)
         let testRequest = TestRequest(name: "type_test", value: 1)
@@ -294,8 +302,8 @@ struct RequestEncodingUtilityTest {
         #expect(result2 == expectedData)
     }
 
-    @Test("Error type mapping works correctly for different ServiceError implementations")
-    func errorTypeMappingWorksCorrectlyForDifferentServiceErrorImplementations() {
+    @Test("Error type mapping works correctly for different CrossmintMappableError implementations")
+    func errorTypeMappingWorksCorrectlyForDifferentCrossmintMappableErrorImplementations() {
         let mockCoder = MockFailingJSONCoder(errorToThrow: .invalidData("Mapping test"))
         let testRequest = TestRequest(name: "test", value: 42)
 
@@ -307,7 +315,7 @@ struct RequestEncodingUtilityTest {
             )
         } throws: { error in
             if case .serviceError(let serviceError) = error as? MockServiceError {
-                return serviceError.errorMessage == "Invalid data: Mapping test"
+                return serviceError.message == "Invalid data: Mapping test"
             }
             return false
         }
@@ -320,7 +328,7 @@ struct RequestEncodingUtilityTest {
             )
         } throws: { error in
             if case .wrapped(let serviceError) = error as? AnotherMockServiceError {
-                return serviceError.errorMessage == "Invalid data: Mapping test"
+                return serviceError.message == "Invalid data: Mapping test"
             }
             return false
         }
@@ -380,14 +388,12 @@ struct RequestEncodingUtilityTest {
         let mockCoder = MockSuccessJSONCoder(expectedData: expectedData)
         let testRequest = TestRequest(name: "consistency", value: 789)
 
-        // Test with RequestEncodingUtility
         let utilityResult = try RequestEncodingUtility.encodeRequest(
             testRequest,
             using: mockCoder,
             errorType: MockServiceError.self
         )
 
-        // Test with JSONCoder extension
         let extensionResult = try mockCoder.encodeRequest(
             testRequest,
             errorType: MockServiceError.self
@@ -409,7 +415,6 @@ struct RequestEncodingUtilityTest {
 
         #expect(result.count > 0)
 
-        // Verify it's valid JSON
         let json = try JSONSerialization.jsonObject(with: result) as? [String: Any]
         #expect(json?["name"] as? String == "real_extension_test")
         #expect(json?["value"] as? Int == 321)

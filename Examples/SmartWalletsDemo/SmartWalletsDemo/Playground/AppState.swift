@@ -8,9 +8,9 @@ import Observation
 
 extension Error {
     var userMessage: String {
-        if let e = self as? WalletError { return e.errorMessage }
-        if let e = self as? TransactionError { return e.errorMessage }
-        if let e = self as? SignatureError { return e.errorMessage }
+        if let e = self as? WalletError { return e.message }
+        if let e = self as? TransactionError { return e.message }
+        if let e = self as? SignatureError { return e.message }
         return localizedDescription
     }
 }

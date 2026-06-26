@@ -82,7 +82,7 @@ struct OTPSignInView: View {
                 pendingOTPRequest = otpRequest
             } catch let authError as AuthError {
                 isSigningIn = false
-                alertMessage = authError.errorMessage
+                alertMessage = authError.message
                 showAlert = true
             }
         }

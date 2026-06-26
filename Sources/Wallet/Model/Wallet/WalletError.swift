@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import CrossmintService
 import Http
 
-public enum WalletError: ServiceError {
+public enum WalletError: CrossmintError {
     case serviceError(CrossmintServiceError)
     case walletInvalidType(String)
     case walletNotFound
@@ -17,34 +17,75 @@ public enum WalletError: ServiceError {
     case invalidToken(token: CryptoCurrency)
     case signerNotRegistered(String)
 
-    public var errorMessage: String {
+    public var code: String {
         switch self {
-        case let .serviceError(error):
-            return error.errorMessage
-        case .walletInvalidType(let message), .walletGeneric(let message),
-            .walletCreationFailed(let message):
-            return message
-        case .walletNotFound:
-            return "Wallet not found"
-        case .walletInvalidCredentials:
-            return "The credentials provided are invalid for this wallet."
-        case .walletLocatorError(let locator):
-            return "Invalid wallet locator: \(locator)"
-        case .transactionNotFound:
-            return "Transaction not found"
-        case .walletInvalidSignerProvided:
-            return "The provided admin signer and the received one do not match"
-        case .walletCreationCancelled:
-            return "Creation cancelled."
-        case .invalidChain(let chain):
-            return "Invalid chain: \(chain.name)"
-        case .invalidToken(let token):
-            return "Invalid token: \(token.name)"
-        case .signerNotRegistered(let locator):
-            return "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
+        case .serviceError: "SERVICE_ERROR"
+        case .walletInvalidType: "WALLET_INVALID_TYPE"
+        case .walletNotFound: "WALLET_NOT_FOUND"
+        case .walletCreationFailed: "WALLET_CREATION_FAILED"
+        case .walletCreationCancelled: "WALLET_CREATION_CANCELLED"
+        case .walletGeneric: "WALLET_ERROR"
+        case .walletInvalidCredentials: "WALLET_INVALID_CREDENTIALS"
+        case .walletLocatorError: "WALLET_LOCATOR_ERROR"
+        case .walletInvalidSignerProvided: "WALLET_INVALID_SIGNER"
+        case .transactionNotFound: "TRANSACTION_NOT_FOUND"
+        case .invalidChain: "INVALID_CHAIN"
+        case .invalidToken: "INVALID_TOKEN"
+        case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
         }
     }
 
+    public var message: String {
+        switch self {
+        case .serviceError(let error):
+            error.message
+        case .walletInvalidType(let detail), .walletGeneric(let detail), .walletCreationFailed(let detail):
+            detail
+        case .walletNotFound:
+            "Wallet not found"
+        case .walletInvalidCredentials:
+            "The credentials provided are invalid for this wallet."
+        case .walletLocatorError(let locator):
+            "Invalid wallet locator: \(locator)"
+        case .transactionNotFound:
+            "Transaction not found"
+        case .walletInvalidSignerProvided:
+            "The provided admin signer and the received one do not match"
+        case .walletCreationCancelled:
+            "Creation cancelled."
+        case .invalidChain(let chain):
+            "Invalid chain: \(chain.name)"
+        case .invalidToken(let token):
+            "Invalid token: \(token.name)"
+        case .signerNotRegistered(let locator):
+            "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
+        }
+    }
+
+    public var recoverySuggestion: String? {
+        switch self {
+        case .walletNotFound:
+            "Create a wallet using wallets.getOrCreate(chain:signer:)"
+        case .walletInvalidCredentials:
+            "Verify your signer configuration matches the wallet's registered signer."
+        case .signerNotRegistered:
+            "Call addSigner before attempting operations that require this signer."
+        case .invalidChain:
+            "Check the list of supported chains for this environment."
+        case .walletLocatorError:
+            "Ensure the wallet locator is in the correct format."
+        default:
+            nil
+        }
+    }
+
+    public var underlyingError: Swift.Error? {
+        guard case .serviceError(let error) = self else { return nil }
+        return error
+    }
+}
+
+extension WalletError: CrossmintMappableError {
     public static func fromServiceError(_ error: CrossmintServiceError) -> WalletError {
         .serviceError(error)
     }

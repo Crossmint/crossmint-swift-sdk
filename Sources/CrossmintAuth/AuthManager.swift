@@ -1,3 +1,4 @@
+import CrossmintService
 import Foundation
 import Logger
 
@@ -7,21 +8,42 @@ public protocol AuthManager: Sendable {
     func setJWT(_ jwt: String) async
 }
 
-public enum AuthManagerError: Swift.Error, Equatable {
+public enum AuthManagerError: CrossmintError, Equatable {
     case unknown(String)
     case serviceError(String)
     case invalidInput(String)
     case invalidEmail
     case noPendingOTP
 
-    public var errorMessage: String {
-        return switch self {
-        case .unknown(let message), .serviceError(let message), .invalidInput(let message):
-            message
+    public var code: String {
+        switch self {
+        case .unknown: "AUTH_MANAGER_ERROR"
+        case .serviceError: "AUTH_SERVICE_ERROR"
+        case .invalidInput: "INVALID_INPUT"
+        case .invalidEmail: "INVALID_EMAIL"
+        case .noPendingOTP: "NO_PENDING_OTP"
+        }
+    }
+
+    public var message: String {
+        switch self {
+        case .unknown(let detail), .serviceError(let detail), .invalidInput(let detail):
+            detail
         case .invalidEmail:
             "Invalid email address"
         case .noPendingOTP:
             "No OTP email has been sent. Call sendEmailOtp first."
+        }
+    }
+
+    public var recoverySuggestion: String? {
+        switch self {
+        case .invalidEmail:
+            "Provide a valid email address in the correct format."
+        case .noPendingOTP:
+            "Call sendEmailOTP(to:) before attempting to verify an OTP."
+        default:
+            nil
         }
     }
 }
