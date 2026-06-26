@@ -7,6 +7,13 @@ extension Wallet {
 
     // MARK: - Public API
 
+    /// Approves and submits a pending transaction on behalf of the current signer.
+    ///
+    /// Use this when a transaction was created externally (e.g. via the Crossmint API) and
+    /// shows ``TransactionStatus/awaitingApproval``. The SDK signs the approval message and
+    /// polls until the transaction reaches a terminal state.
+    ///
+    /// - Parameter id: The transaction ID returned by the Crossmint API.
     public func approve(transactionId id: String) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletApproveStart, attributes: [
             "transactionId": id
@@ -38,6 +45,14 @@ extension Wallet {
         }
     }
 
+    /// Removes an assigned signer from this wallet.
+    ///
+    /// Submits a remove-signer transaction on-chain. If the transaction requires approval,
+    /// the current signer signs it automatically before polling for completion.
+    ///
+    /// - Parameter locator: The signer locator string identifying the signer to remove
+    ///   (e.g. `"device:ABC123..."`, `"external-wallet:0x456..."`).
+    /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
     public func removeSigner(locator: String) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
             "locator": locator
@@ -113,6 +128,25 @@ extension Wallet {
         return transaction
     }
 
+    /// Transfers tokens to another wallet and polls until the transaction is confirmed on-chain.
+    ///
+    /// - Parameters:
+    ///   - walletLocator: Recipient address (e.g. `"0xABC..."` or a Solana public key).
+    ///   - tokenLocator: `"{chain}:{token}"`, e.g. `"base-sepolia:eth"` or `"solana:usdc"`.
+    ///   - amount: Amount as a human-readable decimal (e.g. `0.01` for 0.01 ETH).
+    ///   - idempotencyKey: Pass a stable key to prevent duplicate transactions on retry; omit to generate one automatically.
+    ///
+    /// - Returns: A ``TransactionSummary`` with the on-chain hash and explorer link once confirmed.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let summary = try await wallet.send(
+    ///     "0xRecipient...",
+    ///     "base-sepolia:usdc",
+    ///     5.0
+    /// )
+    /// print("Sent. Explorer:", summary.explorerLink)
+    /// ```
     public func send(
         _ walletLocator: String,
         _ tokenLocator: String,
@@ -144,6 +178,12 @@ extension Wallet {
         return transaction.summary
     }
 
+    /// Transfers an NFT or fungible token to a recipient.
+    ///
+    /// - Parameters:
+    ///   - tokenId: NFT token ID to transfer; omit for fungible token transfers.
+    ///   - recipient: Recipient address or wallet locator.
+    ///   - amount: Amount as a string (e.g. `"1"` for one NFT, or a fungible amount).
     public func transferToken(
         tokenId: String? = nil,
         recipient: TransferTokenRecipient,

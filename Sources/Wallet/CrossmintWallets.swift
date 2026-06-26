@@ -1,12 +1,45 @@
 import CrossmintCommonTypes
 
+/// Factory for obtaining and creating Crossmint smart wallets.
+///
+/// Obtain an instance from ``ClientSDK/crossmintWallets()`` or ``CrossmintSDK/crossmintWallets``.
+/// Prefer the chain-specific overloads (e.g. ``getWallet(chain:recovery:options:)``)
+/// over the generic ones so you get a typed wallet back without an additional cast.
+///
+/// ## Example
+/// ```swift
+/// let wallets = CrossmintSDK.shared.crossmintWallets
+///
+/// // Get or create an EVM wallet with email recovery
+/// if let wallet = try await wallets.getWallet(chain: .baseMainnet, recovery: .email("user@example.com")) {
+///     print("Existing wallet:", wallet.address)
+/// } else {
+///     let wallet = try await wallets.createWallet(chain: .baseMainnet, recovery: .email("user@example.com"))
+///     print("New wallet:", wallet.address)
+/// }
+/// ```
 public protocol CrossmintWallets: Sendable {
+    /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
+    ///
+    /// - Parameters:
+    ///   - chain: The blockchain to look up.
+    ///   - recovery: The signer that can authorize recovery operations for this wallet.
+    ///   - options: Optional configuration, such as enabling a device signer.
     func getWallet(
         chain: Chain,
         recovery: any Signer,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet?
 
+    /// Creates a new smart wallet for the authenticated user on the given chain.
+    ///
+    /// Deploys the wallet contract on-chain. Calling this when a wallet already exists
+    /// returns the existing wallet rather than creating a duplicate.
+    ///
+    /// - Parameters:
+    ///   - chain: The blockchain to deploy to.
+    ///   - recovery: The signer that can authorize recovery operations for this wallet.
+    ///   - options: Optional configuration, such as enabling a device signer.
     func createWallet(
         chain: Chain,
         recovery: any Signer,
@@ -148,8 +181,13 @@ extension CrossmintWallets {
     }
 }
 
+/// Configuration for wallet creation and retrieval.
 public struct WalletOptions {
     let experimentalCallbacks: ExperimentalCallbacks?
+
+    /// When `true`, a device-bound signing key is generated in the Secure Enclave (or a software
+    /// keychain on devices without one) and registered as a delegated signer on the wallet.
+    /// Transactions can then be signed without an OTP prompt on that device.
     public let deviceSigner: Bool
 
     public init(deviceSigner: Bool = false) {

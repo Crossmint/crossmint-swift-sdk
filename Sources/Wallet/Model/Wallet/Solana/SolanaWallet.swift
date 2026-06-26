@@ -3,6 +3,10 @@ import DeviceSigner
 import Foundation
 import Logger
 
+/// A Crossmint smart wallet on the Solana chain.
+///
+/// Obtain an instance via ``CrossmintWallets/getWallet(chain:recovery:options:)``
+/// or ``CrossmintWallets/createWallet(chain:recovery:options:)``.
 public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
     public typealias SpecificChain = SolanaChain
 
@@ -62,6 +66,15 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
         return transaction
     }
 
+    /// Submits a serialized Solana transaction and polls until it is confirmed on-chain.
+    ///
+    /// - Parameter transaction: A base64-encoded, serialized Solana transaction.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let summary = try await solanaWallet.sendTransaction(transaction: base64EncodedTx)
+    /// print("Signature:", summary.hash)
+    /// ```
     public func sendTransaction(
         transaction: String
     ) async throws(TransactionError) -> TransactionSummary {

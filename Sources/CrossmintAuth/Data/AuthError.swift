@@ -1,9 +1,13 @@
 import CrossmintService
 import Http
 
+/// An error thrown by ``AuthClient`` and ``CrossmintAuthManager`` operations.
 public enum AuthError: CrossmintError {
+    /// A Crossmint API or network error. Inspect the associated ``CrossmintServiceError`` for details.
     case serviceError(CrossmintServiceError)
+    /// The session has expired or the operation requires authentication. Call ``AuthClient/sendOTP(to:)`` to sign in again.
     case signInRequired
+    /// An unexpected error with a descriptive message.
     case generic(String)
 
     public var code: String {

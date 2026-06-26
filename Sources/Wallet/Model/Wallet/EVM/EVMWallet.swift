@@ -4,9 +4,17 @@ import DeviceSigner
 import Foundation
 import Logger
 
+/// A Crossmint smart wallet on an EVM-compatible chain.
+///
+/// Obtain an instance via ``CrossmintWallets/getWallet(chain:recovery:options:)``
+/// or ``CrossmintWallets/createWallet(chain:recovery:options:)``.
 open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     public typealias SpecificChain = EVMChain
 
+    /// Casts a generic ``Wallet`` to ``EVMWallet``.
+    ///
+    /// Useful when you have a ``Wallet`` reference and need EVM-specific methods.
+    /// Throws ``WalletError`` if the wallet is not an EVM wallet.
     public static func from(wallet: Wallet) throws(WalletError) -> EVMWallet {
         guard let evmWallet = wallet as? EVMWallet else {
             throw .walletInvalidType("Cannot create an EVMWallet with the provided wallet")
@@ -65,6 +73,24 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         return transaction
     }
 
+    /// Sends a raw EVM transaction and polls until it is confirmed on-chain.
+    ///
+    /// - Parameters:
+    ///   - address: Recipient contract or EOA address (checksummed or lowercase hex).
+    ///   - value: Native token value in wei as a decimal string, e.g. `"1000000000000000"`. Pass `nil` or `"0"` for contract calls that transfer no ETH.
+    ///   - data: ABI-encoded call data as a `0x`-prefixed hex string. Pass `nil` or `"0x"` for plain ETH transfers.
+    ///   - chain: Target chain. Defaults to the chain the wallet was opened on.
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Transfer 0.001 ETH
+    /// let summary = try await evmWallet.sendTransaction(
+    ///     to: "0xRecipient...",
+    ///     value: "1000000000000000",
+    ///     data: nil
+    /// )
+    /// print("Confirmed:", summary.explorerLink)
+    /// ```
     public func sendTransaction(
         to address: String,
         value: String?,
@@ -105,6 +131,18 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         return completedTransaction.summary
     }
 
+    /// Signs an arbitrary message with this wallet.
+    ///
+    /// - Parameters:
+    ///   - message: The plain-text message to sign.
+    ///   - signer: Override which signer produces the signature. Defaults to the wallet's recovery signer.
+    ///   - isSmartWalletSignature: When `true` (default), produces an EIP-6492 smart-wallet-compatible
+    ///     signature. Set to `false` to produce a standard EOA signature instead.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let signature = try await evmWallet.signMessage("Hello, Crossmint!")
+    /// ```
     public func signMessage(
         _ message: String,
         signer: (any AdminSignerData)? = nil,
@@ -157,6 +195,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         }
     }
 
+    /// Signs EIP-712 typed structured data with this wallet.
+    ///
+    /// - Parameters:
+    ///   - typedData: The structured data to sign, conforming to EIP-712.
+    ///   - signer: Override which signer produces the signature. Defaults to the wallet's recovery signer.
+    ///   - isSmartWalletSignature: See ``signMessage(_:signer:isSmartWalletSignature:)`` for semantics.
     public func signTypedData(
         _ typedData: EIP712.TypedData,
         signer: (any AdminSignerData)? = nil,

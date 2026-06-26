@@ -10,10 +10,35 @@ import Web
 
 @MainActor private var sdkInstances = 0
 
+/// Entry point for the Crossmint SDK.
+///
+/// Call ``configure(apiKey:logLevel:)`` once at app startup before accessing ``shared``.
+/// Accessing ``shared`` before configuring causes a `fatalError`.
+///
+/// When using an email OTP signer, observe ``isOTPRequired`` to know when to display an OTP input,
+/// then call ``submit(otp:)`` with the code the user enters.
+///
+/// ## Example
+/// ```swift
+/// @main
+/// struct MyApp: App {
+///     init() {
+///         CrossmintSDK.configure(apiKey: "ck_development_...", logLevel: .warn)
+///     }
+///
+///     var body: some Scene {
+///         WindowGroup {
+///             ContentView()
+///                 .environmentObject(CrossmintSDK.shared)
+///         }
+///     }
+/// }
+/// ```
 @MainActor
 final public class CrossmintSDK: ObservableObject {
     @MainActor private static var _shared: CrossmintSDK?
 
+    /// The configured SDK instance. Access after calling ``configure(apiKey:logLevel:)``.
     @MainActor public static var shared: CrossmintSDK {
         guard let instance = _shared else {
             fatalError(
@@ -24,8 +49,13 @@ final public class CrossmintSDK: ObservableObject {
         return instance
     }
 
-    /// Configures the SDK with the given API key. Must be called before accessing `CrossmintSDK.shared`.
-    /// Subsequent calls are ignored — the SDK can only be configured once per process.
+    /// Configures the SDK. Must be called once before accessing ``shared``.
+    ///
+    /// Subsequent calls are silently ignored — the SDK can only be configured once per process.
+    ///
+    /// - Parameters:
+    ///   - apiKey: A client API key (prefixed `ck_`).
+    ///   - logLevel: Controls SDK log verbosity. Defaults to `.error`.
     @MainActor public static func configure(apiKey: String, logLevel: LogLevel = .error) {
         guard _shared == nil else {
             Logger.sdk.warn("CrossmintSDK.configure() called after SDK is already configured — ignoring")
@@ -37,23 +67,33 @@ final public class CrossmintSDK: ObservableObject {
 
     private let sdk: ClientSDK
 
+    /// Factory for creating and retrieving smart wallets. See ``CrossmintWallets``.
     public let crossmintWallets: CrossmintWallets
+    /// Authentication manager for the email OTP flow. See ``CrossmintAuthManager``.
     public let authManager: CrossmintAuthManager
+    /// Low-level Crossmint service for direct API access.
     public let crossmintService: CrossmintService
+    /// Standalone auth client for explicit OTP lifecycle management. See ``AuthClient``.
     public let authClient: AuthClient
 
     let crossmintTEE: CrossmintTEE
 
+    /// Emits `true` when a pending transaction is waiting for the user to enter an email OTP.
     public var isOTPRequired: Published<Bool>.Publisher {
         crossmintTEE.$isOTPRequired
     }
+
+    /// Provides the OTP entered by the user to unblock the pending transaction.
     public func submit(otp: String) {
         crossmintTEE.provideOTP(otp)
     }
+
+    /// Cancels the pending transaction waiting for an OTP.
     public func cancelTransaction() {
         crossmintTEE.cancelOTP()
     }
 
+    /// Whether the SDK is running against the Crossmint production environment.
     public var isProductionEnvironment: Bool {
         crossmintService.isProductionEnvironment
     }
@@ -95,6 +135,7 @@ final public class CrossmintSDK: ObservableObject {
         )
     }
 
+    /// Invalidates the server-side refresh token, clears the local session, and resets OTP state.
     public func logout() async {
         do {
             _ = try await authManager.logout()

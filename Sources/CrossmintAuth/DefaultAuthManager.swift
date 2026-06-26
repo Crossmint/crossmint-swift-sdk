@@ -3,6 +3,21 @@ import CrossmintService
 import SecureStorage
 import Utils
 
+/// Built-in ``AuthManager`` that authenticates users via email OTP.
+///
+/// ## OTP flow
+/// ```swift
+/// let auth = CrossmintSDK.shared.authManager
+///
+/// try await auth.sendEmailOtp(email: "user@example.com")
+/// // ... user enters the code from their inbox ...
+/// let status = try await auth.confirmEmailOtp(email: "user@example.com", code: userInput)
+/// if status.isAuthenticated {
+///     print("Signed in as", status.email ?? "")
+/// }
+/// ```
+///
+/// The JWT is refreshed automatically before expiry; no app-level polling is required.
 public actor CrossmintAuthManager: AuthManager {
     enum Errors: Error {
         case noBundleIdFound
@@ -73,6 +88,7 @@ public actor CrossmintAuthManager: AuthManager {
     }
 #endif
 
+    /// Sends a one-time password to the given email address. Call ``confirmEmailOtp(email:code:)`` next.
     public func sendEmailOtp(email: String) async throws(AuthManagerError) {
         let normalizedEmail = normalizeEmail(email)
         guard isValidEmail(normalizedEmail) else {
@@ -87,6 +103,10 @@ public actor CrossmintAuthManager: AuthManager {
         }
     }
 
+    /// Validates the OTP code and, on success, establishes an authenticated session.
+    ///
+    /// Must be called after ``sendEmailOtp(email:)`` with the same email address.
+    /// Throws ``AuthManagerError/noPendingOTP`` if no email has been sent yet.
     public func confirmEmailOtp(email: String, code: String) async throws(AuthManagerError) -> OTPAuthenticationStatus {
         if code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             throw AuthManagerError.invalidInput("OTP code cannot be empty")
@@ -108,6 +128,9 @@ public actor CrossmintAuthManager: AuthManager {
         }
     }
 
+    /// Invalidates the server-side refresh token and clears the local session.
+    ///
+    /// Has no effect if the user is not currently authenticated.
     public func logout() async throws(AuthManagerError) -> OTPAuthenticationStatus {
         guard case let .authenticationStatus(.authenticated(_, _, secret)) = otpAuthenticationStatus else {
             Logger.auth.debug("User is not authenticated. Nothing to logout")
@@ -128,6 +151,11 @@ public actor CrossmintAuthManager: AuthManager {
         }
     }
 
+    /// Clears the local session state without contacting the server.
+    ///
+    /// Use this when the server session is already gone (e.g. the refresh token expired or was
+    /// revoked externally) and you just need to reset local state. Prefer ``logout()`` when the
+    /// session is still valid and you want to revoke the server-side token as well.
     public func reset() async -> OTPAuthenticationStatus {
         otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
         return otpAuthenticationStatus

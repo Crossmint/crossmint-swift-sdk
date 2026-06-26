@@ -7,6 +7,9 @@
 
 import Utils
 
+/// Built-in ``AuthClient`` implementation that routes through ``CrossmintAuthManager``.
+///
+/// Obtain via ``CrossmintSDK/authClient`` — do not instantiate directly.
 public actor DefaultAuthClient: AuthClient {
     private let authService: AuthService
     private let authManager: CrossmintAuthManager
