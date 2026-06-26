@@ -201,7 +201,7 @@ public final class CrossmintTEE: ObservableObject {
                 guard attempt < Self.maxOnboardingAttempts else {
                     throw error
                 }
-                Logger.tee.warn(LogEvents.onboardingReissued, attributes: [
+                Logger.tee.warning(LogEvents.onboardingReissued, attributes: [
                     "attempt": "\(attempt)",
                     "reason": "Onboarding could not be completed, reloading the frame and re-issuing the OTP"
                 ])
@@ -250,7 +250,7 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     private func recoverFromWebContentProcessTermination() {
-        Logger.tee.warn(LogEvents.webProcessTerminated, attributes: [
+        Logger.tee.warning(LogEvents.webProcessTerminated, attributes: [
             "queue.size": "\(signRequestQueue.count)"
         ])
 
