@@ -27,6 +27,7 @@ struct AddressRow: View {
                 }
                 .buttonStyle(.plain)
                 .sensoryFeedback(.success, trigger: addressCopied)
+                .accessibilityIdentifier("wallet-address-copy-button")
             }
         }
     }
