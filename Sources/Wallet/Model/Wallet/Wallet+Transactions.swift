@@ -250,8 +250,17 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             throw .transactionGeneric(error.message)
         }
         onTransactionStart?()
-        if let storage = deviceSignerKeyStorage {
-            await deviceSignerService.ensureRegistered(storage: storage, signer: await updateSignerIfRequired())
+        if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported {
+            do {
+                try await deviceSignerService.ensureRegistered(
+                    storage: storage,
+                    signer: await updateSignerIfRequired()
+                )
+            } catch {
+                if case .deviceSignerNotSupported = error {
+                    _deviceSignerUnsupported = true
+                }
+            }
         }
         let signerLocator: String?
         if let active = selectedSignerLocator {

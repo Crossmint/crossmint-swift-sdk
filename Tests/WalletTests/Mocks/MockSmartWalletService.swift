@@ -7,7 +7,8 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - addSigner
 
-    var addSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil)
+    var addSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    var addSignerError: WalletError?
     var addSignerCallCount = 0
     var lastAddSignerEntry: DelegatedSignerEntry?
 
@@ -18,12 +19,15 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         addSignerCallCount += 1
         lastAddSignerEntry = entry
+        if let addSignerError {
+            throw addSignerError
+        }
         return addSignerResult
     }
 
     // MARK: - registerTypedSigner
 
-    var registerTypedSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil)
+    var registerTypedSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil, transaction: nil)
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
@@ -43,13 +47,48 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         lastApproveSignatureRequest = request
     }
 
+    // MARK: - createWallet
+
+    var createWalletResult: WalletApiModel?
+    var lastCreateWalletParams: CreateWalletParams?
+
+    func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
+        lastCreateWalletParams = request
+        guard let createWalletResult else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        return createWalletResult
+    }
+
+    // MARK: - fetchTransaction / signTransaction
+
+    var fetchTransactionResult: (any TransactionApiModel)?
+    var lastFetchTransactionRequest: FetchTransactionRequest?
+    var signTransactionCallCount = 0
+    var lastSignTransactionRequest: SignRequest?
+
+    func fetchTransaction(
+        _ fetchTransactionRequest: FetchTransactionRequest
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        lastFetchTransactionRequest = fetchTransactionRequest
+        guard let fetchTransactionResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return fetchTransactionResult
+    }
+
+    func signTransaction(_ request: SignRequest) async throws(TransactionError) -> any TransactionApiModel {
+        signTransactionCallCount += 1
+        lastSignTransactionRequest = request
+        guard let fetchTransactionResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return fetchTransactionResult
+    }
+
     // MARK: - Unused stubs
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        throw WalletError.walletGeneric("not implemented")
-    }
-
-    func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
         throw WalletError.walletGeneric("not implemented")
     }
 
@@ -63,16 +102,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     func createTransaction(
         _ request: CreateTransactionRequest
-    ) async throws(TransactionError) -> any TransactionApiModel {
-        throw TransactionError.transactionGeneric("not implemented")
-    }
-
-    func signTransaction(_ request: SignRequest) async throws(TransactionError) -> any TransactionApiModel {
-        throw TransactionError.transactionGeneric("not implemented")
-    }
-
-    func fetchTransaction(
-        _ fetchTransactionRequest: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         throw TransactionError.transactionGeneric("not implemented")
     }

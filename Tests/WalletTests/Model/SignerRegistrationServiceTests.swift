@@ -1,5 +1,7 @@
 import CrossmintCommonTypes
+import Foundation
 import Testing
+import TestsUtils
 @testable import Wallet
 
 struct SignerRegistrationServiceTests {
@@ -33,7 +35,7 @@ struct SignerRegistrationServiceTests {
         let walletService = MockSmartWalletService()
         walletService.addSignerResult = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(id: "sig1", status: "success", approvals: nil)
-        ])
+        ], transaction: nil)
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
@@ -54,7 +56,7 @@ struct SignerRegistrationServiceTests {
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xdef")
                 ])
             )
-        ])
+        ], transaction: nil)
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
@@ -72,7 +74,7 @@ struct SignerRegistrationServiceTests {
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
-        let registration = AddDelegatedSignerResponse(chains: nil)
+        let registration = AddDelegatedSignerResponse(chains: nil, transaction: nil)
         try await service.approveIfNeeded(registration: registration, signer: signer)
 
         #expect(walletService.approveSignatureCallCount == 0)
@@ -92,7 +94,7 @@ struct SignerRegistrationServiceTests {
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc")
                 ])
             )
-        ])
+        ], transaction: nil)
         try await service.approveIfNeeded(registration: registration, signer: signer)
 
         #expect(walletService.approveSignatureCallCount == 0)
@@ -106,7 +108,7 @@ struct SignerRegistrationServiceTests {
 
         let registration = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(id: "sig1", status: "success", approvals: nil)
-        ])
+        ], transaction: nil)
         try await service.approveIfNeeded(registration: registration, signer: signer)
 
         #expect(walletService.approveSignatureCallCount == 0)
@@ -124,7 +126,7 @@ struct SignerRegistrationServiceTests {
                 status: "awaiting-approval",
                 approvals: RegistrationApprovals(pending: [])
             )
-        ])
+        ], transaction: nil)
         try await service.approveIfNeeded(registration: registration, signer: signer)
 
         #expect(walletService.approveSignatureCallCount == 0)
@@ -144,9 +146,74 @@ struct SignerRegistrationServiceTests {
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc")
                 ])
             )
-        ])
+        ], transaction: nil)
         try await service.approveIfNeeded(registration: registration, signer: signer)
 
         #expect(walletService.lastApproveSignatureRequest?.transactionId == "expected-sig-id")
+    }
+
+}
+
+@Suite("Signer Registration Transaction Approval", .tags(.unit))
+struct SignerRegistrationTransactionApprovalTests {
+    private func makeSolanaService(walletService: MockSmartWalletService) -> SignerRegistrationService {
+        SignerRegistrationService(
+            smartWalletService: walletService,
+            chainType: .solana,
+            chainName: "solana"
+        )
+    }
+
+    @Test
+    func fetchesAndApprovesPendingApprovalsFromTheRegistrationTransaction() async throws {
+        let walletService = MockSmartWalletService()
+        let registrationTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "SolanaSignerRegistrationAwaitingApproval",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResult = registrationTransaction
+        let signer = MockSigner()
+        let service = makeSolanaService(walletService: walletService)
+
+        let registration = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
+        )
+        try await service.approveIfNeeded(registration: registration, signer: signer)
+
+        #expect(walletService.lastFetchTransactionRequest?.transactionId == "registration-tx-1")
+        #expect(walletService.signTransactionCallCount == 1)
+        #expect(walletService.lastSignTransactionRequest?.transactionId == "registration-tx-1")
+        #expect(signer.initializeCallCount == 1)
+        #expect(walletService.approveSignatureCallCount == 0)
+    }
+
+    @Test
+    func throwsWalletErrorWhenTheTransactionFetchFails() async throws {
+        let walletService = MockSmartWalletService()
+        let signer = MockSigner()
+        let service = makeSolanaService(walletService: walletService)
+
+        let registration = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
+        )
+
+        await #expect(throws: WalletError.self) {
+            try await service.approveIfNeeded(registration: registration, signer: signer)
+        }
+    }
+
+    @Test
+    func skipsApprovalWhenRegistrationHasNoChainsAndNoTransaction() async throws {
+        let walletService = MockSmartWalletService()
+        let signer = MockSigner()
+        let service = makeSolanaService(walletService: walletService)
+
+        let registration = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+        try await service.approveIfNeeded(registration: registration, signer: signer)
+
+        #expect(walletService.signTransactionCallCount == 0)
+        #expect(walletService.approveSignatureCallCount == 0)
     }
 }

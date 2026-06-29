@@ -165,7 +165,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         var delegatedSigners: [DelegatedSignerEntry]?
         var pendingPublicKeyBase64: String?
 
-        if let storage = deviceSignerStorage {
+        if let storage = deviceSignerStorage, chainType != .solana {
             do {
                 let publicKeyBase64 = try await storage.generateKey(address: nil)
                 let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)

@@ -1,0 +1,35 @@
+{
+  "id": "registration-tx-1",
+  "chainType": "solana",
+  "walletType": "smart",
+  "status": "awaiting-approval",
+  "createdAt": "2026-06-10T10:00:00.000Z",
+  "params": {
+    "transaction": "AXGuKpKt4zxavCq2dHNexivchTXKoEQMBmqr6ipcF4QPfTXJRJcBLhsCgcLRjBsfV44G4atgoq9NWffk27AvpPf17SMGx1iUcy5jcjJoB6s3oK89gBDibnS1KX4qt4MxF6u3aNc5V3V7TiPNPgNDpg2MWH4fwmAp2qwhswdXjvQqwU6iPfT5sPrH5uGVCjBuVbfT9Qrm24u7yw5jCoMEqBtFp1CbZQYYaNQGJuXpo1Tkqnru2uFESE6KVRYQ4UproQPEuJcdnXh7DPd6GNcEdeCf997cC1ZYZYUcSy19usTvPpYmrFGiRacwPQ8GfNYZES6rxgQMRxaiNem5nuzVH9841e39wpzbCw4FkZ1LnrNM9A8QaR7JMVRsbXZFLJB",
+    "signer": {
+      "type": "email",
+      "locator": "email:admin@example.com"
+    },
+    "feeConfig": {
+      "feePayer": "crossmint",
+      "amount": "15001"
+    }
+  },
+  "onChain": {
+    "transaction": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL3sAv6CWkTt91UJEy4qJswoewHkL8teS4d85SfkZzzUx72nczVA1vPALp4n9KP5aLou6pKk2gqn7Rr6PmUXM9ui4zyU75jxCrfNnZxrgCLzEoQ1Z6tsJua3ZKtcEPDir6cHxvNtPGAoWRY3pV3GH4YTfoT2eEiVoME9Wv4G9zPBXzRu8Pzggb",
+    "lastValidBlockHeight": 351468290
+  },
+  "approvals": {
+    "required": 1,
+    "pending": [
+      {
+        "signer": {
+          "type": "email",
+          "locator": "email:admin@example.com"
+        },
+        "message": "registration-approval-message"
+      }
+    ],
+    "submitted": []
+  }
+}

@@ -39,22 +39,69 @@ final class SignerRegistrationService: Sendable {
     }
 
     func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {
-        guard let chainEntry = registration.chains?[chainName],
-              chainEntry.status == "awaiting-approval",
-              let signatureId = chainEntry.id,
-              let pending = chainEntry.approvals?.pending, !pending.isEmpty
-        else { return }
+        switch pendingApproval(in: registration) {
+        case let .signature(signatureId, pending):
+            try await approveSignatureRegistration(signatureId: signatureId, pending: pending, signer: signer)
+        case let .transaction(transactionId):
+            try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
+        case .notNeeded:
+            break
+        }
+    }
 
+    private enum PendingApproval {
+        case signature(id: String, pending: [ApprovalEntry])
+        case transaction(id: String)
+        case notNeeded
+    }
+
+    private func pendingApproval(in registration: AddDelegatedSignerResponse) -> PendingApproval {
+        if let chainEntry = registration.chains?[chainName],
+           chainEntry.status == "awaiting-approval",
+           let signatureId = chainEntry.id,
+           let pending = chainEntry.approvals?.pending, !pending.isEmpty {
+            return .signature(id: signatureId, pending: pending)
+        }
+        if let transaction = registration.transaction {
+            return .transaction(id: transaction.id)
+        }
+        return .notNeeded
+    }
+
+    private func approveSignatureRegistration(
+        signatureId: String,
+        pending: [ApprovalEntry],
+        signer: any Signer
+    ) async throws(WalletError) {
         do {
             try await signer.initialize(smartWalletService)
             for approval in pending {
-                let signRequest = SignRequestApi(
-                    approvals: try await signer.approvals(
-                        withSignature: try await signer.sign(message: approval.message)
-                    )
-                )
                 try await smartWalletService.approveSignature(
-                    .init(transactionId: signatureId, apiRequest: signRequest, chainType: chainType)
+                    signatureId: signatureId,
+                    chainType: chainType,
+                    signer: signer,
+                    message: approval.message
+                )
+            }
+        } catch {
+            throw WalletError.walletGeneric("Failed to approve signer registration: \(error)")
+        }
+    }
+
+    private func approveRegistrationTransaction(
+        transactionId: String,
+        signer: any Signer
+    ) async throws(WalletError) {
+        do {
+            let transaction = try await smartWalletService.transaction(withId: transactionId, chainType: chainType)
+            guard let pending = transaction.approvals?.pending, !pending.isEmpty else { return }
+            try await signer.initialize(smartWalletService)
+            for approval in pending {
+                try await smartWalletService.signTransaction(
+                    transactionId: transactionId,
+                    chainType: chainType,
+                    signer: signer,
+                    message: approval.message
                 )
             }
         } catch {

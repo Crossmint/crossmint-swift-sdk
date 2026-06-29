@@ -27,6 +27,7 @@ extension Wallet {
     /// - Throws: ``WalletError`` if registration fails.
     public func addSigner(_ config: SignerConfig) async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart)
+        await signerInitializationTask?.value
         do {
             switch config {
             case .device:
@@ -45,6 +46,10 @@ extension Wallet {
             guard let walletError = error as? WalletError else {
                 throw WalletError.walletGeneric(error.localizedDescription)
             }
+            if case .deviceSignerNotSupported = walletError {
+                _deviceSignerUnsupported = true
+                _needsRecovery = false
+            }
             throw walletError
         }
     }
@@ -55,10 +60,19 @@ extension Wallet {
     /// registered but the private key is missing on the current device. This generates a new key,
     /// registers it with Crossmint, and awaits approval from the existing admin signer.
     ///
+    /// If the wallet's provider does not support device signers, this returns without error
+    /// and signing stays on the recovery signer; the rejection is remembered so registration
+    /// is not retried for this wallet instance.
+    ///
     /// - Throws: ``WalletError`` if recovery fails or there is no device signer configured.
     public func recover() async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletRecoverStart)
         await signerInitializationTask?.value
+        if _deviceSignerUnsupported {
+            Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
+            _needsRecovery = false
+            return
+        }
         guard _needsRecovery else {
             Logger.smartWallet.info(LogEvents.walletRecoverSkipped)
             return
@@ -76,9 +90,20 @@ extension Wallet {
             try await registerDeviceSigner(storage: storage)
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
         } catch {
+            if case .deviceSignerNotSupported = error {
+                await fallBackToRecoverySigner(storage: storage)
+                return
+            }
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
+    }
+
+    private func fallBackToRecoverySigner(storage: any DeviceSignerKeyStorage) async {
+        Logger.smartWallet.info(LogEvents.walletRecoverDeviceSignerUnsupported)
+        try? await storage.deleteKey(address: address)
+        _deviceSignerUnsupported = true
+        _needsRecovery = false
     }
 
     /// Sets the active signer used for subsequent wallet operations.
@@ -88,7 +113,9 @@ extension Wallet {
     /// wallet — use ``addSigner(_:)`` to register a new one first.
     ///
     /// - Parameter config: The signer to activate.
-    /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
+    /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet,
+    ///   or ``WalletError/deviceSignerNotSupported(_:)`` when selecting `.device` on a wallet whose
+    ///   provider rejected device signers.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
         switch config {
         case .device:
@@ -168,6 +195,11 @@ extension Wallet {
     // MARK: - Private helpers
 
     private func activateDeviceSigner() async throws(WalletError) {
+        if _deviceSignerUnsupported {
+            throw .deviceSignerNotSupported(
+                "This wallet's provider does not support device signers. Use the recovery signer or another registered signer instead."
+            )
+        }
         let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
         guard await storage.getKey(address: address) != nil else {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")

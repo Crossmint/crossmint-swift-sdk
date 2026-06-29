@@ -28,6 +28,7 @@ open class Wallet: @unchecked Sendable {
     var selectedSignerLocator: String?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
+    var _deviceSignerUnsupported: Bool = false
     var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 
