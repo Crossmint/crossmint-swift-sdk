@@ -18,7 +18,8 @@ struct CrossmintTEETests {
                 auth: authManager,
                 webProxy: webProxy,
                 apiKey: apiKey,
-                isProductionEnvironment: isProductionEnvironment
+                isProductionEnvironment: isProductionEnvironment,
+                signerStorage: MockSignerStorage()
             )
         }
 
