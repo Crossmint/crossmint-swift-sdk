@@ -77,13 +77,14 @@ struct CrossmintTEETests {
         }
 
         func waitForOTPRequired() async throws {
-            for _ in 0..<100 {
-                if tee.isOTPRequired {
-                    return
+            var attempts = 0
+            while !tee.isOTPRequired {
+                if attempts >= 100 {
+                    throw CrossmintTEE.Error.generic("Timed out waiting for the OTP prompt")
                 }
-                try await Task.sleep(nanoseconds: 50_000_000)
+                await Task.yield()
+                attempts += 1
             }
-            throw CrossmintTEE.Error.generic("Timed out waiting for the OTP prompt")
         }
 
         func verifyHandshakeCompleted(verificationId: String) {
@@ -208,8 +209,7 @@ struct CrossmintTEETests {
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        #expect(fixture.tee.isOTPRequired == true)
+        try await fixture.waitForOTPRequired()
 
         fixture.tee.provideOTP("123456")
 
@@ -304,8 +304,7 @@ struct CrossmintTEETests {
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        #expect(fixture.tee.isOTPRequired == true)
+        try await fixture.waitForOTPRequired()
 
         fixture.tee.cancelOTP()
 
@@ -336,8 +335,7 @@ struct CrossmintTEETests {
             )
         }
 
-        try await Task.sleep(nanoseconds: 100_000_000)
-        #expect(fixture.tee.isOTPRequired == true)
+        try await fixture.waitForOTPRequired()
 
         fixture.tee.provideOTP("123456")
 
@@ -370,7 +368,7 @@ struct CrossmintTEETests {
             )
         }
 
-        try await Task.sleep(nanoseconds: 50_000_000)
+        await Task.yield()
 
         let task2 = Task {
             try await fixture.tee.signTransaction(
@@ -380,7 +378,7 @@ struct CrossmintTEETests {
             )
         }
 
-        try await Task.sleep(nanoseconds: 50_000_000)
+        await Task.yield()
 
         task2.cancel()
 

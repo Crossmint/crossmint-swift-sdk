@@ -104,7 +104,6 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
-        // Re-onboard on every signature.
         await signerStorage.clear()
         resetState()
 
@@ -129,7 +128,6 @@ public final class CrossmintTEE: ObservableObject {
         return try await queueSignRequest(transaction: transaction, keyType: keyType, encoding: encoding)
     }
 
-    // swiftlint:disable:next function_body_length
     private func executeSignTransaction(
         transaction: String,
         keyType: String,
