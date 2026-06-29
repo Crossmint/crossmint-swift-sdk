@@ -33,7 +33,7 @@ struct ActivityView: View {
                     )
                 } else {
                     List(Array(transfers.enumerated()), id: \.element.id) { offset, transfer in
-                        TransferRow(transfer: transfer)
+                        TransferRow(transfer: transfer, offset: offset)
                             .accessibilityIdentifier("activity-item-\(offset)")
                     }
                     .accessibilityIdentifier("activity-list")
