@@ -19,6 +19,7 @@ struct AddressRow: View {
                     HStack(spacing: 4) {
                         Text(formatAddress(address))
                             .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("wallet-address-label")
                         Image(systemName: "doc.on.clipboard")
                             .foregroundStyle(.secondary)
                             .font(.footnote)
