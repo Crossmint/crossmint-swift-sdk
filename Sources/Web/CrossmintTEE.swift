@@ -136,7 +136,7 @@ public final class CrossmintTEE: ObservableObject {
         encoding: String
     ) async throws(Error) -> String {
         guard let jwt = await auth.jwt else {
-            Logger.tee.warn("JWT is missing, cannot proceed with signing")
+            Logger.tee.warning("JWT is missing, cannot proceed with signing")
             throw .jwtRequired
         }
 
@@ -201,7 +201,7 @@ public final class CrossmintTEE: ObservableObject {
                 guard attempt < Self.maxOnboardingAttempts else {
                     throw error
                 }
-                Logger.tee.warn(LogEvents.onboardingReissued, attributes: [
+                Logger.tee.warning(LogEvents.onboardingReissued, attributes: [
                     "attempt": "\(attempt)",
                     "reason": "Onboarding could not be completed, reloading the frame and re-issuing the OTP"
                 ])
@@ -250,7 +250,7 @@ public final class CrossmintTEE: ObservableObject {
     }
 
     private func recoverFromWebContentProcessTermination() {
-        Logger.tee.warn(LogEvents.webProcessTerminated, attributes: [
+        Logger.tee.warning(LogEvents.webProcessTerminated, attributes: [
             "queue.size": "\(signRequestQueue.count)"
         ])
 
@@ -532,10 +532,10 @@ public final class CrossmintTEE: ObservableObject {
             Logger.tee.debug(LogEvents.otpReceived)
             return otp
         } catch CrossmintTEE.Error.userCancelled {
-            Logger.tee.warn(LogEvents.otpCancelled)
+            Logger.tee.warning(LogEvents.otpCancelled)
             throw .userCancelled
         } catch Error.newerSignatureRequested {
-            Logger.tee.warn(LogEvents.otpSuperseded)
+            Logger.tee.warning(LogEvents.otpSuperseded)
             throw .newerSignatureRequested
         } catch {
             Logger.tee.error(LogEvents.otpError, attributes: [
@@ -651,7 +651,7 @@ extension CrossmintTEE {
                 }
             } onCancel: {
                 Task { @MainActor in
-                    Logger.tee.warn(LogEvents.queueCancelled, attributes: [
+                    Logger.tee.warning(LogEvents.queueCancelled, attributes: [
                         "queue.requestId": requestId.uuidString
                     ])
                     self.resumeSignRequest(id: requestId, with: .failure(.generic("Task was cancelled")))
@@ -686,7 +686,7 @@ extension CrossmintTEE {
         with result: Result<String, CrossmintTEE.Error>
     ) {
         guard let index = signRequestQueue.firstIndex(where: { $0.id == id }) else {
-            Logger.tee.warn(LogEvents.queueResumeError, attributes: [
+            Logger.tee.warning(LogEvents.queueResumeError, attributes: [
                 "queue.requestId": id.uuidString,
                 "error": "Request not found in queue"
             ])
@@ -703,7 +703,7 @@ extension CrossmintTEE {
             return
         }
         guard case .completed = handshakeState else {
-            Logger.tee.warn(LogEvents.queueProcessError, attributes: [
+            Logger.tee.warning(LogEvents.queueProcessError, attributes: [
                 "error": "Handshake not completed"
             ])
             return
@@ -743,7 +743,7 @@ extension CrossmintTEE {
         }
 
         let queueSize = signRequestQueue.count
-        Logger.tee.warn(LogEvents.queueFailAll, attributes: [
+        Logger.tee.warning(LogEvents.queueFailAll, attributes: [
             "queue.count": "\(queueSize)",
             "error": "\(error)"
         ])

@@ -85,10 +85,10 @@ actor DataDogLoggerProvider: LoggerProvider {
         }
     }
 
-    nonisolated func warn(_ message: String, attributes: [String: Encodable]?) {
+    nonisolated func warning(_ message: String, attributes: [String: Encodable]?) {
         let attrs = UnsafeSendableAttributes(value: attributes)
         Task.detached { [weak self] in
-            await self?.write(level: .warn, message: message, attributes: attrs.value)
+            await self?.write(level: .warning, message: message, attributes: attrs.value)
         }
     }
 
@@ -277,10 +277,12 @@ actor DataDogLoggerProvider: LoggerProvider {
         switch level {
         case .debug, .info:
             return "info"
-        case .warn:
+        case .warning:
             return "warn"
         case .error:
             return "error"
+        case .silent:
+            return "none"
         }
     }
 

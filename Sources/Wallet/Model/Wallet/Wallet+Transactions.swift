@@ -223,7 +223,7 @@ extension Wallet {
             switch error {
             case .serviceError(let crossmintServiceError):
                 if case .invalidApiKey = crossmintServiceError {
-                    Logger.smartWallet.warn(
+                    Logger.smartWallet.warning(
                         """
 Transaction polling skipped due to insufficient API key permissions.
 Transaction was submitted successfully but status cannot be verified.

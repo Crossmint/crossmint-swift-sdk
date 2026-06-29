@@ -23,31 +23,33 @@ public struct Logger: Sendable {
         ]
     }
 
+    init(testProviders: [LoggerProvider]) {
+        self.subsystem = "CrossmintSDK"
+        self.osLogger = OSLog(subsystem: subsystem, category: "test")
+        self.providers = testProviders
+    }
+
     public func debug(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard Logger.level.rawValue <= LogLevel.debug.rawValue else { return }
         for provider in providers {
             provider.debug(message, attributes: attributes)
         }
     }
 
     public func error(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard Logger.level.rawValue <= LogLevel.error.rawValue else { return }
         for provider in providers {
             provider.error(message, attributes: attributes)
         }
     }
 
     public func info(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard Logger.level.rawValue <= LogLevel.info.rawValue else { return }
         for provider in providers {
             provider.info(message, attributes: attributes)
         }
     }
 
-    public func warn(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard Logger.level.rawValue <= LogLevel.warn.rawValue else { return }
+    public func warning(_ message: String, attributes: [String: Encodable]? = nil) {
         for provider in providers {
-            provider.warn(message, attributes: attributes)
+            provider.warning(message, attributes: attributes)
         }
     }
 

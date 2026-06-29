@@ -58,7 +58,7 @@ final public class CrossmintSDK: ObservableObject {
     ///   - logLevel: Controls SDK log verbosity. Defaults to `.error`.
     @MainActor public static func configure(apiKey: String, logLevel: LogLevel = .error) {
         guard _shared == nil else {
-            Logger.sdk.warn("CrossmintSDK.configure() called after SDK is already configured — ignoring")
+            Logger.sdk.warning("CrossmintSDK.configure() called after SDK is already configured — ignoring")
             return
         }
         Logger.level = logLevel
@@ -140,7 +140,7 @@ final public class CrossmintSDK: ObservableObject {
         do {
             _ = try await authManager.logout()
         } catch {
-            Logger.sdk.warn("Logout request failed: \(error) — clearing local state anyway")
+            Logger.sdk.warning("Logout request failed: \(error) — clearing local state anyway")
         }
         await authClient.logout()
         crossmintTEE.resetState()

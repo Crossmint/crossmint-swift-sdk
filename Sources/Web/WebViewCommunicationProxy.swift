@@ -68,7 +68,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
         // Cancel any existing navigation continuation
         if navigationContinuation != nil {
-            Logger.web.warn("Cancelling existing navigation continuation")
+            Logger.web.warning("Cancelling existing navigation continuation")
             navigationContinuation?.resume(throwing: CancellationError())
             navigationContinuation = nil
         }
@@ -91,7 +91,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
     public func loadContent(_ content: URL) {
         guard let webView = webView else {
-            Logger.web.warn("Cannot load content: webView is nil")
+            Logger.web.warning("Cannot load content: webView is nil")
             return
         }
         loadContent(content, in: webView)
@@ -175,7 +175,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
     private func processPendingMessages() {
         guard let webView = webView else {
-            Logger.web.warn("Could not process pending messages: webview not available")
+            Logger.web.warning("Could not process pending messages: webview not available")
             return
         }
 
