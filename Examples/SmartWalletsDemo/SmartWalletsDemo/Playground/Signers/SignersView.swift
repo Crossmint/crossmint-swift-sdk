@@ -57,8 +57,10 @@ struct SignersView: View {
                         Label("Add Signer…", systemImage: "plus.circle")
                     }
                     .disabled(appState.wallet == nil)
+                    .accessibilityIdentifier("signers-add-button")
                 }
             }
+            .accessibilityIdentifier("signers-list")
             .navigationTitle("Signers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

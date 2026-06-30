@@ -8,6 +8,7 @@ import SwiftUI
 
 struct TransferRow: View {
     let transfer: Transfer
+    let offset: Int
 
     private var isOutgoing: Bool { transfer.type == .outgoing }
 
@@ -34,10 +35,15 @@ struct TransferRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(isOutgoing ? "-" : "+")\(transfer.amount.formatted()) \(transfer.tokenSymbol ?? "")")
+                Text("\(isOutgoing ? "-" : "+")\(transfer.amount.formatted())")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(isOutgoing ? .red : .green)
+                    .accessibilityIdentifier("activity-item-\(offset)-amount")
+                Text(transfer.tokenSymbol ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("activity-item-\(offset)-token")
             }
         }
         .padding(.vertical, 2)

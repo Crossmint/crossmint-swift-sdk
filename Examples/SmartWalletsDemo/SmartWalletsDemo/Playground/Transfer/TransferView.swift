@@ -54,6 +54,7 @@ struct TransferView: View {
                     }
                     .pickerStyle(.segmented)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .accessibilityIdentifier("transfer-token-picker")
                 }
 
                 Section("Recipient") {
@@ -62,12 +63,14 @@ struct TransferView: View {
                         .autocorrectionDisabled()
                         .font(.system(.body, design: .monospaced))
                         .focused($isAnyFieldFocused)
+                        .accessibilityIdentifier("transfer-recipient-input")
                 }
 
                 Section("Amount") {
                     TextField("0.00", text: $amount)
                         .keyboardType(.decimalPad)
                         .focused($isAnyFieldFocused)
+                        .accessibilityIdentifier("transfer-amount-input")
                     if let bal = selectedTokenBalance {
                         LabeledContent("Balance", value: bal)
                             .font(.footnote)
@@ -83,6 +86,7 @@ struct TransferView: View {
                             Label("Transaction submitted", systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                                 .fontWeight(.medium)
+                                .accessibilityIdentifier("transfer-success-label")
                             CopyButton(value: txId, lineLimit: 2)
                         }
                     }
@@ -93,6 +97,7 @@ struct TransferView: View {
                         Label(error, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.red)
                             .font(.footnote)
+                            .accessibilityIdentifier("transfer-error-label")
                     }
                 }
 
@@ -109,6 +114,7 @@ struct TransferView: View {
                         }
                     }
                     .disabled(!isFormValid || isSending)
+                    .accessibilityIdentifier("transfer-submit-button")
                 }
             }
             .navigationTitle("Transfer")

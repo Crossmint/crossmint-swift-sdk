@@ -32,9 +32,11 @@ struct ActivityView: View {
                         description: Text("No transfers found for this wallet.")
                     )
                 } else {
-                    List(transfers) { transfer in
-                        TransferRow(transfer: transfer)
+                    List(Array(transfers.enumerated()), id: \.element.id) { offset, transfer in
+                        TransferRow(transfer: transfer, offset: offset)
+                            .accessibilityIdentifier("activity-item-\(offset)")
                     }
+                    .accessibilityIdentifier("activity-list")
                     .refreshable { await loadTransfers(isRefresh: true) }
                 }
             }
