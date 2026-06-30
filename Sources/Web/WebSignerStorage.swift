@@ -7,7 +7,7 @@ protocol SignerStorage {
 }
 
 @MainActor
-struct SignerWebStorage: SignerStorage {
+struct WebSignerStorage: SignerStorage {
     let dataStore: WKWebsiteDataStore = .nonPersistent()
 
     func clear() async {

@@ -73,7 +73,7 @@ public final class CrossmintTEE: ObservableObject {
         webProxy: WebViewCommunicationProxy,
         apiKey: String,
         isProductionEnvironment: Bool,
-        signerStorage: any SignerStorage = SignerWebStorage()
+        signerStorage: any SignerStorage = WebSignerStorage()
     ) {
         teeInstances += 1
         if teeInstances > 1 {
