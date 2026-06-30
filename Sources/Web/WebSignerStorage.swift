@@ -1,8 +1,13 @@
 import WebKit
 
-/// Non-persistent storage for the signer web view.
 @MainActor
-struct SignerWebStorage {
+protocol SignerStorage {
+    var dataStore: WKWebsiteDataStore { get }
+    func clear() async
+}
+
+@MainActor
+struct WebSignerStorage: SignerStorage {
     let dataStore: WKWebsiteDataStore = .nonPersistent()
 
     func clear() async {

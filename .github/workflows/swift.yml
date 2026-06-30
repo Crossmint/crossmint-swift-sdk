@@ -36,6 +36,7 @@ jobs:
           ${{ runner.os }}-spm-
     
     - name: Build & run tests
+      timeout-minutes: 15
       run: |
         make ci-test
     

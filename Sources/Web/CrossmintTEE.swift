@@ -47,7 +47,7 @@ public final class CrossmintTEE: ObservableObject {
 
     public let webProxy: WebViewCommunicationProxy
 
-    private let signerStorage = SignerWebStorage()
+    private let signerStorage: any SignerStorage
 
     var signerWebsiteDataStore: WKWebsiteDataStore { signerStorage.dataStore }
 
@@ -72,13 +72,15 @@ public final class CrossmintTEE: ObservableObject {
         auth: AuthManager,
         webProxy: WebViewCommunicationProxy,
         apiKey: String,
-        isProductionEnvironment: Bool
+        isProductionEnvironment: Bool,
+        signerStorage: any SignerStorage = WebSignerStorage()
     ) {
         teeInstances += 1
         if teeInstances > 1 {
             Logger.tee.error("Multiple TEE instances created. Behaviour is undefined")
         }
 
+        self.signerStorage = signerStorage
         self.webProxy = webProxy
         let signerBaseURL = isProductionEnvironment
             ? "https://signers.crossmint.com"
@@ -104,9 +106,7 @@ public final class CrossmintTEE: ObservableObject {
         keyType: String,
         encoding: String
     ) async throws(Error) -> String {
-        // Re-onboard on every signature.
         await signerStorage.clear()
-        resetState()
 
         if case .completed = handshakeState {
             return try await executeSignTransaction(
@@ -129,7 +129,6 @@ public final class CrossmintTEE: ObservableObject {
         return try await queueSignRequest(transaction: transaction, keyType: keyType, encoding: encoding)
     }
 
-    // swiftlint:disable:next function_body_length
     private func executeSignTransaction(
         transaction: String,
         keyType: String,

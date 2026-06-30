@@ -2,11 +2,11 @@ import Testing
 import WebKit
 @testable import Web
 
-@Suite("SignerWebStorage", .tags(.unit))
+@Suite("WebSignerStorage", .tags(.unit))
 @MainActor
-struct SignerWebStorageTests {
+struct WebSignerStorageTests {
     @Test("uses a non-persistent store so no signer state is written to disk")
     func usesNonPersistentStore() {
-        #expect(SignerWebStorage().dataStore.isPersistent == false)
+        #expect(WebSignerStorage().dataStore.isPersistent == false)
     }
 }
