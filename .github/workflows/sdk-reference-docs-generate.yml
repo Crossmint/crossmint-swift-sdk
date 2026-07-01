@@ -83,4 +83,4 @@ jobs:
           token: ${{ steps.generate_app_token.outputs.token }}
           repository: Paella-Labs/crossbit-main
           event-type: sdk-reference-docs-update
-          client-payload: '{"run_id": "${{ github.run_id }}", "packages": "swift", "source_repo": "crossmint-swift-sdk", "source_ref": ${{ toJSON(inputs.ref || github.ref_name) }}}'
+          client-payload: '{"run_id": "${{ github.run_id }}", "packages": "wallets/swift", "source_repo": "crossmint-swift-sdk", "source_ref": ${{ toJSON(inputs.ref || github.ref_name) }}}'
