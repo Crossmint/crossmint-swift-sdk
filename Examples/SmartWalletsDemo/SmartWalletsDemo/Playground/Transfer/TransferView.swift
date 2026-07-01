@@ -49,7 +49,9 @@ struct TransferView: View {
                 Section("Token") {
                     Picker("Token", selection: $selectedTokenIndex) {
                         ForEach(tokens.indices, id: \.self) { i in
-                            Text(tokens[i].name).tag(i)
+                            Text(tokens[i].name)
+                                .tag(i)
+                                .accessibilityIdentifier("transfer-token-option-\(tokens[i].name.lowercased())")
                         }
                     }
                     .pickerStyle(.segmented)

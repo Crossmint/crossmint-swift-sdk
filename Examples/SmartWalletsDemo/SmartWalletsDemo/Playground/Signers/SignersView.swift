@@ -38,8 +38,9 @@ struct SignersView: View {
                             description: Text("No delegated signers are registered on this wallet.")
                         )
                     } else {
-                        ForEach(signerItems, id: \.locator) { item in
+                        ForEach(Array(signerItems.enumerated()), id: \.element.locator) { index, item in
                             SignerRow(
+                                index: index,
                                 locator: item.locator,
                                 isRemoving: removingSignerLocator == item.locator,
                                 canRemove: true,
@@ -90,6 +91,7 @@ struct SignersView: View {
         if let locator = appState.recoveryLocator {
             Section("Recovery") {
                 SignerRow(
+                    index: -1,
                     locator: locator,
                     canRemove: false,
                     onSelect: {}

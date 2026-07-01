@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct SignerRow: View {
+    let index: Int
     let locator: String
     var isRemoving: Bool = false
     var canRemove: Bool = true
@@ -49,6 +50,7 @@ struct SignerRow: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .accessibilityIdentifier("signer-\(index)-locator")
             }
             Spacer()
             if isRemoving {
@@ -56,10 +58,12 @@ struct SignerRow: View {
             }
         }
         .padding(.vertical, 2)
+        .accessibilityIdentifier("signer-\(index)")
         .swipeActions(edge: .trailing) {
             if canRemove, let onRemove {
                 Button("Remove", role: .destructive, action: onRemove)
                     .disabled(isRemoving)
+                    .accessibilityIdentifier("signer-\(index)-remove")
             }
         }
     }
