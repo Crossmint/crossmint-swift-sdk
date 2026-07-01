@@ -91,7 +91,6 @@ struct SignersView: View {
         if let locator = appState.recoveryLocator {
             Section("Recovery") {
                 SignerRow(
-                    index: -1,
                     locator: locator,
                     canRemove: false,
                     onSelect: {}
