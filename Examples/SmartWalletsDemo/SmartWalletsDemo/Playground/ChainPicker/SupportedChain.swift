@@ -74,4 +74,12 @@ enum SupportedChain: Equatable, Identifiable {
     var supportsMessageSigning: Bool {
         self == .evm
     }
+
+    var testId: String {
+        switch self {
+        case .evm: "base-sepolia"
+        case .solana: "solana"
+        case .stellar: "stellar"
+        }
+    }
 }

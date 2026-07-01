@@ -25,6 +25,7 @@ struct AddFundsRow: View {
                 }
             }
             .disabled(isAddingFunds)
+            .accessibilityIdentifier("fund-button")
             .alert("Error", isPresented: $showError) {
             } message: {
                 Text(errorMessage ?? "")

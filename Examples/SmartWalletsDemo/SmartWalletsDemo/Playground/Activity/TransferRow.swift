@@ -40,10 +40,12 @@ struct TransferRow: View {
                     .fontWeight(.medium)
                     .foregroundStyle(isOutgoing ? .red : .green)
                     .accessibilityIdentifier("activity-item-\(offset)-amount")
-                Text(transfer.tokenSymbol ?? "")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("activity-item-\(offset)-token")
+                if let symbol = transfer.tokenSymbol {
+                    Text(symbol)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("activity-item-\(offset)-token")
+                }
             }
         }
         .padding(.vertical, 2)

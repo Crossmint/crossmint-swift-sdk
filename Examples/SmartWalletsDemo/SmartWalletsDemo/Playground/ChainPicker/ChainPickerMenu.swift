@@ -21,7 +21,7 @@ struct ChainPickerMenu: View {
                         chain.icon
                     }
                 }
-                .accessibilityIdentifier("chain-option-\(chain.name.lowercased())")
+                .accessibilityIdentifier("chain-option-\(chain.testId)")
             }
         } label: {
             selectedChain.icon
