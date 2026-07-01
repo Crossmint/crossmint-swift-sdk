@@ -51,7 +51,7 @@ public struct AuthenticatorAttestationResponseJSON: Sendable {
  */
 public struct AuthenticationResponseJSON: Codable, Sendable {
 
-    public let type: PublicKeyCredentialType = .publicKey
+    public let type: PublicKeyCredentialType
 
     public let id: Data
 
