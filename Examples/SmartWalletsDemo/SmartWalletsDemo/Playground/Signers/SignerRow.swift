@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct SignerRow: View {
-    var index: Int? = nil
+    var index: Int?
     let locator: String
     var isRemoving: Bool = false
     var canRemove: Bool = true
