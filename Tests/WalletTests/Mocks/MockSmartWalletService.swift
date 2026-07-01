@@ -27,7 +27,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - registerTypedSigner
 
-    var registerTypedSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    var registerTypedSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,

@@ -58,7 +58,11 @@ struct DefaultWalletServiceTests {
     func throwsTypedErrorForDeviceSignerNotSupportedCode() async throws {
         let body = Data(
             """
-            {"error": true, "message": "Device signers are not supported for this provider", "code": "DEVICE_SIGNER_NOT_SUPPORTED"}
+            {
+                "error": true,
+                "message": "Device signers are not supported for this provider",
+                "code": "DEVICE_SIGNER_NOT_SUPPORTED"
+            }
             """.utf8
         )
         let service = try makeService(errorBody: body)
