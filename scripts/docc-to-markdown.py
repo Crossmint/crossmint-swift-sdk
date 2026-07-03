@@ -55,6 +55,39 @@ def escape_mdx_heading(text: str) -> str:
     return text.replace("<", "\\<").replace(">", "\\>").replace("_", "\\_")
 
 
+def code_cell(text: str) -> str:
+    """Format a value as an inline-code table cell. Backticks keep generics like
+    Array\\<String\\> from being parsed as JSX; pipes are escaped so they don't
+    end the cell."""
+    text = text.strip().replace("|", "\\|")
+    return f"`{text}`" if text else ""
+
+
+def text_cell(text: str) -> str:
+    """Flatten prose to a single-line table cell (descriptions may span lines)."""
+    return text.strip().replace("\n", " ").replace("|", "\\|")
+
+
+def extract_property_type(declaration: str) -> str:
+    """Extract the type from a stored-property declaration.
+
+    e.g. 'var address: String { get }' -> 'String'
+         'let tokens: [CryptoCurrency] = []' -> '[CryptoCurrency]'
+    """
+    decl = declaration.strip()
+    for cut in ("{", "="):
+        index = decl.find(cut)
+        if index != -1:
+            decl = decl[:index]
+    colon = decl.find(":")
+    if colon == -1:
+        return ""
+    return decl[colon + 1:].strip()
+
+
+PROPERTY_SECTIONS = {"Instance Properties", "Type Properties"}
+
+
 def find_mintlify_root(path: Path) -> Path | None:
     """Walk up from path to find the Mintlify src root (directory containing docs.json)."""
     current = path.resolve()
@@ -163,6 +196,36 @@ def load_json_file(json_path: Path) -> dict | None:
         return None
 
 
+def load_child_symbol(identifier: str, parent_dir: Path) -> dict | None:
+    """Load the DocC JSON for a child symbol referenced by a topic section."""
+    symbol = identifier.split("/")[-1] if "/" in identifier else identifier
+    child_json = parent_dir / f"{symbol.lower()}.json"
+    if child_json.exists():
+        return load_json_file(child_json)
+    return None
+
+
+def get_declaration(data: dict) -> str:
+    """Concatenate a symbol's declaration tokens into one string."""
+    for section in data.get("primaryContentSections", []):
+        if section.get("kind") == "declarations":
+            for decl in section.get("declarations", []):
+                return "".join(t.get("text", "") for t in decl.get("tokens", []))
+    return ""
+
+
+def render_parameters_table(params: list, references: dict, heading: str) -> str:
+    """Render a parameter list as a table. Types stay in the signature block above,
+    so this table pairs each parameter name with its description."""
+    lines = [f"\n{heading} Parameters\n"]
+    lines.append("\n| Parameter | Description |\n| ------ | ------ |\n")
+    for param in params:
+        name = param.get("name", "")
+        desc = render_content(param.get("content", []), references=references)
+        lines.append(f"| {code_cell(name)} | {text_cell(desc)} |\n")
+    return "".join(lines)
+
+
 def render_child_symbol(data: dict, heading_level: int = 3) -> str:
     """Render a child symbol (method, property) as markdown section."""
     metadata = data.get("metadata", {})
@@ -203,11 +266,7 @@ def render_child_symbol(data: dict, heading_level: int = 3) -> str:
         if section.get("kind") == "parameters":
             params = section.get("parameters", [])
             if params:
-                md.append(f"\n{'#' * (heading_level + 1)} Parameters\n")
-                for param in params:
-                    name = param.get("name", "")
-                    param_content = render_content(param.get("content", []), references=references)
-                    md.append(f"\n- **{name}**: {param_content.strip()}\n")
+                md.append(render_parameters_table(params, references, "#" * (heading_level + 1)))
 
     return "".join(md)
 
@@ -263,11 +322,7 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
         if section.get("kind") == "parameters":
             params = section.get("parameters", [])
             if params:
-                md.append("\n## Parameters\n")
-                for param in params:
-                    name = param.get("name", "")
-                    param_content = render_content(param.get("content", []), references=references)
-                    md.append(f"\n- **{name}**: {param_content.strip()}\n")
+                md.append(render_parameters_table(params, references, "##"))
 
     # Topics with inline children - skip Default Implementations
     topic_sections = data.get("topicSections", [])
@@ -286,6 +341,41 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
             continue
 
         md.append(f"\n## {section_title}\n")
+
+        # Property and enum-case sections render as a scannable summary table
+        # rather than one code block per member (mirrors the TypeScript docs).
+        if section_title in PROPERTY_SECTIONS:
+            rows = []
+            for identifier in identifiers:
+                child_data = load_child_symbol(identifier, parent_dir)
+                if not child_data:
+                    continue
+                name = child_data.get("metadata", {}).get("title", "")
+                prop_type = extract_property_type(get_declaration(child_data))
+                rows.append((name, prop_type))
+            if rows:
+                md.append("\n| Property | Type |\n| ------ | ------ |\n")
+                for name, prop_type in rows:
+                    md.append(f"| {code_cell(name)} | {code_cell(prop_type)} |\n")
+            continue
+
+        if section_title == "Enumeration Cases":
+            rows = []
+            for identifier in identifiers:
+                child_data = load_child_symbol(identifier, parent_dir)
+                if child_data:
+                    name = child_data.get("metadata", {}).get("title", "")
+                    desc = render_inline_content(child_data.get("abstract", []), child_data.get("references", {}))
+                else:
+                    ref = references.get(identifier, {})
+                    name = ref.get("title", identifier.split("/")[-1])
+                    desc = ""
+                rows.append((name.removeprefix(f"{title}."), desc))
+            if rows:
+                md.append("\n| Case | Description |\n| ------ | ------ |\n")
+                for name, desc in rows:
+                    md.append(f"| {code_cell(name)} | {text_cell(desc)} |\n")
+            continue
 
         for identifier in identifiers:
             # Extract symbol name from identifier
