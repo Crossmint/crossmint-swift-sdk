@@ -340,10 +340,10 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
         if not section_title or not identifiers:
             continue
 
-        md.append(f"\n## {section_title}\n")
-
         # Property and enum-case sections render as a scannable summary table
         # rather than one code block per member (mirrors the TypeScript docs).
+        # Each branch emits its heading only once it has content, so a section
+        # whose child symbols all fail to load doesn't leave an orphaned heading.
         if section_title in PROPERTY_SECTIONS:
             rows = []
             for identifier in identifiers:
@@ -354,6 +354,7 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
                 prop_type = extract_property_type(get_declaration(child_data))
                 rows.append((name, prop_type))
             if rows:
+                md.append(f"\n## {section_title}\n")
                 md.append("\n| Property | Type |\n| ------ | ------ |\n")
                 for name, prop_type in rows:
                     md.append(f"| {code_cell(name)} | {code_cell(prop_type)} |\n")
@@ -372,11 +373,13 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
                     desc = ""
                 rows.append((name.removeprefix(f"{title}."), desc))
             if rows:
+                md.append(f"\n## {section_title}\n")
                 md.append("\n| Case | Description |\n| ------ | ------ |\n")
                 for name, desc in rows:
                     md.append(f"| {code_cell(name)} | {text_cell(desc)} |\n")
             continue
 
+        md.append(f"\n## {section_title}\n")
         for identifier in identifiers:
             # Extract symbol name from identifier
             symbol = identifier.split("/")[-1] if "/" in identifier else identifier
