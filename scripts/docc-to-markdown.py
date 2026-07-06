@@ -348,10 +348,13 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
             rows = []
             for identifier in identifiers:
                 child_data = load_child_symbol(identifier, parent_dir)
-                if not child_data:
-                    continue
-                name = child_data.get("metadata", {}).get("title", "")
-                prop_type = extract_property_type(get_declaration(child_data))
+                if child_data:
+                    name = child_data.get("metadata", {}).get("title", "")
+                    prop_type = extract_property_type(get_declaration(child_data))
+                else:
+                    ref = references.get(identifier, {})
+                    name = ref.get("title", identifier.split("/")[-1])
+                    prop_type = ""
                 rows.append((name, prop_type))
             if rows:
                 md.append(f"\n## {section_title}\n")
