@@ -113,17 +113,17 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        CHANGELOG=$(cat /tmp/changelog.md)
+        {
+          printf 'This PR bumps the SDK version to %s. Merging it tags the release and publishes automatically.\n\n' "${{ inputs.version }}"
+          printf '## Changes\n'
+          printf -- '- Updated `SDKVersion.swift` to %s\n' "${{ inputs.version }}"
+          printf -- '- Updated `CrossmintDeviceSigner.podspec` to %s\n\n' "${{ inputs.version }}"
+          printf '## Changelog preview\n'
+          cat /tmp/changelog.md
+        } > /tmp/pr-body.md
         gh pr create \
           --title "Release ${{ inputs.version }}" \
           --base main \
           --head "release-${{ inputs.version }}" \
           --label "release" \
-          --body "This PR bumps the SDK version to ${{ inputs.version }}. Merging it tags the release and publishes automatically.
-
-        ## Changes
-        - Updated \`SDKVersion.swift\` to ${{ inputs.version }}
-        - Updated \`CrossmintDeviceSigner.podspec\` to ${{ inputs.version }}
-
-        ## Changelog preview
-        $CHANGELOG"
+          --body-file /tmp/pr-body.md

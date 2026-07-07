@@ -32,7 +32,7 @@ jobs:
       id: extract_version
       run: |
         PR_TITLE="${{ github.event.pull_request.title }}"
-        VERSION=$(echo "$PR_TITLE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?')
+        VERSION=$(echo "$PR_TITLE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?' | head -n 1)
         if [ -z "$VERSION" ]; then
           echo "Error: Could not extract version from PR title: $PR_TITLE"
           exit 1
@@ -53,6 +53,9 @@ jobs:
         fi
         echo "Versions verified against $VERSION"
 
+    # SDK reference docs are not regenerated here. Merging this PR pushes the
+    # version bump to main, which triggers sdk-reference-docs-generate.yml on
+    # its Sources/** path filter, so docs stay current without a tag-pinned run.
     - name: Create and push tag
       run: |
         VERSION="${{ steps.extract_version.outputs.version }}"
