@@ -227,6 +227,12 @@ public enum LogEvents {
     /// API: Wallet retrieved successfully
     public static let apiGetWalletSuccess = "wallets.api.getWallet.success"
 
+    /// API: Getting signer
+    public static let apiGetSignerStart = "wallets.api.getSigner"
+
+    /// API: Signer retrieved successfully
+    public static let apiGetSignerSuccess = "wallets.api.getSigner.success"
+
     /// API: Sending transaction
     public static let apiSendStart = "wallets.api.send"
 
@@ -402,6 +408,17 @@ public enum LogEvents {
 
     /// addSigner failed
     public static let walletAddSignerError = "wallet.addSigner.error"
+
+    // MARK: - isSignerApproved Events
+
+    /// Starting isSignerApproved
+    public static let walletIsSignerApprovedStart = "wallet.isSignerApproved.start"
+
+    /// isSignerApproved resolved
+    public static let walletIsSignerApprovedSuccess = "wallet.isSignerApproved.success"
+
+    /// isSignerApproved failed
+    public static let walletIsSignerApprovedError = "wallet.isSignerApproved.error"
 
     // MARK: - recover Events
 

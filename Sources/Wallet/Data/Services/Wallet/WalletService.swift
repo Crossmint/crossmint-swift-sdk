@@ -32,4 +32,9 @@ public protocol WalletService: Sendable {
         chainType: ChainType,
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel
+
+    func getSigner(
+        _ signerLocator: String,
+        chainType: ChainType
+    ) async throws(WalletError) -> AddDelegatedSignerResponse
 }
