@@ -34,6 +34,8 @@ struct ActivityView: View {
                 } else {
                     List(Array(transfers.enumerated()), id: \.element.id) { offset, transfer in
                         TransferRow(transfer: transfer, offset: offset)
+                            // .contain keeps child identifiers visible to XCUITest.
+                            .accessibilityElement(children: .contain)
                             .accessibilityIdentifier("activity-item-\(offset)")
                     }
                     .accessibilityIdentifier("activity-list")
