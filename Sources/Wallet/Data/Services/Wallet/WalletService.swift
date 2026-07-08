@@ -18,13 +18,15 @@ public protocol WalletService: Sendable {
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func removeSigner(

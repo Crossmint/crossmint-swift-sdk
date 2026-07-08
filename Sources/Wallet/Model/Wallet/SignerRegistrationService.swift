@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
+import Logger
 
 final class SignerRegistrationService: Sendable {
     private let smartWalletService: SmartWalletService
@@ -12,13 +13,27 @@ final class SignerRegistrationService: Sendable {
         self.chainName = chainName
     }
 
-    func register(locator: String, signer: any Signer) async throws(WalletError) {
+    func register(
+        locator: String,
+        signer: any Signer,
+        deployImmediately: Bool = true
+    ) async throws(WalletError) {
         let entry = DelegatedSignerEntry(signer: locator)
-        let registration = try await smartWalletService.addSigner(entry, chainType: chainType, chainName: chainName)
+        let registration = try await smartWalletService.addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately
+        )
         try await approveIfNeeded(registration: registration, signer: signer)
     }
 
-    func registerPasskey(name: String, host: String, adminSigner: any Signer) async throws(WalletError) {
+    func registerPasskey(
+        name: String,
+        host: String,
+        adminSigner: any Signer,
+        deployImmediately: Bool = true
+    ) async throws(WalletError) {
         let passkeySigner = PasskeySigner(name: name, host: host)
         do {
             try await passkeySigner.initialize(smartWalletService)
@@ -33,7 +48,8 @@ final class SignerRegistrationService: Sendable {
         let registration = try await smartWalletService.registerTypedSigner(
             passkeyData,
             chainType: chainType,
-            chainName: chainName
+            chainName: chainName,
+            deployImmediately: deployImmediately
         )
         try await approveIfNeeded(registration: registration, signer: adminSigner)
     }
@@ -41,11 +57,19 @@ final class SignerRegistrationService: Sendable {
     func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {
         switch pendingApproval(in: registration) {
         case let .signature(signatureId, pending):
+            Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: [
+                "route": "signature",
+                "id": signatureId
+            ])
             try await approveSignatureRegistration(signatureId: signatureId, pending: pending, signer: signer)
         case let .transaction(transactionId):
+            Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: [
+                "route": "transaction",
+                "id": transactionId
+            ])
             try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
         case .notNeeded:
-            break
+            Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: ["route": "none"])
         }
     }
 
@@ -56,11 +80,15 @@ final class SignerRegistrationService: Sendable {
     }
 
     private func pendingApproval(in registration: AddDelegatedSignerResponse) -> PendingApproval {
-        if let chainEntry = registration.chains?[chainName],
-           chainEntry.status == "awaiting-approval",
-           let signatureId = chainEntry.id,
-           let pending = chainEntry.approvals?.pending, !pending.isEmpty {
-            return .signature(id: signatureId, pending: pending)
+        if let chainEntry = registration.chains?[chainName] {
+            if chainEntry.awaitsApproval, chainEntry.onChain != nil, let transactionId = chainEntry.id {
+                return .transaction(id: transactionId)
+            }
+            if chainEntry.status == "awaiting-approval",
+               let signatureId = chainEntry.id,
+               let pending = chainEntry.approvals?.pending, !pending.isEmpty {
+                return .signature(id: signatureId, pending: pending)
+            }
         }
         if let transaction = registration.transaction {
             return .transaction(id: transaction.id)

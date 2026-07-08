@@ -49,11 +49,17 @@ struct DefaultWalletService: WalletService {
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        let resolvedDeployImmediately = signerRegistrationDeployImmediately(
+            chainType: chainType,
+            deployImmediately: deployImmediately
+        )
         let body = RegisterSignerBody(
             signer: entry.signer,
-            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
+            chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
+            deployImmediately: resolvedDeployImmediately
         )
         return try await registerSignerBody(body, chainType: chainType)
     }
@@ -61,11 +67,17 @@ struct DefaultWalletService: WalletService {
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        let resolvedDeployImmediately = signerRegistrationDeployImmediately(
+            chainType: chainType,
+            deployImmediately: deployImmediately
+        )
         let body = RegisterTypedSignerBody(
             signer: AdminSignerRequestApiModel(signer),
-            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
+            chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
+            deployImmediately: resolvedDeployImmediately
         )
         return try await registerSignerBody(body, chainType: chainType)
     }
@@ -141,5 +153,9 @@ struct DefaultWalletService: WalletService {
 
     private func signerRegistrationChain(chainType: ChainType, chainName: String) -> String? {
         chainType == .solana || chainType == .stellar ? nil : chainName
+    }
+
+    private func signerRegistrationDeployImmediately(chainType: ChainType, deployImmediately: Bool?) -> Bool? {
+        chainType == .solana || chainType == .stellar ? nil : deployImmediately
     }
 }

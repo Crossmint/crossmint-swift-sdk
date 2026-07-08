@@ -23,22 +23,28 @@ extension Wallet {
 
     /// Registers a new signer on this wallet.
     ///
-    /// - Parameter config: The signer configuration to register.
+    /// - Parameters:
+    ///   - config: The signer configuration to register.
+    ///   - deployImmediately: For EVM wallets, whether the registration should be approved
+    ///     via an on-chain transaction instead of the lazy signature-request flow. Ignored
+    ///     for Solana and Stellar wallets, which always approve through their transaction flow.
     /// - Throws: ``WalletError`` if registration fails.
-    public func addSigner(_ config: SignerConfig) async throws(WalletError) {
-        Logger.smartWallet.info(LogEvents.walletAddSignerStart)
+    public func addSigner(_ config: SignerConfig, deployImmediately: Bool = true) async throws(WalletError) {
+        Logger.smartWallet.info(LogEvents.walletAddSignerStart, attributes: [
+            "deployImmediately": "\(deployImmediately)"
+        ])
         await signerInitializationTask?.value
         do {
             switch config {
             case .device:
                 let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
-                try await registerDeviceSigner(storage: storage)
+                try await registerDeviceSigner(storage: storage, deployImmediately: deployImmediately)
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
                 guard let locator = config.locator else { return }
-                try await registerLocatorSigner(locator)
+                try await registerLocatorSigner(locator, deployImmediately: deployImmediately)
             case .passkey(let name, let host):
-                try await registerPasskeySigner(name: name, host: host)
+                try await registerPasskeySigner(name: name, host: host, deployImmediately: deployImmediately)
             }
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
         } catch {
@@ -265,22 +271,38 @@ extension Wallet {
 
     // MARK: - Device signer registration
 
-    private func registerDeviceSigner(storage: any DeviceSignerKeyStorage) async throws(WalletError) {
+    private func registerDeviceSigner(
+        storage: any DeviceSignerKeyStorage,
+        deployImmediately: Bool = true
+    ) async throws(WalletError) {
         let signer = await updateSignerIfRequired()
-        try await deviceSignerService.register(storage: storage, signer: signer)
+        try await deviceSignerService.register(storage: storage, signer: signer, deployImmediately: deployImmediately)
         _needsRecovery = false
         _deviceSignerApproved = true
     }
 
     // MARK: - Locator-based signer registration
 
-    private func registerLocatorSigner(_ locator: String) async throws(WalletError) {
+    private func registerLocatorSigner(_ locator: String, deployImmediately: Bool) async throws(WalletError) {
         let adminSigner = await updateSignerIfRequired()
-        try await signerRegistrationService.register(locator: locator, signer: adminSigner)
+        try await signerRegistrationService.register(
+            locator: locator,
+            signer: adminSigner,
+            deployImmediately: deployImmediately
+        )
     }
 
-    private func registerPasskeySigner(name: String, host: String) async throws(WalletError) {
+    private func registerPasskeySigner(
+        name: String,
+        host: String,
+        deployImmediately: Bool
+    ) async throws(WalletError) {
         let adminSigner = await updateSignerIfRequired()
-        try await signerRegistrationService.registerPasskey(name: name, host: host, adminSigner: adminSigner)
+        try await signerRegistrationService.registerPasskey(
+            name: name,
+            host: host,
+            adminSigner: adminSigner,
+            deployImmediately: deployImmediately
+        )
     }
 }

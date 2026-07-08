@@ -11,14 +11,17 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var addSignerError: WalletError?
     var addSignerCallCount = 0
     var lastAddSignerEntry: DelegatedSignerEntry?
+    var lastAddSignerDeployImmediately: Bool?
 
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         addSignerCallCount += 1
         lastAddSignerEntry = entry
+        lastAddSignerDeployImmediately = deployImmediately
         if let addSignerError {
             throw addSignerError
         }
@@ -27,14 +30,19 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - registerTypedSigner
 
-    var registerTypedSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    var registerTypedSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    var registerTypedSignerCallCount = 0
+    var lastRegisterTypedSignerDeployImmediately: Bool?
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        registerTypedSignerResult
+        registerTypedSignerCallCount += 1
+        lastRegisterTypedSignerDeployImmediately = deployImmediately
+        return registerTypedSignerResult
     }
 
     // MARK: - approveSignature
