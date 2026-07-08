@@ -1,0 +1,57 @@
+{
+  "chainType": "stellar",
+  "walletType": "smart",
+  "params": {
+    "transaction": {
+      "type": "contract-call",
+      "contractId": "CCZP7JXIY2V4UVYVTV3D5YZREYBDES2KMIULISZ2JRR6O5JBHXVLW7UB",
+      "method": "transfer",
+      "args": {
+        "to": "CANKOZR2XAFXTUT7JX6ZPKKDNOQQ2XS5RGVC6ZU57VLDNDYRJPXUK2SJ",
+        "from": "CBUQJQMSUCZKVMNR2SMZNGGYL2JEUXNDGHPUCZFBY5Z2TLAZ6D6TCK55",
+        "amount": "10000000"
+      }
+    },
+    "signer": "email:user@example.com"
+  },
+  "onChain": {
+    "transaction": {
+      "method": "transfer",
+      "tx": "AAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEN1kAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAABqTg2xAAAAAAAAAAEAAAAAAAAAGAAAAAAAAAABsv+m6MarylcVnXY+4zEmAjJLSmIotEs6TGPndSE96rsAAAAIdHJhbnNmZXIAAAADAAAAEgAAAAFpBMGSoLKqsbHUmZaY2F6SSl2jMd9BZKHHc6msGfD9MQAAABIAAAABGqdmOrgLedJ/Tf2XqUNroQ1eXYmqL2ad/VY2jxFL70UAAAAKAAAAAAAAAAAAAAAAAJiWgAAAAAEAAAABAAAAAWkEwZKgsqqxsdSZlpjYXpJKXaMx30FkocdzqawZ8P0xbnaQ7kCrSowAAAAAAAAAAQAAAAAAAAABsv+m6MarylcVnXY+4zEmAjJLSmIotEs6TGPndSE96rsAAAAIdHJhbnNmZXIAAAADAAAAEgAAAAFpBMGSoLKqsbHUmZaY2F6SSl2jMd9BZKHHc6msGfD9MQAAABIAAAABGqdmOrgLedJ/Tf2XqUNroQ1eXYmqL2ad/VY2jxFL70UAAAAKAAAAAAAAAAAAAAAAAJiWgAAAAAAAAAABAAAAAAAAAAIAAAAGAAAAAWkEwZKgsqqxsdSZlpjYXpJKXaMx30FkocdzqawZ8P0xAAAAFAAAAAEAAAAGAAAAAbL/pujGq8pXFZ12PuMxJgIyS0piKLRLOkxj53UhPeq7AAAAFAAAAAEAAAADAAAABgAAAAFpBMGSoLKqsbHUmZaY2F6SSl2jMd9BZKHHc6msGfD9MQAAABVudpDuQKtKjAAAAAAAAAAGAAAAAbL/pujGq8pXFZ12PuMxJgIyS0piKLRLOkxj53UhPeq7AAAAEAAAAAEAAAACAAAADwAAAAdCYWxhbmNlAAAAABIAAAABGqdmOrgLedJ/Tf2XqUNroQ1eXYmqL2ad/VY2jxFL70UAAAABAAAABgAAAAGy/6boxqvKVxWddj7jMSYCMktKYii0SzpMY+d1IT3quwAAABAAAAABAAAAAgAAAA8AAAAHQmFsYW5jZQAAAAASAAAAAWkEwZKgsqqxsdSZlpjYXpJKXaMx30FkocdzqawZ8P0xAAAAAQAGybMAAAAAAAACCAAAAAAABDb1AAAAAA=="
+    },
+    "expiration": 3496945
+  },
+  "id": "cb99f2e5-e859-4cf3-88d8-f3c89f602d27",
+  "status": "awaiting-approval",
+  "approvals": {
+    "pending": [
+      {
+        "signer": {
+          "type": "email",
+          "email": "user@example.com",
+          "locator": "email:user@example.com"
+        },
+        "message": "BKztPNRKCOEJ1wqIJ1qgjWehzUT1g1AE/sWjpS4yxn4="
+      }
+    ],
+    "submitted": []
+  },
+  "createdAt": "2026-07-08T08:38:30.046Z",
+  "sendParams": {
+    "token": "stellar:CCZP7JXIY2V4UVYVTV3D5YZREYBDES2KMIULISZ2JRR6O5JBHXVLW7UB",
+    "params": {
+      "amount": "1",
+      "recipient": "CANKOZR2XAFXTUT7JX6ZPKKDNOQQ2XS5RGVC6ZU57VLDNDYRJPXUK2SJ",
+      "recipientAddress": "CANKOZR2XAFXTUT7JX6ZPKKDNOQQ2XS5RGVC6ZU57VLDNDYRJPXUK2SJ"
+    }
+  },
+  "fees": {
+    "mode": "user-native",
+    "estimate": {
+      "token": "XLM",
+      "rawAmount": "276313",
+      "amount": "0.0276313",
+      "usd": "0.0050618055"
+    }
+  }
+}
