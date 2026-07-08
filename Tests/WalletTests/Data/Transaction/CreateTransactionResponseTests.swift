@@ -29,4 +29,18 @@ struct CreateTransactionResponseTest {
         #expect(response.sendParams?.token == "solana:sol")
         #expect(response.sendParams?.params.amount == "0.5")
     }
+
+    @Test("Parse stellar transaction with string signer in params")
+    func willParseStellarTransactionResponseWithStringSigner() async throws {
+        let response: StellarTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "CreateStellarTransactionResponse",
+            bundle: Bundle.module
+        )
+
+        #expect(response.status == .awaitingApproval)
+        #expect(response.params.signer?.locator == "email:user@example.com")
+        #expect(response.approvals?.pending.count == 1)
+        #expect(response.approvals?.pending.first?.signer.locator == "email:user@example.com")
+        #expect(response.sendParams?.params.amount == "1")
+    }
 }
