@@ -280,4 +280,27 @@ struct SignerRegistrationDeployImmediatelyApprovalTests {
         #expect(walletService.signTransactionCallCount == 0)
         #expect(walletService.lastApproveSignatureRequest?.transactionId == "sig-123")
     }
+
+    @Test
+    func routesToSignatureApprovalWhenChainEntryStatusIsPending() async throws {
+        let walletService = MockSmartWalletService()
+        let signer = MockSigner()
+        let service = makeService(walletService: walletService)
+
+        let registration = AddDelegatedSignerResponse(chains: [
+            chainName: ChainRegistrationEntry(
+                id: "sig-456",
+                status: "pending",
+                approvals: RegistrationApprovals(pending: [
+                    ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc")
+                ])
+            )
+        ], transaction: nil)
+
+        try await service.approveIfNeeded(registration: registration, signer: signer)
+
+        #expect(walletService.approveSignatureCallCount == 1)
+        #expect(walletService.signTransactionCallCount == 0)
+        #expect(walletService.lastApproveSignatureRequest?.transactionId == "sig-456")
+    }
 }

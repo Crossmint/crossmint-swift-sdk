@@ -84,7 +84,7 @@ final class SignerRegistrationService: Sendable {
             if chainEntry.awaitsApproval, chainEntry.onChain != nil, let transactionId = chainEntry.id {
                 return .transaction(id: transactionId)
             }
-            if chainEntry.status == "awaiting-approval",
+            if chainEntry.awaitsApproval,
                let signatureId = chainEntry.id,
                let pending = chainEntry.approvals?.pending, !pending.isEmpty {
                 return .signature(id: signatureId, pending: pending)
