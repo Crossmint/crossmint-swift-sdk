@@ -109,6 +109,17 @@ struct WalletIsSignerApprovedTests {
         #expect(await wallet.isSignerApproved("email:user@example.com"))
     }
 
+    @Test func rejectsSignerWithStatuslessTransactionOnSolana() async throws {
+        let walletService = MockSmartWalletService()
+        walletService.getSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "tx-1")
+        )
+        let wallet = try makeSolanaWallet(walletService: walletService)
+
+        #expect(await wallet.isSignerApproved("email:user@example.com") == false)
+    }
+
     @Test func approvesSignerWithoutTransactionOnSolana() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)

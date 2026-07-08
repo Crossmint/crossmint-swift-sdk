@@ -133,7 +133,10 @@ open class Wallet: @unchecked Sendable {
     /// wallet and needed no approval.
     private func registrationStatus(of response: AddDelegatedSignerResponse) -> String? {
         if chain.chainType == .solana || chain.chainType == .stellar {
-            return response.transaction?.status ?? "success"
+            guard let transaction = response.transaction else {
+                return "success"
+            }
+            return transaction.status
         }
         guard let chains = response.chains, !chains.isEmpty else {
             return "success"
