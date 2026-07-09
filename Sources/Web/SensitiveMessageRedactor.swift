@@ -1,7 +1,5 @@
 import Foundation
 
-// TEE bridge messages carry `authData.jwt`, `authData.apiKey`, and `onboardingAuthentication.encryptedOtp`
-// at varying nesting depths across message types, so redaction walks the decoded JSON by key rather than by path.
 enum SensitiveMessageRedactor {
     private static let sensitiveKeys: Set<String> = ["jwt", "apiKey", "encryptedOtp"]
     private static let redactedPlaceholder = "[REDACTED]"
