@@ -351,16 +351,18 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
                 if child_data:
                     name = child_data.get("metadata", {}).get("title", "")
                     prop_type = extract_property_type(get_declaration(child_data))
+                    desc = render_inline_content(child_data.get("abstract", []), child_data.get("references", {}))
                 else:
                     ref = references.get(identifier, {})
                     name = ref.get("title", identifier.split("/")[-1])
                     prop_type = ""
-                rows.append((name, prop_type))
+                    desc = ""
+                rows.append((name, prop_type, desc))
             if rows:
                 md.append(f"\n## {section_title}\n")
-                md.append("\n| Property | Type |\n| ------ | ------ |\n")
-                for name, prop_type in rows:
-                    md.append(f"| {code_cell(name)} | {code_cell(prop_type)} |\n")
+                md.append("\n| Property | Type | Description |\n| ------ | ------ | ------ |\n")
+                for name, prop_type, desc in rows:
+                    md.append(f"| {code_cell(name)} | {code_cell(prop_type)} | {text_cell(desc) or '-'} |\n")
             continue
 
         if section_title == "Enumeration Cases":
@@ -379,7 +381,7 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
                 md.append(f"\n## {section_title}\n")
                 md.append("\n| Case | Description |\n| ------ | ------ |\n")
                 for name, desc in rows:
-                    md.append(f"| {code_cell(name)} | {text_cell(desc)} |\n")
+                    md.append(f"| {code_cell(name)} | {text_cell(desc) or '-'} |\n")
             continue
 
         md.append(f"\n## {section_title}\n")
