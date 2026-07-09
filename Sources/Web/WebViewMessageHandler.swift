@@ -54,12 +54,13 @@ public class WebViewMessageHandler {
 
     public func processIncomingMessage(_ messageBody: Any) {
         guard let messageData = extractMessageData(from: messageBody) else {
-            Logger.web.warning("Failed to extract message data from: \(messageBody)")
+            Logger.web.warning("Failed to extract message data; unsupported body type: \(type(of: messageBody))")
             return
         }
 
         guard let messageTypeInfo = extractMessageType(from: messageData) else {
-            Logger.web.warning("Failed to extract message type from message data: \(messageBody)")
+            let redactedData = SensitiveMessageRedactor.redactedLoggableString(from: messageData)
+            Logger.web.warning("Failed to extract message type, data: \(redactedData)")
             return
         }
 
@@ -69,7 +70,7 @@ public class WebViewMessageHandler {
         }
 
         if let decodedMessage = WebViewMessageRegistry.decode(messageType: messageTypeInfo, data: messageData) {
-            Logger.web.debug("Web >> Native: \(String(data: messageData, encoding: .utf8) ?? "Unknown")")
+            Logger.web.debug("Web >> Native: \(SensitiveMessageRedactor.redactedLoggableString(from: messageData))")
 
             // Deliver to waiting listeners first; only buffer unclaimed messages.
             // Buffering a listener-consumed message leaves a stale copy behind,
@@ -96,7 +97,7 @@ public class WebViewMessageHandler {
             // Log unknown message before delegating
             Logger.web.warning(
                 "Unknown message type: \(messageTypeInfo), " +
-                "data: \(String(data: messageData, encoding: .utf8) ?? "nil")"
+                "data: \(SensitiveMessageRedactor.redactedLoggableString(from: messageData))"
             )
             delegate?.handleUnknownMessage(messageTypeInfo, data: messageData)
         }
