@@ -18,18 +18,14 @@ enum SensitiveMessageRedactor {
     }
 
     private static func redact(_ value: Any) -> Any {
-        if let dictionary = value as? [String: Any] {
-            var result: [String: Any] = [:]
-            for (key, nestedValue) in dictionary {
-                result[key] = sensitiveKeys.contains(key) ? redactedPlaceholder : redact(nestedValue)
-            }
-            return result
+        guard let dictionary = value as? [String: Any] else {
+            return value
         }
 
-        if let array = value as? [Any] {
-            return array.map(redact)
+        var result: [String: Any] = [:]
+        for (key, nestedValue) in dictionary {
+            result[key] = sensitiveKeys.contains(key) ? redactedPlaceholder : redact(nestedValue)
         }
-
-        return value
+        return result
     }
 }
