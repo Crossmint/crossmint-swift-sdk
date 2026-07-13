@@ -45,6 +45,44 @@ extension Wallet {
         }
     }
 
+    /// Fetches the transaction history for this wallet.
+    ///
+    /// Returns every transaction created for this wallet, including token
+    /// transfers, contract calls, and signer changes.
+    ///
+    /// - Returns: The wallet's ``Transaction`` list as returned by the Crossmint API.
+    ///
+    /// - Throws: ``TransactionError`` if the request fails.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let transactions = try await wallet.listTransactions()
+    ///
+    /// for transaction in transactions {
+    ///     print("\(transaction.id): \(transaction.status)")
+    /// }
+    /// ```
+    public func listTransactions() async throws(TransactionError) -> [Transaction] {
+        Logger.smartWallet.debug(LogEvents.walletListTransactionsStart)
+
+        do {
+            let models = try await smartWalletService.listTransactions(chainType: chain.chainType)
+            let transactions = models.compactMap { $0.toDomain(withService: smartWalletService) }
+
+            Logger.smartWallet.debug(LogEvents.walletListTransactionsSuccess, attributes: [
+                "count": "\(transactions.count)"
+            ])
+
+            return transactions
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletListTransactionsError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
+    }
+
     /// Removes an assigned signer from this wallet.
     ///
     /// Submits a remove-signer transaction on-chain. If the transaction requires approval,
