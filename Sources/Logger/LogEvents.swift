@@ -189,6 +189,15 @@ public enum LogEvents {
     /// Failed to get balances
     public static let walletBalancesError = "wallet.balances.error"
 
+    /// Getting a transaction by ID
+    public static let walletGetTransactionStart = "wallet.getTransaction.start"
+
+    /// Transaction retrieved successfully
+    public static let walletGetTransactionSuccess = "wallet.getTransaction.success"
+
+    /// Failed to get transaction
+    public static let walletGetTransactionError = "wallet.getTransaction.error"
+
     /// Starting staging fund
     public static let walletStagingFundStart = "wallet.stagingFund.start"
 
