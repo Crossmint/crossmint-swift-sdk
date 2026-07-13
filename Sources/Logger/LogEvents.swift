@@ -352,17 +352,14 @@ public enum LogEvents {
     /// Delegated signer added successfully
     public static let walletAddDelegatedSignerSuccess = "wallet.addDelegatedSigner.success"
 
-    /// Getting delegated signers
-    public static let walletDelegatedSignersStart = "wallet.delegatedSigners.start"
+    /// Getting signers
+    public static let walletSignersStart = "wallet.signers.start"
 
-    /// Failed to get delegated signers
-    public static let walletDelegatedSignersError = "wallet.delegatedSigners.error"
+    /// Failed to get signers
+    public static let walletSignersError = "wallet.signers.error"
 
-    /// No delegated signers found
-    public static let walletDelegatedSignersErrorNoSigners = "wallet.delegatedSigners.error (no signers)"
-
-    /// Delegated signers retrieved
-    public static let walletDelegatedSignersSuccess = "wallet.delegatedSigners.success"
+    /// Signers retrieved
+    public static let walletSignersSuccess = "wallet.signers.success"
 
     // MARK: - Remove Signer Events
 

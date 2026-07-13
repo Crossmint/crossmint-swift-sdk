@@ -8,12 +8,57 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
-    /// Fetches the current list of delegated signers from the API.
+    /// Fetches the current list of signers from the API.
+    ///
+    /// Each ``WalletSigner`` includes its registration ``WalletSigner/status`` on this
+    /// wallet's chain. On EVM wallets, signers without a registration entry (pending or
+    /// completed) for the wallet's chain are omitted.
     ///
     /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
-    public func signers() async throws(WalletError) -> [WalletDelegatedSignerConfigApiModel] {
-        let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        return model.config.signers ?? []
+    public func signers() async throws(WalletError) -> [WalletSigner] {
+        Logger.smartWallet.info(LogEvents.walletSignersStart)
+        do {
+            let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+            let locators = (model.config.signers ?? []).compactMap { $0.locator ?? $0.signer }
+            let signers = await fetchSignerStates(for: locators)
+            Logger.smartWallet.info(LogEvents.walletSignersSuccess, attributes: [
+                "count": "\(signers.count)"
+            ])
+            return signers
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletSignersError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
+    }
+
+    /// Fetches each signer's state concurrently, dropping signers whose lookup fails
+    /// so one broken signer doesn't fail the whole list. Preserves the input order.
+    private func fetchSignerStates(for locators: [String]) async -> [WalletSigner] {
+        let service = smartWalletService
+        let chainType = chain.chainType
+        let chainName = chain.name
+        let states = await withTaskGroup(of: (Int, WalletSigner?).self) { group in
+            for (index, locator) in locators.enumerated() {
+                group.addTask {
+                    let signer = (try? await service.getSigner(
+                        locator,
+                        chainType: chainType,
+                        chainName: chainName
+                    )) ?? nil
+                    return (index, signer)
+                }
+            }
+            var collected: [(Int, WalletSigner)] = []
+            for await (index, signer) in group {
+                if let signer {
+                    collected.append((index, signer))
+                }
+            }
+            return collected
+        }
+        return states.sorted { $0.0 < $1.0 }.map(\.1)
     }
 
     internal let smartWalletService: SmartWalletService
@@ -29,7 +74,7 @@ open class Wallet: @unchecked Sendable {
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false
-    var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
+    var initialSigners: [WalletSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 
     private let owner: Owner?
@@ -66,7 +111,7 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name
         )
-        self.initialDelegatedSigners = baseModel.config.signers ?? []
+        self.initialSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
             await self?.initDefaultSigner()
         }
@@ -74,7 +119,7 @@ open class Wallet: @unchecked Sendable {
 
     /// Returns whether the given locator is registered as a signer on this wallet.
     ///
-    /// Checks both delegated signers (via a fresh API call) and the admin signer.
+    /// Checks both the wallet signers (via a fresh API call) and the admin signer.
     /// Returns `false` on any network error.
     ///
     /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
@@ -86,9 +131,9 @@ open class Wallet: @unchecked Sendable {
         } catch {
             return false
         }
-        let delegatedMatch = walletModel.config.signers?
+        let signerMatch = walletModel.config.signers?
             .contains(where: { $0.locator == locator }) ?? false
-        if delegatedMatch { return true }
+        if signerMatch { return true }
         return walletModel.config.recovery.toDomain.locator == locator
     }
 
