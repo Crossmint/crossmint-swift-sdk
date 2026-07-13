@@ -281,7 +281,10 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) async {
         let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
         guard !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) else { return }
-        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) else { return }
+        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(
+            in: walletApiModel,
+            storage: storage
+        ) else { return }
 
         do {
             try await storage.mapAddressToKey(
