@@ -1,37 +1,39 @@
-name: Release
+name: Create Version Bump PR
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 0.0.8)'
+        description: 'Version number (e.g., 1.2.0 or 1.2.0-beta)'
         required: true
         type: string
 
 env:
-  DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+  DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
 
 jobs:
-  release:
-    name: Create Release
-    runs-on: macos-15
+  create-version-pr:
+    name: Create Version Bump PR
+    runs-on: macos-26
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
     - uses: actions/checkout@v4
       with:
+        fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '16.4'
+        xcode-version: '26.5'
 
     - name: Validate version format
       run: |
         if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$'; then
-          echo "Error: Version must follow semantic versioning (e.g., 0.0.8 or 1.0.0-beta)"
+          echo "Error: Version must follow semantic versioning (e.g., 1.2.0 or 1.2.0-beta)"
           exit 1
         fi
 
@@ -51,52 +53,77 @@ jobs:
           ${{ runner.os }}-spm-
 
     - name: Run tests
-      run: |
-        make ci-test
+      run: make ci-test
 
     - name: Run SwiftLint
       run: make lint
 
-    - name: Update SDK version in code
+    - name: Lint podspec
+      run: pod lib lint CrossmintDeviceSigner.podspec --allow-warnings
+
+    - name: Update version in code
       run: |
         VERSION="${{ inputs.version }}"
         sed -i '' "s/public static let version = \".*\"/public static let version = \"$VERSION\"/" Sources/Utils/SDKVersion.swift
+        sed -i '' "s/s\.version *= *'.*'/s.version          = '$VERSION'/" CrossmintDeviceSigner.podspec
 
-        # Verify the change was made
         if ! grep -q "public static let version = \"$VERSION\"" Sources/Utils/SDKVersion.swift; then
-          echo "Error: Failed to update version in SDKVersion.swift"
+          echo "Error: Failed to update Sources/Utils/SDKVersion.swift"
+          exit 1
+        fi
+        if ! grep -q "s.version          = '$VERSION'" CrossmintDeviceSigner.podspec; then
+          echo "Error: Failed to update CrossmintDeviceSigner.podspec"
           exit 1
         fi
 
-        echo "✅ Updated SDKVersion.swift to version $VERSION"
-        cat Sources/Utils/SDKVersion.swift
+        echo "Updated SDKVersion.swift and CrossmintDeviceSigner.podspec to $VERSION"
 
     - name: Configure Git
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Commit version bump and create tag
+    - name: Create branch and commit
       run: |
-        git add Sources/Utils/SDKVersion.swift
-        git commit -m "chore: bump version to ${{ inputs.version }}"
-        git tag "${{ inputs.version }}"
-        git push origin main --tags
+        BRANCH_NAME="release-${{ inputs.version }}"
+        git checkout -b "$BRANCH_NAME"
+        git add Sources/Utils/SDKVersion.swift CrossmintDeviceSigner.podspec
+        git commit -m "Bump version to ${{ inputs.version }}"
+        git push origin "$BRANCH_NAME"
 
-    - name: Create GitHub Release
+    - name: Generate changelog preview
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release create "${{ inputs.version }}" \
-          --title "Release ${{ inputs.version }}" \
-          --generate-notes
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        if [ -z "$LATEST_TAG" ]; then
+          git log --pretty=format:'- %s (%h)' --reverse > /tmp/changelog.md
+        else
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="${{ inputs.version }}" \
+            -f target_commitish="release-${{ inputs.version }}" \
+            -f previous_tag_name="$LATEST_TAG" \
+            --jq '.body' > /tmp/changelog.md
+        fi
 
-  # The tag above is pushed with GITHUB_TOKEN, whose events don't trigger
-  # workflows — call the docs generation workflow directly instead.
-  generate-docs:
-    name: Generate SDK Reference Docs
-    needs: release
-    uses: ./.github/workflows/sdk-reference-docs-generate.yml
-    with:
-      ref: ${{ inputs.version }}
-    secrets: inherit
+    - name: Create Pull Request
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        {
+          printf 'This PR bumps the SDK version to %s. Merging it tags the release and publishes automatically.\n\n' "${{ inputs.version }}"
+          printf '## Changes\n'
+          printf -- '- Updated `SDKVersion.swift` to %s\n' "${{ inputs.version }}"
+          printf -- '- Updated `CrossmintDeviceSigner.podspec` to %s\n\n' "${{ inputs.version }}"
+          printf '## Changelog preview\n'
+          cat /tmp/changelog.md
+        } > /tmp/pr-body.md
+        gh pr create \
+          --title "Release ${{ inputs.version }}" \
+          --base main \
+          --head "release-${{ inputs.version }}" \
+          --label "release" \
+          --body-file /tmp/pr-body.md
