@@ -1,3 +1,5 @@
+import CrossmintCommonTypes
+
 public protocol TransactionService: Sendable {
     func createTransaction(
         _ request: CreateTransactionRequest
@@ -10,4 +12,8 @@ public protocol TransactionService: Sendable {
     func fetchTransaction(
         _ request: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel
+
+    func listTransactions(
+        chainType: ChainType
+    ) async throws(TransactionError) -> [any TransactionApiModel]
 }

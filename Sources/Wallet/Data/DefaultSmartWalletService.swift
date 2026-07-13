@@ -99,6 +99,12 @@ public final class DefaultSmartWalletService: SmartWalletService {
         try await transactionService.fetchTransaction(request)
     }
 
+    public func listTransactions(
+        chainType: ChainType
+    ) async throws(TransactionError) -> [any TransactionApiModel] {
+        try await transactionService.listTransactions(chainType: chainType)
+    }
+
     // MARK: - TransferService
 
     public func transferToken(

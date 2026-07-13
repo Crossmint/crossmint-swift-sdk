@@ -180,6 +180,15 @@ public enum LogEvents {
     /// Send failed
     public static let walletSendError = "wallet.send.error"
 
+    /// Listing wallet transactions
+    public static let walletListTransactionsStart = "wallet.listTransactions.start"
+
+    /// Transactions listed successfully
+    public static let walletListTransactionsSuccess = "wallet.listTransactions.success"
+
+    /// Failed to list transactions
+    public static let walletListTransactionsError = "wallet.listTransactions.error"
+
     /// Getting wallet balances
     public static let walletBalancesStart = "wallet.balances.start"
 
@@ -235,6 +244,15 @@ public enum LogEvents {
 
     /// API: List transfers successful
     public static let apiListTransfersSuccess = "wallets.api.listTransfers.success"
+
+    /// API: Listing transactions
+    public static let apiListTransactionsStart = "wallets.api.listTransactions"
+
+    /// API: List transactions failed
+    public static let apiListTransactionsError = "wallets.api.listTransactions.error"
+
+    /// API: List transactions successful
+    public static let apiListTransactionsSuccess = "wallets.api.listTransactions.success"
 
     // MARK: - SDK Initialization
 

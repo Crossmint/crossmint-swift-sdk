@@ -37,4 +37,15 @@ extension Endpoint {
             headers: headers
         )
     }
+
+    static func listTransactions(
+        chainType: ChainType,
+        headers: [String: String] = [:]
+    ) -> Endpoint {
+        Endpoint(
+            path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions",
+            method: .get,
+            headers: headers
+        )
+    }
 }
