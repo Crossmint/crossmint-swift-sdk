@@ -105,20 +105,27 @@ open class Wallet: @unchecked Sendable {
     /// Returns whether the given signer is approved and usable on this wallet's chain.
     ///
     /// A freshly registered signer can require approval before it can sign — see ``addSigner(_:)``.
-    /// Returns `false` when the signer is not registered, and on any network error.
+    /// Returns `false` when the signer is not registered on this wallet.
     ///
     /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
     ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
-    public func isSignerApproved(_ locator: String) async -> Bool {
+    /// - Throws: ``WalletError`` if the request fails.
+    public func isSignerApproved(_ locator: String) async throws(WalletError) -> Bool {
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedStart)
         let response: AddDelegatedSignerResponse
         do {
             response = try await smartWalletService.getSigner(locator, chainType: chain.chainType)
         } catch {
+            if case .walletNotFound = error {
+                Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
+                    "approved": "false"
+                ])
+                return false
+            }
             Logger.smartWallet.error(LogEvents.walletIsSignerApprovedError, attributes: [
                 "error": "\(error)"
             ])
-            return false
+            throw error
         }
         let status = registrationStatus(of: response)
         let approved = status == "success" || status == "active"

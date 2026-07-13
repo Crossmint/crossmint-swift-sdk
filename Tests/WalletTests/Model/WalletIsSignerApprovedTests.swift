@@ -42,7 +42,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com"))
+        #expect(try await wallet.isSignerApproved("email:user@example.com"))
         #expect(walletService.lastGetSignerLocator == "email:user@example.com")
     }
 
@@ -54,7 +54,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com"))
+        #expect(try await wallet.isSignerApproved("email:user@example.com"))
     }
 
     @Test func rejectsSignerAwaitingApproval() async throws {
@@ -65,7 +65,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com") == false)
+        #expect(try await wallet.isSignerApproved("email:user@example.com") == false)
     }
 
     @Test func rejectsSignerWithoutEntryForTheWalletChain() async throws {
@@ -76,7 +76,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com") == false)
+        #expect(try await wallet.isSignerApproved("email:user@example.com") == false)
     }
 
     @Test func approvesSignerCreatedWithTheWallet() async throws {
@@ -84,7 +84,7 @@ struct WalletIsSignerApprovedTests {
         walletService.getSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com"))
+        #expect(try await wallet.isSignerApproved("email:user@example.com"))
     }
 
     @Test func rejectsSignerWithPendingTransactionOnSolana() async throws {
@@ -95,7 +95,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeSolanaWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com") == false)
+        #expect(try await wallet.isSignerApproved("email:user@example.com") == false)
     }
 
     @Test func approvesSignerWithSuccessfulTransactionOnSolana() async throws {
@@ -106,7 +106,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeSolanaWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com"))
+        #expect(try await wallet.isSignerApproved("email:user@example.com"))
     }
 
     @Test func rejectsSignerWithStatuslessTransactionOnSolana() async throws {
@@ -117,7 +117,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeSolanaWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com") == false)
+        #expect(try await wallet.isSignerApproved("email:user@example.com") == false)
     }
 
     @Test func approvesSignerWithoutTransactionOnSolana() async throws {
@@ -125,14 +125,24 @@ struct WalletIsSignerApprovedTests {
         walletService.getSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)
         let wallet = try makeSolanaWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com"))
+        #expect(try await wallet.isSignerApproved("email:user@example.com"))
     }
 
-    @Test func returnsFalseOnNetworkError() async throws {
+    @Test func returnsFalseWhenSignerIsNotRegistered() async throws {
+        let walletService = MockSmartWalletService()
+        walletService.getSignerError = .walletNotFound
+        let wallet = try makeEVMWallet(walletService: walletService)
+
+        #expect(try await wallet.isSignerApproved("email:user@example.com") == false)
+    }
+
+    @Test func throwsOnNetworkError() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerError = .walletGeneric("network error")
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        #expect(await wallet.isSignerApproved("email:user@example.com") == false)
+        await #expect(throws: WalletError.self) {
+            try await wallet.isSignerApproved("email:user@example.com")
+        }
     }
 }
