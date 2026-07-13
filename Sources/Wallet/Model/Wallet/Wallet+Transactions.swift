@@ -70,6 +70,12 @@ extension Wallet {
             let models = try await smartWalletService.listTransactions(chainType: chain.chainType)
             let transactions = models.compactMap { $0.toDomain(withService: smartWalletService) }
 
+            if transactions.count != models.count {
+                Logger.smartWallet.warning(LogEvents.walletListTransactionsDropped, attributes: [
+                    "dropped": "\(models.count - transactions.count)"
+                ])
+            }
+
             Logger.smartWallet.debug(LogEvents.walletListTransactionsSuccess, attributes: [
                 "count": "\(transactions.count)"
             ])
