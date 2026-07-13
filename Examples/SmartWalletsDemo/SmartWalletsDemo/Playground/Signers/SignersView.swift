@@ -18,34 +18,28 @@ struct SignersView: View {
 
     private var isRemovingSigner: Bool { removingSignerLocator != nil }
 
-    private var signerItems: [(locator: String, model: WalletDelegatedSignerConfigApiModel)] {
-        appState.delegatedSigners.compactMap { signer in
-            guard let locator = signer.locator ?? signer.signer else { return nil }
-            return (locator: locator, model: signer)
-        }
-    }
-
     var body: some View {
         NavigationStack {
             List {
                 recoverySection()
 
                 Section("Signers") {
-                    if signerItems.isEmpty && !isLoadingSigners {
+                    if appState.signers.isEmpty && !isLoadingSigners {
                         ContentUnavailableView(
                             "No Signers",
                             systemImage: "person.badge.key",
-                            description: Text("No delegated signers are registered on this wallet.")
+                            description: Text("No signers are registered on this wallet.")
                         )
                     } else {
-                        ForEach(Array(signerItems.enumerated()), id: \.element.locator) { index, item in
+                        ForEach(Array(appState.signers.enumerated()), id: \.element.locator) { index, item in
                             SignerRow(
                                 index: index,
                                 locator: item.locator,
+                                status: item.status.rawValue,
                                 isRemoving: removingSignerLocator == item.locator,
                                 canRemove: true,
                                 onSelect: {},
-                                onRemove: { Task { await removeSigner(item.model, locator: item.locator) } }
+                                onRemove: { Task { await removeSigner(locator: item.locator) } }
                             )
                         }
                     }
@@ -106,7 +100,7 @@ struct SignersView: View {
         isLoadingSigners = false
     }
 
-    private func removeSigner(_ signer: WalletDelegatedSignerConfigApiModel, locator: String) async {
+    private func removeSigner(locator: String) async {
         guard let wallet = appState.wallet else { return }
         removingSignerLocator = locator
         do {

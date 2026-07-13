@@ -8,6 +8,7 @@ import SwiftUI
 struct SignerRow: View {
     var index: Int?
     let locator: String
+    var status: String?
     var isRemoving: Bool = false
     var canRemove: Bool = true
     let onSelect: () -> Void
@@ -53,6 +54,14 @@ struct SignerRow: View {
                     .accessibilityIdentifier(index.map { "signer-\($0)-locator" } ?? "")
             }
             Spacer()
+            if let status {
+                Text(status)
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.quaternary, in: Capsule())
+                    .accessibilityIdentifier(index.map { "signer-\($0)-status" } ?? "")
+            }
             if isRemoving {
                 ProgressView()
             }
