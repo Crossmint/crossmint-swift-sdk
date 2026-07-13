@@ -1,9 +1,72 @@
 import CrossmintCommonTypes
 import CrossmintService
+import Foundation
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var isProductionEnvironment: Bool { false }
+
+    // MARK: - getWallet
+
+    var getWalletResult: WalletApiModel?
+    var getWalletError: WalletError?
+    var getWalletCallCount = 0
+
+    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
+        getWalletCallCount += 1
+        if let getWalletError {
+            throw getWalletError
+        }
+        guard let getWalletResult else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        return getWalletResult
+    }
+
+    // MARK: - getSigner
+
+    // getSigner is called concurrently from signers()' task group, so its
+    // tracking state is guarded by a lock. (NSLock.withLock needs iOS 16; min target is 15.)
+    private let getSignerLock = NSLock()
+    private var _getSignerResults: [String: WalletSigner] = [:]
+    private var _getSignerErrorLocators: Set<String> = []
+    private var _getSignerLocators: [String] = []
+
+    var getSignerResults: [String: WalletSigner] {
+        get { withGetSignerLock { _getSignerResults } }
+        set { withGetSignerLock { _getSignerResults = newValue } }
+    }
+
+    /// Locators for which getSigner throws instead of returning a result.
+    var getSignerErrorLocators: Set<String> {
+        get { withGetSignerLock { _getSignerErrorLocators } }
+        set { withGetSignerLock { _getSignerErrorLocators = newValue } }
+    }
+
+    var getSignerLocators: [String] {
+        withGetSignerLock { _getSignerLocators }
+    }
+
+    func getSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(WalletError) -> WalletSigner? {
+        let outcome: Result<WalletSigner?, WalletError> = withGetSignerLock {
+            _getSignerLocators.append(signerLocator)
+            if _getSignerErrorLocators.contains(signerLocator) {
+                return .failure(WalletError.walletGeneric("getSigner failed"))
+            }
+            return .success(_getSignerResults[signerLocator])
+        }
+        return try outcome.get()
+    }
+
+    private func withGetSignerLock<T>(_ body: () -> T) -> T {
+        getSignerLock.lock()
+        defer { getSignerLock.unlock() }
+        return body()
+    }
 
     // MARK: - addSigner
 
@@ -87,10 +150,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     }
 
     // MARK: - Unused stubs
-
-    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        throw WalletError.walletGeneric("not implemented")
-    }
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {
         throw WalletError.walletGeneric("not implemented")
