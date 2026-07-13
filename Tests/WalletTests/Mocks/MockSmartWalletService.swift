@@ -86,6 +86,24 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return fetchTransactionResult
     }
 
+    // MARK: - listTransactions
+
+    var listTransactionsResult: [any TransactionApiModel] = []
+    var listTransactionsError: TransactionError?
+    var listTransactionsCallCount = 0
+    var lastListTransactionsChainType: ChainType?
+
+    func listTransactions(
+        chainType: ChainType
+    ) async throws(TransactionError) -> [any TransactionApiModel] {
+        listTransactionsCallCount += 1
+        lastListTransactionsChainType = chainType
+        if let listTransactionsError {
+            throw listTransactionsError
+        }
+        return listTransactionsResult
+    }
+
     // MARK: - Unused stubs
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {

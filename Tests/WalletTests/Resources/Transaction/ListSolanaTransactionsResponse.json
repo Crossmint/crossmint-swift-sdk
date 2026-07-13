@@ -1,0 +1,41 @@
+{
+  "transactions": [
+    {
+      "chainType": "solana",
+      "walletType": "smart",
+      "id": "f662d74d-8790-4dbe-8865-93916b39d3d6",
+      "status": "awaiting-approval",
+      "params": {
+        "transaction": "AXGuKpKt4zxavCq2dHNexivchTXKoEQMBmqr6ipcF4QPfTXJRJcBLhs",
+        "signer": {
+          "type": "external-wallet",
+          "address": "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc",
+          "locator": "external-wallet:EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+        },
+        "feeConfig": {
+          "feePayer": "crossmint",
+          "amount": "15001"
+        }
+      },
+      "onChain": {
+        "transaction": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjge",
+        "lastValidBlockHeight": 389278945
+      },
+      "approvals": {
+        "pending": [
+          {
+            "signer": {
+              "type": "external-wallet",
+              "address": "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc",
+              "locator": "external-wallet:EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+            },
+            "message": "3ScRUqvpU4ZEHKD23XBxWargqNCPoxhQagfjCYXefxcT"
+          }
+        ],
+        "submitted": [],
+        "required": 1
+      },
+      "createdAt": "2025-08-15T14:29:34.133Z"
+    }
+  ]
+}
