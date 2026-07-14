@@ -34,7 +34,7 @@ struct SignerRegistrationServiceTests {
     func registerLocator_noApprovalNeeded_doesNotCallApproveSignature() async throws {
         let walletService = MockSmartWalletService()
         walletService.addSignerResult = AddDelegatedSignerResponse(chains: [
-            chainName: ChainRegistrationEntry(id: "sig1", status: "success", approvals: nil)
+            chainName: ChainRegistrationEntry(id: "sig1", status: .active, approvals: nil)
         ], transaction: nil)
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
@@ -50,7 +50,7 @@ struct SignerRegistrationServiceTests {
         walletService.addSignerResult = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(
                 id: "sig1",
-                status: "awaiting-approval",
+                status: .awaitingApproval,
                 approvals: RegistrationApprovals(pending: [
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc"),
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xdef")
@@ -89,7 +89,7 @@ struct SignerRegistrationServiceTests {
         let registration = AddDelegatedSignerResponse(chains: [
             "ethereum": ChainRegistrationEntry(
                 id: "sig1",
-                status: "awaiting-approval",
+                status: .awaitingApproval,
                 approvals: RegistrationApprovals(pending: [
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc")
                 ])
@@ -107,7 +107,7 @@ struct SignerRegistrationServiceTests {
         let service = makeService(walletService: walletService)
 
         let registration = AddDelegatedSignerResponse(chains: [
-            chainName: ChainRegistrationEntry(id: "sig1", status: "success", approvals: nil)
+            chainName: ChainRegistrationEntry(id: "sig1", status: .active, approvals: nil)
         ], transaction: nil)
         try await service.approveIfNeeded(registration: registration, signer: signer)
 
@@ -123,7 +123,7 @@ struct SignerRegistrationServiceTests {
         let registration = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(
                 id: "sig1",
-                status: "awaiting-approval",
+                status: .awaitingApproval,
                 approvals: RegistrationApprovals(pending: [])
             )
         ], transaction: nil)
@@ -141,7 +141,7 @@ struct SignerRegistrationServiceTests {
         let registration = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(
                 id: "expected-sig-id",
-                status: "awaiting-approval",
+                status: .awaitingApproval,
                 approvals: RegistrationApprovals(pending: [
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc")
                 ])
@@ -245,7 +245,7 @@ struct SignerRegistrationDeployImmediatelyApprovalTests {
         let registration = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(
                 id: "tx-789",
-                status: "awaiting-approval",
+                status: .awaitingApproval,
                 approvals: nil,
                 onChain: ChainRegistrationOnChain()
             )
@@ -267,7 +267,7 @@ struct SignerRegistrationDeployImmediatelyApprovalTests {
         let registration = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(
                 id: "sig-123",
-                status: "awaiting-approval",
+                status: .awaitingApproval,
                 approvals: RegistrationApprovals(pending: [
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc")
                 ])
@@ -290,7 +290,7 @@ struct SignerRegistrationDeployImmediatelyApprovalTests {
         let registration = AddDelegatedSignerResponse(chains: [
             chainName: ChainRegistrationEntry(
                 id: "sig-456",
-                status: "pending",
+                status: .pending,
                 approvals: RegistrationApprovals(pending: [
                     ApprovalEntry(signer: SignerApiModel(locator: "email:admin@example.com"), message: "0xabc")
                 ])
