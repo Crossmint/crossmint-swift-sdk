@@ -2,9 +2,8 @@ public struct RegistrationApprovals: Decodable {
     public let pending: [ApprovalEntry]
 }
 
-/// Marker for an on-chain (transaction) registration entry. Its presence — not its
-/// contents — determines whether approval goes through the transaction flow instead
-/// of the signature flow.
+/// Marker for an on-chain (transaction) registration entry. When present, approval
+/// goes through the transaction flow instead of the signature flow.
 public struct ChainRegistrationOnChain: Decodable {}
 
 public struct ChainRegistrationEntry: Decodable {
