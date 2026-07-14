@@ -112,7 +112,10 @@ final class DeviceSignerService: Sendable {
         }
     }
 
-    private func persistKey(_ publicKeyBase64: String, in storage: any DeviceSignerKeyStorage) async throws(WalletError) {
+    private func persistKey(
+        _ publicKeyBase64: String,
+        in storage: any DeviceSignerKeyStorage
+    ) async throws(WalletError) {
         do {
             try await storage.mapAddressToKey(address: address, publicKeyBase64: publicKeyBase64)
         } catch {

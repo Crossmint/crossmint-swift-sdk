@@ -1,3 +1,10 @@
+//
+//  SignerStatus.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 7/14/26.
+//
+
 /// The registration state of a signer as it moves through approval.
 public enum SignerStatus: String, Sendable {
     /// Submitted but not yet routed for approval.
