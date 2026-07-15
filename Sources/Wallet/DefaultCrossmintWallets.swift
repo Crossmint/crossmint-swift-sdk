@@ -211,6 +211,9 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 Logger.smartWallet.info(LogEvents.walletCreateDeviceSignerUnsupportedRetry, attributes: [
                     "chainType": chainType.rawValue
                 ])
+                // Errors from this retry, including a second deviceSignerNotSupported,
+                // skip this catch and surface through the outer one, so creation never
+                // retries twice.
                 walletApiModel = try await requestWalletCreation(
                     chainType: chainType,
                     walletType: walletType,
