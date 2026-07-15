@@ -7,13 +7,23 @@ import SecureStorage
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
     private let secureWalletStorage: SecureWalletStorage
+    private let deviceSignerStorageOverride: (any DeviceSignerKeyStorage)?
 
-    public init(
+    public convenience init(
         service: SmartWalletService,
         secureWalletStorage: SecureWalletStorage
     ) {
+        self.init(service: service, secureWalletStorage: secureWalletStorage, deviceSignerStorage: nil)
+    }
+
+    init(
+        service: SmartWalletService,
+        secureWalletStorage: SecureWalletStorage,
+        deviceSignerStorage: (any DeviceSignerKeyStorage)?
+    ) {
         self.smartWalletService = service
         self.secureWalletStorage = secureWalletStorage
+        self.deviceSignerStorageOverride = deviceSignerStorage
 
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
@@ -164,7 +174,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         var delegatedSigners: [DelegatedSignerEntry]?
         var pendingPublicKeyBase64: String?
 
-        if let storage = deviceSignerStorage, chainType != .solana {
+        if let storage = deviceSignerStorage {
             do {
                 let publicKeyBase64 = try await storage.generateKey(address: nil)
                 let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
@@ -183,14 +193,31 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerSkipped)
         }
 
+        let adminSigner = await signer.adminSigner
         do {
-            let walletApiModel = try await smartWalletService.createWallet(
-                CreateWalletParams(
+            var walletApiModel: WalletApiModel
+            do {
+                walletApiModel = try await requestWalletCreation(
                     chainType: chainType,
-                    type: walletType,
-                    config: .init(adminSigner: await signer.adminSigner, delegatedSigners: delegatedSigners)
+                    walletType: walletType,
+                    adminSigner: adminSigner,
+                    delegatedSigners: delegatedSigners
                 )
-            )
+            } catch WalletError.deviceSignerNotSupported where pendingPublicKeyBase64 != nil {
+                if let storage = deviceSignerStorage, let publicKeyBase64 = pendingPublicKeyBase64 {
+                    try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+                }
+                pendingPublicKeyBase64 = nil
+                Logger.smartWallet.info(LogEvents.walletCreateDeviceSignerUnsupportedRetry, attributes: [
+                    "chainType": chainType.rawValue
+                ])
+                walletApiModel = try await requestWalletCreation(
+                    chainType: chainType,
+                    walletType: walletType,
+                    adminSigner: adminSigner,
+                    delegatedSigners: nil
+                )
+            }
 
             // Map the pending key to the now-known wallet address
             if let storage = deviceSignerStorage, let publicKeyBase64 = pendingPublicKeyBase64 {
@@ -223,6 +250,21 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             ])
             throw error
         }
+    }
+
+    private func requestWalletCreation(
+        chainType: ChainType,
+        walletType: WalletType,
+        adminSigner: any AdminSignerData,
+        delegatedSigners: [DelegatedSignerEntry]?
+    ) async throws(WalletError) -> WalletApiModel {
+        try await smartWalletService.createWallet(
+            CreateWalletParams(
+                chainType: chainType,
+                type: walletType,
+                config: .init(adminSigner: adminSigner, delegatedSigners: delegatedSigners)
+            )
+        )
     }
 
     private func buildWallet(
@@ -321,6 +363,9 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
     private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
         guard options?.deviceSigner == true else { return nil }
+        if let deviceSignerStorageOverride {
+            return deviceSignerStorageOverride
+        }
         let seStorage = SecureEnclaveKeyStorage()
         if seStorage.isAvailable() {
             return seStorage

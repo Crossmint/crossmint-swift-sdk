@@ -100,6 +100,35 @@ struct DefaultWalletServiceTests {
     }
 
     @Test
+    func throwsTypedErrorWhenCreateWalletRejectsDeviceSigner() async throws {
+        let body = Data(
+            """
+            {
+                "error": true,
+                "message": "Device signers are not supported for this provider",
+                "code": "DEVICE_SIGNER_NOT_SUPPORTED"
+            }
+            """.utf8
+        )
+        let service = try makeService(errorBody: body)
+        let params = CreateWalletParams(
+            chainType: .solana,
+            type: .smart,
+            config: .init(
+                adminSigner: EmailSignerData(email: "user@example.com"),
+                delegatedSigners: [entry]
+            )
+        )
+
+        await #expect {
+            _ = try await service.createWallet(params)
+        } throws: { error in
+            guard case .deviceSignerNotSupported(let message) = error as? WalletError else { return false }
+            return message == "Device signers are not supported for this provider"
+        }
+    }
+
+    @Test
     func keepsGenericErrorForOtherCodes() async throws {
         let body = Data(#"{"error": true, "message": "boom", "code": "SOMETHING_ELSE"}"#.utf8)
         let service = try makeService(errorBody: body)

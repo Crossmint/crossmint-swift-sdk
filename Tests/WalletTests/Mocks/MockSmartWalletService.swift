@@ -57,10 +57,17 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     // MARK: - createWallet
 
     var createWalletResult: WalletApiModel?
-    var lastCreateWalletParams: CreateWalletParams?
+    var createWalletErrors: [WalletError] = []
+    var createWalletCallCount = 0
+    var allCreateWalletParams: [CreateWalletParams] = []
+    var lastCreateWalletParams: CreateWalletParams? { allCreateWalletParams.last }
 
     func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
-        lastCreateWalletParams = request
+        createWalletCallCount += 1
+        allCreateWalletParams.append(request)
+        if !createWalletErrors.isEmpty {
+            throw createWalletErrors.removeFirst()
+        }
         guard let createWalletResult else {
             throw WalletError.walletGeneric("not implemented")
         }

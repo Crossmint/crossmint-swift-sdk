@@ -13,27 +13,92 @@ struct DefaultCrossmintWalletsTests {
         func getPrivateKey(forEmail email: String) -> String? { nil }
     }
 
-    @Test
-    func skipsEagerDeviceSignerAttachForSolanaWallets() async throws {
-        let walletService = MockSmartWalletService()
-        walletService.createWalletResult = try GetFromFile.getModelFrom(
-            fileName: "WalletSolanaEmail",
-            bundle: Bundle.module
-        )
-        let wallets = DefaultCrossmintWallets(
-            service: walletService,
-            secureWalletStorage: StubSecureWalletStorage()
-        )
+    private let walletService = MockSmartWalletService()
+    private let keyStorage = MockDeviceSignerKeyStorage()
 
-        let wallet = try await wallets.createWallet(
+    private func makeWallets() -> DefaultCrossmintWallets {
+        DefaultCrossmintWallets(
+            service: walletService,
+            secureWalletStorage: StubSecureWalletStorage(),
+            deviceSignerStorage: keyStorage
+        )
+    }
+
+    private func loadSolanaWalletFixture() throws -> WalletApiModel {
+        try GetFromFile.getModelFrom(fileName: "WalletSolanaEmail", bundle: Bundle.module)
+    }
+
+    @Test
+    func includesDeviceSignerInSolanaCreateRequest() async throws {
+        walletService.createWalletResult = try loadSolanaWalletFixture()
+
+        let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
             recovery: MockSigner(),
             options: WalletOptions(deviceSigner: true)
         )
 
-        #expect(walletService.lastCreateWalletParams?.config.delegatedSigners == nil)
-        // The storage must still reach the wallet so the deferred registration can run.
+        let entries = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
+        #expect(entries.count == 1)
+        #expect(entries[0].signer.hasPrefix("device:"))
+        #expect(walletService.createWalletCallCount == 1)
+        #expect(keyStorage.keysByAddress[wallet.address] != nil)
         #expect(wallet.deviceSignerKeyStorage != nil)
-        #expect(await wallet.needsRecovery())
+    }
+
+    @Test
+    func retriesOnceWithoutDeviceSignerWhenProviderRejectsIt() async throws {
+        walletService.createWalletResult = try loadSolanaWalletFixture()
+        walletService.createWalletErrors = [.deviceSignerNotSupported("not supported")]
+
+        let wallet = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recovery: MockSigner(),
+            options: WalletOptions(deviceSigner: true)
+        )
+
+        #expect(walletService.createWalletCallCount == 2)
+        #expect(walletService.allCreateWalletParams[0].config.delegatedSigners != nil)
+        #expect(walletService.allCreateWalletParams[1].config.delegatedSigners == nil)
+        #expect(keyStorage.deletePendingKeyCallCount == 1)
+        #expect(keyStorage.pendingKeys.isEmpty)
+        #expect(keyStorage.keysByAddress.isEmpty)
+        #expect(wallet.deviceSignerKeyStorage != nil)
+    }
+
+    @Test
+    func surfacesOtherCreateErrorsWithoutRetrying() async throws {
+        walletService.createWalletResult = try loadSolanaWalletFixture()
+        walletService.createWalletErrors = [.walletGeneric("backend down")]
+        let wallets = makeWallets()
+
+        await #expect {
+            _ = try await wallets.createWallet(
+                chain: Chain("solana"),
+                recovery: MockSigner(),
+                options: WalletOptions(deviceSigner: true)
+            )
+        } throws: { error in
+            guard case .walletGeneric = error as? WalletError else { return false }
+            return true
+        }
+        #expect(walletService.createWalletCallCount == 1)
+        #expect(keyStorage.deletePendingKeyCallCount == 0)
+    }
+
+    @Test
+    func omitsDeviceSignerWhenNotRequested() async throws {
+        walletService.createWalletResult = try loadSolanaWalletFixture()
+
+        let wallet = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recovery: MockSigner(),
+            options: WalletOptions(deviceSigner: false)
+        )
+
+        #expect(walletService.lastCreateWalletParams?.config.delegatedSigners == nil)
+        #expect(keyStorage.pendingKeys.isEmpty)
+        #expect(keyStorage.keysByAddress.isEmpty)
+        #expect(wallet.deviceSignerKeyStorage == nil)
     }
 }
