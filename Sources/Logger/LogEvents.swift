@@ -358,6 +358,9 @@ public enum LogEvents {
     /// Failed to get signers
     public static let walletSignersError = "wallet.signers.error"
 
+    /// A signer state lookup failed and that signer was omitted from the list
+    public static let walletSignersSignerDropped = "wallet.signers.error (signer dropped)"
+
     /// Signers retrieved
     public static let walletSignersSuccess = "wallet.signers.success"
 

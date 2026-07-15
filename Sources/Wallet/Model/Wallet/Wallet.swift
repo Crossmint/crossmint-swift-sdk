@@ -42,12 +42,20 @@ open class Wallet: @unchecked Sendable {
         let states = await withTaskGroup(of: (Int, WalletSigner?).self) { group in
             for (index, locator) in locators.enumerated() {
                 group.addTask {
-                    let signer = (try? await service.getSigner(
-                        locator,
-                        chainType: chainType,
-                        chainName: chainName
-                    )) ?? nil
-                    return (index, signer)
+                    do {
+                        let signer = try await service.getSigner(
+                            locator,
+                            chainType: chainType,
+                            chainName: chainName
+                        )
+                        return (index, signer)
+                    } catch {
+                        Logger.smartWallet.warning(LogEvents.walletSignersSignerDropped, attributes: [
+                            "locator": locator,
+                            "error": "\(error)"
+                        ])
+                        return (index, nil)
+                    }
                 }
             }
             var collected: [(Int, WalletSigner)] = []
