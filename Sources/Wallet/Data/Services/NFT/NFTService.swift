@@ -1,4 +1,3 @@
-import CrossmintCommonTypes
 
 public protocol NFTService: Sendable {
     func getNFTs(

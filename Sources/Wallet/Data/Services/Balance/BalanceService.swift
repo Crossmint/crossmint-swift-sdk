@@ -1,4 +1,3 @@
-import CrossmintCommonTypes
 
 public protocol BalanceService: Sendable {
     func getBalance(

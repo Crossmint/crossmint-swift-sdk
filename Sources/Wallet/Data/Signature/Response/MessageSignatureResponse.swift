@@ -1,5 +1,4 @@
 import Foundation
-import CrossmintCommonTypes
 
 public struct MessageSignatureResponse: SignatureApiModel {
     public let id: String

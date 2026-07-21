@@ -5,7 +5,6 @@
 //  Created by Tomas Martins on 21/01/26.
 //
 
-import CrossmintCommonTypes
 import Foundation
 import Logger
 

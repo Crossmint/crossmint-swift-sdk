@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import CrossmintService
 import CryptoKit
 import DeviceSigner
 import Logger

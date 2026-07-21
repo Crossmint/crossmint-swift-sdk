@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import CrossmintService
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {

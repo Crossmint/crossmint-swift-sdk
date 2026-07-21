@@ -1,4 +1,3 @@
-import CrossmintCommonTypes
 
 actor EmailSignerState {
     var email: String?

@@ -1,4 +1,3 @@
-import CrossmintCommonTypes
 
 public protocol TransferService: Sendable {
     func transferToken(
