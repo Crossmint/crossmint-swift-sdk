@@ -355,7 +355,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 signerLocator: signerLocator, message: message, storage: storage
             )
         } catch {
-            throw SignatureError.approvalFailed
+            throw SignatureError.signingFailed(underlyingError: error)
         }
         return try await smartWalletService.approveSignature(
             .init(transactionId: signatureID, apiRequest: request, chainType: chain.chainType)
@@ -369,17 +369,18 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             case .cancelled:
                 return .userCancelled
             default:
-                return .approvalFailed
+                return .signingFailed(underlyingError: error)
             }
+        case .cancelled:
+            return .userCancelled
         case .signingFailed,
                 .invalidAddress,
                 .invalidEmail,
                 .invalidSigner,
                 .invalidMessage,
                 .invalidPrivateKey,
-                .notStarted,
-                .cancelled:
-            return .approvalFailed
+                .notStarted:
+            return .signingFailed(underlyingError: error)
         }
     }
 }

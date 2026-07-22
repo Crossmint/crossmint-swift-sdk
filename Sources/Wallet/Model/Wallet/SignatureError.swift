@@ -4,6 +4,9 @@ import Http
 public enum SignatureError: CrossmintError {
     case creationFailed
     case approvalFailed
+    /// Producing the signature failed. `underlyingError` carries the original error
+    /// (for a device signer, the ``DeviceSignerError`` and its own `underlyingError`).
+    case signingFailed(underlyingError: Error)
     case userCancelled
     case serviceError(CrossmintServiceError)
     case networkError
@@ -14,6 +17,7 @@ public enum SignatureError: CrossmintError {
         switch self {
         case .creationFailed: "SIGNATURE_CREATION_FAILED"
         case .approvalFailed: "SIGNATURE_APPROVAL_FAILED"
+        case .signingFailed: "SIGNATURE_SIGNING_FAILED"
         case .userCancelled: "USER_CANCELLED"
         case .serviceError: "SERVICE_ERROR"
         case .networkError: "NETWORK_ERROR"
@@ -28,6 +32,8 @@ public enum SignatureError: CrossmintError {
             error.message
         case .approvalFailed:
             "There was an error while approving the message"
+        case .signingFailed:
+            "There was an error while producing the signature"
         case .userCancelled:
             "User cancelled this action"
         case .creationFailed:
@@ -42,8 +48,11 @@ public enum SignatureError: CrossmintError {
     }
 
     public var underlyingError: Swift.Error? {
-        guard case .serviceError(let error) = self else { return nil }
-        return error
+        switch self {
+        case .serviceError(let error): error
+        case .signingFailed(let error): error
+        default: nil
+        }
     }
 }
 
