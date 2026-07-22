@@ -56,11 +56,7 @@ public enum DeviceSignerError: Error, Sendable {
             "Ensure the device has sufficient storage and the app has Keychain access."
         case .storageError:
             "Ensure the app has Keychain entitlements and the device is unlocked."
-        case .signingFailed:
-            "The stored device signer key can no longer sign on this device "
-                + "(for example after a device restore or Secure Enclave reset). "
-                + "Re-register a device signer for this wallet."
-        case .invalidMessage:
+        case .signingFailed, .invalidMessage:
             nil
         }
     }
