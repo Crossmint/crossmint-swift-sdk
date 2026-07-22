@@ -5,6 +5,7 @@
 //  Created by Tomas Martins on 4/3/26.
 //
 
+import CryptoKit
 import Foundation
 
 /// Errors that can occur during device signer operations.
@@ -13,8 +14,10 @@ public enum DeviceSignerError: Error, Sendable {
     case keyNotFound
     /// Key generation failed.
     case keyGenerationFailed
-    /// Signing the message failed.
-    case signingFailed
+    /// Signing the message failed. `operation` names the step that threw and
+    /// `underlyingError` is the original CryptoKit/Security error, exposed for
+    /// diagnostics and programmatic inspection via ``underlyingError``.
+    case signingFailed(operation: String, underlyingError: Error)
     /// A Keychain operation failed. The associated value is the `OSStatus` error code.
     case storageError(OSStatus)
     /// The message to sign could not be decoded.
@@ -36,8 +39,9 @@ public enum DeviceSignerError: Error, Sendable {
             "No device signer key found for this wallet."
         case .keyGenerationFailed:
             "Failed to generate a device signer key."
-        case .signingFailed:
-            "Failed to sign the message with the device signer key."
+        case .signingFailed(let operation, let underlyingError):
+            "Failed to sign the message with the device signer key. "
+                + "\(operation) failed: \(Self.describeUnderlying(underlyingError))"
         case .storageError(let status):
             "Keychain operation failed with status \(status)."
         case .invalidMessage:
@@ -53,8 +57,38 @@ public enum DeviceSignerError: Error, Sendable {
             "Ensure the device has sufficient storage and the app has Keychain access."
         case .storageError:
             "Ensure the app has Keychain entitlements and the device is unlocked."
-        case .signingFailed, .invalidMessage:
+        case .signingFailed:
+            "The stored device signer key can no longer sign on this device "
+                + "(for example after a device restore or Secure Enclave reset). "
+                + "Re-register a device signer for this wallet."
+        case .invalidMessage:
             nil
         }
+    }
+
+    /// The original error thrown by the underlying signing primitive
+    /// (CryptoKit / Secure Enclave / Keychain), when available.
+    public var underlyingError: Error? {
+        switch self {
+        case .signingFailed(_, let underlyingError): underlyingError
+        default: nil
+        }
+    }
+
+    /// Builds a diagnostic string for an underlying error caught during a signing
+    /// operation, preserving the code the Secure Enclave surfaced.
+    ///
+    /// The Secure Enclave does not throw a typed error. CryptoKit collapses the
+    /// hardware/Security failure into a ``CryptoKitError`` — usually
+    /// `.underlyingCoreCryptoError(error:)`, whose associated `Int32` is the real
+    /// low-level code (a Security/OSStatus-family value, e.g. `-25293` for
+    /// `errSecAuthFailed`). `String(describing:)` keeps that code, so we surface it
+    /// verbatim; any other error is described by its bridged domain and code.
+    static func describeUnderlying(_ error: Error) -> String {
+        if let cryptoKitError = error as? CryptoKitError {
+            return "CryptoKitError.\(cryptoKitError)"
+        }
+        let nsError = error as NSError
+        return "\(nsError.domain)(\(nsError.code)): \(nsError.localizedDescription)"
     }
 }

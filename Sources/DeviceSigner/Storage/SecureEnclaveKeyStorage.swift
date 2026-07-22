@@ -98,8 +98,10 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
         do {
             key = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData)
         } catch {
-            // Key data was found but the SE key is unusable (e.g. biometric enrollment changed)
-            throw DeviceSignerError.signingFailed
+            throw DeviceSignerError.signingFailed(
+                operation: "Secure Enclave key reconstruction",
+                underlyingError: error
+            )
         }
 
         guard let messageData = Data(base64Encoded: message) else {
@@ -110,7 +112,10 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
         do {
             ecdsaSignature = try key.signature(for: messageData)
         } catch {
-            throw DeviceSignerError.signingFailed
+            throw DeviceSignerError.signingFailed(
+                operation: "Secure Enclave signature",
+                underlyingError: error
+            )
         }
 
         // rawRepresentation = 64 bytes: r (32) ‖ s (32)

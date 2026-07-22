@@ -84,7 +84,10 @@ public final class KeychainKeyStorage: DeviceSignerKeyStorage {
         do {
             ecdsaSignature = try key.signature(for: messageData)
         } catch {
-            throw DeviceSignerError.signingFailed
+            throw DeviceSignerError.signingFailed(
+                operation: "Keychain signature",
+                underlyingError: error
+            )
         }
 
         // rawRepresentation = 64 bytes: r (32) ‖ s (32)
