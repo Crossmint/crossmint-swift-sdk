@@ -4,7 +4,6 @@ import Http
 public enum SignatureError: CrossmintError {
     case creationFailed
     case approvalFailed
-    /// The wallet failed to produce the signature. `underlyingError` holds the original error.
     case signingFailed(underlyingError: Error)
     case userCancelled
     case serviceError(CrossmintServiceError)
