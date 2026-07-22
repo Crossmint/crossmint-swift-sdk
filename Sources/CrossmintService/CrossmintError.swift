@@ -16,6 +16,9 @@ extension CrossmintError {
         if let suggestion = recoverySuggestion {
             result += "\nRecovery: \(suggestion)"
         }
+        if let underlyingError {
+            result += "\nUnderlying: \(underlyingError)"
+        }
         return result
     }
 
