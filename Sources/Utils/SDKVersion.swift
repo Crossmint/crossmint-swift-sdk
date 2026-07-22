@@ -10,5 +10,5 @@ import Foundation
 /// Shipped in Datadog logs. Bump this to match the release tag when cutting a release.
 public enum SDKVersion {
     /// The current version of the Crossmint Swift SDK
-    public static let version = "1.1.1"
+    public static let version = "1.1.2"
 }
