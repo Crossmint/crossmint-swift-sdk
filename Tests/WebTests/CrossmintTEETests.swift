@@ -265,6 +265,68 @@ struct CrossmintTEETests {
                 )
             }
         }
+
+        @Test("Rejects non-hex signature when hex encoding was requested")
+        func testRejectsNonHexSignatureForHexEncoding() async throws {
+            let fixture = TEETestFixture()
+            await fixture.setupAuthentication()
+            try await fixture.setupHandshake()
+
+            fixture.configureReadyDevice()
+            fixture.configureSignResponse(signature: "not-a-hex-ecdsa-signature")
+
+            await #expect(throws: CrossmintTEE.Error.invalidSignature) {
+                _ = try await fixture.tee.signTransaction(
+                    transaction: CrossmintTEETestHelpers.createTestTransaction(),
+                    keyType: "secp256k1",
+                    encoding: "hex"
+                )
+            }
+        }
+
+        @Test("Returns hex signature verbatim even when its bytes decode as UTF-8")
+        func testHexSignatureIsNotDecodedAsUTF8() async throws {
+            let fixture = TEETestFixture()
+            await fixture.setupAuthentication()
+            try await fixture.setupHandshake()
+
+            fixture.configureReadyDevice()
+            // 0x48656c6c6f decodes to the UTF-8 string "Hello"; the signature
+            // must be passed through verbatim, not decoded (regression for WAL-11310).
+            fixture.configureSignResponse(signature: "0x48656c6c6f")
+
+            let signature = try await fixture.tee.signTransaction(
+                transaction: CrossmintTEETestHelpers.createTestTransaction(),
+                keyType: "secp256k1",
+                encoding: "hex"
+            )
+
+            #expect(signature == "0x48656c6c6f")
+        }
+
+        @Test("Throws when the frame reports an error status for the sign request")
+        func testThrowsOnSignErrorStatus() async throws {
+            let fixture = TEETestFixture()
+            await fixture.setupAuthentication()
+            try await fixture.setupHandshake()
+
+            fixture.configureReadyDevice()
+
+            let signResponse = CrossmintTEETestHelpers.createNonCustodialSignResponse(
+                signature: "",
+                status: .error,
+                errorMessage: "Signing failed in frame"
+            )
+            fixture.webProxy.configureResponse(for: NonCustodialSignResponse.self, response: signResponse)
+
+            await #expect(throws: CrossmintTEE.Error.generic("Signing failed in frame")) {
+                _ = try await fixture.tee.signTransaction(
+                    transaction: "test",
+                    keyType: "keyType",
+                    encoding: "encoding"
+                )
+            }
+        }
     }
 
     @Suite("Onboarding")
