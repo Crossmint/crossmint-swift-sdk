@@ -1,4 +1,3 @@
-
 actor EmailSignerState {
     var email: String?
     var isInitialized = false

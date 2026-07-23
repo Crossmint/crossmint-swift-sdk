@@ -1,4 +1,3 @@
-
 public protocol BalanceService: Sendable {
     func getBalance(
         _ params: GetBalanceQueryParams
