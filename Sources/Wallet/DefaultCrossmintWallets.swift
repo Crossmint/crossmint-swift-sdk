@@ -345,23 +345,4 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
         return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
     }
-
-    private func approveDelegatedSignerRegistration(
-        signatureId: String,
-        pendingApprovals: [ApprovalEntry],
-        signer: any Signer,
-        chainType: ChainType
-    ) async throws {
-        try await initializeSigner(signer)
-        for approval in pendingApprovals {
-            let signRequest = SignRequestApi(
-                approvals: try await signer.approvals(
-                    withSignature: try await signer.sign(message: approval.message)
-                )
-            )
-            try await smartWalletService.approveSignature(
-                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chainType)
-            )
-        }
-    }
 }
