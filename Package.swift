@@ -150,8 +150,6 @@ let package = Package(
                 "TestsUtils"
             ],
             resources: [
-                .process("Resources/Config/SmartWalletConfigResponseEOA.json"),
-                .process("Resources/Config/SmartWalletConfigResponsePasskeys.json"),
                 .process("Resources/WalletPasskey.json"),
                 .process("Resources/WalletEVMKeypair.json"),
                 .process("Resources/WalletSolanaFireblocks.json"),
