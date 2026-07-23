@@ -12,6 +12,8 @@ public struct WalletSigner: Sendable, Hashable {
 public enum SignerStatus: String, Sendable, Hashable {
     /// The signer is registered and ready to use.
     case success
+    /// The signer is registered and active.
+    case active
     /// The registration transaction is still being processed.
     case pending
     /// The registration is waiting for approval from an existing signer.
