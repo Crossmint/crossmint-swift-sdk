@@ -6,10 +6,6 @@ struct ConsoleLogMessage: WebViewMessage, Encodable {
         case debug
         case info
         case trace
-
-        var messageType: String {
-            "console.\(rawValue)"
-        }
     }
 
     static let messageType = "console.log"
@@ -17,12 +13,6 @@ struct ConsoleLogMessage: WebViewMessage, Encodable {
     let type: String
     let message: String
     let severity: Severity
-
-    init(message: String, severity: Severity = .log) {
-        self.severity = severity
-        self.type = severity.messageType
-        self.message = message
-    }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
