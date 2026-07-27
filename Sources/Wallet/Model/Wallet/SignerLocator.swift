@@ -6,10 +6,6 @@
 //
 
 /// Identifies a signer registered on a wallet.
-///
-/// The API sends and receives signer locators as strings, for example `"email:user@example.com"`
-/// or `"device:<publicKey>"`. `SignerLocator` parses this format. Callers do not have to match
-/// prefixes by hand.
 public enum SignerLocator: Codable, Sendable, Equatable {
     case device(publicKey: String)
     case email(String)
