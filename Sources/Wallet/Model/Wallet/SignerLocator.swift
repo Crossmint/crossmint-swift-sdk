@@ -1,7 +1,14 @@
+//
+//  SignerLocator.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 27/07/26.
+//
+
 /// Identifies a signer registered on a wallet.
 ///
-/// Signer locators are sent to and received from the API as strings, e.g. `"email:user@example.com"`
-/// or `"device:<publicKey>"`. `SignerLocator` parses that format so callers don't have to match
+/// The API sends and receives signer locators as strings, for example `"email:user@example.com"`
+/// or `"device:<publicKey>"`. `SignerLocator` parses this format. Callers do not have to match
 /// prefixes by hand.
 public enum SignerLocator: Codable, Sendable, Equatable {
     case device(publicKey: String)

@@ -42,15 +42,21 @@ struct SignerLocatorTests {
 
     @Test("Throws signerLocatorError for an unknown prefix")
     func throwsForUnknownPrefix() {
-        #expect(throws: WalletError.self) {
+        #expect {
             try SignerLocator(from: "carrier-pigeon:0xabc")
+        } throws: { error in
+            guard case .signerLocatorError("carrier-pigeon:0xabc") = error as? WalletError else { return false }
+            return true
         }
     }
 
     @Test("Throws signerLocatorError when a known prefix has no value")
     func throwsForMissingValue() {
-        #expect(throws: WalletError.self) {
+        #expect {
             try SignerLocator(from: "email")
+        } throws: { error in
+            guard case .signerLocatorError("email") = error as? WalletError else { return false }
+            return true
         }
     }
 

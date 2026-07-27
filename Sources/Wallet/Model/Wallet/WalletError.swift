@@ -87,7 +87,7 @@ public enum WalletError: CrossmintError {
         case .walletLocatorError:
             "Ensure the wallet locator is in the correct format."
         case .signerLocatorError:
-            "Ensure the signer locator is in the correct format, e.g. \"email:user@example.com\"."
+            "Use the correct signer locator format, for example \"email:user@example.com\"."
         case .deviceSignerNotSupported:
             "Use the recovery signer or another registered signer for this wallet."
         default:

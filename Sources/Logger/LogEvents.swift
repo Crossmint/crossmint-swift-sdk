@@ -377,6 +377,9 @@ public enum LogEvents {
 
     // MARK: - Device Signer Events
 
+    /// Local device signer locator failed to parse
+    public static let walletLocalDeviceSignerLocatorParseError = "wallet.localDeviceSignerLocator.error"
+
     /// Device signer key prepared for new wallet creation
     public static let walletCreateDeviceSignerPrepared = "wallet.create.deviceSigner.prepared"
 
