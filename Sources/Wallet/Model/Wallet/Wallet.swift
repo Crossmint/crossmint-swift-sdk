@@ -79,7 +79,20 @@ open class Wallet: @unchecked Sendable {
     ///
     /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
     ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    @available(*, deprecated, message: "Use signerIsRegistered(_ locator: SignerLocator) instead of raw strings.")
     public func signerIsRegistered(_ locator: String) async -> Bool {
+        await isLocatorStringRegistered(locator)
+    }
+
+    /// Returns whether the given locator is registered as a signer on this wallet.
+    ///
+    /// Checks both delegated signers (via a fresh API call) and the admin signer.
+    /// Returns `false` on any network error.
+    public func signerIsRegistered(_ locator: SignerLocator) async -> Bool {
+        await isLocatorStringRegistered(locator.value)
+    }
+
+    func isLocatorStringRegistered(_ locator: String) async -> Bool {
         let walletModel: WalletApiModel
         do {
             walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
@@ -90,6 +103,17 @@ open class Wallet: @unchecked Sendable {
             .contains(where: { $0.locator == locator }) ?? false
         if delegatedMatch { return true }
         return walletModel.config.recovery.toDomain.locator == locator
+    }
+
+    /// Returns the locator of the device signer whose private key lives on this device,
+    /// or `nil` if this wallet has no such signer.
+    ///
+    /// A wallet can have `device:` delegated signers registered from other devices; this
+    /// only returns a locator when the matching key is present in local secure storage.
+    public func localDeviceSignerLocator() async -> SignerLocator? {
+        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return nil }
+        guard let locator = await deviceSignerService.locator(for: storage) else { return nil }
+        return try? SignerLocator(from: locator)
     }
 
     /// Returns a page of NFTs owned by this wallet.

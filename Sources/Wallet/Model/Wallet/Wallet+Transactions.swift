@@ -53,7 +53,23 @@ extension Wallet {
     /// - Parameter locator: The signer locator string identifying the signer to remove
     ///   (e.g. `"device:ABC123..."`, `"external-wallet:0x456..."`).
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
+    @available(*, deprecated, message: "Use removeSigner(locator: SignerLocator) instead of raw strings.")
     public func removeSigner(locator: String) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator)
+    }
+
+    /// Removes an assigned signer from this wallet.
+    ///
+    /// Submits a remove-signer transaction on-chain. If the transaction requires approval,
+    /// the current signer signs it automatically before polling for completion.
+    ///
+    /// - Parameter locator: The locator identifying the signer to remove.
+    /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
+    public func removeSigner(locator: SignerLocator) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator.value)
+    }
+
+    private func removeSignerByLocatorString(_ locator: String) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
             "locator": locator
         ])
