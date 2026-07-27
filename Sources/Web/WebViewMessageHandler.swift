@@ -71,16 +71,24 @@ public class WebViewMessageHandler {
         if let decodedMessage = WebViewMessageRegistry.decode(messageType: messageTypeInfo, data: messageData) {
             Logger.web.debug("Web >> Native: \(String(data: messageData, encoding: .utf8) ?? "Unknown")")
 
-            // Add to message buffer
-            addToMessageBuffer(decodedMessage)
-
+            // Deliver to waiting listeners first; only buffer unclaimed messages.
+            // Buffering a listener-consumed message leaves a stale copy behind,
+            // and the next waitForMessage of the same type returns it instead of
+            // the fresh response (e.g. back-to-back TEE signs reusing the
+            // previous signature — WAL-11310).
+            var consumedByListener = false
             for (id, predicate) in messagePredicates {
                 if predicate(decodedMessage) {
                     if let continuation = messageListeners.removeValue(forKey: id) {
                         messagePredicates.removeValue(forKey: id)
                         continuation.resume(returning: decodedMessage)
+                        consumedByListener = true
                     }
                 }
+            }
+
+            if !consumedByListener {
+                addToMessageBuffer(decodedMessage)
             }
 
             delegate?.handleWebViewMessage(decodedMessage)
