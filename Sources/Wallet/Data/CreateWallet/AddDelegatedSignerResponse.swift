@@ -13,6 +13,12 @@ public struct ChainRegistrationEntry: Decodable {
 /// entries EVM returns under `chains`.
 public struct RegistrationTransaction: Decodable {
     public let id: String
+    public let status: String?
+
+    init(id: String, status: String? = nil) {
+        self.id = id
+        self.status = status
+    }
 }
 
 public struct AddDelegatedSignerResponse: Decodable {

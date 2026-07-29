@@ -79,6 +79,13 @@ public final class DefaultSmartWalletService: SmartWalletService {
         try await walletService.removeSigner(signerLocator, chainType: chainType, chainName: chainName)
     }
 
+    public func getSigner(
+        _ signerLocator: String,
+        chainType: ChainType
+    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
+        try await walletService.getSigner(signerLocator, chainType: chainType)
+    }
+
     // MARK: - TransactionService
 
     public func createTransaction(
