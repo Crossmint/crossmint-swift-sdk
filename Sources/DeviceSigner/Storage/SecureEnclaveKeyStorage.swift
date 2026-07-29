@@ -149,10 +149,8 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     // wrapping is tied to the Secure Enclave's state at generation time, so an old blob can parse
     // fine and still fail the moment the enclave actually tries to use it. Reconstruction alone
     // can't tell the two apart, so this exercises the same signing path `signMessage` uses.
-    private static let usabilityCheckPayload = Data([0x00])
-
     private func isUsable(_ key: SecureEnclave.P256.Signing.PrivateKey) -> Bool {
-        (try? key.signature(for: Self.usabilityCheckPayload)) != nil
+        (try? key.signature(for: Data([0x00]))) != nil
     }
 
     private func makeAccessControl() -> SecAccessControl? {
