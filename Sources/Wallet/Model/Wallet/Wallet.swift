@@ -112,20 +112,20 @@ open class Wallet: @unchecked Sendable {
     /// - Throws: ``WalletError`` if the request fails.
     public func isSignerApproved(_ locator: String) async throws(WalletError) -> Bool {
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedStart)
-        let response: AddDelegatedSignerResponse
+        let response: AddDelegatedSignerResponse?
         do {
             response = try await smartWalletService.getSigner(locator, chainType: chain.chainType)
         } catch {
-            if case .walletNotFound = error {
-                Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
-                    "approved": "false"
-                ])
-                return false
-            }
             Logger.smartWallet.error(LogEvents.walletIsSignerApprovedError, attributes: [
                 "error": "\(error)"
             ])
             throw error
+        }
+        guard let response else {
+            Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
+                "approved": "false"
+            ])
+            return false
         }
         let status = registrationStatus(of: response)
         let approved = status == "success" || status == "active"

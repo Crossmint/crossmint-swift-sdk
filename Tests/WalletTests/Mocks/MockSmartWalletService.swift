@@ -87,7 +87,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - getSigner
 
-    var getSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    var getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)
     var getSignerError: WalletError?
     var getSignerCallCount = 0
     var lastGetSignerLocator: String?
@@ -95,7 +95,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     func getSigner(
         _ signerLocator: String,
         chainType: ChainType
-    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
         getSignerCallCount += 1
         lastGetSignerLocator = signerLocator
         if let getSignerError {

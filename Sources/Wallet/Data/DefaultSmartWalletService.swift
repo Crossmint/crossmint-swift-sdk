@@ -82,7 +82,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func getSigner(
         _ signerLocator: String,
         chainType: ChainType
-    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
         try await walletService.getSigner(signerLocator, chainType: chainType)
     }
 

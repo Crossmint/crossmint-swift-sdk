@@ -36,5 +36,5 @@ public protocol WalletService: Sendable {
     func getSigner(
         _ signerLocator: String,
         chainType: ChainType
-    ) async throws(WalletError) -> AddDelegatedSignerResponse
+    ) async throws(WalletError) -> AddDelegatedSignerResponse?
 }

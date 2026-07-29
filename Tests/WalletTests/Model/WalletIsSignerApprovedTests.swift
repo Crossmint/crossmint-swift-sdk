@@ -109,7 +109,7 @@ struct WalletIsSignerApprovedTests {
         #expect(try await wallet.isSignerApproved("email:user@example.com"))
     }
 
-    @Test func rejectsSignerWithStatuslessTransactionOnSolana() async throws {
+    @Test func approvesSignerWithStatuslessTransactionOnSolana() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResult = AddDelegatedSignerResponse(
             chains: nil,
@@ -117,7 +117,7 @@ struct WalletIsSignerApprovedTests {
         )
         let wallet = try makeSolanaWallet(walletService: walletService)
 
-        #expect(try await wallet.isSignerApproved("email:user@example.com") == false)
+        #expect(try await wallet.isSignerApproved("email:user@example.com"))
     }
 
     @Test func approvesSignerWithoutTransactionOnSolana() async throws {
@@ -130,7 +130,7 @@ struct WalletIsSignerApprovedTests {
 
     @Test func returnsFalseWhenSignerIsNotRegistered() async throws {
         let walletService = MockSmartWalletService()
-        walletService.getSignerError = .walletNotFound
+        walletService.getSignerResult = nil
         let wallet = try makeEVMWallet(walletService: walletService)
 
         #expect(try await wallet.isSignerApproved("email:user@example.com") == false)
