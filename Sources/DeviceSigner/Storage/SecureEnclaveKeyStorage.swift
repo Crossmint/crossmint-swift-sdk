@@ -144,11 +144,6 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
 
     // MARK: - Private helper
 
-    // A key can reconstruct successfully from its stored data (well-formed wrapped blob) while
-    // still being unusable, e.g. after the device was erased and restored from a backup: the
-    // wrapping is tied to the Secure Enclave's state at generation time, so an old blob can parse
-    // fine and still fail the moment the enclave actually tries to use it. Reconstruction alone
-    // can't tell the two apart, so this exercises the same signing path `signMessage` uses.
     private func isUsable(_ key: SecureEnclave.P256.Signing.PrivateKey) -> Bool {
         (try? key.signature(for: Data([0x00]))) != nil
     }
