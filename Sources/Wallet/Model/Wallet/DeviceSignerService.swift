@@ -139,8 +139,9 @@ final class DeviceSignerService: Sendable {
         storage: any DeviceSignerKeyStorage
     ) async throws(DeviceSignerError) -> SignRequestApi {
         let rAndS = try await storage.signMessage(address: address, message: message)
+        let currentLocator = await locator(for: storage) ?? signerLocator
         return SignRequestApi(approvals: [
-            .device(signer: signerLocator, signature: .init(r: rAndS.r, s: rAndS.s))
+            .device(signer: currentLocator, signature: .init(r: rAndS.r, s: rAndS.s))
         ])
     }
 
