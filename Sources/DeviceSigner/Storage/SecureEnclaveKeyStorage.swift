@@ -79,7 +79,8 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     public func getKey(address: String) async -> String? {
         let tag = "\(walletKeyPrefix)\(address)"
         guard let keyData = keychain.load(tag: tag),
-              let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else {
+              let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData),
+              isUsable(key) else {
             return nil
         }
         return uncompressedPublicKey(from: key.publicKey.rawRepresentation)
@@ -135,12 +136,24 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
 
     public func hasKey(publicKeyBase64: String) -> Bool {
         keychain.hasMatchingKey(publicKeyBase64: publicKeyBase64) { [self] keyData in
-            guard let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData) else { return nil }
+            guard let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData),
+                  isUsable(key) else { return nil }
             return uncompressedPublicKey(from: key.publicKey.rawRepresentation)
         }
     }
 
     // MARK: - Private helper
+
+    // A key can reconstruct successfully from its stored data (well-formed wrapped blob) while
+    // still being unusable, e.g. after the device was erased and restored from a backup: the
+    // wrapping is tied to the Secure Enclave's state at generation time, so an old blob can parse
+    // fine and still fail the moment the enclave actually tries to use it. Reconstruction alone
+    // can't tell the two apart, so this exercises the same signing path `signMessage` uses.
+    private static let usabilityCheckPayload = Data([0x00])
+
+    private func isUsable(_ key: SecureEnclave.P256.Signing.PrivateKey) -> Bool {
+        (try? key.signature(for: Self.usabilityCheckPayload)) != nil
+    }
 
     private func makeAccessControl() -> SecAccessControl? {
         let flags: SecAccessControlCreateFlags
