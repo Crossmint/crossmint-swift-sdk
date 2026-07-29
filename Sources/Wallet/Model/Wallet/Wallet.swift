@@ -92,6 +92,16 @@ open class Wallet: @unchecked Sendable {
         return walletModel.config.recovery.toDomain.locator == locator
     }
 
+    /// Returns the locator of the device signer that keeps its private key on this device.
+    /// Returns `nil` if this device has no key, or if the wallet does not support device signers.
+    ///
+    /// This device keeps only one device key for each wallet. Device signing always uses that key.
+    /// Thus this is the only device signer that can sign here.
+    public func localDeviceSignerLocator() async -> String? {
+        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return nil }
+        return await deviceSignerService.locator(for: storage)
+    }
+
     /// Returns a page of NFTs owned by this wallet.
     ///
     /// - Parameters:

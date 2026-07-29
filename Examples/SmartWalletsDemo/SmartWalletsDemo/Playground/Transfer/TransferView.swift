@@ -80,7 +80,9 @@ struct TransferView: View {
                     }
                 }
 
-                SignerPicker()
+                Section {
+                    SignerPicker()
+                }
 
                 if let txId = transactionId {
                     Section("Sent") {
