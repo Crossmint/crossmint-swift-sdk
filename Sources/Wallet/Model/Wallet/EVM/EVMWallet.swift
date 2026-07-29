@@ -150,6 +150,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignMessageStart)
 
+        do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .signingFailed(underlyingError: error)
+        }
+
         let signer = signer ?? self.config.recovery
 
         do {
@@ -207,6 +213,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         isSmartWalletSignature: Bool = true
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignTypedDataStart)
+
+        do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .signingFailed(underlyingError: error)
+        }
 
         let signer = signer ?? self.config.recovery
 
