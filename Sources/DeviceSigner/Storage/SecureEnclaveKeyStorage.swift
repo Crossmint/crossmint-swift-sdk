@@ -78,9 +78,7 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
 
     public func getKey(address: String) async -> String? {
         let tag = "\(walletKeyPrefix)\(address)"
-        guard let keyData = keychain.load(tag: tag),
-              let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData),
-              isUsable(key) else {
+        guard let keyData = keychain.load(tag: tag), let key = isUsable(keyData) else {
             return nil
         }
         return uncompressedPublicKey(from: key.publicKey.rawRepresentation)
@@ -136,16 +134,19 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
 
     public func hasKey(publicKeyBase64: String) -> Bool {
         keychain.hasMatchingKey(publicKeyBase64: publicKeyBase64) { [self] keyData in
-            guard let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData),
-                  isUsable(key) else { return nil }
+            guard let key = isUsable(keyData) else { return nil }
             return uncompressedPublicKey(from: key.publicKey.rawRepresentation)
         }
     }
 
     // MARK: - Private helper
 
-    private func isUsable(_ key: SecureEnclave.P256.Signing.PrivateKey) -> Bool {
-        (try? key.signature(for: Data([0x00]))) != nil
+    private func isUsable(_ keyData: Data) -> SecureEnclave.P256.Signing.PrivateKey? {
+        guard let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData),
+              (try? key.signature(for: Data([0x00]))) != nil else {
+            return nil
+        }
+        return key
     }
 
     private func makeAccessControl() -> SecAccessControl? {
