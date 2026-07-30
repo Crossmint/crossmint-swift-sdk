@@ -142,11 +142,13 @@ public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     // MARK: - Private helper
 
     private func isUsable(_ keyData: Data) -> SecureEnclave.P256.Signing.PrivateKey? {
-        guard let key = try? SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData),
-              (try? key.signature(for: Data([0x00]))) != nil else {
+        do {
+            let key = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData)
+            _ = try key.signature(for: Data([0x00]))
+            return key
+        } catch {
             return nil
         }
-        return key
     }
 
     private func makeAccessControl() -> SecAccessControl? {
