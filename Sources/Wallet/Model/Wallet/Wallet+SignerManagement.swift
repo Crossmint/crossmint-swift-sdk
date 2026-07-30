@@ -101,8 +101,6 @@ extension Wallet {
         await removeStaleDeviceSigner(staleDeviceSignerLocator)
     }
 
-    /// The device signer that was registered before recovery started, if any — it's now
-    /// superseded by the freshly-registered one and should be removed from the wallet.
     private func findStaleDeviceSignerLocator() -> String? {
         guard let locator = initialDelegatedSigners.first?.locator, locator.hasPrefix("device:") else {
             return nil
