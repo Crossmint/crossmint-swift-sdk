@@ -145,11 +145,16 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         throw SignatureError.unknown
     }
 
+    var removeSignerCallCount = 0
+    var lastRemoveSignerLocator: String?
+
     func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel {
+        removeSignerCallCount += 1
+        lastRemoveSignerLocator = signerLocator
         throw TransactionError.transactionGeneric("not implemented")
     }
 

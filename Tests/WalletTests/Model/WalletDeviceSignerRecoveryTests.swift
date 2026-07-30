@@ -7,10 +7,11 @@ import TestsUtils
 
 private func makeSolanaWallet(
     walletService: MockSmartWalletService,
-    storage: MockDeviceSignerKeyStorage
+    storage: MockDeviceSignerKeyStorage,
+    fileName: String = "WalletSolanaEmail"
 ) throws -> SolanaWallet {
     let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-        fileName: "WalletSolanaEmail",
+        fileName: fileName,
         bundle: Bundle.module
     )
     return try SolanaWallet(
@@ -36,6 +37,34 @@ struct WalletDeviceSignerRecoveryTests {
 
         #expect(await wallet.needsRecovery() == false)
         #expect(await storage.getKey(address: wallet.address) != nil)
+    }
+
+    @Test
+    func attemptsToRemoveTheStaleDeviceSignerAfterSuccessfulRecovery() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeSolanaWallet(
+            walletService: walletService,
+            storage: storage,
+            fileName: "WalletSolanaEmailWithStaleDeviceSigner"
+        )
+
+        try await wallet.recover()
+
+        #expect(await wallet.needsRecovery() == false)
+        #expect(walletService.removeSignerCallCount == 1)
+        #expect(walletService.lastRemoveSignerLocator == "device:staleKey123")
+    }
+
+    @Test
+    func doesNotAttemptRemovalWhenNoDeviceSignerWasPreviouslyRegistered() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeSolanaWallet(walletService: walletService, storage: storage)
+
+        try await wallet.recover()
+
+        #expect(walletService.removeSignerCallCount == 0)
     }
 
     @Test
