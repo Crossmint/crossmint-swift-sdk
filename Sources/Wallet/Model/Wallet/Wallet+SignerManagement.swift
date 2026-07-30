@@ -83,6 +83,9 @@ extension Wallet {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
+
+        let staleDeviceSignerLocator = findStaleDeviceSignerLocator()
+
         do {
             try await registerDeviceSigner(storage: storage)
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
@@ -93,6 +96,30 @@ extension Wallet {
             }
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
+        }
+
+        await removeStaleDeviceSigner(staleDeviceSignerLocator)
+    }
+
+    /// The device signer that was registered before recovery started, if any — it's now
+    /// superseded by the freshly-registered one and should be removed from the wallet.
+    private func findStaleDeviceSignerLocator() -> String? {
+        guard let locator = initialDelegatedSigners.first?.locator, locator.hasPrefix("device:") else {
+            return nil
+        }
+        return locator
+    }
+
+    private func removeStaleDeviceSigner(_ locator: String?) async {
+        guard let locator else { return }
+        do {
+            _ = try await removeSigner(locator: locator)
+            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: ["signerLocator": locator])
+        } catch {
+            Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
+                "signerLocator": locator,
+                "error": "\(error)"
+            ])
         }
     }
 
