@@ -17,55 +17,7 @@ open class Wallet: @unchecked Sendable {
     ///
     /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
     public func signers() async throws(WalletError) -> [WalletSigner] {
-        Logger.smartWallet.info(LogEvents.walletSignersStart)
-        do {
-            let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-            let locators = (model.config.signers ?? []).compactMap { $0.locator ?? $0.signer }
-            let signers = await fetchSignerStates(for: locators)
-            Logger.smartWallet.info(LogEvents.walletSignersSuccess, attributes: [
-                "count": "\(signers.count)"
-            ])
-            return signers
-        } catch {
-            Logger.smartWallet.error(LogEvents.walletSignersError, attributes: [
-                "error": "\(error)"
-            ])
-            throw error
-        }
-    }
-
-    /// Fetches each signer's state concurrently, so one broken signer doesn't fail the
-    /// whole list: a failed lookup yields ``SignerStatus/unknown``. Preserves the input order.
-    private func fetchSignerStates(for locators: [String]) async -> [WalletSigner] {
-        let service = smartWalletService
-        let chainType = chain.chainType
-        let chainName = chain.name
-        let states = await withTaskGroup(of: (Int, WalletSigner?).self) { group in
-            for (index, locator) in locators.enumerated() {
-                group.addTask {
-                    do {
-                        let signer = try await service.getSigner(
-                            locator,
-                            chainType: chainType,
-                            chainName: chainName
-                        )
-                        return (index, signer)
-                    } catch {
-                        Logger.smartWallet.warning(LogEvents.walletSignersStateLookupFailed, attributes: [
-                            "locator": locator,
-                            "error": "\(error)"
-                        ])
-                        return (index, WalletSigner(locator: locator, status: .unknown))
-                    }
-                }
-            }
-            var results = [WalletSigner?](repeating: nil, count: locators.count)
-            for await (index, signer) in group {
-                results[index] = signer
-            }
-            return results
-        }
-        return states.compactMap { $0 }
+        try await signerListService.list()
     }
 
     internal let smartWalletService: SmartWalletService
@@ -76,6 +28,7 @@ open class Wallet: @unchecked Sendable {
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
     var deviceSignerService: DeviceSignerService
     var signerRegistrationService: SignerRegistrationService
+    let signerListService: SignerListService
     var selectedSigner: (any Signer)?
     var selectedSignerLocator: String?
     var _needsRecovery: Bool = false
@@ -114,6 +67,11 @@ open class Wallet: @unchecked Sendable {
             address: address.description
         )
         self.signerRegistrationService = SignerRegistrationService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name
+        )
+        self.signerListService = SignerListService(
             smartWalletService: smartWalletService,
             chainType: chain.chainType,
             chainName: chain.name
