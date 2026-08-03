@@ -22,11 +22,9 @@ extension SignerStateApiModel {
 
         switch chainType {
         case .solana, .stellar:
-            // No registration transaction: the signer was registered at wallet creation
             return WalletSigner(locator: locator, status: SignerStatus.from(transaction?.status ?? "success"))
         case .evm, .unknown:
             guard let chains, !chains.isEmpty else {
-                // No per-chain entries: the signer was registered at wallet creation and is already active
                 return WalletSigner(locator: locator, status: .active)
             }
             guard let entry = chains[chainName] else { return nil }
