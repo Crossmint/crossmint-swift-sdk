@@ -37,7 +37,7 @@ struct WalletIsSignerApprovedTests {
     @Test func approvesActiveChainEntry() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResult = AddDelegatedSignerResponse(
-            chains: ["polygon": ChainRegistrationEntry(id: nil, status: "active", approvals: nil)],
+            chains: ["polygon": ChainRegistrationEntry(id: nil, status: .active, approvals: nil)],
             transaction: nil
         )
         let wallet = try makeEVMWallet(walletService: walletService)
@@ -49,7 +49,7 @@ struct WalletIsSignerApprovedTests {
     @Test func approvesSuccessChainEntry() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResult = AddDelegatedSignerResponse(
-            chains: ["polygon": ChainRegistrationEntry(id: nil, status: "success", approvals: nil)],
+            chains: ["polygon": ChainRegistrationEntry(id: nil, status: .active, approvals: nil)],
             transaction: nil
         )
         let wallet = try makeEVMWallet(walletService: walletService)
@@ -60,7 +60,7 @@ struct WalletIsSignerApprovedTests {
     @Test func rejectsSignerAwaitingApproval() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResult = AddDelegatedSignerResponse(
-            chains: ["polygon": ChainRegistrationEntry(id: "sig-1", status: "awaiting-approval", approvals: nil)],
+            chains: ["polygon": ChainRegistrationEntry(id: "sig-1", status: .awaitingApproval, approvals: nil)],
             transaction: nil
         )
         let wallet = try makeEVMWallet(walletService: walletService)
@@ -71,7 +71,7 @@ struct WalletIsSignerApprovedTests {
     @Test func rejectsSignerWithoutEntryForTheWalletChain() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResult = AddDelegatedSignerResponse(
-            chains: ["base": ChainRegistrationEntry(id: nil, status: "active", approvals: nil)],
+            chains: ["base": ChainRegistrationEntry(id: nil, status: .active, approvals: nil)],
             transaction: nil
         )
         let wallet = try makeEVMWallet(walletService: walletService)

@@ -58,17 +58,29 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        try await walletService.addSigner(entry, chainType: chainType, chainName: chainName)
+        try await walletService.addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately
+        )
     }
 
     public func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        try await walletService.registerTypedSigner(signer, chainType: chainType, chainName: chainName)
+        try await walletService.registerTypedSigner(
+            signer,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately
+        )
     }
 
     public func removeSigner(

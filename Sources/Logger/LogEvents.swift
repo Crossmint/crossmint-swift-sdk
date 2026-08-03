@@ -406,6 +406,9 @@ public enum LogEvents {
     /// addSigner succeeded
     public static let walletAddSignerSuccess = "wallet.addSigner.success"
 
+    /// Signer registration approval routed to the transaction, signature, or no-op flow
+    public static let walletAddSignerApprovalRouted = "wallet.addSigner.approvalRouted"
+
     /// addSigner failed
     public static let walletAddSignerError = "wallet.addSigner.error"
 

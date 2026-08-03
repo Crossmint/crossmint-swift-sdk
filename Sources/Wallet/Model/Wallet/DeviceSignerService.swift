@@ -27,10 +27,18 @@ final class DeviceSignerService: Sendable {
         )
     }
 
-    func register(storage: any DeviceSignerKeyStorage, signer: any Signer) async throws(WalletError) {
+    func register(
+        storage: any DeviceSignerKeyStorage,
+        signer: any Signer,
+        deployImmediately: Bool = true
+    ) async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerStart)
         let publicKeyBase64 = try await generatePendingKey(in: storage)
-        let registration = try await submitRegistration(of: publicKeyBase64, storage: storage)
+        let registration = try await submitRegistration(
+            of: publicKeyBase64,
+            storage: storage,
+            deployImmediately: deployImmediately
+        )
         try await approveRegistration(registration, signer: signer, publicKeyBase64: publicKeyBase64, storage: storage)
         try await persistKey(publicKeyBase64, in: storage)
         Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerSuccess)
@@ -49,7 +57,8 @@ final class DeviceSignerService: Sendable {
 
     private func submitRegistration(
         of publicKeyBase64: String,
-        storage: any DeviceSignerKeyStorage
+        storage: any DeviceSignerKeyStorage,
+        deployImmediately: Bool
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let entry: DelegatedSignerEntry
         do {
@@ -60,7 +69,12 @@ final class DeviceSignerService: Sendable {
             throw error
         }
         do {
-            return try await smartWalletService.addSigner(entry, chainType: chainType, chainName: chainName)
+            return try await smartWalletService.addSigner(
+                entry,
+                chainType: chainType,
+                chainName: chainName,
+                deployImmediately: deployImmediately
+            )
         } catch {
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
@@ -78,9 +92,7 @@ final class DeviceSignerService: Sendable {
         storage: any DeviceSignerKeyStorage
     ) async throws(WalletError) {
         let chainEntry = registration.chains?[chainName]
-        let pendingApprovalId = chainEntry?.status == "awaiting-approval"
-            ? chainEntry?.id
-            : registration.transaction?.id
+        let pendingApprovalId = chainEntry?.awaitsApproval == true ? chainEntry?.id : registration.transaction?.id
         if let pendingApprovalId {
             Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerAwaitingApproval, attributes: [
                 "approvalId": pendingApprovalId
