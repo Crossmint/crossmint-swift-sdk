@@ -12,7 +12,8 @@ open class Wallet: @unchecked Sendable {
     ///
     /// Each ``WalletSigner`` includes its registration ``WalletSigner/status`` on this
     /// wallet's chain. On EVM wallets, signers without a registration entry (pending or
-    /// completed) for the wallet's chain are omitted.
+    /// completed) for the wallet's chain are omitted. A signer whose state lookup fails
+    /// is returned with ``SignerStatus/unknown`` rather than dropped.
     ///
     /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
     public func signers() async throws(WalletError) -> [WalletSigner] {
@@ -33,8 +34,8 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
-    /// Fetches each signer's state concurrently, dropping signers whose lookup fails
-    /// so one broken signer doesn't fail the whole list. Preserves the input order.
+    /// Fetches each signer's state concurrently, so one broken signer doesn't fail the
+    /// whole list: a failed lookup yields ``SignerStatus/unknown``. Preserves the input order.
     private func fetchSignerStates(for locators: [String]) async -> [WalletSigner] {
         let service = smartWalletService
         let chainType = chain.chainType
@@ -50,23 +51,21 @@ open class Wallet: @unchecked Sendable {
                         )
                         return (index, signer)
                     } catch {
-                        Logger.smartWallet.warning(LogEvents.walletSignersSignerDropped, attributes: [
+                        Logger.smartWallet.warning(LogEvents.walletSignersStateLookupFailed, attributes: [
                             "locator": locator,
                             "error": "\(error)"
                         ])
-                        return (index, nil)
+                        return (index, WalletSigner(locator: locator, status: .unknown))
                     }
                 }
             }
-            var collected: [(Int, WalletSigner)] = []
+            var results = [WalletSigner?](repeating: nil, count: locators.count)
             for await (index, signer) in group {
-                if let signer {
-                    collected.append((index, signer))
-                }
+                results[index] = signer
             }
-            return collected
+            return results
         }
-        return states.sorted { $0.0 < $1.0 }.map(\.1)
+        return states.compactMap { $0 }
     }
 
     internal let smartWalletService: SmartWalletService

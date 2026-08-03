@@ -32,15 +32,18 @@ struct WalletSignersTests {
     @Test func returnsEachSignerWithItsStatusInConfigOrder() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResults = [
-            DEVICE_LOCATOR: WalletSigner(locator: DEVICE_LOCATOR, status: .success),
+            DEVICE_LOCATOR: WalletSigner(locator: DEVICE_LOCATOR, status: .active),
             EMAIL_LOCATOR: WalletSigner(locator: EMAIL_LOCATOR, status: .pending)
         ]
+        // Delay the first signer so the second completes first — the returned
+        // list must still follow the config order, not the completion order.
+        walletService.getSignerDelayedLocators = [DEVICE_LOCATOR]
         let wallet = try makeSolanaWallet(walletService: walletService)
 
         let signers = try await wallet.signers()
 
         #expect(signers == [
-            WalletSigner(locator: DEVICE_LOCATOR, status: .success),
+            WalletSigner(locator: DEVICE_LOCATOR, status: .active),
             WalletSigner(locator: EMAIL_LOCATOR, status: .pending)
         ])
     }
@@ -54,29 +57,32 @@ struct WalletSignersTests {
         #expect(Set(walletService.getSignerLocators) == [DEVICE_LOCATOR, EMAIL_LOCATOR])
     }
 
-    @Test func dropsSignersWhoseStateLookupFails() async throws {
+    @Test func returnsUnknownStatusForSignersWhoseStateLookupFails() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResults = [
-            EMAIL_LOCATOR: WalletSigner(locator: EMAIL_LOCATOR, status: .success)
+            EMAIL_LOCATOR: WalletSigner(locator: EMAIL_LOCATOR, status: .active)
         ]
         walletService.getSignerErrorLocators = [DEVICE_LOCATOR]
         let wallet = try makeSolanaWallet(walletService: walletService)
 
         let signers = try await wallet.signers()
 
-        #expect(signers == [WalletSigner(locator: EMAIL_LOCATOR, status: .success)])
+        #expect(signers == [
+            WalletSigner(locator: DEVICE_LOCATOR, status: .unknown),
+            WalletSigner(locator: EMAIL_LOCATOR, status: .active)
+        ])
     }
 
     @Test func omitsSignersWithoutRegistrationForTheWalletChain() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResults = [
-            DEVICE_LOCATOR: WalletSigner(locator: DEVICE_LOCATOR, status: .success)
+            DEVICE_LOCATOR: WalletSigner(locator: DEVICE_LOCATOR, status: .active)
         ]
         let wallet = try makeSolanaWallet(walletService: walletService)
 
         let signers = try await wallet.signers()
 
-        #expect(signers == [WalletSigner(locator: DEVICE_LOCATOR, status: .success)])
+        #expect(signers == [WalletSigner(locator: DEVICE_LOCATOR, status: .active)])
     }
 
     @Test func returnsEmptyListForAWalletWithoutSigners() async throws {

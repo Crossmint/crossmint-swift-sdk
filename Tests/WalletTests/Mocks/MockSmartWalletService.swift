@@ -25,26 +25,24 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - getSigner
 
-    // getSigner is called concurrently from signers()' task group, so its
-    // tracking state is guarded by a lock. (NSLock.withLock needs iOS 16; min target is 15.)
+    var getSignerResults: [String: WalletSigner] = [:]
+    /// Locators for which getSigner throws instead of returning a result.
+    var getSignerErrorLocators: Set<String> = []
+    /// Locators for which getSigner suspends briefly before answering,
+    /// so tests can invert the completion order of concurrent lookups.
+    var getSignerDelayedLocators: Set<String> = []
+
+    // getSigner runs concurrently from signers()' task group. Only the recorded-locators
+    // array is mutated during that phase, so a lock guards just it; results and error
+    // locators are set during test setup and only read while concurrent.
+    // (NSLock.withLock needs iOS 16; min target is 15.)
     private let getSignerLock = NSLock()
-    private var _getSignerResults: [String: WalletSigner] = [:]
-    private var _getSignerErrorLocators: Set<String> = []
     private var _getSignerLocators: [String] = []
 
-    var getSignerResults: [String: WalletSigner] {
-        get { withGetSignerLock { _getSignerResults } }
-        set { withGetSignerLock { _getSignerResults = newValue } }
-    }
-
-    /// Locators for which getSigner throws instead of returning a result.
-    var getSignerErrorLocators: Set<String> {
-        get { withGetSignerLock { _getSignerErrorLocators } }
-        set { withGetSignerLock { _getSignerErrorLocators = newValue } }
-    }
-
     var getSignerLocators: [String] {
-        withGetSignerLock { _getSignerLocators }
+        getSignerLock.lock()
+        defer { getSignerLock.unlock() }
+        return _getSignerLocators
     }
 
     func getSigner(
@@ -52,20 +50,20 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainType: ChainType,
         chainName: String
     ) async throws(WalletError) -> WalletSigner? {
-        let outcome: Result<WalletSigner?, WalletError> = withGetSignerLock {
-            _getSignerLocators.append(signerLocator)
-            if _getSignerErrorLocators.contains(signerLocator) {
-                return .failure(WalletError.walletGeneric("getSigner failed"))
-            }
-            return .success(_getSignerResults[signerLocator])
+        recordGetSignerCall(signerLocator)
+        if getSignerDelayedLocators.contains(signerLocator) {
+            try? await Task.sleep(nanoseconds: 50_000_000)
         }
-        return try outcome.get()
+        if getSignerErrorLocators.contains(signerLocator) {
+            throw WalletError.walletGeneric("getSigner failed")
+        }
+        return getSignerResults[signerLocator]
     }
 
-    private func withGetSignerLock<T>(_ body: () -> T) -> T {
+    private func recordGetSignerCall(_ locator: String) {
         getSignerLock.lock()
         defer { getSignerLock.unlock() }
-        return body()
+        _getSignerLocators.append(locator)
     }
 
     // MARK: - addSigner
@@ -157,7 +155,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return fetchTransactionResult
     }
 
-    // MARK: - getSigner
+    // MARK: - getSigner (registration state)
 
     var getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)
     var getSignerError: WalletError?
