@@ -15,14 +15,3 @@ extension ChainType {
         }
     }
 }
-
-extension Optional where Wrapped == ChainType {
-    var mappingType: any WalletTypeTransactionMapping.Type {
-        switch self {
-        case .none:
-            return EVMSmartWalletMapping.self
-        case .some(let chainType):
-            return chainType.mappingType
-        }
-    }
-}

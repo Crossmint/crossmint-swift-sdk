@@ -14,14 +14,6 @@ public struct NFT: Sendable, Hashable, Equatable, Identifiable {
         public var value: String {
             "\(chain.name):\(contractAddress):\(tokenId)"
         }
-
-        static func map(_ locator: NFTApiModel.Locator) -> Locator {
-            Locator(
-                chain: locator.chain,
-                contractAddress: locator.contractAddress,
-                tokenId: locator.tokenId
-            )
-        }
     }
 
     public struct Metadata: Codable, Sendable, Hashable, Equatable {

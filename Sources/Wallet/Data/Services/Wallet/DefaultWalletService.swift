@@ -95,6 +95,29 @@ struct DefaultWalletService: WalletService {
         return try decodeTransaction(from: data, mapping: chainType.mappingType)
     }
 
+    func getSigner(
+        _ signerLocator: String,
+        chainType: ChainType
+    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
+        Logger.smartWallet.info(LogEvents.apiGetSignerStart, attributes: ["locator": signerLocator])
+        let endpoint = Endpoint.getSigner(
+            chainType: chainType,
+            encodedLocator: encodedSignerLocator(signerLocator)
+        )
+        let data: Data
+        do {
+            data = try await crossmintService.executeRequestForRawData(endpoint, errorType: WalletError.self)
+        } catch {
+            if case .walletNotFound = error { return nil }
+            throw error
+        }
+        guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: data) else {
+            throw WalletError.walletGeneric("Failed to decode signer response")
+        }
+        Logger.smartWallet.info(LogEvents.apiGetSignerSuccess, attributes: ["locator": signerLocator])
+        return result
+    }
+
     private func decodeTransaction<T: WalletTypeTransactionMapping>(
         from data: Data,
         mapping: T.Type

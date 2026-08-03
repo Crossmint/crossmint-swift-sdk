@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import CrossmintService
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
@@ -92,6 +91,25 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             throw TransactionError.transactionGeneric("not implemented")
         }
         return fetchTransactionResult
+    }
+
+    // MARK: - getSigner
+
+    var getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    var getSignerError: WalletError?
+    var getSignerCallCount = 0
+    var lastGetSignerLocator: String?
+
+    func getSigner(
+        _ signerLocator: String,
+        chainType: ChainType
+    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
+        getSignerCallCount += 1
+        lastGetSignerLocator = signerLocator
+        if let getSignerError {
+            throw getSignerError
+        }
+        return getSignerResult
     }
 
     // MARK: - Unused stubs

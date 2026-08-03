@@ -91,12 +91,6 @@ private struct BalanceEntry: Decodable, Sendable {
         let contractAddress: String?
     }
 
-    init(currency: CryptoCurrency, balances: ChainBalances, decimals: Int) {
-        self.token = currency
-        self.balances = balances
-        self.decimals = decimals
-    }
-
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.token = CryptoCurrency(name: try container.decode(String.self, forKey: .symbol))
