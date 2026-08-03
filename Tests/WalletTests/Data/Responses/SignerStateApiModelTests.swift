@@ -41,17 +41,17 @@ struct SignerStateApiModelTests {
             #expect(model.toDomain(chainType: .evm, chainName: "base-sepolia") == nil)
         }
 
-        @Test func defaultsToSuccessWhenThereAreNoChainEntries() throws {
+        @Test func defaultsToActiveWhenThereAreNoChainEntries() throws {
             let model = try decodeSigner("""
             { "locator": "device:abc123", "chains": {} }
             """)
 
             let signer = model.toDomain(chainType: .evm, chainName: "base-sepolia")
 
-            #expect(signer == WalletSigner(locator: "device:abc123", status: .success))
+            #expect(signer == WalletSigner(locator: "device:abc123", status: .active))
         }
 
-        @Test func omitsSignerWithAnUnknownStatusValue() throws {
+        @Test func mapsAnUnrecognizedStatusValueToUnknown() throws {
             let model = try decodeSigner("""
             {
                 "locator": "email:user@example.com",
@@ -61,7 +61,9 @@ struct SignerStateApiModelTests {
             }
             """)
 
-            #expect(model.toDomain(chainType: .evm, chainName: "base-sepolia") == nil)
+            let signer = model.toDomain(chainType: .evm, chainName: "base-sepolia")
+
+            #expect(signer == WalletSigner(locator: "email:user@example.com", status: .unknown))
         }
     }
 
@@ -80,17 +82,17 @@ struct SignerStateApiModelTests {
             #expect(signer == WalletSigner(locator: "device:abc123", status: .pending))
         }
 
-        @Test func defaultsToSuccessWithoutARegistrationTransaction() throws {
+        @Test func defaultsToActiveWithoutARegistrationTransaction() throws {
             let model = try decodeSigner("""
             { "locator": "device:abc123" }
             """)
 
             let signer = model.toDomain(chainType: .solana, chainName: "solana")
 
-            #expect(signer == WalletSigner(locator: "device:abc123", status: .success))
+            #expect(signer == WalletSigner(locator: "device:abc123", status: .active))
         }
 
-        @Test func defaultsToSuccessOnAnUnknownTransactionStatus() throws {
+        @Test func mapsAnUnrecognizedTransactionStatusToUnknown() throws {
             let model = try decodeSigner("""
             {
                 "locator": "device:abc123",
@@ -100,7 +102,7 @@ struct SignerStateApiModelTests {
 
             let signer = model.toDomain(chainType: .solana, chainName: "solana")
 
-            #expect(signer?.status == .success)
+            #expect(signer?.status == .unknown)
         }
     }
 

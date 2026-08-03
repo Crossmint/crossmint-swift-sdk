@@ -1,18 +1,14 @@
 import CrossmintCommonTypes
 
 struct SignerStateApiModel: Decodable {
-    struct ChainEntry: Decodable {
-        let status: String?
-    }
-
-    struct TransactionEntry: Decodable {
+    struct StatusEntry: Decodable {
         let status: String?
     }
 
     let locator: String?
     let signer: String?
-    let chains: [String: ChainEntry]?
-    let transaction: TransactionEntry?
+    let chains: [String: StatusEntry]?
+    let transaction: StatusEntry?
 }
 
 extension SignerStateApiModel {
@@ -26,17 +22,15 @@ extension SignerStateApiModel {
 
         switch chainType {
         case .solana, .stellar:
-            let rawStatus = transaction?.status
-            let status = rawStatus.flatMap(SignerStatus.init(rawValue:)) ?? .success
-            return WalletSigner(locator: locator, status: status)
+            // No registration transaction: the signer was registered at wallet creation
+            return WalletSigner(locator: locator, status: SignerStatus.from(transaction?.status ?? "success"))
         case .evm, .unknown:
             guard let chains, !chains.isEmpty else {
                 // No per-chain entries: the signer was registered at wallet creation and is already active
-                return WalletSigner(locator: locator, status: .success)
+                return WalletSigner(locator: locator, status: .active)
             }
-            guard let rawStatus = chains[chainName]?.status,
-                  let status = SignerStatus(rawValue: rawStatus) else { return nil }
-            return WalletSigner(locator: locator, status: status)
+            guard let entry = chains[chainName] else { return nil }
+            return WalletSigner(locator: locator, status: SignerStatus.from(entry.status))
         }
     }
 }
