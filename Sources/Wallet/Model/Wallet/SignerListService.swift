@@ -17,7 +17,7 @@ final class SignerListService: Sendable {
         Logger.smartWallet.info(LogEvents.walletSignersStart)
         do {
             let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chainType))
-            let locators = (model.config.signers ?? []).compactMap { $0.locator ?? $0.signer }
+            let locators = (model.config.signers ?? []).compactMap(\.locator)
             let signers = await states(for: locators)
             Logger.smartWallet.info(LogEvents.walletSignersSuccess, attributes: [
                 "count": "\(signers.count)"

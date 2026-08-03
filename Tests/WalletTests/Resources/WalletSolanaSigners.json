@@ -9,7 +9,7 @@
     },
     "delegatedSigners": [
       { "locator": "device:8Ht1jWbGgXcDqFv3nRkPzYw5mT2uLsEaK9oC4dNbV6xJ" },
-      { "signer": "email:delegate@example.com" }
+      { "locator": "email:delegate@example.com" }
     ]
   },
   "address": "7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",

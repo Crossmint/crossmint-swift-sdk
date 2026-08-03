@@ -106,16 +106,6 @@ struct SignerStateApiModelTests {
         }
     }
 
-    @Test func fallsBackToTheLegacySignerFieldForTheLocator() throws {
-        let model = try decodeSigner("""
-        { "signer": "email:legacy@example.com" }
-        """)
-
-        let signer = model.toDomain(chainType: .solana, chainName: "solana")
-
-        #expect(signer?.locator == "email:legacy@example.com")
-    }
-
     @Test func omitsSignerWithoutAnyLocator() throws {
         let model = try decodeSigner("{}")
 

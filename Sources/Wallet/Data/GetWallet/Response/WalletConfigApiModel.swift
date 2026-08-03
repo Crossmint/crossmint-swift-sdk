@@ -3,7 +3,6 @@ import Foundation
 
 struct WalletSignerConfigApiModel: Decodable {
     let locator: String?
-    let signer: String?
 }
 
 public struct WalletConfigApiModel: Decodable {

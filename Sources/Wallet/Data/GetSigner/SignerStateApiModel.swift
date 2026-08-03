@@ -6,7 +6,6 @@ struct SignerStateApiModel: Decodable {
     }
 
     let locator: String?
-    let signer: String?
     let chains: [String: StatusEntry]?
     let transaction: StatusEntry?
 }
@@ -18,7 +17,7 @@ extension SignerStateApiModel {
     /// Returns `nil` on EVM when the signer has no registration entry for `chainName`,
     /// so callers can omit signers that were never approved for the wallet's chain.
     func toDomain(chainType: ChainType, chainName: String) -> WalletSigner? {
-        guard let locator = locator ?? signer else { return nil }
+        guard let locator else { return nil }
 
         switch chainType {
         case .solana, .stellar:
