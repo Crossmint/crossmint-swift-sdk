@@ -104,10 +104,7 @@ struct DefaultWalletService: WalletService {
             chainType: chainType,
             encodedLocator: encodedSignerLocator(signerLocator)
         )
-        let data = try await crossmintService.executeRequestForRawData(endpoint, errorType: WalletError.self)
-        guard let model = try? jsonCoder.decode(SignerStateApiModel.self, from: data) else {
-            throw WalletError.walletGeneric("Failed to decode signer response")
-        }
+        let model: SignerStateApiModel = try await crossmintService.executeRequest(endpoint, errorType: WalletError.self)
         return model.toDomain(chainType: chainType, chainName: chainName)
     }
 
