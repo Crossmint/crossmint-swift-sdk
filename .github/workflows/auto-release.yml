@@ -1,0 +1,83 @@
+name: Auto Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+
+jobs:
+  auto-release:
+    name: Create Release
+    # Only run when a PR labelled "release" is merged into main.
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release')
+    runs-on: macos-26
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '26.5'
+
+    - name: Extract version from PR title
+      id: extract_version
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        VERSION=$(echo "$PR_TITLE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?' | head -n 1)
+        if [ -z "$VERSION" ]; then
+          echo "Error: Could not extract version from PR title: $PR_TITLE"
+          exit 1
+        fi
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "Extracted version: $VERSION"
+
+    - name: Verify versions match
+      run: |
+        VERSION="${{ steps.extract_version.outputs.version }}"
+        if ! grep -q "public static let version = \"$VERSION\"" Sources/Utils/SDKVersion.swift; then
+          echo "Error: SDKVersion.swift does not match $VERSION"
+          exit 1
+        fi
+        if ! grep -q "s.version          = '$VERSION'" CrossmintDeviceSigner.podspec; then
+          echo "Error: CrossmintDeviceSigner.podspec does not match $VERSION"
+          exit 1
+        fi
+        echo "Versions verified against $VERSION"
+
+    # SDK reference docs are not regenerated here. Merging this PR pushes the
+    # version bump to main, which triggers sdk-reference-docs-generate.yml on
+    # its Sources/** path filter, so docs stay current without a tag-pinned run.
+    - name: Create and push tag
+      run: |
+        VERSION="${{ steps.extract_version.outputs.version }}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "$VERSION"
+        git push origin "$VERSION"
+        echo "Created and pushed tag: $VERSION"
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="${{ steps.extract_version.outputs.version }}"
+        gh release create "$VERSION" \
+          --title "Release $VERSION" \
+          --generate-notes
+        echo "Created GitHub release: $VERSION"
+
+    - name: Publish to CocoaPods
+      env:
+        COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+      run: |
+        pod trunk push CrossmintDeviceSigner.podspec --allow-warnings
+        echo "Published CrossmintDeviceSigner to CocoaPods"

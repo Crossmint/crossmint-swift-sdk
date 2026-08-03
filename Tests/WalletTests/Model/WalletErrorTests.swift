@@ -1,4 +1,3 @@
-import CrossmintCommonTypes
 import CrossmintService
 import Testing
 

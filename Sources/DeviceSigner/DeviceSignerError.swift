@@ -13,8 +13,10 @@ public enum DeviceSignerError: Error, Sendable {
     case keyNotFound
     /// Key generation failed.
     case keyGenerationFailed
-    /// Signing the message failed.
-    case signingFailed
+    /// The signer failed to sign the message.
+    /// `operation` is the step that failed.
+    /// `underlyingError` is the error from CryptoKit or the Security framework.
+    case signingFailed(operation: String, underlyingError: Error)
     /// A Keychain operation failed. The associated value is the `OSStatus` error code.
     case storageError(OSStatus)
     /// The message to sign could not be decoded.
@@ -36,8 +38,9 @@ public enum DeviceSignerError: Error, Sendable {
             "No device signer key found for this wallet."
         case .keyGenerationFailed:
             "Failed to generate a device signer key."
-        case .signingFailed:
-            "Failed to sign the message with the device signer key."
+        case .signingFailed(let operation, let underlyingError):
+            "Failed to sign the message with the device signer key. "
+                + "\(operation) failed: \(underlyingError)"
         case .storageError(let status):
             "Keychain operation failed with status \(status)."
         case .invalidMessage:
@@ -55,6 +58,14 @@ public enum DeviceSignerError: Error, Sendable {
             "Ensure the app has Keychain entitlements and the device is unlocked."
         case .signingFailed, .invalidMessage:
             nil
+        }
+    }
+
+    /// The original error from the underlying signing operation. Returns `nil` if there is no such error.
+    public var underlyingError: Error? {
+        switch self {
+        case .signingFailed(_, let underlyingError): underlyingError
+        default: nil
         }
     }
 }

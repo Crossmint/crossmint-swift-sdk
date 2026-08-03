@@ -1,5 +1,4 @@
 import Foundation
-import CrossmintCommonTypes
 import Utils
 
 public struct TypedDataSignatureResponse: SignatureApiModel {

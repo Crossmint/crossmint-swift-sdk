@@ -6,8 +6,6 @@
 import CrossmintClient
 import SwiftUI
 
-/// A form section with a "Sign with" picker.
-/// Renders whenever the wallet has at least one selectable signer.
 struct SignerPicker: View {
     @Environment(AppState.self) private var appState
 
@@ -24,8 +22,10 @@ struct SignerPicker: View {
         if let recovery = appState.recoveryLocator, isSelectable(recovery) {
             result.append(Option(locator: recovery, typeLabel: SignerRow.typeLabel(for: recovery), isRecovery: true))
         }
-        for signer in appState.signers where isSelectable(signer.locator) {
+        for signer in appState.signers {
             let locator = signer.locator
+            guard isSelectable(locator) else { continue }
+            if locator.hasPrefix("device:"), locator != appState.localDeviceLocator { continue }
             result.append(Option(locator: locator, typeLabel: SignerRow.typeLabel(for: locator), isRecovery: false))
         }
         return result
@@ -34,20 +34,16 @@ struct SignerPicker: View {
     var body: some View {
         let opts = options
         if !opts.isEmpty {
-            Section {
-                Picker("Sign with", selection: Binding(
-                    get: { appState.selectedSignerLocator ?? opts.first?.id ?? "" },
-                    set: { new in Task { await appState.selectSigner(locator: new) } }
-                )) {
-                    ForEach(opts) { opt in
-                        Button { } label: {
-                            Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
-                            Text(opt.id)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .tag(opt.id)
+            Picker("Sign with", selection: Binding(
+                get: { appState.selectedSignerLocator ?? opts.first?.id ?? "" },
+                set: { new in Task { await appState.selectSigner(locator: new) } }
+            )) {
+                ForEach(opts) { opt in
+                    Button { } label: {
+                        Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
+                        Text(opt.id)
                     }
+                    .tag(opt.id)
                 }
             }
         }
@@ -73,7 +69,7 @@ struct SignerPicker: View {
                         ForEach(options, id: \.id) { opt in
                             Button { } label: {
                                 Text(opt.label)
-                                Text(opt.sublabel).font(.caption).foregroundStyle(.secondary)
+                                Text(opt.sublabel)
                             }
                             .tag(opt.id)
                         }

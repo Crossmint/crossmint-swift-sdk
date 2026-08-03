@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AC0102102DD700000000006 /* AuthHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102112DD700000000006 /* AuthHeaderView.swift */; };
 		2CC6EA9B9C96B07E039BCA27 /* CopyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */; };
 		30BCF1F16E84DB0995489C62 /* OTPSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F32D4100D0B463E463390BC /* OTPSheet.swift */; };
 		7CAB00000000000000000001 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000001 /* AppState.swift */; };
@@ -34,9 +33,10 @@
 		AC0101092DC600000000007 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0101082DC600000000007 /* SplashScreen.swift */; };
 		AC0102012DD700000000001 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102002DD700000000001 /* SignInView.swift */; };
 		AC0102032DD700000000002 /* VerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102022DD700000000002 /* VerificationView.swift */; };
+		AC0102052DD700000000003 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102042DD700000000003 /* CustomTextField.swift */; };
 		AC0102062DD700000000004 /* OTPSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102072DD700000000004 /* OTPSignInView.swift */; };
 		AC0102082DD700000000005 /* JWTSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102092DD700000000005 /* JWTSignInView.swift */; };
-		AC0102052DD700000000003 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102042DD700000000003 /* CustomTextField.swift */; };
+		AC0102102DD700000000006 /* AuthHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0102112DD700000000006 /* AuthHeaderView.swift */; };
 		E52EB51B2ED54D19004256E2 /* CrossmintAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52EB51A2ED54D15004256E2 /* CrossmintAuthManager.swift */; };
 		EB49FDE22DC35C0D00BAAFEB /* CrossmintClientSDK in Frameworks */ = {isa = PBXBuildFile; productRef = EB49FDE12DC35C0D00BAAFEB /* CrossmintClientSDK */; };
 		EB5D83162E45FA36002F8EF1 /* OTPValidatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB5D83152E45FA36002F8EF1 /* OTPValidatorView.swift */; };
@@ -47,7 +47,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		AC0102112DD700000000006 /* AuthHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthHeaderView.swift; sourceTree = "<group>"; };
 		1FC8F1E1CCA8881A74C85EF1 /* CopyButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CopyButton.swift; sourceTree = "<group>"; };
 		6F32D4100D0B463E463390BC /* OTPSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OTPSheet.swift; sourceTree = "<group>"; };
 		7CAF00000000000000000001 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -75,9 +74,10 @@
 		AC0101082DC600000000007 /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		AC0102002DD700000000001 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		AC0102022DD700000000002 /* VerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationView.swift; sourceTree = "<group>"; };
+		AC0102042DD700000000003 /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
 		AC0102072DD700000000004 /* OTPSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPSignInView.swift; sourceTree = "<group>"; };
 		AC0102092DD700000000005 /* JWTSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTSignInView.swift; sourceTree = "<group>"; };
-		AC0102042DD700000000003 /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
+		AC0102112DD700000000006 /* AuthHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthHeaderView.swift; sourceTree = "<group>"; };
 		E52EB51A2ED54D15004256E2 /* CrossmintAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossmintAuthManager.swift; sourceTree = "<group>"; };
 		EB1EA11F2DC0F6550018C2C3 /* SmartWalletsDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartWalletsDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB5D83152E45FA36002F8EF1 /* OTPValidatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPValidatorView.swift; sourceTree = "<group>"; };

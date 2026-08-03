@@ -72,17 +72,12 @@ public struct DefaultCrossmintService: CrossmintService {
         do {
             let (data, _) = try await httpClient.fetch(try getRequest(endpoint))
             return data
-        } catch let networkError as NetworkError {
-            if let mappedError = transform(networkError) {
+        } catch {
+            if let mappedError = transform(error) {
                 throw mappedError
             }
 
-            throw E.fromNetworkError(networkError)
-        } catch let serviceError as CrossmintServiceError {
-            throw E.fromServiceError(serviceError)
-        } catch {
-            // This type of error should never happen.
-            throw E.fromServiceError(.unknown)
+            throw E.fromNetworkError(error)
         }
     }
 

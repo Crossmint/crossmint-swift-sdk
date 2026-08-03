@@ -150,6 +150,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignMessageStart)
 
+        do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .signingFailed(underlyingError: error)
+        }
+
         let signer = signer ?? self.config.recovery
 
         do {
@@ -207,6 +213,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         isSmartWalletSignature: Bool = true
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignTypedDataStart)
+
+        do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .signingFailed(underlyingError: error)
+        }
 
         let signer = signer ?? self.config.recovery
 
@@ -274,7 +286,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> any SignatureApiModel {
         var signature = try await super.smartWalletService.fetchSignature(signatureId, chainType: chainType)
 
-        while signature.status == "awaiting-approval" || signature.status == "pending" {
+        while [.awaitingApproval, .pending].contains(SignerStatus.from(signature.status)) {
             do {
                 try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
             } catch {
@@ -304,20 +316,15 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         signerLocator: String,
         message: String
     ) async throws(SignatureError) {
-        if signerLocator.hasPrefix("device:") && deviceSignerKeyStorage == nil {
-            throw SignatureError.approvalFailed
-        }
-        if signerLocator.hasPrefix("device:"), let storage = deviceSignerKeyStorage {
-            let request: SignRequestApi
-            do {
-                request = try await deviceSignerService.buildSignRequest(
-                    signerLocator: signerLocator, message: message, storage: storage
-                )
-            } catch {
+        if signerLocator.hasPrefix("device:") {
+            guard let storage = deviceSignerKeyStorage else {
                 throw SignatureError.approvalFailed
             }
-            return try await smartWalletService.approveSignature(
-                .init(transactionId: signatureID, apiRequest: request, chainType: chain.chainType)
+            return try await approveDeviceSignature(
+                signatureID: signatureID,
+                signerLocator: signerLocator,
+                message: message,
+                storage: storage
             )
         }
 
@@ -336,24 +343,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 )
             )
         } catch {
-            switch error {
-            case .passkey(let passkeyError):
-                switch passkeyError {
-                case .cancelled:
-                    throw .userCancelled
-                default:
-                    throw .approvalFailed
-                }
-            case .signingFailed,
-                    .invalidAddress,
-                    .invalidEmail,
-                    .invalidSigner,
-                    .invalidMessage,
-                    .invalidPrivateKey,
-                    .notStarted,
-                    .cancelled:
-                throw .approvalFailed
-            }
+            throw mapSignerError(error)
         }
 
         return try await smartWalletService.approveSignature(
@@ -363,5 +353,46 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 chainType: chain.chainType
             )
         )
+    }
+
+    private func approveDeviceSignature(
+        signatureID: String,
+        signerLocator: String,
+        message: String,
+        storage: any DeviceSignerKeyStorage
+    ) async throws(SignatureError) {
+        let request: SignRequestApi
+        do {
+            request = try await deviceSignerService.buildSignRequest(
+                signerLocator: signerLocator, message: message, storage: storage
+            )
+        } catch {
+            throw SignatureError.signingFailed(underlyingError: error)
+        }
+        return try await smartWalletService.approveSignature(
+            .init(transactionId: signatureID, apiRequest: request, chainType: chain.chainType)
+        )
+    }
+
+    private func mapSignerError(_ error: SignerError) -> SignatureError {
+        switch error {
+        case .passkey(let passkeyError):
+            switch passkeyError {
+            case .cancelled:
+                return .userCancelled
+            default:
+                return .signingFailed(underlyingError: error)
+            }
+        case .cancelled:
+            return .userCancelled
+        case .signingFailed,
+                .invalidAddress,
+                .invalidEmail,
+                .invalidSigner,
+                .invalidMessage,
+                .invalidPrivateKey,
+                .notStarted:
+            return .signingFailed(underlyingError: error)
+        }
     }
 }

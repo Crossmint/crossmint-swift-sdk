@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import CrossmintService
 import CryptoKit
 import DeviceSigner
 import Logger
@@ -281,7 +280,10 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) async {
         let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
         guard !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) else { return }
-        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(in: walletApiModel, storage: storage) else { return }
+        guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(
+            in: walletApiModel,
+            storage: storage
+        ) else { return }
 
         do {
             try await storage.mapAddressToKey(
@@ -342,24 +344,5 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
             throw WalletError.walletCreationFailed("Invalid device signer public key")
         }
         return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
-    }
-
-    private func approveDelegatedSignerRegistration(
-        signatureId: String,
-        pendingApprovals: [ApprovalEntry],
-        signer: any Signer,
-        chainType: ChainType
-    ) async throws {
-        try await initializeSigner(signer)
-        for approval in pendingApprovals {
-            let signRequest = SignRequestApi(
-                approvals: try await signer.approvals(
-                    withSignature: try await signer.sign(message: approval.message)
-                )
-            )
-            try await smartWalletService.approveSignature(
-                .init(transactionId: signatureId, apiRequest: signRequest, chainType: chainType)
-            )
-        }
     }
 }

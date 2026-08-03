@@ -33,6 +33,7 @@ final class AppState {
     // Signer selection (shared across Transfer/Signing/Signers)
     private(set) var selectedSignerLocator: String?
     private(set) var signers: [WalletSigner] = []
+    private(set) var localDeviceLocator: String?
 
     private let sdk: CrossmintSDK = .shared
 
@@ -112,6 +113,7 @@ final class AppState {
 
     func loadSigners() async {
         signers = (try? await wallet?.signers()) ?? []
+        localDeviceLocator = await wallet?.localDeviceSignerLocator()
         guard selectedSignerLocator == nil, let locator = firstSelectableLocator() else { return }
         await selectSigner(locator: locator)
     }
@@ -122,6 +124,7 @@ final class AppState {
         selectedChain = chain
         selectedSignerLocator = nil
         signers = []
+        localDeviceLocator = nil
         walletErrorMessage = nil
         balance = nil
 

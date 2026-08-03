@@ -2,12 +2,6 @@ import CrossmintCommonTypes
 import Foundation
 
 struct NFTApiModel: Decodable {
-    struct Locator: Sendable {
-        let chain: Chain
-        let contractAddress: String
-        let tokenId: String
-    }
-
     struct Metadata: Codable {
         public let collection: [String: String]
         public let animationUrl: URL?
