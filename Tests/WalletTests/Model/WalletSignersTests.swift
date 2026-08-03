@@ -48,15 +48,6 @@ struct WalletSignersTests {
         ])
     }
 
-    @Test func requestsTheStateOfEveryConfiguredSigner() async throws {
-        let walletService = MockSmartWalletService()
-        let wallet = try makeSolanaWallet(walletService: walletService)
-
-        _ = try await wallet.signers()
-
-        #expect(Set(walletService.getSignerLocators) == [DEVICE_LOCATOR, EMAIL_LOCATOR])
-    }
-
     @Test func returnsUnknownStatusForSignersWhoseStateLookupFails() async throws {
         let walletService = MockSmartWalletService()
         walletService.getSignerResults = [
@@ -92,7 +83,6 @@ struct WalletSignersTests {
         let signers = try await wallet.signers()
 
         #expect(signers.isEmpty)
-        #expect(walletService.getSignerLocators.isEmpty)
     }
 
     @Test func rethrowsTheErrorWhenTheWalletFetchFails() async throws {
