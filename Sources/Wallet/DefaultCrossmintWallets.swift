@@ -87,7 +87,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         try assertValid(chain)
 
         let deviceSignerStorage = makeDeviceSignerStorage(options: options)
-        let walletApiModel = try await createWalletApiModel(
+        let creation = try await createWalletApiModel(
             signer: recovery,
             chainType: chain.chainType,
             walletType: .smart,
@@ -96,11 +96,12 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         )
 
         let wallet = try buildWallet(
-            from: walletApiModel,
+            from: creation.model,
             chain: chain,
             signer: recovery,
             options: options,
-            deviceSignerStorage: deviceSignerStorage
+            deviceSignerStorage: deviceSignerStorage,
+            deviceSignerUnsupported: creation.deviceSignerRejected
         )
 
         do {
@@ -154,14 +155,23 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
     }
 
-    // swiftlint:disable:next function_body_length
+    private struct PendingDeviceSigner {
+        let entry: DelegatedSignerEntry
+        let publicKeyBase64: String
+        let storage: any DeviceSignerKeyStorage
+
+        func discard() async {
+            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+        }
+    }
+
     private func createWalletApiModel(
         signer: any Signer,
         chainType: ChainType,
         walletType: WalletType,
         options: WalletOptions?,
         deviceSignerStorage: (any DeviceSignerKeyStorage)? = nil
-    ) async throws(WalletError) -> WalletApiModel {
+    ) async throws(WalletError) -> (model: WalletApiModel, deviceSignerRejected: Bool) {
         Logger.smartWallet.debug(LogEvents.walletCreateStart, attributes: [
             "chainType": chainType.rawValue,
             "signerType": signer.signerType.rawValue
@@ -171,87 +181,107 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
         options?.experimentalCallbacks?.onWalletCreationStart()
 
-        var delegatedSigners: [DelegatedSignerEntry]?
-        var pendingPublicKeyBase64: String?
-
-        if let storage = deviceSignerStorage {
-            do {
-                let publicKeyBase64 = try await storage.generateKey(address: nil)
-                let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
-                delegatedSigners = [entry]
-                pendingPublicKeyBase64 = publicKeyBase64
-                Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerPrepared, attributes: [
-                    "publicKeyBase64Prefix": String(publicKeyBase64.prefix(16))
-                ])
-            } catch {
-                Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: [
-                    "error": "\(error)"
-                ])
-                // Continue wallet creation without device signer
-            }
-        } else {
-            Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerSkipped)
-        }
-
+        let pendingDeviceSigner = await prepareDeviceSignerEntry(storage: deviceSignerStorage)
         let adminSigner = await signer.adminSigner
         do {
-            var walletApiModel: WalletApiModel
-            do {
-                walletApiModel = try await requestWalletCreation(
-                    chainType: chainType,
-                    walletType: walletType,
-                    adminSigner: adminSigner,
-                    delegatedSigners: delegatedSigners
-                )
-            } catch WalletError.deviceSignerNotSupported where pendingPublicKeyBase64 != nil {
-                if let storage = deviceSignerStorage, let publicKeyBase64 = pendingPublicKeyBase64 {
-                    try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
-                }
-                pendingPublicKeyBase64 = nil
-                Logger.smartWallet.info(LogEvents.walletCreateDeviceSignerUnsupportedRetry, attributes: [
-                    "chainType": chainType.rawValue
-                ])
-                // Errors from this retry, including a second deviceSignerNotSupported,
-                // skip this catch and surface through the outer one, so creation never
-                // retries twice.
-                walletApiModel = try await requestWalletCreation(
-                    chainType: chainType,
-                    walletType: walletType,
-                    adminSigner: adminSigner,
-                    delegatedSigners: nil
+            let creation = try await createWalletRetryingOnceWithoutDeviceSigner(
+                chainType: chainType,
+                walletType: walletType,
+                adminSigner: adminSigner,
+                pendingDeviceSigner: pendingDeviceSigner
+            )
+
+            if let pendingDeviceSigner, !creation.deviceSignerRejected {
+                await mapPendingKey(
+                    pendingDeviceSigner.publicKeyBase64,
+                    to: creation.model.address,
+                    storage: pendingDeviceSigner.storage
                 )
             }
 
-            // Map the pending key to the now-known wallet address
-            if let storage = deviceSignerStorage, let publicKeyBase64 = pendingPublicKeyBase64 {
-                do {
-                    try await storage.mapAddressToKey(
-                        address: walletApiModel.address,
-                        publicKeyBase64: publicKeyBase64
-                    )
-                } catch {
-                    try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
-                    Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: [
-                        "error": "\(error)"
-                    ])
-                }
-            }
-
-            let createSigners = walletApiModel.config.signers?.compactMap(\.locator) ?? []
+            let createSigners = creation.model.config.signers?.compactMap(\.locator) ?? []
             let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
-                "address": walletApiModel.address,
+                "address": creation.model.address,
                 "delegatedSigners": delegatedSignerLocators
             ])
 
-            return walletApiModel
+            return creation
         } catch {
+            await pendingDeviceSigner?.discard()
             Logger.smartWallet.error(LogEvents.walletCreateError, attributes: [
                 "chainType": chainType.rawValue,
                 "error": "\(error)"
             ])
             throw error
+        }
+    }
+
+    private func prepareDeviceSignerEntry(
+        storage: (any DeviceSignerKeyStorage)?
+    ) async -> PendingDeviceSigner? {
+        guard let storage else {
+            Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerSkipped)
+            return nil
+        }
+        do {
+            let publicKeyBase64 = try await storage.generateKey(address: nil)
+            let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+            Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerPrepared, attributes: [
+                "publicKeyBase64Prefix": String(publicKeyBase64.prefix(16))
+            ])
+            return PendingDeviceSigner(entry: entry, publicKeyBase64: publicKeyBase64, storage: storage)
+        } catch {
+            // The device signer is best-effort at creation; the wallet is created without one.
+            Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: [
+                "error": "\(error)"
+            ])
+            return nil
+        }
+    }
+
+    private func createWalletRetryingOnceWithoutDeviceSigner(
+        chainType: ChainType,
+        walletType: WalletType,
+        adminSigner: any AdminSignerData,
+        pendingDeviceSigner: PendingDeviceSigner?
+    ) async throws(WalletError) -> (model: WalletApiModel, deviceSignerRejected: Bool) {
+        do {
+            let model = try await requestWalletCreation(
+                chainType: chainType,
+                walletType: walletType,
+                adminSigner: adminSigner,
+                delegatedSigners: pendingDeviceSigner.map { [$0.entry] }
+            )
+            return (model, deviceSignerRejected: false)
+        } catch WalletError.deviceSignerNotSupported where pendingDeviceSigner != nil {
+            await pendingDeviceSigner?.discard()
+            Logger.smartWallet.info(LogEvents.walletCreateDeviceSignerUnsupportedRetry, attributes: [
+                "chainType": chainType.rawValue
+            ])
+            let model = try await requestWalletCreation(
+                chainType: chainType,
+                walletType: walletType,
+                adminSigner: adminSigner,
+                delegatedSigners: nil
+            )
+            return (model, deviceSignerRejected: true)
+        }
+    }
+
+    private func mapPendingKey(
+        _ publicKeyBase64: String,
+        to address: String,
+        storage: any DeviceSignerKeyStorage
+    ) async {
+        do {
+            try await storage.mapAddressToKey(address: address, publicKeyBase64: publicKeyBase64)
+        } catch {
+            try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+            Logger.smartWallet.warning(LogEvents.walletAddDelegatedSignerError, attributes: [
+                "error": "\(error)"
+            ])
         }
     }
 
@@ -275,7 +305,8 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         chain: Chain,
         signer: any Signer,
         options: WalletOptions?,
-        deviceSignerStorage: (any DeviceSignerKeyStorage)?
+        deviceSignerStorage: (any DeviceSignerKeyStorage)?,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) -> Wallet {
         switch walletApiModel.chainType {
         case .evm:
@@ -288,7 +319,8 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 baseModel: walletApiModel,
                 evmChain: evmChain,
                 onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerStorage
+                deviceSignerKeyStorage: deviceSignerStorage,
+                deviceSignerUnsupported: deviceSignerUnsupported
             )
         case .solana:
             guard let solanaChain: SolanaChain = SolanaChain(chain.name) else {
@@ -300,7 +332,8 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 baseModel: walletApiModel,
                 solanaChain: solanaChain,
                 onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerStorage
+                deviceSignerKeyStorage: deviceSignerStorage,
+                deviceSignerUnsupported: deviceSignerUnsupported
             )
         case .stellar:
             guard let stellarChain: StellarChain = StellarChain(chain.name) else {
@@ -312,7 +345,8 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 baseModel: walletApiModel,
                 stellarChain: stellarChain,
                 onTransactionStart: options?.experimentalCallbacks?.onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerStorage
+                deviceSignerKeyStorage: deviceSignerStorage,
+                deviceSignerUnsupported: deviceSignerUnsupported
             )
         case .unknown:
             throw .walletGeneric("Unknown wallet chain: \(chain.name)")

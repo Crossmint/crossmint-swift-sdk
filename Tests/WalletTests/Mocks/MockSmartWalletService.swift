@@ -1,4 +1,6 @@
 import CrossmintCommonTypes
+import CrossmintService
+import Foundation
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
@@ -56,7 +58,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - createWallet
 
-    var createWalletResult: WalletApiModel?
+    var createWalletFixture: Data?
     var createWalletErrors: [WalletError] = []
     var createWalletCallCount = 0
     var allCreateWalletParams: [CreateWalletParams] = []
@@ -68,10 +70,30 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         if !createWalletErrors.isEmpty {
             throw createWalletErrors.removeFirst()
         }
-        guard let createWalletResult else {
+        guard let createWalletFixture else {
             throw WalletError.walletGeneric("not implemented")
         }
-        return createWalletResult
+        do {
+            return try Self.walletModel(from: createWalletFixture, echoing: request.config.delegatedSigners)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")
+        }
+    }
+
+    /// Echoes the request's delegated signers into the returned wallet's config,
+    /// mirroring what the backend reports for a create-with-signers request.
+    private static func walletModel(
+        from fixture: Data,
+        echoing delegatedSigners: [DelegatedSignerEntry]?
+    ) throws -> WalletApiModel {
+        var json = try JSONSerialization.jsonObject(with: fixture) as? [String: Any] ?? [:]
+        if let delegatedSigners {
+            var config = json["config"] as? [String: Any] ?? [:]
+            config["delegatedSigners"] = delegatedSigners.map { ["locator": $0.signer, "signer": $0.signer] }
+            json["config"] = config
+        }
+        let patched = try JSONSerialization.data(withJSONObject: json)
+        return try DefaultJSONCoder().decode(WalletApiModel.self, from: patched)
     }
 
     // MARK: - fetchTransaction / signTransaction

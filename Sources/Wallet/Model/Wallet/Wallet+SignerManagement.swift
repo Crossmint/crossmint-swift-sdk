@@ -158,7 +158,7 @@ extension Wallet {
     }
 
     internal func initDefaultSigner() async {
-        guard deviceSignerKeyStorage != nil else { return }
+        guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
 
         switch initialDelegatedSigners.count {
         case 0:

@@ -24,13 +24,14 @@ struct DefaultCrossmintWalletsTests {
         )
     }
 
-    private func loadSolanaWalletFixture() throws -> WalletApiModel {
-        try GetFromFile.getModelFrom(fileName: "WalletSolanaEmail", bundle: Bundle.module)
+    private func loadSolanaWalletFixture() throws -> Data {
+        let url = try #require(Bundle.module.url(forResource: "WalletSolanaEmail", withExtension: "json"))
+        return try Data(contentsOf: url)
     }
 
     @Test
     func includesDeviceSignerInSolanaCreateRequest() async throws {
-        walletService.createWalletResult = try loadSolanaWalletFixture()
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
@@ -42,13 +43,14 @@ struct DefaultCrossmintWalletsTests {
         #expect(entries.count == 1)
         #expect(entries[0].signer.hasPrefix("device:"))
         #expect(walletService.createWalletCallCount == 1)
-        #expect(keyStorage.keysByAddress[wallet.address] != nil)
-        #expect(wallet.deviceSignerKeyStorage != nil)
+        #expect(await wallet.needsRecovery() == false)
+        try await wallet.useSigner(.device)
+        #expect(wallet.selectedSignerLocator?.hasPrefix("device:") == true)
     }
 
     @Test
     func retriesOnceWithoutDeviceSignerWhenProviderRejectsIt() async throws {
-        walletService.createWalletResult = try loadSolanaWalletFixture()
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
         walletService.createWalletErrors = [.deviceSignerNotSupported("not supported")]
 
         let wallet = try await makeWallets().createWallet(
@@ -60,15 +62,21 @@ struct DefaultCrossmintWalletsTests {
         #expect(walletService.createWalletCallCount == 2)
         #expect(walletService.allCreateWalletParams[0].config.delegatedSigners != nil)
         #expect(walletService.allCreateWalletParams[1].config.delegatedSigners == nil)
-        #expect(keyStorage.deletePendingKeyCallCount == 1)
         #expect(keyStorage.pendingKeys.isEmpty)
         #expect(keyStorage.keysByAddress.isEmpty)
-        #expect(wallet.deviceSignerKeyStorage != nil)
+        #expect(await wallet.needsRecovery() == false)
+        await #expect {
+            try await wallet.useSigner(.device)
+        } throws: { error in
+            guard case .deviceSignerNotSupported = error as? WalletError else { return false }
+            return true
+        }
+        #expect(walletService.addSignerCallCount == 0)
     }
 
     @Test
     func surfacesOtherCreateErrorsWithoutRetrying() async throws {
-        walletService.createWalletResult = try loadSolanaWalletFixture()
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
         walletService.createWalletErrors = [.walletGeneric("backend down")]
         let wallets = makeWallets()
 
@@ -83,12 +91,13 @@ struct DefaultCrossmintWalletsTests {
             return true
         }
         #expect(walletService.createWalletCallCount == 1)
-        #expect(keyStorage.deletePendingKeyCallCount == 0)
+        #expect(keyStorage.deletePendingKeyCallCount == 1)
+        #expect(keyStorage.pendingKeys.isEmpty)
     }
 
     @Test
     func omitsDeviceSignerWhenNotRequested() async throws {
-        walletService.createWalletResult = try loadSolanaWalletFixture()
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),

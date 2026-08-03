@@ -26,7 +26,8 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
         baseModel: WalletApiModel,
         stellarChain: StellarChain,
         onTransactionStart: (() -> Void)? = nil,
-        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         var effectiveSigner = signer
 
@@ -49,7 +50,8 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 chain: stellarChain.chain,
                 address: .stellar(StellarAddress(address: baseModel.address)),
                 onTransactionStart: onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerKeyStorage
+                deviceSignerKeyStorage: deviceSignerKeyStorage,
+                deviceSignerUnsupported: deviceSignerUnsupported
             )
         } catch {
             throw .walletInvalidType("The address \(baseModel.address) is not compatible with Stellar")

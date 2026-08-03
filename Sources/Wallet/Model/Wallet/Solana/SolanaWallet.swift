@@ -23,7 +23,8 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
         baseModel: WalletApiModel,
         solanaChain: SolanaChain,
         onTransactionStart: (() -> Void)? = nil,
-        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         var effectiveSigner = signer
 
@@ -45,7 +46,8 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 chain: solanaChain.chain,
                 address: .solana(SolanaAddress(address: baseModel.address)),
                 onTransactionStart: onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerKeyStorage
+                deviceSignerKeyStorage: deviceSignerKeyStorage,
+                deviceSignerUnsupported: deviceSignerUnsupported
             )
         } catch {
             throw .walletInvalidType("The address \(baseModel.address) is not compatible with Solana")
