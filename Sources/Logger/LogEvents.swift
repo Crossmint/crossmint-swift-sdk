@@ -367,17 +367,20 @@ public enum LogEvents {
     /// Delegated signer added successfully
     public static let walletAddDelegatedSignerSuccess = "wallet.addDelegatedSigner.success"
 
+    // The emitted strings keep the legacy "delegatedSigners" name so log queries
+    // stay comparable across SDK versions.
+
     /// Getting signers
-    public static let walletSignersStart = "wallet.signers.start"
+    public static let walletSignersStart = "wallet.delegatedSigners.start"
 
     /// Failed to get signers
-    public static let walletSignersError = "wallet.signers.error"
+    public static let walletSignersError = "wallet.delegatedSigners.error"
 
     /// A signer state lookup failed and that signer was returned with unknown status
-    public static let walletSignersStateLookupFailed = "wallet.signers.error (state lookup failed)"
+    public static let walletSignersStateLookupFailed = "wallet.delegatedSigners.error (state lookup failed)"
 
     /// Signers retrieved
-    public static let walletSignersSuccess = "wallet.signers.success"
+    public static let walletSignersSuccess = "wallet.delegatedSigners.success"
 
     // MARK: - Remove Signer Events
 
