@@ -129,11 +129,11 @@ open class Wallet: @unchecked Sendable {
 
     /// Returns whether the given signer is approved and usable on this wallet's chain.
     ///
-    /// A freshly registered signer can require approval before it can sign — see ``addSigner(_:)``.
-    /// Returns `false` when the signer is not registered on this wallet.
+    /// A freshly registered signer can need approval before it can sign. Call ``addSigner(_:)``
+    /// to register a signer. This method returns `false` when the signer is not registered on this wallet.
     ///
-    /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
-    ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
+    ///   `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
     /// - Throws: ``WalletError`` if the request fails.
     public func isSignerApproved(_ locator: String) async throws(WalletError) -> Bool {
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedStart)
@@ -160,9 +160,6 @@ open class Wallet: @unchecked Sendable {
         return approved
     }
 
-    /// EVM approval state lives in the per-chain entries; Solana and Stellar approve through
-    /// a transaction. An empty `chains` map means the signer was created together with the
-    /// wallet and needed no approval.
     private func registrationStatus(of response: AddDelegatedSignerResponse) -> SignerStatus? {
         if chain.chainType == .solana || chain.chainType == .stellar {
             return SignerStatus.from(response.transaction?.status ?? "success")
