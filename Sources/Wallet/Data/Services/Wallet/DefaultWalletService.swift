@@ -52,10 +52,11 @@ struct DefaultWalletService: WalletService {
         chainName: String,
         deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterSignerBody(
             signer: entry.signer,
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
-            deployImmediately: signerRegistrationDeployImmediately(chainType, deployImmediately)
+            deployImmediately: deploy
         )
         return try await sendRegistration(body, chainType: chainType)
     }
@@ -66,10 +67,11 @@ struct DefaultWalletService: WalletService {
         chainName: String,
         deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterTypedSignerBody(
             signer: AdminSignerRequestApiModel(signer),
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
-            deployImmediately: signerRegistrationDeployImmediately(chainType, deployImmediately)
+            deployImmediately: deploy
         )
         return try await sendRegistration(body, chainType: chainType)
     }
