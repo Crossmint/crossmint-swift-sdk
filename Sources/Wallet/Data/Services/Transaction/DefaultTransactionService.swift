@@ -52,18 +52,10 @@ struct DefaultTransactionService: TransactionService {
             perPage: request.perPage
         )
         do {
-            let models = try await executeTransactionListRequest(
+            let transactions = try await executeTransactionListRequest(
                 endpoint: endpoint,
                 mapping: request.chainType.mappingType
             )
-            let transactions = models.compactMap { $0.toDomain() }
-
-            if transactions.count != models.count {
-                Logger.smartWallet.warning(LogEvents.apiListTransactionsDropped, attributes: [
-                    "dropped": "\(models.count - transactions.count)"
-                ])
-            }
-
             Logger.smartWallet.info(LogEvents.apiListTransactionsSuccess, attributes: [
                 "count": "\(transactions.count)"
             ])
@@ -92,22 +84,17 @@ struct DefaultTransactionService: TransactionService {
     private func executeTransactionListRequest<T: WalletTypeTransactionMapping>(
         endpoint: Endpoint,
         mapping: T.Type
-    ) async throws(TransactionError) -> [any TransactionApiModel] {
-        let data = try await crossmintService.executeRequestForRawData(
+    ) async throws(TransactionError) -> [Transaction] {
+        let response: TransactionListApiModel<T.APIModel> = try await crossmintService.executeRequest(
             endpoint,
             errorType: TransactionError.self
         )
-        do {
-            let response = try jsonCoder.decode(TransactionListApiModel<T.APIModel>.self, from: data)
-            if !response.decodingErrors.isEmpty {
-                Logger.smartWallet.warning(LogEvents.apiListTransactionsRowDecodeError, attributes: [
-                    "dropped": "\(response.decodingErrors.count)",
-                    "errors": response.decodingErrors.map { "\($0)" }.joined(separator: "; ")
-                ])
-            }
-            return response.transactions
-        } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction list response: \(error)")
+        if !response.decodingErrors.isEmpty {
+            Logger.smartWallet.warning(LogEvents.apiListTransactionsRowDecodeError, attributes: [
+                "dropped": "\(response.decodingErrors.count)",
+                "errors": response.decodingErrors.map { "\($0)" }.joined(separator: "; ")
+            ])
         }
+        return response.transactions.map { $0.toDomain() }
     }
 }

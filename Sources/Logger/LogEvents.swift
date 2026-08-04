@@ -216,6 +216,9 @@ public enum LogEvents {
     /// Staging fund failed
     public static let walletStagingFundError = "wallet.stagingFund.error"
 
+    /// Chain type was unknown; transaction mapping defaulted to EVM
+    public static let transactionChainTypeUnknownDefaultedToEVM = "wallet.transaction.unknownChainTypeDefaultedToEVM"
+
     // MARK: - API Level Events
 
     /// API: Creating wallet
@@ -268,9 +271,6 @@ public enum LogEvents {
 
     /// API: List transactions successful
     public static let apiListTransactionsSuccess = "wallets.api.listTransactions.success"
-
-    /// API: Transactions dropped during domain mapping
-    public static let apiListTransactionsDropped = "wallets.api.listTransactions.dropped"
 
     /// API: Transaction rows dropped because they failed to decode
     public static let apiListTransactionsRowDecodeError = "wallets.api.listTransactions.rowDecodeError"

@@ -142,9 +142,7 @@ extension Wallet {
                 chainType: chain.chainType,
                 chainName: chain.name
             )
-            guard let transaction = transactionModel.toDomain() else {
-                throw TransactionError.transactionGeneric("Failed to parse remove signer response")
-            }
+            let transaction = transactionModel.toDomain()
             guard let result = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
@@ -403,12 +401,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     // MARK: - Private helpers
 
     private func transaction(withId id: String) async throws(TransactionError) -> Transaction {
-        guard let transaction = try await smartWalletService.fetchTransaction(
-                .init(transactionId: id, chainType: chain.chainType),
-        ).toDomain() else {
-            throw TransactionError.transactionGeneric("Unknown error")
-        }
-        return transaction
+        try await smartWalletService.fetchTransaction(
+            .init(transactionId: id, chainType: chain.chainType)
+        ).toDomain()
     }
 
     private func approveTransaction(
@@ -538,13 +533,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 throw .userCancelled
             }
 
-            guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
-                .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
-            ).toDomain() else {
-                throw TransactionError.transactionGeneric("Unknown error")
-            }
-
-            updatedTransaction = fetchedTransaction
+            updatedTransaction = try await smartWalletService.fetchTransaction(
+                .init(transactionId: updatedTransaction.id, chainType: chain.chainType)
+            ).toDomain()
         }
 
         return updatedTransaction
