@@ -1,7 +1,13 @@
+//
+//  CredentialScrubbingTests.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 04/08/26.
+//
+
 @testable import Logger
 import Testing
 
-// Synthetic fixtures. They only need the shape each pattern matches, never a real credential.
 private let JWT = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0LWZpeHR1cmUifQ.notARealSignatureJustTestData01"
 private let API_KEY = "ck_staging_notARealApiKeyJustTestData01"
 private let OTP = "notARealEncryptedOtpJustTestData01"
@@ -34,8 +40,6 @@ struct CredentialScrubbingTests {
         #expect(scrubbed.contains("request:complete-onboarding"))
     }
 
-    // Covers the container pattern on its own: this field matches none of the other patterns,
-    // so the test fails if container matching is ever dropped.
     @Test func redactsUnrecognisedFieldsInsideCredentialContainers() {
         let message = #"{"authData":{"sessionSecret":"notARealSecretJustTestData01"}}"#
 

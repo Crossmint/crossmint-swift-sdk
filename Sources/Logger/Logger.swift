@@ -45,7 +45,6 @@ public struct Logger: Sendable {
         forward(message, attributes) { $0.warning($1, attributes: $2) }
     }
 
-    /// Every level funnels through here so scrubbing can't be missed when a level is added.
     private func forward(
         _ message: String,
         _ attributes: [String: Encodable]?,

@@ -1,8 +1,13 @@
+//
+//  MockLoggerProvider.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 04/08/26.
+//
+
 @testable import Logger
 
 final class MockLoggerProvider: LoggerProvider, @unchecked Sendable {
-    /// Levels in call order. The per-level counts below derive from this, so a test can assert
-    /// either ordering or counts without two sources of truth.
     var calls: [String] = []
     var lastMessage: String?
     var lastAttributes: [String: Encodable]?
