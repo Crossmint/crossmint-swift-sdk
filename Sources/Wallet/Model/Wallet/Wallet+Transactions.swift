@@ -45,29 +45,34 @@ extension Wallet {
         }
     }
 
-    /// Fetches the transaction history for this wallet.
+    /// Fetches a page of the transaction history for this wallet, ordered most recent first.
     ///
-    /// Returns every transaction created for this wallet, including token
-    /// transfers, contract calls, and signer changes.
-    ///
-    /// - Returns: The wallet's ``Transaction`` list as returned by the Crossmint API.
+    /// - Parameters:
+    ///   - page: One-based page index.
+    ///   - transactionsPerPage: Number of transactions per page.
+    /// - Returns: The wallet's ``Transaction`` list for the requested page.
     ///
     /// - Throws: ``TransactionError`` if the request fails.
     ///
     /// ## Example
     ///
     /// ```swift
-    /// let transactions = try await wallet.listTransactions()
+    /// let transactions = try await wallet.listTransactions(page: 1, transactionsPerPage: 20)
     ///
     /// for transaction in transactions {
     ///     print("\(transaction.id): \(transaction.status)")
     /// }
     /// ```
-    public func listTransactions() async throws(TransactionError) -> [Transaction] {
-        Logger.smartWallet.debug(LogEvents.walletListTransactionsStart)
+    public func listTransactions(page: Int, transactionsPerPage: Int) async throws(TransactionError) -> [Transaction] {
+        Logger.smartWallet.debug(LogEvents.walletListTransactionsStart, attributes: [
+            "page": "\(page)",
+            "perPage": "\(transactionsPerPage)"
+        ])
 
         do {
-            let transactions = try await smartWalletService.listTransactions(chainType: chain.chainType)
+            let transactions = try await smartWalletService.listTransactions(
+                .init(chainType: chain.chainType, page: page, perPage: transactionsPerPage)
+            )
             Logger.smartWallet.debug(LogEvents.walletListTransactionsSuccess, attributes: [
                 "count": "\(transactions.count)"
             ])

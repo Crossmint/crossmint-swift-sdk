@@ -37,7 +37,7 @@ struct ListTransactionsTests {
     @Test func decodesEVMTransactionList() async throws {
         let service = try makeService(returning: try fixtureData("ListTransactionsResponse"))
 
-        let transactions = try await service.listTransactions(chainType: .evm)
+        let transactions = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))
 
         #expect(transactions.count == 2)
         let first = try #require(transactions.first)
@@ -51,7 +51,7 @@ struct ListTransactionsTests {
     @Test func decodesSolanaTransactionListWithChainDrivenModel() async throws {
         let service = try makeService(returning: try fixtureData("ListSolanaTransactionsResponse"))
 
-        let transactions = try await service.listTransactions(chainType: .solana)
+        let transactions = try await service.listTransactions(.init(chainType: .solana, page: 1, perPage: 20))
 
         #expect(transactions.count == 1)
         let first = try #require(transactions.first)
@@ -62,7 +62,7 @@ struct ListTransactionsTests {
     @Test func returnsEmptyListWhenWalletHasNoTransactions() async throws {
         let service = try makeService(returning: Data(#"{"transactions": []}"#.utf8))
 
-        let transactions = try await service.listTransactions(chainType: .evm)
+        let transactions = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))
 
         #expect(transactions.isEmpty)
     }
@@ -71,13 +71,26 @@ struct ListTransactionsTests {
         let capture = RequestCapture()
         let service = try makeService(returning: Data(#"{"transactions": []}"#.utf8), capture: capture)
 
-        _ = try await service.listTransactions(chainType: .evm)
+        _ = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))
 
         let request = try #require(capture.request)
         let url = try #require(request.url)
         #expect(request.httpMethod == "GET")
         #expect(url.path.hasSuffix("/2025-06-09/wallets/me:evm/transactions"))
         #expect(request.httpBody == nil)
+    }
+
+    @Test func encodesPageAndPerPageAsQueryItems() async throws {
+        let capture = RequestCapture()
+        let service = try makeService(returning: Data(#"{"transactions": []}"#.utf8), capture: capture)
+
+        _ = try await service.listTransactions(.init(chainType: .evm, page: 2, perPage: 15))
+
+        let request = try #require(capture.request)
+        let url = try #require(request.url)
+        let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        #expect(queryItems.contains(URLQueryItem(name: "page", value: "2")))
+        #expect(queryItems.contains(URLQueryItem(name: "perPage", value: "15")))
     }
 
     @Test func mapsHttpErrorToTransactionError() async throws {
@@ -89,7 +102,7 @@ struct ListTransactionsTests {
         )
 
         await #expect {
-            _ = try await service.listTransactions(chainType: .evm)
+            _ = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))
         } throws: { error in
             guard case .transactionGeneric(let message) = error as? TransactionError else { return false }
             return message == "boom"
@@ -99,7 +112,7 @@ struct ListTransactionsTests {
     @Test func dropsRowsThatDoNotMatchChainModel() async throws {
         let service = try makeService(returning: Data(#"{"transactions": [{"id": "tx-1"}]}"#.utf8))
 
-        let transactions = try await service.listTransactions(chainType: .evm)
+        let transactions = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))
 
         #expect(transactions.isEmpty)
     }
@@ -107,7 +120,7 @@ struct ListTransactionsTests {
     @Test func keepsValidRowsWhenAnotherRowFailsToDecode() async throws {
         let service = try makeService(returning: try fixtureData("ListTransactionsResponseWithBadRow"))
 
-        let transactions = try await service.listTransactions(chainType: .evm)
+        let transactions = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))
 
         #expect(transactions.count == 1)
         #expect(transactions.first?.id == "42bbb192-1707-43ba-bd21-6e96d28bdcc9")

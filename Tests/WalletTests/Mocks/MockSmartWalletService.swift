@@ -98,13 +98,13 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var listTransactionsResult: [Transaction] = []
     var listTransactionsError: TransactionError?
     var listTransactionsCallCount = 0
-    var lastListTransactionsChainType: ChainType?
+    var lastListTransactionsRequest: ListTransactionsRequest?
 
     func listTransactions(
-        chainType: ChainType
+        _ request: ListTransactionsRequest
     ) async throws(TransactionError) -> [Transaction] {
         listTransactionsCallCount += 1
-        lastListTransactionsChainType = chainType
+        lastListTransactionsRequest = request
         if let listTransactionsError {
             throw listTransactionsError
         }

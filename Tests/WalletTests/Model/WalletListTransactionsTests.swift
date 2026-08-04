@@ -30,19 +30,22 @@ struct WalletListTransactionsTests {
         walletService.listTransactionsResult = [expected]
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        let transactions = try await wallet.listTransactions()
+        let transactions = try await wallet.listTransactions(page: 1, transactionsPerPage: 20)
 
         #expect(transactions.map(\.id) == [expected.id])
     }
 
-    @Test func passesTheWalletsChainTypeToTheService() async throws {
+    @Test func passesTheWalletsChainTypeAndPaginationToTheService() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeEVMWallet(walletService: walletService)
 
-        _ = try await wallet.listTransactions()
+        _ = try await wallet.listTransactions(page: 2, transactionsPerPage: 15)
 
         #expect(walletService.listTransactionsCallCount == 1)
-        #expect(walletService.lastListTransactionsChainType == .evm)
+        let request = try #require(walletService.lastListTransactionsRequest)
+        #expect(request.chainType == .evm)
+        #expect(request.page == 2)
+        #expect(request.perPage == 15)
     }
 
     @Test func propagatesTransactionErrorFromTheService() async throws {
@@ -51,7 +54,7 @@ struct WalletListTransactionsTests {
         let wallet = try makeEVMWallet(walletService: walletService)
 
         await #expect(throws: TransactionError.self) {
-            _ = try await wallet.listTransactions()
+            _ = try await wallet.listTransactions(page: 1, transactionsPerPage: 20)
         }
     }
 }
