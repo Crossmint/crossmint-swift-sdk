@@ -476,6 +476,44 @@ struct WebViewMessageHandlerTests {
         }
     }
 
+    @Test("Listener-consumed message is not left in buffer for the next wait")
+    func testListenerConsumedMessageNotReusedByNextWait() async throws {
+        let handler = WebViewMessageHandler()
+
+        // First cycle: a listener is already waiting when the response arrives.
+        let firstWait = Task {
+            try await handler.waitForMessage(
+                ofType: HandshakeResponse.self,
+                timeout: 1.0
+            )
+        }
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        handler.processIncomingMessage(
+            """
+            {"event":"handshakeResponse","data":{"requestVerificationId":"FIRST"}}
+            """
+        )
+        let first = try await firstWait.value
+        #expect(first.data.requestVerificationId == "FIRST")
+
+        // Second cycle: the consumed FIRST response must not be served from the
+        // buffer — the wait must resolve with the fresh SECOND response.
+        let secondWait = Task {
+            try await handler.waitForMessage(
+                ofType: HandshakeResponse.self,
+                timeout: 1.0
+            )
+        }
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        handler.processIncomingMessage(
+            """
+            {"event":"handshakeResponse","data":{"requestVerificationId":"SECOND"}}
+            """
+        )
+        let second = try await secondWait.value
+        #expect(second.data.requestVerificationId == "SECOND")
+    }
+
     @Test("New pattern: send message then wait")
     func testNewPatternSendThenWait() async throws {
         let handler = WebViewMessageHandler()

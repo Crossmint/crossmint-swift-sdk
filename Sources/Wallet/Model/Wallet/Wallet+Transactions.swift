@@ -89,6 +89,43 @@ extension Wallet {
         }
     }
 
+    /// Fetches a transaction by its ID.
+    ///
+    /// Use this to check the current status of a transaction, including its
+    /// ``TransactionStatus``, on-chain data, and any pending or submitted approvals.
+    ///
+    /// - Parameter id: The transaction ID returned by the Crossmint API.
+    /// - Returns: The ``Transaction`` matching the given ID.
+    /// - Throws: ``TransactionError`` if the transaction cannot be retrieved or decoded.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let transaction = try await wallet.getTransaction(id: "42bbb192-...")
+    /// if transaction.status == .success {
+    ///     print("Confirmed:", transaction.onChain.txId ?? "")
+    /// }
+    /// ```
+    public func getTransaction(id: String) async throws(TransactionError) -> Transaction {
+        Logger.smartWallet.debug(LogEvents.walletGetTransactionStart, attributes: [
+            "transactionId": id
+        ])
+
+        do {
+            let transaction = try await self.transaction(withId: id)
+            Logger.smartWallet.debug(LogEvents.walletGetTransactionSuccess, attributes: [
+                "transactionId": transaction.id,
+                "status": transaction.status.rawValue
+            ])
+            return transaction
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletGetTransactionError, attributes: [
+                "transactionId": id,
+                "error": "\(error)"
+            ])
+            throw error
+        }
+    }
+
     /// Removes an assigned signer from this wallet.
     ///
     /// Submits a remove-signer transaction on-chain. If the transaction requires approval,

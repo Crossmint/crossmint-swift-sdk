@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import Passkeys
 
 public struct DelegatedSignerEntry: Encodable {
     public let signer: String  // e.g. "device:<base64_uncompressed_pubkey>"

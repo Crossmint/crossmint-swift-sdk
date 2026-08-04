@@ -50,7 +50,9 @@ struct SigningView: View {
                     }
                 }
 
-                SignerPicker()
+                Section {
+                    SignerPicker()
+                }
 
                 if let sig = signature {
                     Section("Signature") {

@@ -150,8 +150,6 @@ let package = Package(
                 "TestsUtils"
             ],
             resources: [
-                .process("Resources/Config/SmartWalletConfigResponseEOA.json"),
-                .process("Resources/Config/SmartWalletConfigResponsePasskeys.json"),
                 .process("Resources/WalletPasskey.json"),
                 .process("Resources/WalletEVMKeypair.json"),
                 .process("Resources/WalletSolanaFireblocks.json"),
@@ -164,6 +162,7 @@ let package = Package(
                 .process("Resources/Transaction/SolanaSignerRegistrationAwaitingApproval.json"),
                 .process("Resources/Transaction/ListTransactionsResponse.json"),
                 .process("Resources/Transaction/ListSolanaTransactionsResponse.json"),
+                .process("Resources/Transaction/GetTransactionResponse.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
                 .process("Resources/WalletEVMApiKey.json"),
                 .process("Resources/WalletEVMEmail.json"),

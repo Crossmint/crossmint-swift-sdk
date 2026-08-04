@@ -55,8 +55,8 @@ internal struct TransactionCompleted: Sendable {
 
     var summary: TransactionSummary {
         TransactionSummary(
-            hash: id,
-            transactionID: onChain.txId,
+            hash: onChain.txId,
+            transactionID: id,
             explorerLink: onChain.explorerLink
         )
     }

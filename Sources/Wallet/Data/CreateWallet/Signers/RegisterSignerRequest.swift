@@ -5,11 +5,13 @@ import Http
 struct RegisterSignerBody: Encodable {
     let signer: String
     let chain: String?
+    let deployImmediately: Bool?
 }
 
 struct RegisterTypedSignerBody: Encodable {
     let signer: AdminSignerRequestApiModel
     let chain: String?
+    let deployImmediately: Bool?
 }
 
 extension Endpoint {

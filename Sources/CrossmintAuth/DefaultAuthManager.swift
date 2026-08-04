@@ -239,7 +239,9 @@ public actor CrossmintAuthManager: AuthManager {
         do {
             return try await secureStorage.getOneTimeSecret() ?? ""
         } catch {
-            Logger.auth.error("Failed to read one-time secret from keychain, treating as non-authenticated: \(error.localizedDescription)")
+            let message = "Failed to read one-time secret from keychain, " +
+                "treating as non-authenticated: \(error.localizedDescription)"
+            Logger.auth.error(message)
             return ""
         }
     }

@@ -2,6 +2,7 @@
 import CrossmintAuth
 import Combine
 import Logger
+import Utils
 import WebKit
 
 extension Logger {
@@ -164,7 +165,7 @@ public final class CrossmintTEE: ObservableObject {
                         messageBytes: transaction,
                         keyType: keyType,
                         encoding: encoding)
-                ).stringValue
+                )
             }
         case .error:
             Logger.tee.error(LogEvents.getStatusError, attributes: [
@@ -216,7 +217,7 @@ public final class CrossmintTEE: ObservableObject {
                     messageBytes: transaction,
                     keyType: keyType,
                     encoding: encoding)
-            ).stringValue
+            )
         }
     }
 
@@ -560,9 +561,23 @@ public final class CrossmintTEE: ObservableObject {
                 timeout: 10.0
             )
 
+            guard response.status != .error else {
+                Logger.tee.error(LogEvents.signError, attributes: [
+                    "error": response.errorMessage ?? "Unknown error"
+                ])
+                throw Error.generic(response.errorMessage ?? "Signing failed with an unknown error")
+            }
+
             guard let bytes = response.signature?.bytes, !bytes.isEmpty else {
                 Logger.tee.error(LogEvents.signError, attributes: [
                     "error": "Empty signature returned from frame"
+                ])
+                throw Error.invalidSignature
+            }
+
+            if request.data.data.encoding == "hex", (try? HexUtil.byteArray(fromHex: bytes.noHexPrefix)) == nil {
+                Logger.tee.error(LogEvents.signError, attributes: [
+                    "error": "Frame returned a non-hex signature for a hex-encoded request"
                 ])
                 throw Error.invalidSignature
             }

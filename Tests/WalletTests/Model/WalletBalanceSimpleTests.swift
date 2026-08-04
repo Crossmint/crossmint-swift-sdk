@@ -1,4 +1,3 @@
-import CrossmintCommonTypes
 import Foundation
 import Testing
 @testable import Wallet

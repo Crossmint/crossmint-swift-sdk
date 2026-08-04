@@ -201,6 +201,15 @@ public enum LogEvents {
     /// Failed to get balances
     public static let walletBalancesError = "wallet.balances.error"
 
+    /// Getting a transaction by ID
+    public static let walletGetTransactionStart = "wallet.getTransaction.start"
+
+    /// Transaction retrieved successfully
+    public static let walletGetTransactionSuccess = "wallet.getTransaction.success"
+
+    /// Failed to get transaction
+    public static let walletGetTransactionError = "wallet.getTransaction.error"
+
     /// Starting staging fund
     public static let walletStagingFundStart = "wallet.stagingFund.start"
 
@@ -229,6 +238,12 @@ public enum LogEvents {
 
     /// API: Wallet retrieved successfully
     public static let apiGetWalletSuccess = "wallets.api.getWallet.success"
+
+    /// API: Getting signer
+    public static let apiGetSignerStart = "wallets.api.getSigner"
+
+    /// API: Signer retrieved successfully
+    public static let apiGetSignerSuccess = "wallets.api.getSigner.success"
 
     /// API: Sending transaction
     public static let apiSendStart = "wallets.api.send"
@@ -412,8 +427,22 @@ public enum LogEvents {
     /// addSigner succeeded
     public static let walletAddSignerSuccess = "wallet.addSigner.success"
 
+    /// Signer registration approval routed to the transaction, signature, or no-op flow
+    public static let walletAddSignerApprovalRouted = "wallet.addSigner.approvalRouted"
+
     /// addSigner failed
     public static let walletAddSignerError = "wallet.addSigner.error"
+
+    // MARK: - isSignerApproved Events
+
+    /// Starting isSignerApproved
+    public static let walletIsSignerApprovedStart = "wallet.isSignerApproved.start"
+
+    /// isSignerApproved resolved
+    public static let walletIsSignerApprovedSuccess = "wallet.isSignerApproved.success"
+
+    /// isSignerApproved failed
+    public static let walletIsSignerApprovedError = "wallet.isSignerApproved.error"
 
     // MARK: - recover Events
 

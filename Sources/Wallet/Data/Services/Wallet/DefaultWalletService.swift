@@ -49,25 +49,31 @@ struct DefaultWalletService: WalletService {
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterSignerBody(
             signer: entry.signer,
-            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
+            chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
+            deployImmediately: deploy
         )
-        return try await registerSignerBody(body, chainType: chainType)
+        return try await sendRegistration(body, chainType: chainType)
     }
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterTypedSignerBody(
             signer: AdminSignerRequestApiModel(signer),
-            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
+            chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
+            deployImmediately: deploy
         )
-        return try await registerSignerBody(body, chainType: chainType)
+        return try await sendRegistration(body, chainType: chainType)
     }
 
     func removeSigner(
@@ -87,6 +93,29 @@ struct DefaultWalletService: WalletService {
         )
         let data = try await crossmintService.executeRequestForRawData(endpoint, errorType: TransactionError.self)
         return try decodeTransaction(from: data, mapping: chainType.mappingType)
+    }
+
+    func getSigner(
+        _ signerLocator: String,
+        chainType: ChainType
+    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
+        Logger.smartWallet.info(LogEvents.apiGetSignerStart, attributes: ["locator": signerLocator])
+        let endpoint = Endpoint.getSigner(
+            chainType: chainType,
+            encodedLocator: encodedSignerLocator(signerLocator)
+        )
+        let data: Data
+        do {
+            data = try await crossmintService.executeRequestForRawData(endpoint, errorType: WalletError.self)
+        } catch {
+            if case .walletNotFound = error { return nil }
+            throw error
+        }
+        guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: data) else {
+            throw WalletError.walletGeneric("Failed to decode signer response")
+        }
+        Logger.smartWallet.info(LogEvents.apiGetSignerSuccess, attributes: ["locator": signerLocator])
+        return result
     }
 
     private func decodeTransaction<T: WalletTypeTransactionMapping>(
@@ -112,7 +141,7 @@ struct DefaultWalletService: WalletService {
         return result
     }
 
-    private func registerSignerBody(
+    private func sendRegistration(
         _ body: some Encodable,
         chainType: ChainType
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
@@ -141,5 +170,9 @@ struct DefaultWalletService: WalletService {
 
     private func signerRegistrationChain(chainType: ChainType, chainName: String) -> String? {
         chainType == .solana || chainType == .stellar ? nil : chainName
+    }
+
+    private func signerRegistrationDeployImmediately(_ chainType: ChainType, _ deployImmediately: Bool?) -> Bool? {
+        chainType == .solana || chainType == .stellar ? nil : deployImmediately
     }
 }
