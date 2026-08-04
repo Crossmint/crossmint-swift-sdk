@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Foundation
 
 public protocol TransactionApiModel: Decodable, Identifiable {
-    func toDomain(withService service: SmartWalletService) -> Transaction?
+    func toDomain() -> Transaction?
 }
 
 public protocol WalletTypeTransactionMapping {

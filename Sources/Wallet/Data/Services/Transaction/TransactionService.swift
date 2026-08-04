@@ -15,5 +15,5 @@ public protocol TransactionService: Sendable {
 
     func listTransactions(
         chainType: ChainType
-    ) async throws(TransactionError) -> [any TransactionApiModel]
+    ) async throws(TransactionError) -> [Transaction]
 }

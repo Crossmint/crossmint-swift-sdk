@@ -120,7 +120,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
 
     public func listTransactions(
         chainType: ChainType
-    ) async throws(TransactionError) -> [any TransactionApiModel] {
+    ) async throws(TransactionError) -> [Transaction] {
         try await transactionService.listTransactions(chainType: chainType)
     }
 

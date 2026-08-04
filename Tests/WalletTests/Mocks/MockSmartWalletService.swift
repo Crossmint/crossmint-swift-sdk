@@ -95,14 +95,14 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - listTransactions
 
-    var listTransactionsResult: [any TransactionApiModel] = []
+    var listTransactionsResult: [Transaction] = []
     var listTransactionsError: TransactionError?
     var listTransactionsCallCount = 0
     var lastListTransactionsChainType: ChainType?
 
     func listTransactions(
         chainType: ChainType
-    ) async throws(TransactionError) -> [any TransactionApiModel] {
+    ) async throws(TransactionError) -> [Transaction] {
         listTransactionsCallCount += 1
         lastListTransactionsChainType = chainType
         if let listTransactionsError {

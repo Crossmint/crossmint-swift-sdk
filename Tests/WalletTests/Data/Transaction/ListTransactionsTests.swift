@@ -1,7 +1,6 @@
 import CrossmintService
 import Foundation
 import Testing
-import TestsUtils
 
 @testable import Http
 @testable import Wallet
@@ -41,9 +40,12 @@ struct ListTransactionsTests {
         let transactions = try await service.listTransactions(chainType: .evm)
 
         #expect(transactions.count == 2)
-        let first = try #require(transactions.first as? EVMTransactionApiModel)
+        let first = try #require(transactions.first)
         #expect(first.id == "42bbb192-1707-43ba-bd21-6e96d28bdcc9")
         #expect(first.status == .success)
+        #expect(first.onChain.txId == "0x9f52ec9b7e3a6a5c6a4d2f1f0f7f3f0a4a1b2c3d4e5f60718293a4b5c6d7e8f9")
+        #expect(first.params.signer == "external-wallet:0x20112298f0fb356fb914fb00548b2c86083126cc")
+        #expect(transactions.last?.status == .pending)
     }
 
     @Test func decodesSolanaTransactionListWithChainDrivenModel() async throws {
@@ -52,7 +54,7 @@ struct ListTransactionsTests {
         let transactions = try await service.listTransactions(chainType: .solana)
 
         #expect(transactions.count == 1)
-        let first = try #require(transactions.first as? SolanaTransactionApiModel)
+        let first = try #require(transactions.first)
         #expect(first.id == "f662d74d-8790-4dbe-8865-93916b39d3d6")
         #expect(first.status == .awaitingApproval)
     }
@@ -102,28 +104,6 @@ struct ListTransactionsTests {
         } throws: { error in
             guard case .transactionGeneric(let message) = error as? TransactionError else { return false }
             return message == "Failed to decode transaction list response"
-        }
-    }
-
-    @Suite("when mapping API models to the domain")
-    struct DomainMappingTests {
-        @Test func mapsDecodedListToDomainTransactions() async throws {
-            let response: TransactionListApiModel<EVMTransactionApiModel> = try GetFromFile.getModelFrom(
-                fileName: "ListTransactionsResponse",
-                bundle: Bundle.module
-            )
-
-            let transactions = response.transactions.compactMap {
-                $0.toDomain(withService: MockSmartWalletService())
-            }
-
-            #expect(transactions.count == 2)
-            let first = try #require(transactions.first)
-            #expect(first.id == "42bbb192-1707-43ba-bd21-6e96d28bdcc9")
-            #expect(first.status == .success)
-            #expect(first.onChain.txId == "0x9f52ec9b7e3a6a5c6a4d2f1f0f7f3f0a4a1b2c3d4e5f60718293a4b5c6d7e8f9")
-            #expect(first.params.signer == "external-wallet:0x20112298f0fb356fb914fb00548b2c86083126cc")
-            #expect(transactions.last?.status == .pending)
         }
     }
 }

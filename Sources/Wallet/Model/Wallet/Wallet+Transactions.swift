@@ -67,19 +67,10 @@ extension Wallet {
         Logger.smartWallet.debug(LogEvents.walletListTransactionsStart)
 
         do {
-            let models = try await smartWalletService.listTransactions(chainType: chain.chainType)
-            let transactions = models.compactMap { $0.toDomain(withService: smartWalletService) }
-
-            if transactions.count != models.count {
-                Logger.smartWallet.warning(LogEvents.walletListTransactionsDropped, attributes: [
-                    "dropped": "\(models.count - transactions.count)"
-                ])
-            }
-
+            let transactions = try await smartWalletService.listTransactions(chainType: chain.chainType)
             Logger.smartWallet.debug(LogEvents.walletListTransactionsSuccess, attributes: [
                 "count": "\(transactions.count)"
             ])
-
             return transactions
         } catch {
             Logger.smartWallet.error(LogEvents.walletListTransactionsError, attributes: [
@@ -146,7 +137,7 @@ extension Wallet {
                 chainType: chain.chainType,
                 chainName: chain.name
             )
-            guard let transaction = transactionModel.toDomain(withService: smartWalletService) else {
+            guard let transaction = transactionModel.toDomain() else {
                 throw TransactionError.transactionGeneric("Failed to parse remove signer response")
             }
             guard let result = try await signAndPollWhilePending(transaction) else {
@@ -360,7 +351,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             idempotencyKey: idempotencyKey
         )
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
-            .toDomain(withService: smartWalletService)
+            .toDomain()
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
@@ -409,7 +400,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     private func transaction(withId id: String) async throws(TransactionError) -> Transaction {
         guard let transaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: id, chainType: chain.chainType),
-        ).toDomain(withService: smartWalletService) else {
+        ).toDomain() else {
             throw TransactionError.transactionGeneric("Unknown error")
         }
         return transaction
@@ -506,7 +497,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     ) async throws(TransactionError) -> Transaction? {
         try await smartWalletService.createTransaction(
             .init(request: transactionRequest, chainType: chain.chainType)
-        ).toDomain(withService: smartWalletService)
+        ).toDomain()
     }
 
     private func signTransactionIfRequired(
@@ -544,7 +535,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
             guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
-            ).toDomain(withService: smartWalletService) else {
+            ).toDomain() else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
 

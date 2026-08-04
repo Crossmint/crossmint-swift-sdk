@@ -42,16 +42,24 @@ struct DefaultTransactionService: TransactionService {
 
     func listTransactions(
         chainType: ChainType
-    ) async throws(TransactionError) -> [any TransactionApiModel] {
+    ) async throws(TransactionError) -> [Transaction] {
         Logger.smartWallet.info(LogEvents.apiListTransactionsStart, attributes: [
             "chain": chainType.rawValue
         ])
         let endpoint = Endpoint.listTransactions(chainType: chainType)
         do {
-            let transactions = try await executeTransactionListRequest(
+            let models = try await executeTransactionListRequest(
                 endpoint: endpoint,
                 mapping: chainType.mappingType
             )
+            let transactions = models.compactMap { $0.toDomain() }
+
+            if transactions.count != models.count {
+                Logger.smartWallet.warning(LogEvents.apiListTransactionsDropped, attributes: [
+                    "dropped": "\(models.count - transactions.count)"
+                ])
+            }
+
             Logger.smartWallet.info(LogEvents.apiListTransactionsSuccess, attributes: [
                 "count": "\(transactions.count)"
             ])

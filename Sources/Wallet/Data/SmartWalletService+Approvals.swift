@@ -6,7 +6,7 @@ extension SmartWalletService {
         let transactionModel = try await fetchTransaction(
             .init(transactionId: id, chainType: chainType)
         )
-        guard let transaction = transactionModel.toDomain(withService: self) else {
+        guard let transaction = transactionModel.toDomain() else {
             throw TransactionError.transactionGeneric("Failed to decode transaction response")
         }
         return transaction

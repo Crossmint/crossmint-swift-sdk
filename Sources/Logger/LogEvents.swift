@@ -189,9 +189,6 @@ public enum LogEvents {
     /// Failed to list transactions
     public static let walletListTransactionsError = "wallet.listTransactions.error"
 
-    /// Transactions dropped during domain mapping
-    public static let walletListTransactionsDropped = "wallet.listTransactions.dropped"
-
     /// Getting wallet balances
     public static let walletBalancesStart = "wallet.balances.start"
 
@@ -271,6 +268,9 @@ public enum LogEvents {
 
     /// API: List transactions successful
     public static let apiListTransactionsSuccess = "wallets.api.listTransactions.success"
+
+    /// API: Transactions dropped during domain mapping
+    public static let apiListTransactionsDropped = "wallets.api.listTransactions.dropped"
 
     // MARK: - SDK Initialization
 
