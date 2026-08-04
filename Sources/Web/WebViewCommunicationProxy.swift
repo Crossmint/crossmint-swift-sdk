@@ -168,7 +168,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         }
 
         let script = "window.onMessageFromNative(\(jsonString));"
-        Logger.web.debug("Native >> Web: \(SensitiveMessageRedactor.redactedLoggableString(from: messageData))")
+        Logger.web.debug("Native >> Web: \(jsonString)")
 
         return try await webView.evaluateJavaScript(script)
     }
