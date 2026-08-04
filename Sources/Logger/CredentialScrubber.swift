@@ -8,25 +8,50 @@
 import Foundation
 
 enum CredentialScrubber {
-    static let patterns: [(regex: NSRegularExpression, replacement: String)] = [
-        (#"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+"#, "[REDACTED_JWT]"),
-        (#"\b(?:ck|sk)_(?:development|staging|production)_[A-Za-z0-9]{16,}"#, "[REDACTED_API_KEY]"),
-        (#""(jwt|apiKey|encryptedOtp)"\s*:\s*"[^"]*""#, "\"$1\":\"[REDACTED]\""),
-        (#""?(authData|onboardingAuthentication)"?\s*:\s*[{\[][^{}\[\]]*[}\]]"#, "\"$1\":\"[REDACTED]\"")
-    ].compactMap { pattern, replacement in
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        return (regex, replacement)
+    struct Pattern {
+        let regex: NSRegularExpression
+        let replacement: String
+
+        init?(_ expression: String, replacedWith replacement: String) {
+            guard let regex = try? NSRegularExpression(pattern: expression) else { return nil }
+            self.regex = regex
+            self.replacement = replacement
+        }
     }
+
+    private static let credentialValues = [
+        Pattern(
+            #"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+"#,
+            replacedWith: "[REDACTED_JWT]"
+        ),
+        Pattern(
+            #"\b(?:ck|sk)_(?:development|staging|production)_[A-Za-z0-9]{16,}"#,
+            replacedWith: "[REDACTED_API_KEY]"
+        )
+    ]
+
+    private static let credentialKeys = [
+        Pattern(
+            #""(jwt|apiKey|encryptedOtp)"\s*:\s*"[^"]*""#,
+            replacedWith: #""$1":"[REDACTED]""#
+        ),
+        Pattern(
+            #""?(authData|onboardingAuthentication)"?\s*:\s*[{\[][^{}\[\]]*[}\]]"#,
+            replacedWith: #""$1":"[REDACTED]""#
+        )
+    ]
+
+    static let patterns = (credentialValues + credentialKeys).compactMap { $0 }
 
     static func scrub(_ message: String) -> String {
         let buffer = NSMutableString(string: message)
         var replacements = 0
 
-        for entry in patterns {
-            replacements += entry.regex.replaceMatches(
+        for pattern in patterns {
+            replacements += pattern.regex.replaceMatches(
                 in: buffer,
                 range: NSRange(location: 0, length: buffer.length),
-                withTemplate: entry.replacement
+                withTemplate: pattern.replacement
             )
         }
 
