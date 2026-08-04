@@ -125,7 +125,7 @@ struct DefaultWalletService: WalletService {
         do {
             return try jsonCoder.decode(T.APIModel.self, from: data)
         } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+            throw TransactionError.transactionGeneric("Failed to decode transaction response: \(error)")
         }
     }
 

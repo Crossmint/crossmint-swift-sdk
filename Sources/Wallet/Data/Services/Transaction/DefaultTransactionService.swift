@@ -81,7 +81,7 @@ struct DefaultTransactionService: TransactionService {
         do {
             return try jsonCoder.decode(T.APIModel.self, from: data)
         } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+            throw TransactionError.transactionGeneric("Failed to decode transaction response: \(error)")
         }
     }
 
@@ -94,9 +94,16 @@ struct DefaultTransactionService: TransactionService {
             errorType: TransactionError.self
         )
         do {
-            return try jsonCoder.decode(TransactionListApiModel<T.APIModel>.self, from: data).transactions
+            let response = try jsonCoder.decode(TransactionListApiModel<T.APIModel>.self, from: data)
+            if !response.decodingErrors.isEmpty {
+                Logger.smartWallet.warning(LogEvents.apiListTransactionsRowDecodeError, attributes: [
+                    "dropped": "\(response.decodingErrors.count)",
+                    "errors": response.decodingErrors.map { "\($0)" }.joined(separator: "; ")
+                ])
+            }
+            return response.transactions
         } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction list response")
+            throw TransactionError.transactionGeneric("Failed to decode transaction list response: \(error)")
         }
     }
 }

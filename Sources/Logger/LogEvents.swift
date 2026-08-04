@@ -272,6 +272,9 @@ public enum LogEvents {
     /// API: Transactions dropped during domain mapping
     public static let apiListTransactionsDropped = "wallets.api.listTransactions.dropped"
 
+    /// API: Transaction rows dropped because they failed to decode
+    public static let apiListTransactionsRowDecodeError = "wallets.api.listTransactions.rowDecodeError"
+
     // MARK: - SDK Initialization
 
     /// SDK initialized

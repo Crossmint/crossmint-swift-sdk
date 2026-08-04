@@ -96,14 +96,20 @@ struct ListTransactionsTests {
         }
     }
 
-    @Test func failsWhenResponseElementDoesNotMatchChainModel() async throws {
+    @Test func dropsRowsThatDoNotMatchChainModel() async throws {
         let service = try makeService(returning: Data(#"{"transactions": [{"id": "tx-1"}]}"#.utf8))
 
-        await #expect {
-            _ = try await service.listTransactions(chainType: .evm)
-        } throws: { error in
-            guard case .transactionGeneric(let message) = error as? TransactionError else { return false }
-            return message == "Failed to decode transaction list response"
-        }
+        let transactions = try await service.listTransactions(chainType: .evm)
+
+        #expect(transactions.isEmpty)
+    }
+
+    @Test func keepsValidRowsWhenAnotherRowFailsToDecode() async throws {
+        let service = try makeService(returning: try fixtureData("ListTransactionsResponseWithBadRow"))
+
+        let transactions = try await service.listTransactions(chainType: .evm)
+
+        #expect(transactions.count == 1)
+        #expect(transactions.first?.id == "42bbb192-1707-43ba-bd21-6e96d28bdcc9")
     }
 }

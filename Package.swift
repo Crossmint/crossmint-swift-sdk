@@ -162,6 +162,7 @@ let package = Package(
                 .process("Resources/Transaction/SolanaSignerRegistrationAwaitingApproval.json"),
                 .process("Resources/Transaction/ListTransactionsResponse.json"),
                 .process("Resources/Transaction/ListSolanaTransactionsResponse.json"),
+                .process("Resources/Transaction/ListTransactionsResponseWithBadRow.json"),
                 .process("Resources/Transaction/GetTransactionResponse.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
                 .process("Resources/WalletEVMApiKey.json"),
