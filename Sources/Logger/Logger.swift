@@ -6,13 +6,7 @@ public struct Logger: Sendable {
     private let providers: [LoggerProvider]
     public nonisolated(unsafe) static var level: LogLevel = .error
 
-    private let osLogger: OSLog
-    private let subsystem: String
-
     public init(category: String) {
-        self.subsystem = "CrossmintSDK"
-        self.osLogger = OSLog(subsystem: subsystem, category: category)
-
         providers = [
             OSLoggerProvider(category: category),
             DataDogLoggerProvider(
@@ -24,8 +18,6 @@ public struct Logger: Sendable {
     }
 
     init(testProviders: [LoggerProvider]) {
-        self.subsystem = "CrossmintSDK"
-        self.osLogger = OSLog(subsystem: subsystem, category: "test")
         self.providers = testProviders
     }
 

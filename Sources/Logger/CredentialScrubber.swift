@@ -8,7 +8,7 @@
 import Foundation
 
 enum CredentialScrubber {
-    private static let patterns: [(regex: NSRegularExpression, replacement: String)] = [
+    static let patterns: [(regex: NSRegularExpression, replacement: String)] = [
         (#"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+"#, "[REDACTED_JWT]"),
         (#"\b(?:ck|sk)_(?:development|staging|production)_[A-Za-z0-9]{16,}"#, "[REDACTED_API_KEY]"),
         (#""(jwt|apiKey|encryptedOtp)"\s*:\s*"[^"]*""#, "\"$1\":\"[REDACTED]\""),
@@ -35,13 +35,8 @@ enum CredentialScrubber {
 
     static func scrub(_ attributes: [String: Encodable]?) -> [String: Encodable]? {
         attributes?.mapValues { value -> Encodable in
-            if let string = value as? String {
-                return scrub(string)
-            }
-
-            let rendered = String(describing: value)
-            let scrubbed = scrub(rendered)
-            return scrubbed == rendered ? value : scrubbed
+            guard let string = value as? String else { return value }
+            return scrub(string)
         }
     }
 }

@@ -12,11 +12,6 @@ final class MockLoggerProvider: LoggerProvider, @unchecked Sendable {
     var lastMessage: String?
     var lastAttributes: [String: Encodable]?
 
-    var debugCallCount: Int { calls.filter { $0 == "debug" }.count }
-    var infoCallCount: Int { calls.filter { $0 == "info" }.count }
-    var warningCallCount: Int { calls.filter { $0 == "warning" }.count }
-    var errorCallCount: Int { calls.filter { $0 == "error" }.count }
-
     func debug(_ message: String, attributes: [String: Encodable]?) {
         record("debug", message, attributes)
     }
