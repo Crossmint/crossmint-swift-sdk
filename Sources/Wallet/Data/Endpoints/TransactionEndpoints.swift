@@ -38,14 +38,10 @@ extension Endpoint {
         )
     }
 
-    static func listTransactions(
-        chainType: ChainType,
-        headers: [String: String] = [:]
-    ) -> Endpoint {
+    static func listTransactions(chainType: ChainType) -> Endpoint {
         Endpoint(
             path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions",
-            method: .get,
-            headers: headers
+            method: .get
         )
     }
 }
