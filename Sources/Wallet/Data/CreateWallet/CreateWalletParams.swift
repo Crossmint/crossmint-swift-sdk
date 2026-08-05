@@ -3,7 +3,7 @@ import Foundation
 
 public struct DelegatedSignerEntry: Encodable {
     public enum Signer: Encodable, Equatable {
-        case locator(String)  // e.g. "external-wallet:0x1234..."
+        case locator(SignerLocator)
         case device(publicKey: DevicePublicKey, name: String)
 
         public func encode(to encoder: Encoder) throws {

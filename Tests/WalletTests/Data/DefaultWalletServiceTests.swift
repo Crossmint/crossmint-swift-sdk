@@ -8,7 +8,7 @@ import Testing
 
 @Suite("Signer Registration API Errors", .tags(.unit))
 struct DefaultWalletServiceTests {
-    private let entry = DelegatedSignerEntry(signer: .locator("device:test-key"))
+    private let entry = DelegatedSignerEntry(signer: .locator(.device(publicKey: "test-key")))
 
     private func makeService(httpClient: HTTPClient) throws -> DefaultWalletService {
         let crossmintService = DefaultCrossmintService(
@@ -144,7 +144,7 @@ struct DefaultWalletServiceTests {
 
 @Suite("Signer Registration deployImmediately Body", .tags(.unit))
 struct DefaultWalletServiceDeployImmediatelyTests {
-    private let entry = DelegatedSignerEntry(signer: .locator("external-wallet:0x456"))
+    private let entry = DelegatedSignerEntry(signer: .locator(.externalWallet(address: "0x456")))
     private let typedSigner = PasskeySignerData(
         id: "pk-id",
         name: "alice",
@@ -284,7 +284,7 @@ struct DefaultWalletServiceSignerBodyTests {
     func encodesLocatorSignerAsPlainString() async throws {
         let capturedBody = SendableBox<Data?>(nil)
         let service = try makeService(capturingBodyInto: capturedBody)
-        let entry = DelegatedSignerEntry(signer: .locator("external-wallet:0x456"))
+        let entry = DelegatedSignerEntry(signer: .locator(.externalWallet(address: "0x456")))
 
         _ = try await service.addSigner(entry, chainType: .evm, chainName: "base-sepolia", deployImmediately: true)
 

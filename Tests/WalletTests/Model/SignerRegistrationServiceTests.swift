@@ -27,7 +27,7 @@ struct SignerRegistrationServiceTests {
         try await service.register(locator: "email:test@example.com", signer: signer)
 
         #expect(walletService.addSignerCallCount == 1)
-        #expect(walletService.lastAddSignerEntry?.signer == .locator("email:test@example.com"))
+        #expect(walletService.lastAddSignerEntry?.signer == .locator(.email("test@example.com")))
     }
 
     @Test
