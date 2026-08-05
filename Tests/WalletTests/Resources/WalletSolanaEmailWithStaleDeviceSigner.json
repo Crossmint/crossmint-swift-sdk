@@ -9,8 +9,13 @@
     },
     "delegatedSigners": [
       {
-        "locator": "device:staleKey123",
-        "signer": "device:staleKey123"
+        "type": "device",
+        "locator": "device:BC7k2LhzqCHurW97oXe/9YKI77h80kUwPy8pY2ot+7CWficNoWbwfHddNq4Itg304yMMpDCyHgZPxBJ0KH7Y9qc=",
+        "publicKey": {
+          "x": "21210727915620898270263577618335726360686289280229254613311030525442693771414",
+          "y": "57060420031112627645685127062353466079773194120131755218185211468686573500071"
+        },
+        "name": "iPhone 17 Pro"
       }
     ]
   },

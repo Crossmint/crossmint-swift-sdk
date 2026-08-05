@@ -5,6 +5,9 @@ import TestsUtils
 
 @testable import Wallet
 
+private let STALE_DEVICE_SIGNER_LOCATOR =
+    "device:BC7k2LhzqCHurW97oXe/9YKI77h80kUwPy8pY2ot+7CWficNoWbwfHddNq4Itg304yMMpDCyHgZPxBJ0KH7Y9qc="
+
 private func makeSolanaWallet(
     walletService: MockSmartWalletService,
     storage: MockDeviceSignerKeyStorage,
@@ -58,7 +61,7 @@ struct WalletDeviceSignerRecoveryTests {
 
         #expect(await wallet.needsRecovery() == false)
         #expect(walletService.removeSignerCallCount == 1)
-        #expect(walletService.removeSignerLastLocator == "device:staleKey123")
+        #expect(walletService.removeSignerLastLocator == STALE_DEVICE_SIGNER_LOCATOR)
     }
 
     @Test

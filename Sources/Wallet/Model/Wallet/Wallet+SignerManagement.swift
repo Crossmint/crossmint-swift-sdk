@@ -104,10 +104,11 @@ extension Wallet {
     }
 
     private func findStaleDeviceSignerLocator() -> String? {
-        guard let locator = initialDelegatedSigners.first?.locator, locator.hasPrefix("device:") else {
-            return nil
-        }
-        return locator
+        let deviceLocators = initialDelegatedSigners
+            .compactMap(\.locator)
+            .filter { $0.hasPrefix("device:") }
+        guard deviceLocators.count == 1 else { return nil }
+        return deviceLocators[0]
     }
 
     private func removeStaleDeviceSigner(_ locator: String) async {

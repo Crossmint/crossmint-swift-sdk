@@ -20,5 +20,22 @@
   },
   "id": "1d9e2f88-4c1b-4b6e-9a3f-6f9d1f2a7c55",
   "status": "success",
-  "createdAt": "2025-08-21T11:31:00.000Z"
+  "approvals": {
+    "required": 1,
+    "pending": [],
+    "submitted": [
+      {
+        "signature": "4vC7yGqzXhFxkPjW2mBd8uT5rN3aKse9Jf6QLnUwYpEHRcVSb1oiZgAtD",
+        "submittedAt": "2025-08-21T11:30:58.412Z",
+        "signer": {
+          "type": "email",
+          "email": "solana.user@example.com",
+          "locator": "email:solana.user@example.com"
+        },
+        "message": "3ScRUqvpU4ZEHKD23XBxWargqNCPoxhQagfjCYXefxcTmejFQxhdJYCyns"
+      }
+    ]
+  },
+  "createdAt": "2025-08-21T11:30:55.133Z",
+  "completedAt": "2025-08-21T11:31:00.000Z"
 }
