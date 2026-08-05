@@ -18,7 +18,7 @@ final class SignerRegistrationService: Sendable {
         signer: any Signer,
         deployImmediately: Bool = true
     ) async throws(WalletError) {
-        let entry = DelegatedSignerEntry(signer: locator)
+        let entry = DelegatedSignerEntry(signer: .locator(locator))
         let registration = try await smartWalletService.addSigner(
             entry,
             chainType: chainType,
