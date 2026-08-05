@@ -98,7 +98,9 @@ extension Wallet {
             throw error
         }
 
-        await removeStaleDeviceSigner(staleDeviceSignerLocator)
+        if let staleDeviceSignerLocator {
+            await removeStaleDeviceSigner(staleDeviceSignerLocator)
+        }
     }
 
     private func findStaleDeviceSignerLocator() -> String? {
@@ -108,8 +110,7 @@ extension Wallet {
         return locator
     }
 
-    private func removeStaleDeviceSigner(_ locator: String?) async {
-        guard let locator else { return }
+    private func removeStaleDeviceSigner(_ locator: String) async {
         do {
             _ = try await removeSigner(locator: locator)
             Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: ["signerLocator": locator])

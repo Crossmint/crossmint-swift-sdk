@@ -1,0 +1,24 @@
+{
+  "chainType": "solana",
+  "walletType": "smart",
+  "params": {
+    "transaction": "AXGuKpKt4zxavCq2dHNexivchTXKoEQMBmqr6ipcF4QPfTXJRJcBLhsCgcLRjBsfV44G4atgoq9NWffk27AvpPf1",
+    "signer": {
+      "type": "email",
+      "email": "solana.user@example.com",
+      "locator": "email:solana.user@example.com"
+    },
+    "feeConfig": {
+      "feePayer": "crossmint",
+      "amount": "15001"
+    }
+  },
+  "onChain": {
+    "transaction": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL",
+    "lastValidBlockHeight": 389278945,
+    "txId": "5EjD1jUfPXWcbmXBoZFqsX6ZmsbEZQ7F9jZK3v4mNAqvJKyfXwvW7cGgUyGvkQZWKRrHtnPBAiTAminx82Xibsov"
+  },
+  "id": "1d9e2f88-4c1b-4b6e-9a3f-6f9d1f2a7c55",
+  "status": "success",
+  "createdAt": "2025-08-21T11:31:00.000Z"
+}

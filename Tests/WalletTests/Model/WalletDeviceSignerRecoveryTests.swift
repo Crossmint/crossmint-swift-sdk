@@ -40,7 +40,29 @@ struct WalletDeviceSignerRecoveryTests {
     }
 
     @Test
-    func attemptsToRemoveTheStaleDeviceSignerAfterSuccessfulRecovery() async throws {
+    func removesTheStaleDeviceSignerAfterSuccessfulRecovery() async throws {
+        let walletService = MockSmartWalletService()
+        let removedTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        )
+        walletService.removeSignerResult = removedTransaction
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeSolanaWallet(
+            walletService: walletService,
+            storage: storage,
+            fileName: "WalletSolanaEmailWithStaleDeviceSigner"
+        )
+
+        try await wallet.recover()
+
+        #expect(await wallet.needsRecovery() == false)
+        #expect(walletService.removeSignerCallCount == 1)
+        #expect(walletService.removeSignerLastLocator == "device:staleKey123")
+    }
+
+    @Test
+    func completesRecoveryWhenStaleSignerRemovalFails() async throws {
         let walletService = MockSmartWalletService()
         let storage = MockDeviceSignerKeyStorage()
         let wallet = try makeSolanaWallet(
@@ -53,11 +75,10 @@ struct WalletDeviceSignerRecoveryTests {
 
         #expect(await wallet.needsRecovery() == false)
         #expect(walletService.removeSignerCallCount == 1)
-        #expect(walletService.lastRemoveSignerLocator == "device:staleKey123")
     }
 
     @Test
-    func doesNotAttemptRemovalWhenNoDeviceSignerWasPreviouslyRegistered() async throws {
+    func skipsRemovalWhenNoDeviceSignerWasPreviouslyRegistered() async throws {
         let walletService = MockSmartWalletService()
         let storage = MockDeviceSignerKeyStorage()
         let wallet = try makeSolanaWallet(walletService: walletService, storage: storage)
