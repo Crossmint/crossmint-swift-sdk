@@ -7,23 +7,16 @@ import SecureStorage
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
     private let secureWalletStorage: SecureWalletStorage
-    private let deviceSignerStorageOverride: (any DeviceSignerKeyStorage)?
+    private let deviceSignerKeyStorage: any DeviceSignerKeyStorage
 
-    public convenience init(
-        service: SmartWalletService,
-        secureWalletStorage: SecureWalletStorage
-    ) {
-        self.init(service: service, secureWalletStorage: secureWalletStorage, deviceSignerStorage: nil)
-    }
-
-    init(
+    public init(
         service: SmartWalletService,
         secureWalletStorage: SecureWalletStorage,
-        deviceSignerStorage: (any DeviceSignerKeyStorage)?
+        deviceSignerKeyStorage: any DeviceSignerKeyStorage
     ) {
         self.smartWalletService = service
         self.secureWalletStorage = secureWalletStorage
-        self.deviceSignerStorageOverride = deviceSignerStorage
+        self.deviceSignerKeyStorage = deviceSignerKeyStorage
 
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
@@ -402,14 +395,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
     private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
         guard options?.deviceSigner == true else { return nil }
-        if let deviceSignerStorageOverride {
-            return deviceSignerStorageOverride
-        }
-        let seStorage = SecureEnclaveKeyStorage()
-        if seStorage.isAvailable() {
-            return seStorage
-        }
-        return KeychainKeyStorage()
+        return deviceSignerKeyStorage
     }
 
     private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {

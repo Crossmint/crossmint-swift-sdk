@@ -20,7 +20,7 @@ struct DefaultCrossmintWalletsTests {
         DefaultCrossmintWallets(
             service: walletService,
             secureWalletStorage: StubSecureWalletStorage(),
-            deviceSignerStorage: keyStorage
+            deviceSignerKeyStorage: keyStorage
         )
     }
 
