@@ -1,6 +1,5 @@
 @_exported import CrossmintAuth
 import CrossmintService
-import DeviceSigner
 import Foundation
 import Logger
 import SecureStorage
@@ -39,8 +38,7 @@ final class CrossmintClientSDK: ClientSDK, Sendable {
                 crossmintService: crossmintService,
                 authManager: authManager
             ),
-            secureWalletStorage: secureWalletStorage,
-            deviceSignerKeyStorage: DeviceSignerKeyStorageFactory.make()
+            secureWalletStorage: secureWalletStorage
         )
     }
 }

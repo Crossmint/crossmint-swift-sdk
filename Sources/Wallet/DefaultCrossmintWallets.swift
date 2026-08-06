@@ -7,16 +7,13 @@ import SecureStorage
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
     private let secureWalletStorage: SecureWalletStorage
-    private let deviceSignerKeyStorage: any DeviceSignerKeyStorage
 
     public init(
         service: SmartWalletService,
-        secureWalletStorage: SecureWalletStorage,
-        deviceSignerKeyStorage: any DeviceSignerKeyStorage
+        secureWalletStorage: SecureWalletStorage
     ) {
         self.smartWalletService = service
         self.secureWalletStorage = secureWalletStorage
-        self.deviceSignerKeyStorage = deviceSignerKeyStorage
 
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
@@ -393,7 +390,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
     private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
         guard options?.deviceSigner == true else { return nil }
-        return deviceSignerKeyStorage
+        return DeviceSignerKeyStorageFactory.make()
     }
 
     private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {

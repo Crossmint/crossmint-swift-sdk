@@ -42,8 +42,7 @@ let package = Package(
                 "Wallet",
                 "CrossmintAuth",
                 "CrossmintCommonTypes",
-                "SecureStorage",
-                "DeviceSigner"
+                "SecureStorage"
             ],
             resources: [
                 .process("PrivacyInfo.xcprivacy")
