@@ -321,6 +321,11 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
     private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
         guard options?.deviceSigner == true else { return nil }
+        #if DEBUG
+        if let override = Self.deviceSignerKeyStorageOverride {
+            return override
+        }
+        #endif
         let seStorage = SecureEnclaveKeyStorage()
         if seStorage.isAvailable() {
             return seStorage
@@ -346,3 +351,11 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
     }
 }
+
+#if DEBUG
+extension DefaultCrossmintWallets {
+    /// Substitutes the Keychain/Secure Enclave key storage in unit tests,
+    /// where keychain calls fail with `errSecMissingEntitlement`.
+    nonisolated(unsafe) static var deviceSignerKeyStorageOverride: (any DeviceSignerKeyStorage)?
+}
+#endif
