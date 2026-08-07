@@ -354,8 +354,6 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
 
 #if DEBUG
 extension DefaultCrossmintWallets {
-    /// Substitutes the Keychain/Secure Enclave key storage in unit tests,
-    /// where keychain calls fail with `errSecMissingEntitlement`.
     nonisolated(unsafe) static var deviceSignerKeyStorageOverride: (any DeviceSignerKeyStorage)?
 }
 #endif
