@@ -6,10 +6,14 @@ final class MockDeviceSignerKeyStorage: DeviceSignerKeyStorage, @unchecked Senda
     private(set) var pendingKeys: Set<String> = []
     private(set) var deleteKeyCallCount = 0
     private(set) var deletePendingKeyCallCount = 0
+    var generateKeyError: DeviceSignerError?
 
     func isAvailable() -> Bool { true }
 
     func generateKey(address: String?) async throws(DeviceSignerError) -> String {
+        if let generateKeyError {
+            throw generateKeyError
+        }
         var rawKey = Data([0x04])
         rawKey.append(Data((0..<64).map { UInt8($0) }))
         let publicKeyBase64 = rawKey.base64EncodedString()
