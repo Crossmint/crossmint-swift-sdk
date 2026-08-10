@@ -49,7 +49,8 @@ open class Wallet: @unchecked Sendable {
         chain: Chain,
         address: Address,
         onTransactionStart: (() -> Void)?,
-        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         self.smartWalletService = smartWalletService
         self.owner = baseModel.owner
@@ -76,6 +77,7 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name
         )
+        self._deviceSignerUnsupported = deviceSignerUnsupported
         self.initialSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
             await self?.initDefaultSigner()

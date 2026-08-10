@@ -118,7 +118,7 @@ extension Wallet {
         do {
             switch config {
             case .device:
-                let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
+                let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
                 try await registerDeviceSigner(storage: storage, deployImmediately: deployImmediately)
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
@@ -158,7 +158,7 @@ extension Wallet {
     }
 
     internal func initDefaultSigner() async {
-        guard deviceSignerKeyStorage != nil else { return }
+        guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
 
         switch initialSigners.count {
         case 0:
@@ -188,7 +188,7 @@ extension Wallet {
                     "Use the recovery signer or another registered signer instead."
             )
         }
-        let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
+        let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
         guard await storage.getKey(address: address) != nil else {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
@@ -271,14 +271,6 @@ extension Wallet {
         case .unknown:
             EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         }
-    }
-
-    internal func makeDeviceSignerStorage() -> any DeviceSignerKeyStorage {
-        let seStorage = SecureEnclaveKeyStorage()
-        if seStorage.isAvailable() {
-            return seStorage
-        }
-        return KeychainKeyStorage()
     }
 
     // MARK: - Device signer registration

@@ -401,6 +401,9 @@ public enum LogEvents {
     /// Device signer skipped (not configured)
     public static let walletCreateDeviceSignerSkipped = "wallet.create.deviceSigner.skipped"
 
+    /// Provider rejected the device signer at creation; retrying once without it
+    public static let walletCreateDeviceSignerUnsupportedRetry = "wallet.create.deviceSigner.unsupportedRetry"
+
     // MARK: - addSigner Events
 
     /// Starting addSigner
