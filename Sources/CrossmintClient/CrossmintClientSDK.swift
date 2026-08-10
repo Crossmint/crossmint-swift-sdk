@@ -40,7 +40,7 @@ final class CrossmintClientSDK: ClientSDK, Sendable {
                 authManager: authManager
             ),
             secureWalletStorage: secureWalletStorage,
-            deviceSignerKeyStorage: DeviceSignerKeyStorageFactory.make()
+            deviceSignerKeyStorage: .default
         )
     }
 }

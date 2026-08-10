@@ -118,7 +118,7 @@ extension Wallet {
         do {
             switch config {
             case .device:
-                let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
+                let storage = deviceSignerKeyStorage ?? .default
                 try await registerDeviceSigner(storage: storage, deployImmediately: deployImmediately)
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
@@ -188,7 +188,7 @@ extension Wallet {
                     "Use the recovery signer or another registered signer instead."
             )
         }
-        let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
+        let storage = deviceSignerKeyStorage ?? .default
         guard await storage.getKey(address: address) != nil else {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
