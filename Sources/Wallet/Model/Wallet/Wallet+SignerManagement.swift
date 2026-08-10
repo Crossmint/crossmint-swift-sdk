@@ -222,13 +222,13 @@ extension Wallet {
     }
 
     private func activateApiKeySigner() async throws(WalletError) {
-        let locator = try SignerLocator(from: config.recovery.locator)
-        guard await isLocatorStringRegistered(locator.value) else { throw .signerNotRegistered(locator.value) }
+        let locator = config.recovery.locator
+        guard await isLocatorStringRegistered(locator) else { throw .signerNotRegistered(locator) }
         guard let apiKeyData = config.recovery as? ApiKeySignerData else {
             throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
         }
         selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
-        selectedSignerLocator = locator.value
+        selectedSignerLocator = locator
     }
 
     private func activatePasskeySigner(name: String, host: String) async throws(WalletError) {
