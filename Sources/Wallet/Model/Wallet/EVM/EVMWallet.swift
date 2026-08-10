@@ -30,7 +30,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         baseModel: WalletApiModel,
         evmChain: EVMChain,
         onTransactionStart: (() -> Void)? = nil,
-        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         self.evmChain = evmChain
         do {
@@ -41,7 +42,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 chain: evmChain.chain,
                 address: .evm(try EVMAddress(address: baseModel.address)),
                 onTransactionStart: onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerKeyStorage
+                deviceSignerKeyStorage: deviceSignerKeyStorage,
+                deviceSignerUnsupported: deviceSignerUnsupported
             )
         } catch {
             throw .walletInvalidType("The address \(baseModel.address) is not compatible with EVM")
