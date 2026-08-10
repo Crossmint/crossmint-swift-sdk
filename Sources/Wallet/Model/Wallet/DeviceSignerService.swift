@@ -124,11 +124,16 @@ final class DeviceSignerService: Sendable {
         }
     }
 
-    func locator(for storage: any DeviceSignerKeyStorage) async -> String? {
+    func publicKey(for storage: any DeviceSignerKeyStorage) async -> String? {
         guard let publicKeyBase64 = await storage.getKey(address: address),
               let rawKey = Data(base64Encoded: publicKeyBase64),
               rawKey.count == 65, rawKey[0] == 0x04 else { return nil }
-        return "device:\(publicKeyBase64)"
+        return publicKeyBase64
+    }
+
+    func locator(for storage: any DeviceSignerKeyStorage) async -> String? {
+        guard let publicKeyBase64 = await publicKey(for: storage) else { return nil }
+        return SignerLocator.device(publicKey: publicKeyBase64).value
     }
 
     func ensureRegistered(storage: any DeviceSignerKeyStorage, signer: any Signer) async throws(WalletError) {
@@ -162,7 +167,7 @@ final class DeviceSignerService: Sendable {
               rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
             throw WalletError.walletGeneric("Invalid device signer public key")
         }
-        return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
+        return DelegatedSignerEntry(signer: SignerLocator.device(publicKey: publicKeyBase64).value)
     }
 
 }

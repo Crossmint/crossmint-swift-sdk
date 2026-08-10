@@ -310,10 +310,11 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) -> String? {
         guard let signers = wallet.config.signers else { return nil }
         for entry in signers {
-            guard let locator = entry.locator, locator.hasPrefix("device:") else { continue }
-            let b64 = String(locator.dropFirst("device:".count))
-            if storage.hasKey(publicKeyBase64: b64) {
-                return b64
+            guard let locatorString = entry.locator,
+                  let locator = try? SignerLocator(from: locatorString),
+                  case .device(let publicKey) = locator else { continue }
+            if storage.hasKey(publicKeyBase64: publicKey) {
+                return publicKey
             }
         }
         return nil
@@ -334,7 +335,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
               rawKey.count == 65, rawKey[0] == 0x04 else {
             return false
         }
-        let locator = "device:\(keyBase64)"
+        let locator = SignerLocator.device(publicKey: keyBase64).value
         return wallet.config.signers?.contains(where: { $0.locator == locator }) ?? false
     }
 
@@ -343,6 +344,6 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
               rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
             throw WalletError.walletCreationFailed("Invalid device signer public key")
         }
-        return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
+        return DelegatedSignerEntry(signer: SignerLocator.device(publicKey: publicKeyBase64).value)
     }
 }

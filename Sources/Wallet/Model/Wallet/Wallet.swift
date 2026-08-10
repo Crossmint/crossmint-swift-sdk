@@ -115,16 +115,8 @@ open class Wallet: @unchecked Sendable {
     /// This method only returns a locator when the matching key is present in local secure storage.
     public func localDeviceSignerLocator() async -> SignerLocator? {
         guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return nil }
-        guard let locator = await deviceSignerService.locator(for: storage) else { return nil }
-        do {
-            return try SignerLocator(from: locator)
-        } catch {
-            Logger.smartWallet.error(LogEvents.walletLocalDeviceSignerLocatorParseError, attributes: [
-                "locator": locator,
-                "error": "\(error)"
-            ])
-            return nil
-        }
+        guard let publicKey = await deviceSignerService.publicKey(for: storage) else { return nil }
+        return .device(publicKey: publicKey)
     }
 
     /// Returns whether the given signer is approved and usable on this wallet's chain.
