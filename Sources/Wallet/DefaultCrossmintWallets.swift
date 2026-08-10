@@ -7,12 +7,12 @@ import SecureStorage
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
     private let secureWalletStorage: SecureWalletStorage
-    private let deviceSignerKeyStorage: any DeviceSignerKeyStorage
+    private let deviceSignerKeyStorage: DeviceSignerKeyStorage
 
     public init(
         service: SmartWalletService,
         secureWalletStorage: SecureWalletStorage,
-        deviceSignerKeyStorage: any DeviceSignerKeyStorage
+        deviceSignerKeyStorage: DeviceSignerKeyStorage
     ) {
         self.smartWalletService = service
         self.secureWalletStorage = secureWalletStorage
