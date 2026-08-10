@@ -194,10 +194,10 @@ extension Wallet {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
         deviceSignerKeyStorage = storage
-        guard let locator = await deviceSignerService.locator(for: storage) else {
+        guard let publicKey = await deviceSignerService.publicKey(for: storage) else {
             throw .walletGeneric("Failed to compute device signer locator")
         }
-        selectedSignerLocator = locator
+        selectedSignerLocator = SignerLocator.device(publicKey: publicKey).value
         _deviceSignerApproved = true
     }
 
