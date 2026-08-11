@@ -319,7 +319,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             }
         }
         let signerLocator: String?
-        if let active = selectedSignerLocator {
+        if let active = selectedSignerLocator?.value {
             signerLocator = active
         } else if let storage = deviceSignerKeyStorage {
             signerLocator = await deviceSignerService.publicKey(for: storage)

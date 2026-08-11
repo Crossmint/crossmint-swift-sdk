@@ -66,7 +66,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: "\(value ?? .zero)",
                 data: data ?? "0x",
                 chain: chain,
-                signer: selectedSignerLocator ?? self.config.recovery.locator
+                signer: selectedSignerLocator?.value ?? self.config.recovery.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -111,7 +111,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: selectedSignerLocator ?? self.config.recovery.locator
+                signer: selectedSignerLocator?.value ?? self.config.recovery.locator
             )
         ) else {
             throw .transactionGeneric("Unknown error")
