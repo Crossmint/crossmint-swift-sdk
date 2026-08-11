@@ -179,15 +179,15 @@ extension Wallet {
         }
     }
 
-    internal func initDefaultSigner() async {
+    internal func initDefaultSigner(delegatedSigners: [WalletDelegatedSignerConfigApiModel]) async {
         guard deviceSignerKeyStorage != nil else { return }
 
-        switch initialDelegatedSigners.count {
+        switch delegatedSigners.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locator = initialDelegatedSigners[0].locator,
+            guard let locator = delegatedSigners[0].locator,
                   locator.hasPrefix("device:"),
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
