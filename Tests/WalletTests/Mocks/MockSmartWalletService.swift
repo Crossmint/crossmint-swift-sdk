@@ -107,6 +107,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     // MARK: - removeSigner
 
     var removeSignerResult: (any TransactionApiModel)?
+    var removeSignerError: TransactionError?
     var removeSignerCallCount = 0
     var removeSignerLastLocator: String?
 
@@ -117,17 +118,27 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     ) async throws(TransactionError) -> any TransactionApiModel {
         removeSignerCallCount += 1
         removeSignerLastLocator = signerLocator
+        if let removeSignerError {
+            throw removeSignerError
+        }
         guard let removeSignerResult else {
             throw TransactionError.transactionGeneric("not implemented")
         }
         return removeSignerResult
     }
 
-    // MARK: - Unused stubs
+    // MARK: - getWallet
+
+    var getWalletResult: WalletApiModel?
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        throw WalletError.walletGeneric("not implemented")
+        guard let getWalletResult else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        return getWalletResult
     }
+
+    // MARK: - Unused stubs
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {
         throw WalletError.walletGeneric("not implemented")

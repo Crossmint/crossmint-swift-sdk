@@ -17,6 +17,7 @@ private func makeSolanaWallet(
         fileName: fileName,
         bundle: Bundle.module
     )
+    walletService.getWalletResult = baseModel
     return try SolanaWallet(
         smartWalletService: walletService,
         signer: MockSigner(),
@@ -67,6 +68,7 @@ struct WalletDeviceSignerRecoveryTests {
     @Test
     func completesRecoveryWhenStaleSignerRemovalFails() async throws {
         let walletService = MockSmartWalletService()
+        walletService.removeSignerError = .transactionGeneric("backend unavailable")
         let storage = MockDeviceSignerKeyStorage()
         let wallet = try makeSolanaWallet(
             walletService: walletService,
@@ -78,6 +80,23 @@ struct WalletDeviceSignerRecoveryTests {
 
         #expect(await wallet.needsRecovery() == false)
         #expect(walletService.removeSignerCallCount == 1)
+    }
+
+    @Test
+    func keepsTheStaleDeviceSignerWhenRegistrationFails() async throws {
+        let walletService = MockSmartWalletService()
+        walletService.addSignerError = .walletGeneric("registration exploded")
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeSolanaWallet(
+            walletService: walletService,
+            storage: storage,
+            fileName: "WalletSolanaEmailWithStaleDeviceSigner"
+        )
+
+        await #expect(throws: WalletError.self) {
+            try await wallet.recover()
+        }
+        #expect(walletService.removeSignerCallCount == 0)
     }
 
     @Test

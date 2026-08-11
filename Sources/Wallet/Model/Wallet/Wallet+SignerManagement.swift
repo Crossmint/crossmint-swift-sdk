@@ -84,7 +84,7 @@ extension Wallet {
             throw error
         }
 
-        let staleDeviceSignerLocator = findStaleDeviceSignerLocator()
+        let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
 
         do {
             try await registerDeviceSigner(storage: storage)
@@ -103,8 +103,9 @@ extension Wallet {
         }
     }
 
-    private func findStaleDeviceSignerLocator() -> String? {
-        let deviceLocators = initialDelegatedSigners
+    private func findStaleDeviceSignerLocator() async -> String? {
+        let currentSigners = (try? await signers()) ?? []
+        let deviceLocators = currentSigners
             .compactMap(\.locator)
             .filter { $0.hasPrefix("device:") }
         guard deviceLocators.count == 1 else { return nil }
