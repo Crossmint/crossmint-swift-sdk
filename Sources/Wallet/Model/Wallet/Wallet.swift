@@ -25,7 +25,7 @@ open class Wallet: @unchecked Sendable {
     var deviceSignerService: DeviceSignerService
     var signerRegistrationService: SignerRegistrationService
     var selectedSigner: (any Signer)?
-    var selectedSignerLocator: String?
+    var selectedSignerLocator: SignerLocator?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false
@@ -76,7 +76,8 @@ open class Wallet: @unchecked Sendable {
     /// Returns whether the given locator is registered as a signer on this wallet.
     ///
     /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
-    /// It returns `false` on any network error.
+    /// It returns `false` on any network error, and when the locator string does not parse
+    /// as a ``SignerLocator``.
     ///
     /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
     ///   `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
@@ -85,7 +86,8 @@ open class Wallet: @unchecked Sendable {
         message: "Use the SignerLocator overload instead of raw strings."
     )
     public func signerIsRegistered(_ locator: String) async -> Bool {
-        await isLocatorStringRegistered(locator)
+        guard let parsed = try? SignerLocator(from: locator) else { return false }
+        return await signerIsRegistered(parsed)
     }
 
     /// Returns whether the given locator is registered as a signer on this wallet.
@@ -93,10 +95,6 @@ open class Wallet: @unchecked Sendable {
     /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
     /// It returns `false` on any network error.
     public func signerIsRegistered(_ locator: SignerLocator) async -> Bool {
-        await isLocatorStringRegistered(locator.value)
-    }
-
-    func isLocatorStringRegistered(_ locator: String) async -> Bool {
         let walletModel: WalletApiModel
         do {
             walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
@@ -104,9 +102,12 @@ open class Wallet: @unchecked Sendable {
             return false
         }
         let delegatedMatch = walletModel.config.signers?
-            .contains(where: { $0.locator == locator }) ?? false
+            .compactMap(\.locator)
+            .compactMap { try? SignerLocator(from: $0) }
+            .contains(locator) ?? false
         if delegatedMatch { return true }
-        return walletModel.config.recovery.toDomain.locator == locator
+        let recovery = try? SignerLocator(from: walletModel.config.recovery.toDomain.locator)
+        return recovery == locator
     }
 
     /// Returns the locator of the device signer whose private key is on this device.

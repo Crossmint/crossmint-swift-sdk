@@ -228,33 +228,33 @@ extension Wallet {
         guard let publicKey = await deviceSignerService.publicKey(for: storage) else {
             throw .walletGeneric("Failed to compute device signer locator")
         }
-        selectedSignerLocator = SignerLocator.device(publicKey: publicKey).value
+        selectedSignerLocator = .device(publicKey: publicKey)
         _deviceSignerApproved = true
     }
 
     private func activateEmailSigner(email: String) async throws(WalletError) {
         let locator = SignerLocator.email(email)
-        guard await isLocatorStringRegistered(locator.value) else { throw .signerNotRegistered(locator.value) }
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         let newSigner: any Signer = await MainActor.run { makeEmailSigner(email: email) }
         selectedSigner = newSigner
-        selectedSignerLocator = locator.value
+        selectedSignerLocator = locator
     }
 
     private func activatePhoneSigner(phone: String) async throws(WalletError) {
         let locator = SignerLocator.phone(phone)
-        guard await isLocatorStringRegistered(locator.value) else { throw .signerNotRegistered(locator.value) }
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         throw .walletGeneric("Phone OTP signing is not yet supported on iOS.")
     }
 
     private func activateExternalWalletSigner(address: String) async throws(WalletError) {
         let locator = SignerLocator.externalWallet(address: address)
-        guard await isLocatorStringRegistered(locator.value) else { throw .signerNotRegistered(locator.value) }
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         throw .walletGeneric("External wallet signers must approve transactions outside of the SDK.")
     }
 
     private func activateApiKeySigner() async throws(WalletError) {
-        let locator = config.recovery.locator
-        guard await isLocatorStringRegistered(locator) else { throw .signerNotRegistered(locator) }
+        let locator = try SignerLocator(from: config.recovery.locator)
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         guard let apiKeyData = config.recovery as? ApiKeySignerData else {
             throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
         }
@@ -291,7 +291,7 @@ extension Wallet {
         let passkeySigner = PasskeySigner(name: name, host: host)
         _ = await passkeySigner.updateAdminSigner(passkeyData)
         selectedSigner = passkeySigner
-        selectedSignerLocator = locator.value
+        selectedSignerLocator = locator
     }
 
     @MainActor

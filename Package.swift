@@ -164,6 +164,7 @@ let package = Package(
                 .process("Resources/Transaction/RemoveSignerTransactionSuccess.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
                 .process("Resources/WalletEVMApiKey.json"),
+                .process("Resources/WalletEVMApiKeyWithDelegatedSigners.json"),
                 .process("Resources/WalletEVMEmail.json"),
                 .process("Resources/WalletSolanaEmail.json"),
                 .process("Resources/WalletSolanaEmailWithStaleDeviceSigner.json"),
