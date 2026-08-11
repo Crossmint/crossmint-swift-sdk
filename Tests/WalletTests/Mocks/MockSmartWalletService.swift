@@ -1,4 +1,6 @@
 import CrossmintCommonTypes
+import CrossmintService
+import Foundation
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
@@ -10,14 +12,17 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var addSignerError: WalletError?
     var addSignerCallCount = 0
     var lastAddSignerEntry: DelegatedSignerEntry?
+    var lastAddSignerDeployImmediately: Bool?
 
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         addSignerCallCount += 1
         lastAddSignerEntry = entry
+        lastAddSignerDeployImmediately = deployImmediately
         if let addSignerError {
             throw addSignerError
         }
@@ -27,13 +32,18 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     // MARK: - registerTypedSigner
 
     var registerTypedSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    var registerTypedSignerCallCount = 0
+    var lastRegisterTypedSignerDeployImmediately: Bool?
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        registerTypedSignerResult
+        registerTypedSignerCallCount += 1
+        lastRegisterTypedSignerDeployImmediately = deployImmediately
+        return registerTypedSignerResult
     }
 
     // MARK: - approveSignature
@@ -48,15 +58,42 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - createWallet
 
-    var createWalletResult: WalletApiModel?
-    var lastCreateWalletParams: CreateWalletParams?
+    var createWalletFixture: Data?
+    var createWalletErrors: [WalletError] = []
+    var createWalletCallCount = 0
+    var allCreateWalletParams: [CreateWalletParams] = []
+    var lastCreateWalletParams: CreateWalletParams? { allCreateWalletParams.last }
 
     func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
-        lastCreateWalletParams = request
-        guard let createWalletResult else {
+        createWalletCallCount += 1
+        allCreateWalletParams.append(request)
+        if !createWalletErrors.isEmpty {
+            throw createWalletErrors.removeFirst()
+        }
+        guard let createWalletFixture else {
             throw WalletError.walletGeneric("not implemented")
         }
-        return createWalletResult
+        do {
+            return try Self.walletModel(from: createWalletFixture, echoing: request.config.delegatedSigners)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")
+        }
+    }
+
+    /// Echoes the request's delegated signers into the returned wallet's config,
+    /// mirroring what the backend reports for a create-with-signers request.
+    private static func walletModel(
+        from fixture: Data,
+        echoing delegatedSigners: [DelegatedSignerEntry]?
+    ) throws -> WalletApiModel {
+        var json = try JSONSerialization.jsonObject(with: fixture) as? [String: Any] ?? [:]
+        if let delegatedSigners {
+            var config = json["config"] as? [String: Any] ?? [:]
+            config["delegatedSigners"] = delegatedSigners.map { ["locator": $0.signer, "signer": $0.signer] }
+            json["config"] = config
+        }
+        let patched = try JSONSerialization.data(withJSONObject: json)
+        return try DefaultJSONCoder().decode(WalletApiModel.self, from: patched)
     }
 
     // MARK: - fetchTransaction / signTransaction

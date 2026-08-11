@@ -30,7 +30,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         baseModel: WalletApiModel,
         evmChain: EVMChain,
         onTransactionStart: (() -> Void)? = nil,
-        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         self.evmChain = evmChain
         do {
@@ -41,7 +42,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 chain: evmChain.chain,
                 address: .evm(try EVMAddress(address: baseModel.address)),
                 onTransactionStart: onTransactionStart,
-                deviceSignerKeyStorage: deviceSignerKeyStorage
+                deviceSignerKeyStorage: deviceSignerKeyStorage,
+                deviceSignerUnsupported: deviceSignerUnsupported
             )
         } catch {
             throw .walletInvalidType("The address \(baseModel.address) is not compatible with EVM")
@@ -150,6 +152,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignMessageStart)
 
+        do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .signingFailed(underlyingError: error)
+        }
+
         let signer = signer ?? self.config.recovery
 
         do {
@@ -207,6 +215,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         isSmartWalletSignature: Bool = true
     ) async throws(SignatureError) -> String {
         Logger.smartWallet.info(LogEvents.evmSignTypedDataStart)
+
+        do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .signingFailed(underlyingError: error)
+        }
 
         let signer = signer ?? self.config.recovery
 
@@ -274,7 +288,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> any SignatureApiModel {
         var signature = try await super.smartWalletService.fetchSignature(signatureId, chainType: chainType)
 
-        while signature.status == "awaiting-approval" || signature.status == "pending" {
+        while [.awaitingApproval, .pending].contains(SignerStatus.from(signature.status)) {
             do {
                 try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
             } catch {

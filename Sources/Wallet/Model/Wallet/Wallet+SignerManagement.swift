@@ -26,29 +26,7 @@ extension Wallet {
     /// - Parameter config: The signer configuration to register.
     /// - Throws: ``WalletError`` if registration fails.
     public func addSigner(_ config: SignerConfig) async throws(WalletError) {
-        Logger.smartWallet.info(LogEvents.walletAddSignerStart)
-        await signerInitializationTask?.value
-        do {
-            switch config {
-            case .device:
-                let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
-                try await registerDeviceSigner(storage: storage)
-                deviceSignerKeyStorage = storage
-            case .email, .phone, .externalWallet, .apiKey:
-                guard let locator = config.locator else { return }
-                try await registerLocatorSigner(locator)
-            case .passkey(let name, let host):
-                try await registerPasskeySigner(name: name, host: host)
-            }
-            Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
-        } catch {
-            Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
-            if case .deviceSignerNotSupported = error {
-                _deviceSignerUnsupported = true
-                _needsRecovery = false
-            }
-            throw error
-        }
+        try await registerSigner(config, deployImmediately: true)
     }
 
     /// Re-registers the device signer on this device.
@@ -160,6 +138,34 @@ extension Wallet {
 
     // MARK: - Internal
 
+    internal func registerSigner(_ config: SignerConfig, deployImmediately: Bool) async throws(WalletError) {
+        Logger.smartWallet.info(LogEvents.walletAddSignerStart, attributes: [
+            "deployImmediately": "\(deployImmediately)"
+        ])
+        await signerInitializationTask?.value
+        do {
+            switch config {
+            case .device:
+                let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
+                try await registerDeviceSigner(storage: storage, deployImmediately: deployImmediately)
+                deviceSignerKeyStorage = storage
+            case .email, .phone, .externalWallet, .apiKey:
+                guard let locator = config.locator else { return }
+                try await registerLocatorSigner(locator, deployImmediately: deployImmediately)
+            case .passkey(let name, let host):
+                try await registerPasskeySigner(name: name, host: host, deployImmediately: deployImmediately)
+            }
+            Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
+            if case .deviceSignerNotSupported = error {
+                _deviceSignerUnsupported = true
+                _needsRecovery = false
+            }
+            throw error
+        }
+    }
+
     internal func updateSignerIfRequired() async -> any Signer {
         var updatedSigner: any Signer = signer
         if let passkey = config.recovery as? PasskeySignerData {
@@ -180,7 +186,7 @@ extension Wallet {
     }
 
     internal func initDefaultSigner(delegatedSigners: [WalletDelegatedSignerConfigApiModel]) async {
-        guard deviceSignerKeyStorage != nil else { return }
+        guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
 
         switch delegatedSigners.count {
         case 0:
@@ -210,7 +216,7 @@ extension Wallet {
                     "Use the recovery signer or another registered signer instead."
             )
         }
-        let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
+        let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
         guard await storage.getKey(address: address) != nil else {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
@@ -295,32 +301,40 @@ extension Wallet {
         }
     }
 
-    internal func makeDeviceSignerStorage() -> any DeviceSignerKeyStorage {
-        let seStorage = SecureEnclaveKeyStorage()
-        if seStorage.isAvailable() {
-            return seStorage
-        }
-        return KeychainKeyStorage()
-    }
-
     // MARK: - Device signer registration
 
-    private func registerDeviceSigner(storage: any DeviceSignerKeyStorage) async throws(WalletError) {
+    private func registerDeviceSigner(
+        storage: any DeviceSignerKeyStorage,
+        deployImmediately: Bool = true
+    ) async throws(WalletError) {
         let signer = await updateSignerIfRequired()
-        try await deviceSignerService.register(storage: storage, signer: signer)
+        try await deviceSignerService.register(storage: storage, signer: signer, deployImmediately: deployImmediately)
         _needsRecovery = false
         _deviceSignerApproved = true
     }
 
     // MARK: - Locator-based signer registration
 
-    private func registerLocatorSigner(_ locator: String) async throws(WalletError) {
+    private func registerLocatorSigner(_ locator: String, deployImmediately: Bool) async throws(WalletError) {
         let adminSigner = await updateSignerIfRequired()
-        try await signerRegistrationService.register(locator: locator, signer: adminSigner)
+        try await signerRegistrationService.register(
+            locator: locator,
+            signer: adminSigner,
+            deployImmediately: deployImmediately
+        )
     }
 
-    private func registerPasskeySigner(name: String, host: String) async throws(WalletError) {
+    private func registerPasskeySigner(
+        name: String,
+        host: String,
+        deployImmediately: Bool
+    ) async throws(WalletError) {
         let adminSigner = await updateSignerIfRequired()
-        try await signerRegistrationService.registerPasskey(name: name, host: host, adminSigner: adminSigner)
+        try await signerRegistrationService.registerPasskey(
+            name: name,
+            host: host,
+            adminSigner: adminSigner,
+            deployImmediately: deployImmediately
+        )
     }
 }

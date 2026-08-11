@@ -43,7 +43,8 @@ open class Wallet: @unchecked Sendable {
         chain: Chain,
         address: Address,
         onTransactionStart: (() -> Void)?,
-        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         self.smartWalletService = smartWalletService
         self.owner = baseModel.owner
@@ -65,6 +66,7 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name
         )
+        self._deviceSignerUnsupported = deviceSignerUnsupported
         let delegatedSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
             await self?.initDefaultSigner(delegatedSigners: delegatedSigners)
@@ -127,7 +129,7 @@ open class Wallet: @unchecked Sendable {
             return false
         }
         let status = registrationStatus(of: response)
-        let approved = status == "success" || status == "active"
+        let approved = status == .active
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
             "approved": "\(approved)"
         ])
@@ -137,12 +139,12 @@ open class Wallet: @unchecked Sendable {
     /// EVM approval state lives in the per-chain entries; Solana and Stellar approve through
     /// a transaction. An empty `chains` map means the signer was created together with the
     /// wallet and needed no approval.
-    private func registrationStatus(of response: AddDelegatedSignerResponse) -> String? {
+    private func registrationStatus(of response: AddDelegatedSignerResponse) -> SignerStatus? {
         if chain.chainType == .solana || chain.chainType == .stellar {
-            return response.transaction?.status ?? "success"
+            return SignerStatus.from(response.transaction?.status ?? "success")
         }
         guard let chains = response.chains, !chains.isEmpty else {
-            return "success"
+            return .active
         }
         return chains[chain.name]?.status
     }

@@ -398,6 +398,9 @@ public enum LogEvents {
     /// Device signer skipped (not configured)
     public static let walletCreateDeviceSignerSkipped = "wallet.create.deviceSigner.skipped"
 
+    /// Provider rejected the device signer at creation; retrying once without it
+    public static let walletCreateDeviceSignerUnsupportedRetry = "wallet.create.deviceSigner.unsupportedRetry"
+
     // MARK: - addSigner Events
 
     /// Starting addSigner
@@ -405,6 +408,9 @@ public enum LogEvents {
 
     /// addSigner succeeded
     public static let walletAddSignerSuccess = "wallet.addSigner.success"
+
+    /// Signer registration approval routed to the transaction, signature, or no-op flow
+    public static let walletAddSignerApprovalRouted = "wallet.addSigner.approvalRouted"
 
     /// addSigner failed
     public static let walletAddSignerError = "wallet.addSigner.error"

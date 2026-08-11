@@ -69,6 +69,18 @@ struct TransferBody: Encodable {
 }
 ```
 
+## Endpoint & API Layer Structure
+
+- One endpoint, one home: the `Endpoint` extension and its request body / response types live together in an api-per-endpoint folder, not inline in a growing service file.
+- Call sites use `Endpoint` extension helpers (e.g. `.walletSigners(chainType)`) rather than assembling paths and parameters ad hoc.
+- Auth is declared on the endpoint (e.g. `auth: .jwt`) and resolved centrally in request execution. Per-call `headers:` is reserved for endpoint-unique cases.
+- Services never return API/transport models to callers — map to a domain type at the HTTP boundary. Request and response are separate types; one model doing both jobs (with fields defaulted to keep the compiler quiet) is a smell.
+
+## Parsing and Building JSON
+
+- Parse with `JSONDecoder` into a defined `Decodable` type — never `JSONSerialization` dictionaries.
+- Never build JSON (or any structured format) by string concatenation.
+
 ## Simple Expressions Over Chains
 
 Split complex one-liners into named intermediate steps. Clarity beats brevity:
