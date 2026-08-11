@@ -141,11 +141,41 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return getSignerResult
     }
 
-    // MARK: - Unused stubs
+    // MARK: - removeSigner
+
+    var removeSignerResult: (any TransactionApiModel)?
+    var removeSignerError: TransactionError?
+    var removeSignerCallCount = 0
+    var removeSignerLastLocator: String?
+
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        removeSignerCallCount += 1
+        removeSignerLastLocator = signerLocator
+        if let removeSignerError {
+            throw removeSignerError
+        }
+        guard let removeSignerResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return removeSignerResult
+    }
+
+    // MARK: - getWallet
+
+    var getWalletResult: WalletApiModel?
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        throw WalletError.walletGeneric("not implemented")
+        guard let getWalletResult else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        return getWalletResult
     }
+
+    // MARK: - Unused stubs
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {
         throw WalletError.walletGeneric("not implemented")
@@ -180,14 +210,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
         throw SignatureError.unknown
-    }
-
-    func removeSigner(
-        _ signerLocator: String,
-        chainType: ChainType,
-        chainName: String
-    ) async throws(TransactionError) -> any TransactionApiModel {
-        throw TransactionError.transactionGeneric("not implemented")
     }
 
     func listTransfers(_ params: ListTransfersQueryParams) async throws(WalletError) -> TransferListResult {
