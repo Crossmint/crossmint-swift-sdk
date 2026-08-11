@@ -398,6 +398,9 @@ public enum LogEvents {
     /// Device signer skipped (not configured)
     public static let walletCreateDeviceSignerSkipped = "wallet.create.deviceSigner.skipped"
 
+    /// Provider rejected the device signer at creation; retrying once without it
+    public static let walletCreateDeviceSignerUnsupportedRetry = "wallet.create.deviceSigner.unsupportedRetry"
+
     // MARK: - addSigner Events
 
     /// Starting addSigner
@@ -439,6 +442,12 @@ public enum LogEvents {
 
     /// Recover fell back to the recovery signer — the wallet's provider does not support device signers
     public static let walletRecoverDeviceSignerUnsupported = "wallet.recover.deviceSignerUnsupported"
+
+    /// The stale device signer left over from before recovery was removed
+    public static let walletRecoverStaleSignerRemoved = "wallet.recover.staleSignerRemoved"
+
+    /// Removing the stale device signer left over from before recovery failed
+    public static let walletRecoverStaleSignerRemovalFailed = "wallet.recover.staleSignerRemovalFailed"
 
     // MARK: - registerDeviceSigner Events
 

@@ -1,4 +1,6 @@
 import CrossmintCommonTypes
+import CrossmintService
+import Foundation
 @testable import Wallet
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
@@ -56,15 +58,42 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     // MARK: - createWallet
 
-    var createWalletResult: WalletApiModel?
-    var lastCreateWalletParams: CreateWalletParams?
+    var createWalletFixture: Data?
+    var createWalletErrors: [WalletError] = []
+    var createWalletCallCount = 0
+    var allCreateWalletParams: [CreateWalletParams] = []
+    var lastCreateWalletParams: CreateWalletParams? { allCreateWalletParams.last }
 
     func createWallet(_ request: CreateWalletParams) async throws(WalletError) -> WalletApiModel {
-        lastCreateWalletParams = request
-        guard let createWalletResult else {
+        createWalletCallCount += 1
+        allCreateWalletParams.append(request)
+        if !createWalletErrors.isEmpty {
+            throw createWalletErrors.removeFirst()
+        }
+        guard let createWalletFixture else {
             throw WalletError.walletGeneric("not implemented")
         }
-        return createWalletResult
+        do {
+            return try Self.walletModel(from: createWalletFixture, echoing: request.config.delegatedSigners)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")
+        }
+    }
+
+    /// Echoes the request's delegated signers into the returned wallet's config,
+    /// mirroring what the backend reports for a create-with-signers request.
+    private static func walletModel(
+        from fixture: Data,
+        echoing delegatedSigners: [DelegatedSignerEntry]?
+    ) throws -> WalletApiModel {
+        var json = try JSONSerialization.jsonObject(with: fixture) as? [String: Any] ?? [:]
+        if let delegatedSigners {
+            var config = json["config"] as? [String: Any] ?? [:]
+            config["delegatedSigners"] = delegatedSigners.map { ["locator": $0.signer, "signer": $0.signer] }
+            json["config"] = config
+        }
+        let patched = try JSONSerialization.data(withJSONObject: json)
+        return try DefaultJSONCoder().decode(WalletApiModel.self, from: patched)
     }
 
     // MARK: - fetchTransaction / signTransaction
@@ -112,11 +141,41 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return getSignerResult
     }
 
-    // MARK: - Unused stubs
+    // MARK: - removeSigner
+
+    var removeSignerResult: (any TransactionApiModel)?
+    var removeSignerError: TransactionError?
+    var removeSignerCallCount = 0
+    var removeSignerLastLocator: String?
+
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        removeSignerCallCount += 1
+        removeSignerLastLocator = signerLocator
+        if let removeSignerError {
+            throw removeSignerError
+        }
+        guard let removeSignerResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return removeSignerResult
+    }
+
+    // MARK: - getWallet
+
+    var getWalletResult: WalletApiModel?
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        throw WalletError.walletGeneric("not implemented")
+        guard let getWalletResult else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        return getWalletResult
     }
+
+    // MARK: - Unused stubs
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {
         throw WalletError.walletGeneric("not implemented")
@@ -151,14 +210,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
         throw SignatureError.unknown
-    }
-
-    func removeSigner(
-        _ signerLocator: String,
-        chainType: ChainType,
-        chainName: String
-    ) async throws(TransactionError) -> any TransactionApiModel {
-        throw TransactionError.transactionGeneric("not implemented")
     }
 
     func listTransfers(_ params: ListTransfersQueryParams) async throws(WalletError) -> TransferListResult {

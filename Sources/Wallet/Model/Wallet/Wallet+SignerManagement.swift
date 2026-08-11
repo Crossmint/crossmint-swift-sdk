@@ -61,6 +61,9 @@ extension Wallet {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
+
+        let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
+
         do {
             try await registerDeviceSigner(storage: storage)
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
@@ -71,6 +74,34 @@ extension Wallet {
             }
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
+        }
+
+        if let staleDeviceSignerLocator {
+            await removeStaleDeviceSigner(staleDeviceSignerLocator)
+        }
+    }
+
+    private func findStaleDeviceSignerLocator() async -> SignerLocator? {
+        let currentSigners = (try? await signers()) ?? []
+        let deviceLocators = currentSigners
+            .compactMap(\.locator)
+            .compactMap { try? SignerLocator(from: $0) }
+            .filter { if case .device = $0 { true } else { false } }
+        guard deviceLocators.count == 1 else { return nil }
+        return deviceLocators[0]
+    }
+
+    private func removeStaleDeviceSigner(_ locator: SignerLocator) async {
+        do {
+            _ = try await removeSigner(locator: locator)
+            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [
+                "signerLocator": locator.value
+            ])
+        } catch {
+            Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
+                "signerLocator": locator.value,
+                "error": "\(error)"
+            ])
         }
     }
 
@@ -118,7 +149,7 @@ extension Wallet {
         do {
             switch config {
             case .device:
-                let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
+                let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
                 try await registerDeviceSigner(storage: storage, deployImmediately: deployImmediately)
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
@@ -157,15 +188,15 @@ extension Wallet {
         }
     }
 
-    internal func initDefaultSigner() async {
-        guard deviceSignerKeyStorage != nil else { return }
+    internal func initDefaultSigner(delegatedSigners: [WalletDelegatedSignerConfigApiModel]) async {
+        guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
 
-        switch initialDelegatedSigners.count {
+        switch delegatedSigners.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locatorString = initialDelegatedSigners[0].locator,
+            guard let locatorString = delegatedSigners[0].locator,
                   let locator = try? SignerLocator(from: locatorString),
                   case .device = locator,
                   let storage = deviceSignerKeyStorage else { return }
@@ -189,7 +220,7 @@ extension Wallet {
                     "Use the recovery signer or another registered signer instead."
             )
         }
-        let storage = deviceSignerKeyStorage ?? makeDeviceSignerStorage()
+        let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
         guard await storage.getKey(address: address) != nil else {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
@@ -275,14 +306,6 @@ extension Wallet {
         case .unknown:
             EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         }
-    }
-
-    internal func makeDeviceSignerStorage() -> any DeviceSignerKeyStorage {
-        let seStorage = SecureEnclaveKeyStorage()
-        if seStorage.isAvailable() {
-            return seStorage
-        }
-        return KeychainKeyStorage()
     }
 
     // MARK: - Device signer registration

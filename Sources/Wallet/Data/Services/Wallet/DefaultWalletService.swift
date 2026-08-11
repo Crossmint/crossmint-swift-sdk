@@ -31,7 +31,12 @@ struct DefaultWalletService: WalletService {
         let responseData = try await crossmintService.executeRequestForRawData(
             Endpoint.createMeWallet(body: bodyData),
             errorType: WalletError.self
-        )
+        ) { networkError in
+            mapToDeviceSignerNotSupportedErrorIfApplicable(
+                code: networkError.serviceErrorCode,
+                message: networkError.serviceErrorMessage
+            )
+        }
         let result = try decodeWalletOrThrow(responseData)
         Logger.smartWallet.info(LogEvents.apiCreateWalletSuccess, attributes: ["address": result.address])
         return result

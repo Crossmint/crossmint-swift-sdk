@@ -29,7 +29,6 @@ open class Wallet: @unchecked Sendable {
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false
-    var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 
     private let owner: Owner?
@@ -44,7 +43,8 @@ open class Wallet: @unchecked Sendable {
         chain: Chain,
         address: Address,
         onTransactionStart: (() -> Void)?,
-        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         self.smartWalletService = smartWalletService
         self.owner = baseModel.owner
@@ -66,9 +66,10 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name
         )
-        self.initialDelegatedSigners = baseModel.config.signers ?? []
+        self._deviceSignerUnsupported = deviceSignerUnsupported
+        let delegatedSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
-            await self?.initDefaultSigner()
+            await self?.initDefaultSigner(delegatedSigners: delegatedSigners)
         }
     }
 
