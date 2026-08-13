@@ -122,6 +122,24 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return fetchTransactionResult
     }
 
+    // MARK: - listTransactions
+
+    var listTransactionsResult: [Transaction] = []
+    var listTransactionsError: TransactionError?
+    var listTransactionsCallCount = 0
+    var lastListTransactionsRequest: ListTransactionsRequest?
+
+    func listTransactions(
+        _ request: ListTransactionsRequest
+    ) async throws(TransactionError) -> [Transaction] {
+        listTransactionsCallCount += 1
+        lastListTransactionsRequest = request
+        if let listTransactionsError {
+            throw listTransactionsError
+        }
+        return listTransactionsResult
+    }
+
     // MARK: - getSigner
 
     var getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)

@@ -1,6 +1,7 @@
 import CrossmintCommonTypes
 import CrossmintService
 import Http
+import Logger
 
 struct DefaultTransactionService: TransactionService {
     let crossmintService: CrossmintService
@@ -39,6 +40,32 @@ struct DefaultTransactionService: TransactionService {
         return try await executeTransactionRequest(endpoint: endpoint, mapping: request.chainType.mappingType)
     }
 
+    func listTransactions(
+        _ request: ListTransactionsRequest
+    ) async throws(TransactionError) -> [Transaction] {
+        Logger.smartWallet.info(LogEvents.apiListTransactionsStart, attributes: [
+            "chain": request.chainType.rawValue
+        ])
+        let endpoint = Endpoint.listTransactions(
+            chainType: request.chainType,
+            page: request.page,
+            perPage: request.perPage
+        )
+        do {
+            let transactions = try await executeTransactionListRequest(
+                endpoint: endpoint,
+                mapping: request.chainType.mappingType
+            )
+            Logger.smartWallet.info(LogEvents.apiListTransactionsSuccess, attributes: [
+                "count": "\(transactions.count)"
+            ])
+            return transactions
+        } catch {
+            Logger.smartWallet.warning(LogEvents.apiListTransactionsError, attributes: ["error": "\(error)"])
+            throw error
+        }
+    }
+
     private func executeTransactionRequest<T: WalletTypeTransactionMapping>(
         endpoint: Endpoint,
         mapping: T.Type
@@ -50,7 +77,24 @@ struct DefaultTransactionService: TransactionService {
         do {
             return try jsonCoder.decode(T.APIModel.self, from: data)
         } catch {
-            throw TransactionError.transactionGeneric("Failed to decode transaction response")
+            throw TransactionError.transactionGeneric("Failed to decode transaction response: \(error)")
         }
+    }
+
+    private func executeTransactionListRequest<T: WalletTypeTransactionMapping>(
+        endpoint: Endpoint,
+        mapping: T.Type
+    ) async throws(TransactionError) -> [Transaction] {
+        let response: TransactionListApiModel<T.APIModel> = try await crossmintService.executeRequest(
+            endpoint,
+            errorType: TransactionError.self
+        )
+        if !response.decodingErrors.isEmpty {
+            Logger.smartWallet.warning(LogEvents.apiListTransactionsRowDecodeError, attributes: [
+                "dropped": "\(response.decodingErrors.count)",
+                "errors": response.decodingErrors.map { "\($0)" }.joined(separator: "; ")
+            ])
+        }
+        return response.transactions.map { $0.toDomain() }
     }
 }

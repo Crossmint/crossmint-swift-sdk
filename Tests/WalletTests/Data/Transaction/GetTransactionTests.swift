@@ -95,7 +95,7 @@ struct GetTransactionTests {
             _ = try await service.fetchTransaction(.init(transactionId: "tx-1", chainType: .evm))
         } throws: { error in
             guard case .transactionGeneric(let message) = error as? TransactionError else { return false }
-            return message == "Failed to decode transaction response"
+            return message.hasPrefix("Failed to decode transaction response")
         }
     }
 
@@ -107,7 +107,7 @@ struct GetTransactionTests {
                 bundle: Bundle.module
             )
 
-            let transaction = try #require(model.toDomain(withService: MockSmartWalletService()))
+            let transaction = try #require(model.toDomain())
 
             #expect(transaction.id == "42bbb192-1707-43ba-bd21-6e96d28bdcc9")
             #expect(transaction.status == .success)
