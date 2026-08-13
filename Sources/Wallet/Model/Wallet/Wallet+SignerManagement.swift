@@ -82,8 +82,9 @@ extension Wallet {
     }
 
     private func findStaleDeviceSignerLocator() async -> String? {
-        let currentSigners = (try? await signers()) ?? []
-        let deviceLocators = currentSigners
+        let request = GetMeWalletRequest(chainType: chain.chainType)
+        guard let model = try? await smartWalletService.getWallet(request) else { return nil }
+        let deviceLocators = (model.config.signers ?? [])
             .compactMap(\.locator)
             .filter { $0.hasPrefix("device:") }
         guard deviceLocators.count == 1 else { return nil }
