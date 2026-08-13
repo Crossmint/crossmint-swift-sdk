@@ -7,6 +7,7 @@ final class MockDeviceSignerKeyStorage: DeviceSignerKeyStorage, @unchecked Senda
     private(set) var deleteKeyCallCount = 0
     private(set) var deletePendingKeyCallCount = 0
     var generateKeyError: DeviceSignerError?
+    var mapAddressToKeyError: DeviceSignerError?
 
     func isAvailable() -> Bool { true }
 
@@ -26,6 +27,9 @@ final class MockDeviceSignerKeyStorage: DeviceSignerKeyStorage, @unchecked Senda
     }
 
     func mapAddressToKey(address: String, publicKeyBase64: String) async throws(DeviceSignerError) {
+        if let mapAddressToKeyError {
+            throw mapAddressToKeyError
+        }
         pendingKeys.remove(publicKeyBase64)
         keysByAddress[address] = publicKeyBase64
     }

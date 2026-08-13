@@ -49,6 +49,25 @@ struct DefaultCrossmintWalletsTests {
     }
 
     @Test
+    func assignsAPendingDeviceKeyToAnExistingWalletOnGetWallet() async throws {
+        let pendingKeyBase64 = try await keyStorage.generateKey(address: nil)
+        walletService.getWalletFixture = try loadSolanaWalletFixture()
+        walletService.getWalletSignerLocators = ["device:\(pendingKeyBase64)"]
+
+        let wallet = try #require(
+            try await makeWallets().getWallet(
+                chain: Chain("solana"),
+                recovery: MockSigner(),
+                options: WalletOptions(deviceSigner: true)
+            )
+        )
+
+        #expect(await keyStorage.getKey(address: wallet.address) == pendingKeyBase64)
+        #expect(keyStorage.pendingKeys.isEmpty)
+        #expect(await wallet.needsRecovery() == false)
+    }
+
+    @Test
     func retriesOnceWithoutDeviceSignerWhenProviderRejectsIt() async throws {
         walletService.createWalletFixture = try loadSolanaWalletFixture()
         walletService.createWalletErrors = [.deviceSignerNotSupported("not supported")]
@@ -93,6 +112,22 @@ struct DefaultCrossmintWalletsTests {
         #expect(walletService.createWalletCallCount == 1)
         #expect(keyStorage.deletePendingKeyCallCount == 1)
         #expect(keyStorage.pendingKeys.isEmpty)
+    }
+
+    @Test
+    func discardsThePendingKeyWhenMappingItToTheWalletAddressFails() async throws {
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
+        keyStorage.mapAddressToKeyError = .storageError(-1)
+
+        let wallet = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recovery: MockSigner(),
+            options: WalletOptions(deviceSigner: true)
+        )
+
+        #expect(keyStorage.deletePendingKeyCallCount == 1)
+        #expect(keyStorage.pendingKeys.isEmpty)
+        #expect(await keyStorage.getKey(address: wallet.address) == nil)
     }
 
     @Test
