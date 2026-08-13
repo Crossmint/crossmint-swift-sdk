@@ -161,11 +161,13 @@ let package = Package(
                 .process("Resources/Transaction/CreateStellarTransactionResponse.json"),
                 .process("Resources/Transaction/SolanaSignerRegistrationAwaitingApproval.json"),
                 .process("Resources/Transaction/GetTransactionResponse.json"),
+                .process("Resources/Transaction/RemoveSignerTransactionSuccess.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
                 .process("Resources/WalletEVMApiKey.json"),
                 .process("Resources/WalletEVMEmail.json"),
                 .process("Resources/WalletSolanaEmail.json"),
                 .process("Resources/WalletSolanaSigners.json"),
+                .process("Resources/WalletSolanaEmailWithStaleDeviceSigner.json"),
                 .process("Resources/WalletEVMPhone.json"),
                 .process("Resources/Transfer/ListTransfersResponse.json")
             ],

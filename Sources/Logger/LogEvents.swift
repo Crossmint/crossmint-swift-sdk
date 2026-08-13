@@ -446,6 +446,12 @@ public enum LogEvents {
     /// Recover fell back to the recovery signer — the wallet's provider does not support device signers
     public static let walletRecoverDeviceSignerUnsupported = "wallet.recover.deviceSignerUnsupported"
 
+    /// The stale device signer left over from before recovery was removed
+    public static let walletRecoverStaleSignerRemoved = "wallet.recover.staleSignerRemoved"
+
+    /// Removing the stale device signer left over from before recovery failed
+    public static let walletRecoverStaleSignerRemovalFailed = "wallet.recover.staleSignerRemovalFailed"
+
     // MARK: - registerDeviceSigner Events
 
     /// Starting device signer registration

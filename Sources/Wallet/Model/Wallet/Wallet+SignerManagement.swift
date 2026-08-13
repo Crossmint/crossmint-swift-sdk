@@ -61,6 +61,9 @@ extension Wallet {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
+
+        let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
+
         do {
             try await registerDeviceSigner(storage: storage)
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
@@ -71,6 +74,31 @@ extension Wallet {
             }
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
+        }
+
+        if let staleDeviceSignerLocator {
+            await removeStaleDeviceSigner(staleDeviceSignerLocator)
+        }
+    }
+
+    private func findStaleDeviceSignerLocator() async -> String? {
+        let currentSigners = (try? await signers()) ?? []
+        let deviceLocators = currentSigners
+            .compactMap(\.locator)
+            .filter { $0.hasPrefix("device:") }
+        guard deviceLocators.count == 1 else { return nil }
+        return deviceLocators[0]
+    }
+
+    private func removeStaleDeviceSigner(_ locator: String) async {
+        do {
+            _ = try await removeSigner(locator: locator)
+            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: ["signerLocator": locator])
+        } catch {
+            Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
+                "signerLocator": locator,
+                "error": "\(error)"
+            ])
         }
     }
 
@@ -157,15 +185,15 @@ extension Wallet {
         }
     }
 
-    internal func initDefaultSigner() async {
+    internal func initDefaultSigner(delegatedSigners: [WalletSignerConfigApiModel]) async {
         guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
 
-        switch initialSigners.count {
+        switch delegatedSigners.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locator = initialSigners[0].locator,
+            guard let locator = delegatedSigners[0].locator,
                   locator.hasPrefix("device:"),
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
