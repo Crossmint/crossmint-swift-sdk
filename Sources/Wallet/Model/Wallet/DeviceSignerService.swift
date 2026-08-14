@@ -61,14 +61,13 @@ final class DeviceSignerService: Sendable {
         deployImmediately: Bool
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deviceName = await storage.deviceName
-        let entry: DelegatedSignerEntry
-        do {
-            entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64, name: deviceName)
-        } catch {
+        guard let publicKey = DevicePublicKey(publicKeyBase64: publicKeyBase64) else {
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+            let error = WalletError.walletGeneric("Invalid device signer public key")
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw error
         }
+        let entry = DelegatedSignerEntry(signer: .device(publicKey: publicKey, name: deviceName))
         do {
             return try await smartWalletService.addSigner(
                 entry,
@@ -157,16 +156,6 @@ final class DeviceSignerService: Sendable {
         return SignRequestApi(approvals: [
             .device(signer: currentLocator, signature: .init(r: r, s: s))
         ])
-    }
-
-    private func makeDelegatedSignerEntry(
-        publicKeyBase64: String,
-        name: String
-    ) throws(WalletError) -> DelegatedSignerEntry {
-        guard let publicKey = DevicePublicKey(publicKeyBase64: publicKeyBase64) else {
-            throw WalletError.walletGeneric("Invalid device signer public key")
-        }
-        return DelegatedSignerEntry(signer: .device(publicKey: publicKey, name: name))
     }
 
 }
