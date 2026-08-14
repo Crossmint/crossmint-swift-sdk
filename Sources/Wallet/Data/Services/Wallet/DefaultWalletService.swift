@@ -102,19 +102,6 @@ struct DefaultWalletService: WalletService {
 
     func getSigner(
         _ signerLocator: String,
-        chainType: ChainType,
-        chainName: String
-    ) async throws(WalletError) -> WalletSigner? {
-        let endpoint = Endpoint.getSigner(
-            chainType: chainType,
-            encodedLocator: encodedSignerLocator(signerLocator)
-        )
-        let model: SignerStateApiModel = try await crossmintService.executeRequest(endpoint, errorType: WalletError.self)
-        return model.toDomain(chainType: chainType, chainName: chainName)
-    }
-
-    func getSigner(
-        _ signerLocator: String,
         chainType: ChainType
     ) async throws(WalletError) -> AddDelegatedSignerResponse? {
         Logger.smartWallet.info(LogEvents.apiGetSignerStart, attributes: ["locator": signerLocator])

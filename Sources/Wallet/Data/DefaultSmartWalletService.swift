@@ -93,14 +93,6 @@ public final class DefaultSmartWalletService: SmartWalletService {
 
     public func getSigner(
         _ signerLocator: String,
-        chainType: ChainType,
-        chainName: String
-    ) async throws(WalletError) -> WalletSigner? {
-        try await walletService.getSigner(signerLocator, chainType: chainType, chainName: chainName)
-    }
-
-    public func getSigner(
-        _ signerLocator: String,
         chainType: ChainType
     ) async throws(WalletError) -> AddDelegatedSignerResponse? {
         try await walletService.getSigner(signerLocator, chainType: chainType)

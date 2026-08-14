@@ -37,12 +37,6 @@ public protocol WalletService: Sendable {
 
     func getSigner(
         _ signerLocator: String,
-        chainType: ChainType,
-        chainName: String
-    ) async throws(WalletError) -> WalletSigner?
-
-    func getSigner(
-        _ signerLocator: String,
         chainType: ChainType
     ) async throws(WalletError) -> AddDelegatedSignerResponse?
 }

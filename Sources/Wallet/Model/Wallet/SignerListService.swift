@@ -17,7 +17,7 @@ final class SignerListService: Sendable {
         Logger.smartWallet.info(LogEvents.walletSignersStart)
         do {
             let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chainType))
-            let locators = (model.config.signers ?? []).compactMap(\.locator)
+            let locators = (model.config.signers ?? []).map(\.locator)
             let signers = await states(for: locators)
             Logger.smartWallet.info(LogEvents.walletSignersSuccess, attributes: [
                 "count": "\(signers.count)"
@@ -32,18 +32,26 @@ final class SignerListService: Sendable {
     }
 
     /// Fetches each signer's state concurrently, so one broken signer doesn't fail the
-    /// whole list: a failed lookup yields ``SignerStatus/unknown``. Preserves the input order.
+    /// whole list: a failed lookup yields ``SignerStatus/unknown``. On EVM, signers without
+    /// a registration entry for the wallet's chain are omitted. Preserves the config order.
     private func states(for locators: [String]) async -> [WalletSigner] {
         await withTaskGroup(of: (Int, WalletSigner?).self) { group in
             for (index, locator) in locators.enumerated() {
                 group.addTask {
                     do {
-                        let signer = try await self.smartWalletService.getSigner(
+                        guard let response = try await self.smartWalletService.getSigner(
                             locator,
+                            chainType: self.chainType
+                        ) else {
+                            return (index, WalletSigner(locator: locator, status: .unknown))
+                        }
+                        guard let status = response.registrationStatus(
                             chainType: self.chainType,
                             chainName: self.chainName
-                        )
-                        return (index, signer)
+                        ) else {
+                            return (index, nil)
+                        }
+                        return (index, WalletSigner(locator: locator, status: status))
                     } catch {
                         Logger.smartWallet.warning(LogEvents.walletSignersStateLookupFailed, attributes: [
                             "locator": locator,
