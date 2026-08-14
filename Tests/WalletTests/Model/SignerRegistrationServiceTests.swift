@@ -24,7 +24,7 @@ struct SignerRegistrationServiceTests {
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
-        try await service.register(locator: "email:test@example.com", signer: signer)
+        try await service.register(locator: .email("test@example.com"), signer: signer)
 
         #expect(walletService.addSignerCallCount == 1)
         #expect(walletService.lastAddSignerEntry?.signer == .locator(.email("test@example.com")))
@@ -39,7 +39,7 @@ struct SignerRegistrationServiceTests {
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
-        try await service.register(locator: "email:test@example.com", signer: signer)
+        try await service.register(locator: .email("test@example.com"), signer: signer)
 
         #expect(walletService.approveSignatureCallCount == 0)
     }
@@ -60,7 +60,7 @@ struct SignerRegistrationServiceTests {
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
-        try await service.register(locator: "email:test@example.com", signer: signer)
+        try await service.register(locator: .email("test@example.com"), signer: signer)
 
         #expect(walletService.approveSignatureCallCount == 2)
         #expect(signer.initializeCallCount == 1)

@@ -153,7 +153,7 @@ extension Wallet {
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
                 guard let locator = config.locator else { return }
-                try await registerLocatorSigner(locator.value, deployImmediately: deployImmediately)
+                try await registerLocatorSigner(locator, deployImmediately: deployImmediately)
             case .passkey(let name, let host):
                 try await registerPasskeySigner(name: name, host: host, deployImmediately: deployImmediately)
             }
@@ -319,7 +319,7 @@ extension Wallet {
 
     // MARK: - Locator-based signer registration
 
-    private func registerLocatorSigner(_ locator: String, deployImmediately: Bool) async throws(WalletError) {
+    private func registerLocatorSigner(_ locator: SignerLocator, deployImmediately: Bool) async throws(WalletError) {
         let adminSigner = await updateSignerIfRequired()
         try await signerRegistrationService.register(
             locator: locator,

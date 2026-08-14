@@ -14,11 +14,11 @@ final class SignerRegistrationService: Sendable {
     }
 
     func register(
-        locator: String,
+        locator: SignerLocator,
         signer: any Signer,
         deployImmediately: Bool = true
     ) async throws(WalletError) {
-        let entry = DelegatedSignerEntry(signer: .locator(try SignerLocator(from: locator)))
+        let entry = DelegatedSignerEntry(signer: .locator(locator))
         let registration = try await smartWalletService.addSigner(
             entry,
             chainType: chainType,
