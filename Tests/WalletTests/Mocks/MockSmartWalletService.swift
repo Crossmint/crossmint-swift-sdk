@@ -74,22 +74,41 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             throw WalletError.walletGeneric("not implemented")
         }
         do {
-            return try Self.walletModel(from: createWalletFixture, echoing: request.config.delegatedSigners)
+            return try Self.walletModel(
+                from: createWalletFixture,
+                signerLocators: request.config.delegatedSigners?.map(\.signer)
+            )
         } catch {
             throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")
         }
     }
 
-    /// Echoes the request's delegated signers into the returned wallet's config,
-    /// mirroring what the backend reports for a create-with-signers request.
+    // MARK: - getWallet
+
+    var getWalletFixture: Data?
+    var getWalletSignerLocators: [String]?
+
+    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
+        guard let getWalletFixture else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        do {
+            return try Self.walletModel(from: getWalletFixture, signerLocators: getWalletSignerLocators)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode getWallet fixture: \(error)")
+        }
+    }
+
+    /// Writes the given signer locators into the fixture wallet's config,
+    /// mirroring what the backend reports for a wallet with delegated signers.
     private static func walletModel(
         from fixture: Data,
-        echoing delegatedSigners: [DelegatedSignerEntry]?
+        signerLocators: [String]?
     ) throws -> WalletApiModel {
         var json = try JSONSerialization.jsonObject(with: fixture) as? [String: Any] ?? [:]
-        if let delegatedSigners {
+        if let signerLocators {
             var config = json["config"] as? [String: Any] ?? [:]
-            config["delegatedSigners"] = delegatedSigners.map { ["locator": $0.signer, "signer": $0.signer] }
+            config["delegatedSigners"] = signerLocators.map { ["locator": $0, "signer": $0] }
             json["config"] = config
         }
         let patched = try JSONSerialization.data(withJSONObject: json)
@@ -180,17 +199,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             throw TransactionError.transactionGeneric("not implemented")
         }
         return removeSignerResult
-    }
-
-    // MARK: - getWallet
-
-    var getWalletResult: WalletApiModel?
-
-    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        guard let getWalletResult else {
-            throw WalletError.walletGeneric("not implemented")
-        }
-        return getWalletResult
     }
 
     // MARK: - Unused stubs

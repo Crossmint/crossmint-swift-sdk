@@ -7,13 +7,16 @@ import SecureStorage
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
     private let secureWalletStorage: SecureWalletStorage
+    private let deviceSignerKeyStorage: DeviceSignerKeyStorage
 
     public init(
         service: SmartWalletService,
-        secureWalletStorage: SecureWalletStorage
+        secureWalletStorage: SecureWalletStorage,
+        deviceSignerKeyStorage: DeviceSignerKeyStorage
     ) {
         self.smartWalletService = service
         self.secureWalletStorage = secureWalletStorage
+        self.deviceSignerKeyStorage = deviceSignerKeyStorage
 
         Logger.smartWallet.info(LogEvents.sdkInitialized)
     }
@@ -30,7 +33,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             "signerType": recovery.signerType.rawValue
         ])
 
-        let deviceSignerStorage = makeDeviceSignerStorage(options: options)
+        let deviceSignerStorage = self.deviceSignerStorage(for: options)
         let walletApiModel: WalletApiModel
         do {
             walletApiModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
@@ -76,7 +79,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) async throws(WalletError) -> Wallet {
         try assertValid(chain)
 
-        let deviceSignerStorage = makeDeviceSignerStorage(options: options)
+        let deviceSignerStorage = self.deviceSignerStorage(for: options)
         let creation = try await createWalletApiModel(
             signer: recovery,
             chainType: chain.chainType,
@@ -388,9 +391,9 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         return nil
     }
 
-    private func makeDeviceSignerStorage(options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
+    private func deviceSignerStorage(for options: WalletOptions?) -> (any DeviceSignerKeyStorage)? {
         guard options?.deviceSigner == true else { return nil }
-        return DeviceSignerKeyStorageFactory.make()
+        return deviceSignerKeyStorage
     }
 
     private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {

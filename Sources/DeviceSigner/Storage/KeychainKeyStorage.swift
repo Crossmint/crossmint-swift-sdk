@@ -14,8 +14,8 @@ import Security
 /// Keys are stored as Keychain-protected items rather than in dedicated hardware. This is the
 /// fallback used when Secure Enclave is unavailable.
 ///
-/// ``DefaultCrossmintWallets`` selects ``SecureEnclaveKeyStorage`` when Secure Enclave is
-/// available and falls back to this implementation when ``SecureEnclave/isAvailable`` returns `false`.
+/// The `DeviceSignerKeyStorage.default` property selects ``SecureEnclaveKeyStorage`` when
+/// Secure Enclave is available and falls back to this implementation when it is not.
 public final class KeychainKeyStorage: DeviceSignerKeyStorage {
     private let biometricPolicy: BiometricPolicy
     private let keychain = DeviceSignerKeychainStorage()

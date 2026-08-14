@@ -13,11 +13,12 @@ private func makeSolanaWallet(
     storage: MockDeviceSignerKeyStorage,
     fileName: String = "WalletSolanaEmail"
 ) throws -> SolanaWallet {
+    let fixtureUrl = try #require(Bundle.module.url(forResource: fileName, withExtension: "json"))
+    walletService.getWalletFixture = try Data(contentsOf: fixtureUrl)
     let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
         fileName: fileName,
         bundle: Bundle.module
     )
-    walletService.getWalletResult = baseModel
     return try SolanaWallet(
         smartWalletService: walletService,
         signer: MockSigner(),
