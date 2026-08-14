@@ -98,7 +98,7 @@ public struct SolanaTransactionApiModel: TransactionApiModel {
     public let error: TransactionErrorApiModel?
     public let sendParams: SendParams?
 
-    public func toDomain(withService _: SmartWalletService) -> Transaction? {
+    public func toDomain() -> Transaction {
         Transaction(
             id: id,
             status: status.toDomain,

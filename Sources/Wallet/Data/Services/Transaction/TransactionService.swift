@@ -10,4 +10,8 @@ public protocol TransactionService: Sendable {
     func fetchTransaction(
         _ request: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel
+
+    func listTransactions(
+        _ request: ListTransactionsRequest
+    ) async throws(TransactionError) -> [Transaction]
 }

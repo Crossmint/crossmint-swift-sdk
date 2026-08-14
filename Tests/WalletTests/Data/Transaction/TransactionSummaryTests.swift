@@ -11,7 +11,7 @@ struct TransactionSummaryTests {
             fileName: "GetTransactionResponse",
             bundle: Bundle.module
         )
-        let transaction = try #require(model.toDomain(withService: MockSmartWalletService()))
+        let transaction = try #require(model.toDomain())
 
         let summary = try #require(transaction.toCompleted()).summary
 

@@ -118,6 +118,12 @@ public final class DefaultSmartWalletService: SmartWalletService {
         try await transactionService.fetchTransaction(request)
     }
 
+    public func listTransactions(
+        _ request: ListTransactionsRequest
+    ) async throws(TransactionError) -> [Transaction] {
+        try await transactionService.listTransactions(request)
+    }
+
     // MARK: - TransferService
 
     public func transferToken(

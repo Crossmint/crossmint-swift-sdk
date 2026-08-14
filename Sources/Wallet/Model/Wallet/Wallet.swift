@@ -29,7 +29,6 @@ open class Wallet: @unchecked Sendable {
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false
-    var initialDelegatedSigners: [WalletDelegatedSignerConfigApiModel] = []
     var signerInitializationTask: Task<Void, Never>?
 
     private let owner: Owner?
@@ -68,9 +67,9 @@ open class Wallet: @unchecked Sendable {
             chainName: chain.name
         )
         self._deviceSignerUnsupported = deviceSignerUnsupported
-        self.initialDelegatedSigners = baseModel.config.signers ?? []
+        let delegatedSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
-            await self?.initDefaultSigner()
+            await self?.initDefaultSigner(delegatedSigners: delegatedSigners)
         }
     }
 

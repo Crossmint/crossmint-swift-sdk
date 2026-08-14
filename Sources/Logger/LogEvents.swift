@@ -180,6 +180,15 @@ public enum LogEvents {
     /// Send failed
     public static let walletSendError = "wallet.send.error"
 
+    /// Listing wallet transactions
+    public static let walletListTransactionsStart = "wallet.listTransactions.start"
+
+    /// Transactions listed successfully
+    public static let walletListTransactionsSuccess = "wallet.listTransactions.success"
+
+    /// Failed to list transactions
+    public static let walletListTransactionsError = "wallet.listTransactions.error"
+
     /// Getting wallet balances
     public static let walletBalancesStart = "wallet.balances.start"
 
@@ -206,6 +215,9 @@ public enum LogEvents {
 
     /// Staging fund failed
     public static let walletStagingFundError = "wallet.stagingFund.error"
+
+    /// Chain type was unknown; transaction mapping defaulted to EVM
+    public static let transactionChainTypeUnknownDefaultedToEVM = "wallet.transaction.unknownChainTypeDefaultedToEVM"
 
     // MARK: - API Level Events
 
@@ -250,6 +262,18 @@ public enum LogEvents {
 
     /// API: List transfers successful
     public static let apiListTransfersSuccess = "wallets.api.listTransfers.success"
+
+    /// API: Listing transactions
+    public static let apiListTransactionsStart = "wallets.api.listTransactions"
+
+    /// API: List transactions failed
+    public static let apiListTransactionsError = "wallets.api.listTransactions.error"
+
+    /// API: List transactions successful
+    public static let apiListTransactionsSuccess = "wallets.api.listTransactions.success"
+
+    /// API: Transaction rows dropped because they failed to decode
+    public static let apiListTransactionsRowDecodeError = "wallets.api.listTransactions.rowDecodeError"
 
     // MARK: - SDK Initialization
 
@@ -442,6 +466,12 @@ public enum LogEvents {
 
     /// Recover fell back to the recovery signer — the wallet's provider does not support device signers
     public static let walletRecoverDeviceSignerUnsupported = "wallet.recover.deviceSignerUnsupported"
+
+    /// The stale device signer left over from before recovery was removed
+    public static let walletRecoverStaleSignerRemoved = "wallet.recover.staleSignerRemoved"
+
+    /// Removing the stale device signer left over from before recovery failed
+    public static let walletRecoverStaleSignerRemovalFailed = "wallet.recover.staleSignerRemovalFailed"
 
     // MARK: - registerDeviceSigner Events
 

@@ -141,6 +141,24 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return fetchTransactionResult
     }
 
+    // MARK: - listTransactions
+
+    var listTransactionsResult: [Transaction] = []
+    var listTransactionsError: TransactionError?
+    var listTransactionsCallCount = 0
+    var lastListTransactionsRequest: ListTransactionsRequest?
+
+    func listTransactions(
+        _ request: ListTransactionsRequest
+    ) async throws(TransactionError) -> [Transaction] {
+        listTransactionsCallCount += 1
+        lastListTransactionsRequest = request
+        if let listTransactionsError {
+            throw listTransactionsError
+        }
+        return listTransactionsResult
+    }
+
     // MARK: - getSigner
 
     var getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)
@@ -158,6 +176,29 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             throw getSignerError
         }
         return getSignerResult
+    }
+
+    // MARK: - removeSigner
+
+    var removeSignerResult: (any TransactionApiModel)?
+    var removeSignerError: TransactionError?
+    var removeSignerCallCount = 0
+    var removeSignerLastLocator: String?
+
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        removeSignerCallCount += 1
+        removeSignerLastLocator = signerLocator
+        if let removeSignerError {
+            throw removeSignerError
+        }
+        guard let removeSignerResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return removeSignerResult
     }
 
     // MARK: - Unused stubs
@@ -195,14 +236,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
         throw SignatureError.unknown
-    }
-
-    func removeSigner(
-        _ signerLocator: String,
-        chainType: ChainType,
-        chainName: String
-    ) async throws(TransactionError) -> any TransactionApiModel {
-        throw TransactionError.transactionGeneric("not implemented")
     }
 
     func listTransfers(_ params: ListTransfersQueryParams) async throws(WalletError) -> TransferListResult {
