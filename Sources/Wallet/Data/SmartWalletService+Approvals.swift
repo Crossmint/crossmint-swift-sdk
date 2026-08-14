@@ -3,13 +3,9 @@ import CrossmintCommonTypes
 extension SmartWalletService {
     /// Fetches a transaction and returns it as the domain model.
     func transaction(withId id: String, chainType: ChainType) async throws(TransactionError) -> Transaction {
-        let transactionModel = try await fetchTransaction(
+        try await fetchTransaction(
             .init(transactionId: id, chainType: chainType)
-        )
-        guard let transaction = transactionModel.toDomain(withService: self) else {
-            throw TransactionError.transactionGeneric("Failed to decode transaction response")
-        }
-        return transaction
+        ).toDomain()
     }
 
     /// Signs the approval message with the given signer and submits it for the transaction.

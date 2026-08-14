@@ -37,4 +37,15 @@ extension Endpoint {
             headers: headers
         )
     }
+
+    static func listTransactions(chainType: ChainType, page: Int, perPage: Int) -> Endpoint {
+        Endpoint(
+            path: "/2025-06-09/wallets/me:\(chainType.rawValue)/transactions",
+            method: .get,
+            queryItems: [
+                .init(name: "page", value: "\(page)"),
+                .init(name: "perPage", value: "\(perPage)")
+            ]
+        )
+    }
 }

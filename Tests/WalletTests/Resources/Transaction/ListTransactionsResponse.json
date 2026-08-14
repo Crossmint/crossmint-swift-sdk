@@ -1,0 +1,99 @@
+{
+  "transactions": [
+    {
+      "id": "42bbb192-1707-43ba-bd21-6e96d28bdcc9",
+      "walletType": "smart",
+      "status": "success",
+      "params": {
+        "calls": [
+          {
+            "to": "0xe9a353699Cb655265B633b03479890f9ACDF0Bd0",
+            "value": "1000000000000000000",
+            "data": "0x"
+          }
+        ],
+        "chain": "base-sepolia",
+        "signer": {
+          "type": "external-wallet",
+          "id": "0x20112298f0fb356fb914fb00548b2c86083126cc",
+          "locator": "external-wallet:0x20112298f0fb356fb914fb00548b2c86083126cc"
+        }
+      },
+      "onChain": {
+        "userOperation": {
+          "sender": "0x26Ca6fdA5E2c71A8E24e75eC40b897e2a5053515",
+          "nonce": "0x845adb2c711129d4f3966735ed98a9f09fc4ce5700190000000000000000",
+          "callData": "0xe9ae5c53",
+          "callGasLimit": "0x10296",
+          "verificationGasLimit": "0x4fe24",
+          "preVerificationGas": "0xe824",
+          "maxFeePerGas": "0x116b5a4d",
+          "maxPriorityFeePerGas": "0x18ecdc",
+          "paymaster": "0x0000000000000039cd5e8aE05257CE51C473ddd1",
+          "paymasterVerificationGasLimit": "0x912d",
+          "paymasterData": "0x00000067da8fcc",
+          "paymasterPostOpGasLimit": "0x1",
+          "signature": "0xfffffffffffffffffffffffffffffff01c"
+        },
+        "userOperationHash": "0x40af6b30a067edc628b941cccf16bc95e490df4a55165ba81492db72f2792617",
+        "txId": "0x9f52ec9b7e3a6a5c6a4d2f1f0f7f3f0a4a1b2c3d4e5f60718293a4b5c6d7e8f9",
+        "explorerLink": "https://sepolia.basescan.org/tx/0x9f52ec9b"
+      },
+      "approvals": {
+        "pending": [],
+        "submitted": [
+          {
+            "signature": "0x4e5df5f3f8fe3db359229bf1c3a18f150206f0d2",
+            "submittedAt": "2025-03-19T09:25:08.716Z",
+            "signer": {
+              "type": "external-wallet",
+              "id": "0x20112298f0fb356fb914fb00548b2c86083126cc",
+              "locator": "external-wallet:0x20112298f0fb356fb914fb00548b2c86083126cc"
+            },
+            "message": "0x40af6b30a067edc628b941cccf16bc95e490df4a55165ba81492db72f2792617"
+          }
+        ]
+      },
+      "createdAt": "2025-03-19T09:25:08.575Z"
+    },
+    {
+      "id": "7c1de1a3-52d8-4e0f-9b34-1e93a2b6f0aa",
+      "walletType": "smart",
+      "status": "pending",
+      "params": {
+        "calls": [
+          {
+            "to": "0x1234567890123456789012345678901234567890",
+            "value": "0",
+            "data": "0xa9059cbb"
+          }
+        ],
+        "chain": "base-sepolia",
+        "signer": {
+          "type": "external-wallet",
+          "id": "0x20112298f0fb356fb914fb00548b2c86083126cc",
+          "locator": "external-wallet:0x20112298f0fb356fb914fb00548b2c86083126cc"
+        }
+      },
+      "onChain": {
+        "userOperation": {
+          "sender": "0x26Ca6fdA5E2c71A8E24e75eC40b897e2a5053515",
+          "nonce": "0x845adb2c711129d4f3966735ed98a9f09fc4ce5700190000000000000001",
+          "callData": "0xe9ae5c53aa",
+          "callGasLimit": "0x11000",
+          "verificationGasLimit": "0x50000",
+          "preVerificationGas": "0xe900",
+          "maxFeePerGas": "0x120b5a4d",
+          "maxPriorityFeePerGas": "0x19ecdc",
+          "signature": "0xffffffffffffffffffffffffffffffff1b"
+        },
+        "userOperationHash": "0x5b0c6e34a067edc628b941cccf16bc95e490df4a55165ba81492db72f2790000"
+      },
+      "approvals": {
+        "pending": [],
+        "submitted": []
+      },
+      "createdAt": "2025-03-20T11:02:44.120Z"
+    }
+  ]
+}

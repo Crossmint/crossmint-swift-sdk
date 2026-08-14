@@ -45,6 +45,46 @@ extension Wallet {
         }
     }
 
+    /// Fetches a page of the transaction history for this wallet, ordered most recent first.
+    ///
+    /// - Parameters:
+    ///   - page: One-based page index.
+    ///   - transactionsPerPage: Number of transactions per page.
+    /// - Returns: The wallet's ``Transaction`` list for the requested page.
+    ///
+    /// - Throws: ``TransactionError`` if the request fails.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let transactions = try await wallet.listTransactions(page: 1, transactionsPerPage: 20)
+    ///
+    /// for transaction in transactions {
+    ///     print("\(transaction.id): \(transaction.status)")
+    /// }
+    /// ```
+    public func listTransactions(page: Int, transactionsPerPage: Int) async throws(TransactionError) -> [Transaction] {
+        Logger.smartWallet.debug(LogEvents.walletListTransactionsStart, attributes: [
+            "page": "\(page)",
+            "perPage": "\(transactionsPerPage)"
+        ])
+
+        do {
+            let transactions = try await smartWalletService.listTransactions(
+                .init(chainType: chain.chainType, page: page, perPage: transactionsPerPage)
+            )
+            Logger.smartWallet.debug(LogEvents.walletListTransactionsSuccess, attributes: [
+                "count": "\(transactions.count)"
+            ])
+            return transactions
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletListTransactionsError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
+    }
+
     /// Fetches a transaction by its ID.
     ///
     /// Use this to check the current status of a transaction, including its
@@ -102,9 +142,7 @@ extension Wallet {
                 chainType: chain.chainType,
                 chainName: chain.name
             )
-            guard let transaction = transactionModel.toDomain(withService: smartWalletService) else {
-                throw TransactionError.transactionGeneric("Failed to parse remove signer response")
-            }
+            let transaction = transactionModel.toDomain()
             guard let result = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
@@ -316,7 +354,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             idempotencyKey: idempotencyKey
         )
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
-            .toDomain(withService: smartWalletService)
+            .toDomain()
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
@@ -363,12 +401,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     // MARK: - Private helpers
 
     private func transaction(withId id: String) async throws(TransactionError) -> Transaction {
-        guard let transaction = try await smartWalletService.fetchTransaction(
-                .init(transactionId: id, chainType: chain.chainType),
-        ).toDomain(withService: smartWalletService) else {
-            throw TransactionError.transactionGeneric("Unknown error")
-        }
-        return transaction
+        try await smartWalletService.fetchTransaction(
+            .init(transactionId: id, chainType: chain.chainType)
+        ).toDomain()
     }
 
     private func approveTransaction(
@@ -462,7 +497,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     ) async throws(TransactionError) -> Transaction? {
         try await smartWalletService.createTransaction(
             .init(request: transactionRequest, chainType: chain.chainType)
-        ).toDomain(withService: smartWalletService)
+        ).toDomain()
     }
 
     private func signTransactionIfRequired(
@@ -498,13 +533,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 throw .userCancelled
             }
 
-            guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
-                .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
-            ).toDomain(withService: smartWalletService) else {
-                throw TransactionError.transactionGeneric("Unknown error")
-            }
-
-            updatedTransaction = fetchedTransaction
+            updatedTransaction = try await smartWalletService.fetchTransaction(
+                .init(transactionId: updatedTransaction.id, chainType: chain.chainType)
+            ).toDomain()
         }
 
         return updatedTransaction
