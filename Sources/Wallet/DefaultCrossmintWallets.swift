@@ -189,7 +189,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 )
             }
 
-            let createSigners = creation.model.config.signers?.compactMap(\.locator) ?? []
+            let createSigners = creation.model.config.signers?.map(\.locator) ?? []
             let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
@@ -379,7 +379,8 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) -> String? {
         guard let signers = wallet.config.signers else { return nil }
         for entry in signers {
-            guard let locator = entry.locator, locator.hasPrefix("device:") else { continue }
+            let locator = entry.locator
+            guard locator.hasPrefix("device:") else { continue }
             let b64 = String(locator.dropFirst("device:".count))
             if storage.hasKey(publicKeyBase64: b64) {
                 return b64
