@@ -1,0 +1,18 @@
+{
+  "type": "smart",
+  "chainType": "evm",
+  "config": {
+    "adminSigner": {
+      "type": "email",
+      "email": "user@example.com",
+      "locator": "email:user@example.com"
+    },
+    "delegatedSigners": [
+      { "locator": "device:8Ht1jWbGgXcDqFv3nRkPzYw5mT2uLsEaK9oC4dNbV6xJ" },
+      { "locator": "email:delegate@example.com" }
+    ]
+  },
+  "address": "0x1234567890ABCDEF1234567890ABCDEF12345678",
+  "linkedUser": "email:user@example.com",
+  "createdAt": "2025-08-21T11:00:00.000Z"
+}

@@ -1,3 +1,5 @@
+import CrossmintCommonTypes
+
 public struct RegistrationApprovals: Decodable {
     public let pending: [ApprovalEntry]
 }
@@ -62,4 +64,23 @@ public struct RegistrationTransaction: Decodable {
 public struct AddDelegatedSignerResponse: Decodable {
     public let chains: [String: ChainRegistrationEntry]?
     public let transaction: RegistrationTransaction?
+}
+
+extension AddDelegatedSignerResponse {
+    /// Resolves the signer's registration status the way each chain family reports it:
+    /// EVM approval state lives in the per-chain entries; Solana and Stellar approve through
+    /// a transaction. An empty `chains` map means the signer was created together with the
+    /// wallet and needed no approval.
+    ///
+    /// Returns `nil` on EVM when the signer has no registration entry for `chainName`,
+    /// which means it is not registered on that chain.
+    func registrationStatus(chainType: ChainType, chainName: String) -> SignerStatus? {
+        if chainType == .solana || chainType == .stellar {
+            return SignerStatus.from(transaction?.status ?? "success")
+        }
+        guard let chains, !chains.isEmpty else {
+            return .active
+        }
+        return chains[chainName]?.status
+    }
 }

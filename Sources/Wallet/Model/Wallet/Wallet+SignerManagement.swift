@@ -82,9 +82,10 @@ extension Wallet {
     }
 
     private func findStaleDeviceSignerLocator() async -> String? {
-        let currentSigners = (try? await signers()) ?? []
-        let deviceLocators = currentSigners
-            .compactMap(\.locator)
+        let request = GetMeWalletRequest(chainType: chain.chainType)
+        guard let model = try? await smartWalletService.getWallet(request) else { return nil }
+        let deviceLocators = (model.config.signers ?? [])
+            .map(\.locator)
             .filter { $0.hasPrefix("device:") }
         guard deviceLocators.count == 1 else { return nil }
         return deviceLocators[0]
@@ -185,7 +186,7 @@ extension Wallet {
         }
     }
 
-    internal func initDefaultSigner(delegatedSigners: [WalletDelegatedSignerConfigApiModel]) async {
+    internal func initDefaultSigner(delegatedSigners: [WalletSignerConfigApiModel]) async {
         guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
 
         switch delegatedSigners.count {
@@ -193,8 +194,8 @@ extension Wallet {
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locator = delegatedSigners[0].locator,
-                  locator.hasPrefix("device:"),
+            let locator = delegatedSigners[0].locator
+            guard locator.hasPrefix("device:"),
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
                 _deviceSignerApproved = true
@@ -267,7 +268,7 @@ extension Wallet {
         }
 
         let passkeyLocator = walletModel.config.signers?
-            .compactMap(\.locator)
+            .map(\.locator)
             .first(where: { $0.hasPrefix("passkey:") })
 
         let locator: String

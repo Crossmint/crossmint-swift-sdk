@@ -29,6 +29,8 @@ Wallets are chain-specific: use ``EVMWallet`` for Ethereum-compatible chains and
 ### Signing
 
 - ``SignerConfig``
+- ``WalletSigner``
+- ``SignerStatus``
 - ``TransactionError``
 - ``SignatureError``
 

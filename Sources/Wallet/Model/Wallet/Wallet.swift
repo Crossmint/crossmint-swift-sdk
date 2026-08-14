@@ -8,12 +8,16 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
-    /// Fetches the current list of delegated signers from the API.
+    /// Fetches the current list of signers from the API.
+    ///
+    /// Each ``WalletSigner`` includes its registration ``WalletSigner/status`` on this
+    /// wallet's chain. On EVM wallets, signers without a registration entry (pending or
+    /// completed) for the wallet's chain are omitted. A signer whose state lookup fails
+    /// is returned with ``SignerStatus/unknown`` rather than dropped.
     ///
     /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
-    public func signers() async throws(WalletError) -> [WalletDelegatedSignerConfigApiModel] {
-        let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        return model.config.signers ?? []
+    public func signers() async throws(WalletError) -> [WalletSigner] {
+        try await signerListService.list()
     }
 
     internal let smartWalletService: SmartWalletService
@@ -24,6 +28,7 @@ open class Wallet: @unchecked Sendable {
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
     var deviceSignerService: DeviceSignerService
     var signerRegistrationService: SignerRegistrationService
+    let signerListService: SignerListService
     var selectedSigner: (any Signer)?
     var selectedSignerLocator: String?
     var _needsRecovery: Bool = false
@@ -66,6 +71,11 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name
         )
+        self.signerListService = SignerListService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name
+        )
         self._deviceSignerUnsupported = deviceSignerUnsupported
         let delegatedSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
@@ -75,7 +85,7 @@ open class Wallet: @unchecked Sendable {
 
     /// Returns whether the given locator is registered as a signer on this wallet.
     ///
-    /// Checks both delegated signers (via a fresh API call) and the admin signer.
+    /// Checks both the wallet signers (via a fresh API call) and the admin signer.
     /// Returns `false` on any network error.
     ///
     /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
@@ -87,9 +97,9 @@ open class Wallet: @unchecked Sendable {
         } catch {
             return false
         }
-        let delegatedMatch = walletModel.config.signers?
+        let signerMatch = walletModel.config.signers?
             .contains(where: { $0.locator == locator }) ?? false
-        if delegatedMatch { return true }
+        if signerMatch { return true }
         return walletModel.config.recovery.toDomain.locator == locator
     }
 
@@ -128,25 +138,12 @@ open class Wallet: @unchecked Sendable {
             ])
             return false
         }
-        let status = registrationStatus(of: response)
+        let status = response.registrationStatus(chainType: chain.chainType, chainName: chain.name)
         let approved = status == .active
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
             "approved": "\(approved)"
         ])
         return approved
-    }
-
-    /// EVM approval state lives in the per-chain entries; Solana and Stellar approve through
-    /// a transaction. An empty `chains` map means the signer was created together with the
-    /// wallet and needed no approval.
-    private func registrationStatus(of response: AddDelegatedSignerResponse) -> SignerStatus? {
-        if chain.chainType == .solana || chain.chainType == .stellar {
-            return SignerStatus.from(response.transaction?.status ?? "success")
-        }
-        guard let chains = response.chains, !chains.isEmpty else {
-            return .active
-        }
-        return chains[chain.name]?.status
     }
 
     /// Returns a page of NFTs owned by this wallet.

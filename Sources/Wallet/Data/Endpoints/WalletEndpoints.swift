@@ -17,13 +17,11 @@ extension Endpoint {
 
     static func getSigner(
         chainType: ChainType,
-        encodedLocator: String,
-        headers: [String: String] = [:]
+        encodedLocator: String
     ) -> Endpoint {
         Endpoint(
             path: "/2025-06-09/wallets/me:\(chainType.rawValue)/signers/\(encodedLocator)",
-            method: .get,
-            headers: headers
+            method: .get
         )
     }
 
