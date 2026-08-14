@@ -103,7 +103,7 @@ public struct EVMTransactionApiModel: TransactionApiModel {
     public let approvals: Approvals?
     public let error: TransactionErrorApiModel?
 
-    public func toDomain(withService _: SmartWalletService) -> Transaction? {
+    public func toDomain() -> Transaction {
         Transaction(
             id: id,
             status: status.toDomain,

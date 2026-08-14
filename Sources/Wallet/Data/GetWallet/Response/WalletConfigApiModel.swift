@@ -1,14 +1,13 @@
 import CrossmintCommonTypes
 import Foundation
 
-public struct WalletDelegatedSignerConfigApiModel: Decodable, Sendable {
-    public let locator: String?
-    public let signer: String?
+struct WalletSignerConfigApiModel: Decodable, Sendable {
+    let locator: String
 }
 
 public struct WalletConfigApiModel: Decodable {
     public let recovery: AdminSignerApiModel
-    public let signers: [WalletDelegatedSignerConfigApiModel]?
+    let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
         case recovery = "adminSigner"
@@ -37,7 +36,7 @@ public struct WalletConfigApiModel: Decodable {
             recovery = try container.decode(ServerSignerApiModel.self, forKey: .recovery)
         }
 
-        signers = try container.decodeIfPresent([WalletDelegatedSignerConfigApiModel].self, forKey: .signers)
+        signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
 
     private enum AdminSignerCodingKeys: String, CodingKey {

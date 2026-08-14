@@ -42,7 +42,8 @@ let package = Package(
                 "Wallet",
                 "CrossmintAuth",
                 "CrossmintCommonTypes",
-                "SecureStorage"
+                "SecureStorage",
+                "DeviceSigner"
             ],
             resources: [
                 .process("PrivacyInfo.xcprivacy")
@@ -160,6 +161,9 @@ let package = Package(
                 .process("Resources/Transaction/CreateSolanaTransactionResponse.json"),
                 .process("Resources/Transaction/CreateStellarTransactionResponse.json"),
                 .process("Resources/Transaction/SolanaSignerRegistrationAwaitingApproval.json"),
+                .process("Resources/Transaction/ListTransactionsResponse.json"),
+                .process("Resources/Transaction/ListSolanaTransactionsResponse.json"),
+                .process("Resources/Transaction/ListTransactionsResponseWithBadRow.json"),
                 .process("Resources/Transaction/GetTransactionResponse.json"),
                 .process("Resources/Transaction/RemoveSignerTransactionSuccess.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
@@ -167,6 +171,8 @@ let package = Package(
                 .process("Resources/WalletEVMApiKeyWithDelegatedSigners.json"),
                 .process("Resources/WalletEVMEmail.json"),
                 .process("Resources/WalletSolanaEmail.json"),
+                .process("Resources/WalletSolanaSigners.json"),
+                .process("Resources/WalletEVMSigners.json"),
                 .process("Resources/WalletSolanaEmailWithStaleDeviceSigner.json"),
                 .process("Resources/WalletEVMPhone.json"),
                 .process("Resources/Transfer/ListTransfersResponse.json")

@@ -22,8 +22,9 @@ struct SignerPicker: View {
         if let recovery = appState.recoveryLocator, isSelectable(recovery) {
             result.append(Option(locator: recovery, typeLabel: SignerRow.typeLabel(for: recovery), isRecovery: true))
         }
-        for signer in appState.delegatedSigners {
-            guard let locator = signer.locator ?? signer.signer, isSelectable(locator) else { continue }
+        for signer in appState.signers {
+            let locator = signer.locator
+            guard isSelectable(locator) else { continue }
             if locator.hasPrefix("device:"), locator != appState.localDeviceLocator { continue }
             result.append(Option(locator: locator, typeLabel: SignerRow.typeLabel(for: locator), isRecovery: false))
         }

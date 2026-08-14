@@ -15,8 +15,8 @@ import Security
 /// Secure Enclave hardware. Signing operations execute inside the enclave; the raw key
 /// material never leaves the chip.
 ///
-/// ``DefaultCrossmintWallets`` selects this implementation automatically when Secure Enclave
-/// is available, and falls back to ``KeychainDeviceSignerKeyStorage`` when it is not.
+/// The `DeviceSignerKeyStorage.default` property selects this implementation automatically
+/// when Secure Enclave is available, and falls back to ``KeychainKeyStorage`` when it is not.
 public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
     private let keychain = DeviceSignerKeychainStorage()
     private let biometricPolicy: BiometricPolicy

@@ -1,4 +1,5 @@
 import CrossmintCommonTypes
+import Logger
 
 extension ChainType {
     var mappingType: any WalletTypeTransactionMapping.Type {
@@ -10,7 +11,7 @@ extension ChainType {
         case .stellar:
             return StellarSmartWalletMapping.self
         case .unknown:
-            // If the chain type is unknown
+            Logger.smartWallet.warning(LogEvents.transactionChainTypeUnknownDefaultedToEVM)
             return EVMSmartWalletMapping.self
         }
     }

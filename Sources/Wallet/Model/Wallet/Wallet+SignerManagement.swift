@@ -84,8 +84,7 @@ extension Wallet {
     private func findStaleDeviceSignerLocator() async -> SignerLocator? {
         let currentSigners = (try? await signers()) ?? []
         let deviceLocators = currentSigners
-            .compactMap(\.locator)
-            .compactMap { try? SignerLocator(from: $0) }
+            .compactMap { try? SignerLocator(from: $0.locator) }
             .filter { if case .device = $0 { true } else { false } }
         guard deviceLocators.count == 1 else { return nil }
         return deviceLocators[0]
@@ -149,7 +148,7 @@ extension Wallet {
         do {
             switch config {
             case .device:
-                let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
+                let storage = deviceSignerKeyStorage ?? .default
                 try await registerDeviceSigner(storage: storage, deployImmediately: deployImmediately)
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
@@ -188,7 +187,7 @@ extension Wallet {
         }
     }
 
-    internal func initDefaultSigner(delegatedSigners: [WalletDelegatedSignerConfigApiModel]) async {
+    internal func initDefaultSigner(delegatedSigners: [WalletSignerConfigApiModel]) async {
         guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
 
         switch delegatedSigners.count {
@@ -196,8 +195,7 @@ extension Wallet {
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locatorString = delegatedSigners[0].locator,
-                  let locator = try? SignerLocator(from: locatorString),
+            guard let locator = try? SignerLocator(from: delegatedSigners[0].locator),
                   case .device = locator,
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
@@ -220,7 +218,7 @@ extension Wallet {
                     "Use the recovery signer or another registered signer instead."
             )
         }
-        let storage = deviceSignerKeyStorage ?? DeviceSignerKeyStorageFactory.make()
+        let storage = deviceSignerKeyStorage ?? .default
         guard await storage.getKey(address: address) != nil else {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
@@ -271,8 +269,7 @@ extension Wallet {
         }
 
         let delegatedPasskeyLocator = walletModel.config.signers?
-            .compactMap(\.locator)
-            .compactMap { try? SignerLocator(from: $0) }
+            .compactMap { try? SignerLocator(from: $0.locator) }
             .first { if case .passkey = $0 { true } else { false } }
 
         let locator: SignerLocator

@@ -6,6 +6,135 @@ import Foundation
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var isProductionEnvironment: Bool { false }
 
+    // MARK: - getWallet
+
+    var getWalletResult: WalletApiModel?
+    var getWalletError: WalletError?
+    var getWalletCallCount = 0
+    var getWalletFixture: Data?
+    var getWalletSignerLocators: [String]?
+
+    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
+        getWalletCallCount += 1
+        if let getWalletError {
+            throw getWalletError
+        }
+        if let getWalletResult {
+            return getWalletResult
+        }
+        guard let getWalletFixture else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        do {
+            return try Self.walletModel(from: getWalletFixture, signerLocators: getWalletSignerLocators)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode getWallet fixture: \(error)")
+        }
+    }
+
+    // MARK: - getSigner
+
+    // signers() looks up signer states concurrently from a task group, so the
+    // tracking and gating state below is lock-guarded.
+    private let getSignerLock = NSLock()
+    private var _getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    private var _getSignerResponses: [String: AddDelegatedSignerResponse] = [:]
+    private var _getSignerError: WalletError?
+    private var _getSignerErrorLocators: Set<String> = []
+    private var _getSignerCallCount = 0
+    private var _getSignerLocators: [String] = []
+    private var _getSignerGatedLocator: String?
+    private var _getSignerGateContinuation: CheckedContinuation<Void, Never>?
+    private var _getSignerUngatedLookupCompleted = false
+
+    /// Fallback response when no per-locator entry exists in ``getSignerResponses``.
+    var getSignerResult: AddDelegatedSignerResponse? {
+        get { withGetSignerLock { _getSignerResult } }
+        set { withGetSignerLock { _getSignerResult = newValue } }
+    }
+
+    /// Per-locator responses, taking precedence over ``getSignerResult``.
+    var getSignerResponses: [String: AddDelegatedSignerResponse] {
+        get { withGetSignerLock { _getSignerResponses } }
+        set { withGetSignerLock { _getSignerResponses = newValue } }
+    }
+
+    /// When set, getSigner throws for every locator.
+    var getSignerError: WalletError? {
+        get { withGetSignerLock { _getSignerError } }
+        set { withGetSignerLock { _getSignerError = newValue } }
+    }
+
+    var lastGetSignerLocator: String? {
+        withGetSignerLock { _getSignerLocators.last }
+    }
+
+    /// Locators for which getSigner throws instead of returning a response.
+    var getSignerErrorLocators: Set<String> {
+        get { withGetSignerLock { _getSignerErrorLocators } }
+        set { withGetSignerLock { _getSignerErrorLocators = newValue } }
+    }
+
+    var getSignerCallCount: Int {
+        withGetSignerLock { _getSignerCallCount }
+    }
+
+    var getSignerLocators: [String] {
+        withGetSignerLock { _getSignerLocators }
+    }
+
+    /// When set, this locator's lookup suspends until another locator's lookup has
+    /// completed, so completion order is deterministically inverted for ordering tests.
+    var getSignerGatedLocator: String? {
+        get { withGetSignerLock { _getSignerGatedLocator } }
+        set { withGetSignerLock { _getSignerGatedLocator = newValue } }
+    }
+
+    func getSigner(
+        _ signerLocator: String,
+        chainType: ChainType
+    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
+        let gated: Bool = withGetSignerLock {
+            _getSignerCallCount += 1
+            _getSignerLocators.append(signerLocator)
+            return signerLocator == _getSignerGatedLocator
+        }
+        if gated {
+            await withCheckedContinuation { continuation in
+                let resumeNow: Bool = withGetSignerLock {
+                    if _getSignerUngatedLookupCompleted { return true }
+                    _getSignerGateContinuation = continuation
+                    return false
+                }
+                if resumeNow { continuation.resume() }
+            }
+        }
+        defer {
+            if !gated {
+                let continuation: CheckedContinuation<Void, Never>? = withGetSignerLock {
+                    _getSignerUngatedLookupCompleted = true
+                    let pending = _getSignerGateContinuation
+                    _getSignerGateContinuation = nil
+                    return pending
+                }
+                continuation?.resume()
+            }
+        }
+        if let getSignerError {
+            throw getSignerError
+        }
+        if getSignerErrorLocators.contains(signerLocator) {
+            throw WalletError.walletGeneric("getSigner failed")
+        }
+        return getSignerResponses[signerLocator] ?? getSignerResult
+    }
+
+    private func withGetSignerLock<T>(_ body: () -> T) -> T {
+        getSignerLock.lock()
+        defer { getSignerLock.unlock() }
+        return body()
+    }
+
     // MARK: - addSigner
 
     var addSignerResult: AddDelegatedSignerResponse = AddDelegatedSignerResponse(chains: nil, transaction: nil)
@@ -74,22 +203,25 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             throw WalletError.walletGeneric("not implemented")
         }
         do {
-            return try Self.walletModel(from: createWalletFixture, echoing: request.config.delegatedSigners)
+            return try Self.walletModel(
+                from: createWalletFixture,
+                signerLocators: request.config.delegatedSigners?.map(\.signer)
+            )
         } catch {
             throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")
         }
     }
 
-    /// Echoes the request's delegated signers into the returned wallet's config,
-    /// mirroring what the backend reports for a create-with-signers request.
+    /// Writes the given signer locators into the fixture wallet's config,
+    /// mirroring what the backend reports for a wallet with delegated signers.
     private static func walletModel(
         from fixture: Data,
-        echoing delegatedSigners: [DelegatedSignerEntry]?
+        signerLocators: [String]?
     ) throws -> WalletApiModel {
         var json = try JSONSerialization.jsonObject(with: fixture) as? [String: Any] ?? [:]
-        if let delegatedSigners {
+        if let signerLocators {
             var config = json["config"] as? [String: Any] ?? [:]
-            config["delegatedSigners"] = delegatedSigners.map { ["locator": $0.signer, "signer": $0.signer] }
+            config["delegatedSigners"] = signerLocators.map { ["locator": $0, "signer": $0] }
             json["config"] = config
         }
         let patched = try JSONSerialization.data(withJSONObject: json)
@@ -122,23 +254,22 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return fetchTransactionResult
     }
 
-    // MARK: - getSigner
+    // MARK: - listTransactions
 
-    var getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)
-    var getSignerError: WalletError?
-    var getSignerCallCount = 0
-    var lastGetSignerLocator: String?
+    var listTransactionsResult: [Transaction] = []
+    var listTransactionsError: TransactionError?
+    var listTransactionsCallCount = 0
+    var lastListTransactionsRequest: ListTransactionsRequest?
 
-    func getSigner(
-        _ signerLocator: String,
-        chainType: ChainType
-    ) async throws(WalletError) -> AddDelegatedSignerResponse? {
-        getSignerCallCount += 1
-        lastGetSignerLocator = signerLocator
-        if let getSignerError {
-            throw getSignerError
+    func listTransactions(
+        _ request: ListTransactionsRequest
+    ) async throws(TransactionError) -> [Transaction] {
+        listTransactionsCallCount += 1
+        lastListTransactionsRequest = request
+        if let listTransactionsError {
+            throw listTransactionsError
         }
-        return getSignerResult
+        return listTransactionsResult
     }
 
     // MARK: - removeSigner
@@ -162,17 +293,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             throw TransactionError.transactionGeneric("not implemented")
         }
         return removeSignerResult
-    }
-
-    // MARK: - getWallet
-
-    var getWalletResult: WalletApiModel?
-
-    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        guard let getWalletResult else {
-            throw WalletError.walletGeneric("not implemented")
-        }
-        return getWalletResult
     }
 
     // MARK: - Unused stubs

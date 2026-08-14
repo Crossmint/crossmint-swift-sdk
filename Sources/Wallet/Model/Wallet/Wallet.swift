@@ -8,12 +8,16 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
-    /// Fetches the current list of delegated signers from the API.
+    /// Fetches the current list of signers from the API.
+    ///
+    /// Each ``WalletSigner`` includes its registration ``WalletSigner/status`` on this
+    /// wallet's chain. On EVM wallets, signers without a registration entry (pending or
+    /// completed) for the wallet's chain are omitted. A signer whose state lookup fails
+    /// is returned with ``SignerStatus/unknown`` rather than dropped.
     ///
     /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
-    public func signers() async throws(WalletError) -> [WalletDelegatedSignerConfigApiModel] {
-        let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        return model.config.signers ?? []
+    public func signers() async throws(WalletError) -> [WalletSigner] {
+        try await signerListService.list()
     }
 
     internal let smartWalletService: SmartWalletService
@@ -24,6 +28,7 @@ open class Wallet: @unchecked Sendable {
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
     var deviceSignerService: DeviceSignerService
     var signerRegistrationService: SignerRegistrationService
+    let signerListService: SignerListService
     var selectedSigner: (any Signer)?
     var selectedSignerLocator: SignerLocator?
     var _needsRecovery: Bool = false
@@ -66,6 +71,11 @@ open class Wallet: @unchecked Sendable {
             chainType: chain.chainType,
             chainName: chain.name
         )
+        self.signerListService = SignerListService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name
+        )
         self._deviceSignerUnsupported = deviceSignerUnsupported
         let delegatedSigners = baseModel.config.signers ?? []
         self.signerInitializationTask = Task { [weak self] in
@@ -102,8 +112,7 @@ open class Wallet: @unchecked Sendable {
             return false
         }
         let delegatedMatch = walletModel.config.signers?
-            .compactMap(\.locator)
-            .compactMap { try? SignerLocator(from: $0) }
+            .compactMap { try? SignerLocator(from: $0.locator) }
             .contains(locator) ?? false
         if delegatedMatch { return true }
         let recovery = try? SignerLocator(from: walletModel.config.recovery.toDomain.locator)
@@ -146,7 +155,7 @@ open class Wallet: @unchecked Sendable {
             ])
             return false
         }
-        let status = registrationStatus(of: response)
+        let status = response.registrationStatus(chainType: chain.chainType, chainName: chain.name)
         let approved = status == .active
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
             "approved": "\(approved)"
@@ -154,15 +163,6 @@ open class Wallet: @unchecked Sendable {
         return approved
     }
 
-    private func registrationStatus(of response: AddDelegatedSignerResponse) -> SignerStatus? {
-        if chain.chainType == .solana || chain.chainType == .stellar {
-            return SignerStatus.from(response.transaction?.status ?? "success")
-        }
-        guard let chains = response.chains, !chains.isEmpty else {
-            return .active
-        }
-        return chains[chain.name]?.status
-    }
 
     /// Returns a page of NFTs owned by this wallet.
     ///
