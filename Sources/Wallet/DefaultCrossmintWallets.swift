@@ -220,7 +220,10 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         }
         do {
             let publicKeyBase64 = try await storage.generateKey(address: nil)
-            let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+            guard let publicKey = DevicePublicKey(publicKeyBase64: publicKeyBase64) else {
+                throw WalletError.walletCreationFailed("Invalid device signer public key")
+            }
+            let entry = DelegatedSignerEntry(signer: .device(publicKey: publicKey, name: await storage.deviceName))
             Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerPrepared, attributes: [
                 "publicKeyBase64Prefix": String(publicKeyBase64.prefix(16))
             ])
@@ -406,11 +409,4 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         return wallet.config.signers?.contains(where: { $0.locator == locator }) ?? false
     }
 
-    private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
-        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64),
-              rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
-            throw WalletError.walletCreationFailed("Invalid device signer public key")
-        }
-        return DelegatedSignerEntry(signer: SignerLocator.device(publicKey: publicKeyBase64).value)
-    }
 }

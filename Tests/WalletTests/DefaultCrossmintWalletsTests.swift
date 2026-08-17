@@ -41,11 +41,12 @@ struct DefaultCrossmintWalletsTests {
 
         let entries = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
         #expect(entries.count == 1)
-        #expect(entries[0].signer.hasPrefix("device:"))
+        let publicKeyBase64 = try #require(await keyStorage.getKey(address: wallet.address))
+        let expectedKey = try #require(DevicePublicKey(publicKeyBase64: publicKeyBase64))
+        #expect(entries[0].signer == .device(publicKey: expectedKey, name: "Test Device"))
         #expect(walletService.createWalletCallCount == 1)
         #expect(await wallet.needsRecovery() == false)
         try await wallet.useSigner(.device)
-        let publicKeyBase64 = try #require(await keyStorage.getKey(address: wallet.address))
         #expect(wallet.selectedSignerLocator == .device(publicKey: publicKeyBase64))
     }
 
