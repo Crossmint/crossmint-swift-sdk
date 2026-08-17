@@ -163,7 +163,6 @@ open class Wallet: @unchecked Sendable {
         return approved
     }
 
-
     /// Returns a page of NFTs owned by this wallet.
     ///
     /// - Parameters:
