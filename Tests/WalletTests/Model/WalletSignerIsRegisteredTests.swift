@@ -49,7 +49,7 @@ struct WalletSignerIsRegisteredTests {
     @Test func returnsFalseOnNetworkError() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeWallet(walletService: walletService)
-        walletService.getWalletResult = nil
+        walletService.getWalletError = .walletGeneric("network unavailable")
 
         #expect(await wallet.signerIsRegistered(.email("user@example.com")) == false)
     }
