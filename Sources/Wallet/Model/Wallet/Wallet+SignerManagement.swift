@@ -85,7 +85,7 @@ extension Wallet {
         let currentSigners = (try? await signers()) ?? []
         let deviceLocators = currentSigners
             .map(\.locator)
-            .filter { if case .device = $0 { true } else { false } }
+            .filter(\.isDevice)
         guard deviceLocators.count == 1 else { return nil }
         return deviceLocators[0]
     }
@@ -269,7 +269,7 @@ extension Wallet {
 
         let delegatedPasskeyLocator = walletModel.config.signers?
             .map(\.locator)
-            .first { if case .passkey = $0 { true } else { false } }
+            .first(where: \.isPasskey)
 
         let locator: SignerLocator
         if let delegatedPasskeyLocator {

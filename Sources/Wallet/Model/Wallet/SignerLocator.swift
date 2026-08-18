@@ -17,6 +17,16 @@ public enum SignerLocator: Codable, Sendable, Hashable {
     case apiKey(address: String? = nil)
     case server(address: String)
 
+    /// Whether this locator refers to a device signer, regardless of its public key.
+    public var isDevice: Bool {
+        if case .device = self { true } else { false }
+    }
+
+    /// Whether this locator refers to a passkey signer, regardless of its credential ID.
+    public var isPasskey: Bool {
+        if case .passkey = self { true } else { false }
+    }
+
     public var value: String {
         switch self {
         case let .device(publicKey):

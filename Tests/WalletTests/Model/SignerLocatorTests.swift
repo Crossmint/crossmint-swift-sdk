@@ -66,4 +66,30 @@ struct SignerLocatorTests {
         let parsed = try SignerLocator(from: original.value)
         #expect(parsed == original)
     }
+
+    @Test(
+        "isDevice matches only device locators",
+        arguments: [
+            (SignerLocator.device(publicKey: "abc123"), true),
+            (SignerLocator.email("user@example.com"), false),
+            (SignerLocator.passkey(credentialId: "cred-1"), false),
+            (SignerLocator.apiKey(), false)
+        ]
+    )
+    func isDeviceMatchesOnlyDeviceLocators(locatorAndExpected: (SignerLocator, Bool)) {
+        #expect(locatorAndExpected.0.isDevice == locatorAndExpected.1)
+    }
+
+    @Test(
+        "isPasskey matches only passkey locators",
+        arguments: [
+            (SignerLocator.passkey(credentialId: "cred-1"), true),
+            (SignerLocator.device(publicKey: "abc123"), false),
+            (SignerLocator.externalWallet(address: "0xabc"), false),
+            (SignerLocator.server(address: "0x999"), false)
+        ]
+    )
+    func isPasskeyMatchesOnlyPasskeyLocators(locatorAndExpected: (SignerLocator, Bool)) {
+        #expect(locatorAndExpected.0.isPasskey == locatorAndExpected.1)
+    }
 }

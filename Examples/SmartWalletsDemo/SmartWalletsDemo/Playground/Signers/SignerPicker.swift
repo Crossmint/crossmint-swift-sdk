@@ -25,7 +25,7 @@ struct SignerPicker: View {
         for signer in appState.signers {
             let locator = signer.locator
             guard isSelectable(locator) else { continue }
-            if case .device = locator, locator.value != appState.localDeviceLocator { continue }
+            if locator.isDevice, locator.value != appState.localDeviceLocator { continue }
             result.append(
                 Option(locator: locator.value, typeLabel: SignerRow.typeLabel(for: locator.value), isRecovery: false)
             )
