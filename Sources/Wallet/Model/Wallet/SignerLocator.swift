@@ -5,8 +5,10 @@
 //  Created by Tomas Martins on 27/07/26.
 //
 
+import Logger
+
 /// Identifies a signer registered on a wallet.
-public enum SignerLocator: Codable, Sendable, Equatable {
+public enum SignerLocator: Codable, Sendable, Hashable {
     case device(publicKey: String)
     case email(String)
     case phone(String)
@@ -40,6 +42,9 @@ public enum SignerLocator: Codable, Sendable, Equatable {
         do {
             self = try SignerLocator(from: value)
         } catch {
+            Logger.smartWallet.error(LogEvents.signerLocatorParseError, attributes: [
+                "locator": value
+            ])
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "Invalid signer locator: \(value)"

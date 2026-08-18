@@ -31,12 +31,12 @@ struct SignersView: View {
                             description: Text("No signers are registered on this wallet.")
                         )
                     } else {
-                        ForEach(Array(appState.signers.enumerated()), id: \.element.locator) { index, item in
+                        ForEach(Array(appState.signers.enumerated()), id: \.element.locator.value) { index, item in
                             SignerRow(
                                 index: index,
-                                locator: item.locator,
+                                locator: item.locator.value,
                                 status: item.status.rawValue,
-                                isRemoving: removingSignerLocator == item.locator,
+                                isRemoving: removingSignerLocator == item.locator.value,
                                 canRemove: true,
                                 onSelect: {},
                                 onRemove: { Task { await removeSigner(locator: item.locator) } }
@@ -100,9 +100,9 @@ struct SignersView: View {
         isLoadingSigners = false
     }
 
-    private func removeSigner(locator: String) async {
+    private func removeSigner(locator: SignerLocator) async {
         guard let wallet = appState.wallet else { return }
-        removingSignerLocator = locator
+        removingSignerLocator = locator.value
         do {
             _ = try await wallet.removeSigner(locator: locator)
             removingSignerLocator = nil

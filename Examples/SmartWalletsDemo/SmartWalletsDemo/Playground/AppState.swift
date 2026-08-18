@@ -216,14 +216,21 @@ final class AppState {
         if let recovery = recoveryLocator, signerConfig(for: recovery) != nil { return recovery }
         return signers
             .map(\.locator)
-            .first { signerConfig(for: $0) != nil }
+            .first { signerConfig(for: $0) != nil }?
+            .value
     }
 
     private func signerConfig(for locator: String) -> SignerConfig? {
-        if locator.hasPrefix("device:") { return .device }
-        if locator.hasPrefix("api-key:") { return .apiKey }
-        if locator.hasPrefix("email:") { return .email(String(locator.dropFirst("email:".count))) }
-        return nil
+        (try? SignerLocator(from: locator)).flatMap { signerConfig(for: $0) }
+    }
+
+    private func signerConfig(for locator: SignerLocator) -> SignerConfig? {
+        switch locator {
+        case .device: .device
+        case .apiKey: .apiKey
+        case .email(let email): .email(email)
+        default: nil
+        }
     }
 
     private func fetchWallet(chain: SupportedChain, email: String) async throws -> Wallet? {

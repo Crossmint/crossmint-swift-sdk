@@ -84,7 +84,7 @@ extension Wallet {
     private func findStaleDeviceSignerLocator() async -> SignerLocator? {
         let currentSigners = (try? await signers()) ?? []
         let deviceLocators = currentSigners
-            .compactMap { try? SignerLocator(from: $0.locator) }
+            .map(\.locator)
             .filter { if case .device = $0 { true } else { false } }
         guard deviceLocators.count == 1 else { return nil }
         return deviceLocators[0]
@@ -195,8 +195,7 @@ extension Wallet {
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard let locator = try? SignerLocator(from: delegatedSigners[0].locator),
-                  case .device = locator,
+            guard case .device = delegatedSigners[0].locator,
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
                 _deviceSignerApproved = true
@@ -269,7 +268,7 @@ extension Wallet {
         }
 
         let delegatedPasskeyLocator = walletModel.config.signers?
-            .compactMap { try? SignerLocator(from: $0.locator) }
+            .map(\.locator)
             .first { if case .passkey = $0 { true } else { false } }
 
         let locator: SignerLocator

@@ -192,7 +192,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
                 )
             }
 
-            let createSigners = creation.model.config.signers?.map(\.locator) ?? []
+            let createSigners = creation.model.config.signers?.map(\.locator.value) ?? []
             let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
@@ -385,8 +385,7 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     ) -> String? {
         guard let signers = wallet.config.signers else { return nil }
         for entry in signers {
-            guard let locator = try? SignerLocator(from: entry.locator),
-                  case .device(let publicKey) = locator else { continue }
+            guard case .device(let publicKey) = entry.locator else { continue }
             if storage.hasKey(publicKeyBase64: publicKey) {
                 return publicKey
             }
@@ -400,13 +399,10 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
     }
 
     private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {
-        guard let keyBase64 = publicKeyBase64,
-              let rawKey = Data(base64Encoded: keyBase64),
-              rawKey.count == 65, rawKey[0] == 0x04 else {
+        guard let keyBase64 = publicKeyBase64, DevicePublicKey(publicKeyBase64: keyBase64) != nil else {
             return false
         }
-        let locator = SignerLocator.device(publicKey: keyBase64).value
-        return wallet.config.signers?.contains(where: { $0.locator == locator }) ?? false
+        return wallet.config.signers?.contains(where: { $0.locator == .device(publicKey: keyBase64) }) ?? false
     }
 
 }

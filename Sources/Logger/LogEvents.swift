@@ -493,6 +493,11 @@ public enum LogEvents {
     /// Device signer registration failed
     public static let walletRegisterDeviceSignerError = "wallet.registerDeviceSigner.error"
 
+    // MARK: - SignerLocator Events
+
+    /// A signer locator string could not be parsed into a known signer type
+    public static let signerLocatorParseError = "signerLocator.parse.error"
+
     // MARK: - WalletFactory Error Events
 
     public static let walletFactoryInvalidChain = "walletFactory.invalidChain"

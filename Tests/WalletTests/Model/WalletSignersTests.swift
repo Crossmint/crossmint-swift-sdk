@@ -5,8 +5,10 @@ import TestsUtils
 
 @testable import Wallet
 
-private let DEVICE_LOCATOR = "device:8Ht1jWbGgXcDqFv3nRkPzYw5mT2uLsEaK9oC4dNbV6xJ"
-private let EMAIL_LOCATOR = "email:delegate@example.com"
+private let DEVICE_PUBLIC_KEY = "8Ht1jWbGgXcDqFv3nRkPzYw5mT2uLsEaK9oC4dNbV6xJ"
+private let DEVICE_LOCATOR = "device:\(DEVICE_PUBLIC_KEY)"
+private let EMAIL = "delegate@example.com"
+private let EMAIL_LOCATOR = "email:\(EMAIL)"
 
 private func makeSolanaWallet(
     walletService: MockSmartWalletService,
@@ -65,8 +67,8 @@ struct WalletSignersTests {
         let signers = try await wallet.signers()
 
         #expect(signers == [
-            WalletSigner(locator: DEVICE_LOCATOR, status: .active),
-            WalletSigner(locator: EMAIL_LOCATOR, status: .pending)
+            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .active),
+            WalletSigner(locator: .email(EMAIL), status: .pending)
         ])
     }
 
@@ -92,8 +94,8 @@ struct WalletSignersTests {
         let signers = try await wallet.signers()
 
         #expect(signers == [
-            WalletSigner(locator: DEVICE_LOCATOR, status: .unknown),
-            WalletSigner(locator: EMAIL_LOCATOR, status: .active)
+            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .unknown),
+            WalletSigner(locator: .email(EMAIL), status: .active)
         ])
     }
 
@@ -108,8 +110,8 @@ struct WalletSignersTests {
         let signers = try await wallet.signers()
 
         #expect(signers == [
-            WalletSigner(locator: DEVICE_LOCATOR, status: .unknown),
-            WalletSigner(locator: EMAIL_LOCATOR, status: .active)
+            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .unknown),
+            WalletSigner(locator: .email(EMAIL), status: .active)
         ])
     }
 
@@ -151,7 +153,7 @@ struct WalletSignersTests {
 
             let signers = try await wallet.signers()
 
-            #expect(signers == [WalletSigner(locator: DEVICE_LOCATOR, status: .active)])
+            #expect(signers == [WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .active)])
         }
 
         @Test func mapsTheStatusFromTheEntryMatchingTheWalletChain() async throws {
@@ -171,8 +173,8 @@ struct WalletSignersTests {
             let signers = try await wallet.signers()
 
             #expect(signers == [
-                WalletSigner(locator: DEVICE_LOCATOR, status: .awaitingApproval),
-                WalletSigner(locator: EMAIL_LOCATOR, status: .active)
+                WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .awaitingApproval),
+                WalletSigner(locator: .email(EMAIL), status: .active)
             ])
         }
     }

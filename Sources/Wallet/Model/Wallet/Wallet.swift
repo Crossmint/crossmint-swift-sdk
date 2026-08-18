@@ -112,7 +112,7 @@ open class Wallet: @unchecked Sendable {
             return false
         }
         let delegatedMatch = walletModel.config.signers?
-            .compactMap { try? SignerLocator(from: $0.locator) }
+            .map(\.locator)
             .contains(locator) ?? false
         if delegatedMatch { return true }
         let recovery = try? SignerLocator(from: walletModel.config.recovery.toDomain.locator)
