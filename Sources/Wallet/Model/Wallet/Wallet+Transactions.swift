@@ -356,21 +356,17 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let signerLocator: String?
-        if let active = selectedSignerLocator?.value {
-            signerLocator = active
-        } else if let storage = deviceSignerKeyStorage {
-            signerLocator = await deviceSignerService.publicKey(for: storage)
-                .map { SignerLocator.device(publicKey: $0).value }
+        let locator: SignerLocator? = if let selectedSignerLocator {
+            selectedSignerLocator
         } else {
-            signerLocator = nil
+            await localDeviceSigner()
         }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
-            signer: signerLocator,
+            signer: locator?.value,
             idempotencyKey: idempotencyKey
         )
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
