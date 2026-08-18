@@ -126,8 +126,7 @@ final class DeviceSignerService: Sendable {
 
     func publicKey(for storage: any DeviceSignerKeyStorage) async -> String? {
         guard let publicKeyBase64 = await storage.getKey(address: address),
-              let rawKey = Data(base64Encoded: publicKeyBase64),
-              rawKey.count == 65, rawKey[0] == 0x04 else { return nil }
+              DevicePublicKey(publicKeyBase64: publicKeyBase64) != nil else { return nil }
         return publicKeyBase64
     }
 
