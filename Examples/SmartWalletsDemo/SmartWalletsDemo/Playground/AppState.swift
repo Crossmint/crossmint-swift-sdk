@@ -113,7 +113,7 @@ final class AppState {
 
     func loadSigners() async {
         signers = (try? await wallet?.signers()) ?? []
-        localDeviceLocator = await wallet?.localDeviceSignerLocator()?.value
+        localDeviceLocator = await wallet?.localDeviceSigner()?.value
         guard selectedSignerLocator == nil, let locator = firstSelectableLocator() else { return }
         await selectSigner(locator: locator)
     }
