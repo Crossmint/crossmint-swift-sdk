@@ -1,3 +1,10 @@
+//
+//  SignerIdentity.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 26/08/26.
+//
+
 import CrossmintCommonTypes
 
 /// Who the non-custodial signer service must send a one-time password to.

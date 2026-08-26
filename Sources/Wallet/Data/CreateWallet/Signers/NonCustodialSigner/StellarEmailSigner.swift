@@ -1,3 +1,10 @@
+//
+//  StellarEmailSigner.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 12/22/25.
+//
+
 import CrossmintCommonTypes
 import Web
 

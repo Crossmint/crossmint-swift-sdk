@@ -1,3 +1,10 @@
+//
+//  CrossmintTEEQueueingTests.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 26/08/26.
+//
+
 import CrossmintAuth
 import CrossmintCommonTypes
 import Foundation

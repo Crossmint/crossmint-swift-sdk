@@ -1,3 +1,10 @@
+//
+//  StartOnboardingRequestTests.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 26/08/26.
+//
+
 import CrossmintCommonTypes
 import Foundation
 import Testing
