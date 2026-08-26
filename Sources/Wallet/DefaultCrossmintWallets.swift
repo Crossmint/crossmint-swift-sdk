@@ -63,8 +63,8 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         } catch {
             Logger.smartWallet.warning(
                 """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
+There was an error initializing the non-custodial signer. \(error.errorDescription)
+Review if the .crossmintNonCustodialSigner() modifier is used as expected.
 """
             )
         }
@@ -102,8 +102,8 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         } catch {
             Logger.smartWallet.warning(
                 """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
+There was an error initializing the non-custodial signer. \(error.errorDescription)
+Review if the .crossmintNonCustodialSigner() modifier is used as expected.
 """
             )
         }

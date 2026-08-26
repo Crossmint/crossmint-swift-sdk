@@ -110,11 +110,11 @@ public final class CrossmintTEE: ObservableObject {
         encoding: String,
         identity: SignerIdentity? = nil
     ) async throws(Error) -> String {
-        await signerStorage.clear()
-
-        // Resolved once here so a request that waits in the queue onboards the signer that
-        // enqueued it, even if another signer replaces `self.identity` in the meantime.
+        // Resolved before the first suspension so a request that waits in the queue onboards the
+        // signer that enqueued it, even if another signer replaces `self.identity` meanwhile.
         let requestIdentity = identity ?? self.identity
+
+        await signerStorage.clear()
 
         if case .completed = handshakeState {
             return try await executeSignTransaction(

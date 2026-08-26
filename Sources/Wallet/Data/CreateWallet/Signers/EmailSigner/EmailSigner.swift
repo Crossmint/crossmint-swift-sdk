@@ -21,8 +21,7 @@ protocol EmailSigner: Signer {
     var crossmintTEE: CrossmintTEE? { get }
     var keyType: String { get async }
     var encoding: String { get async }
-    var email: String? { get async }
-    var isInitialized: Bool { get async }
+    var identity: SignerIdentity { get }
 
     func load() async throws(EmailSignerError)
     func processMessage(_ message: String) -> String
@@ -32,12 +31,12 @@ extension EmailSigner {
     @MainActor
     public func sign(message: String) async throws(SignerError) -> String {
         guard let crossmintTEE = crossmintTEE else { throw .notStarted }
-        crossmintTEE.identity = await email.map { .email($0) }
         do {
             return try await crossmintTEE.signTransaction(
                 transaction: processMessage(message),
                 keyType: keyType,
-                encoding: encoding
+                encoding: encoding,
+                identity: identity
             )
         } catch CrossmintTEE.Error.userCancelled {
             throw .cancelled
@@ -68,9 +67,5 @@ extension EmailSigner {
         message
     }
 
-    public func initialize(_ service: SmartWalletService?) async throws(SignerError) {
-        guard await isInitialized else {
-            throw SignerError.invalidEmail
-        }
-    }
+    public func initialize(_ service: SmartWalletService?) async throws(SignerError) {}
 }

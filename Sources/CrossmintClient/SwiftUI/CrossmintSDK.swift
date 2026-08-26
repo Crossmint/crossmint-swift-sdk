@@ -15,7 +15,7 @@ import Web
 /// Call ``configure(apiKey:logLevel:)`` once at app startup before accessing ``shared``.
 /// Accessing ``shared`` before configuring causes a `fatalError`.
 ///
-/// When using an email OTP signer, observe ``isOTPRequired`` to know when to display an OTP input,
+/// When using an email or phone OTP signer, observe ``isOTPRequired`` to know when to display an OTP input,
 /// then call ``submit(otp:)`` with the code the user enters.
 ///
 /// ## Example
@@ -78,7 +78,7 @@ final public class CrossmintSDK: ObservableObject {
 
     let crossmintTEE: CrossmintTEE
 
-    /// Emits `true` when a pending transaction is waiting for the user to enter an email OTP.
+    /// Emits `true` when a pending transaction is waiting for the user to enter an email or phone OTP.
     public var isOTPRequired: Published<Bool>.Publisher {
         crossmintTEE.$isOTPRequired
     }

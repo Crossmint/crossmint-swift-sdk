@@ -5,19 +5,15 @@ import Web
 public final class EVMEmailSigner: EmailSigner, Sendable {
     public typealias AdminType = EmailSignerData
 
-    private let state = EmailSignerState()
     let crossmintTEE: CrossmintTEE?
+    let identity: SignerIdentity
 
     public var adminSigner: EmailSignerData {
         get async {
-            guard let email = await state.email else {
-                return EmailSignerData(email: "")
-            }
-            return EmailSignerData(email: email)
+            EmailSignerData(email: await email ?? "")
         }
     }
 
-    // Hardcoded for EVM
     public var keyType: String {
         get async {
             "secp256k1"
@@ -32,13 +28,8 @@ public final class EVMEmailSigner: EmailSigner, Sendable {
 
     public var email: String? {
         get async {
-            await state.email
-        }
-    }
-
-    public var isInitialized: Bool {
-        get async {
-            await state.isInitialized
+            guard case .email(let address) = identity else { return nil }
+            return address
         }
     }
 
@@ -46,9 +37,7 @@ public final class EVMEmailSigner: EmailSigner, Sendable {
 
     public init(email: String, crossmintTEE: CrossmintTEE?) {
         self.crossmintTEE = crossmintTEE
-        Task {
-            await state.update(email: email)
-        }
+        self.identity = .email(email)
     }
 
     func processMessage(_ message: String) -> String {

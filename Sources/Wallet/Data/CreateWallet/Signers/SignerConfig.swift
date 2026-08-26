@@ -1,3 +1,5 @@
+import CrossmintCommonTypes
+
 /// Describes which signer to use for wallet operations.
 ///
 /// Pass a `SignerConfig` to ``Wallet/useSigner(_:)`` to set the active signer,
@@ -13,7 +15,11 @@ public enum SignerConfig: Sendable {
     /// An email OTP signer.
     case email(String)
     /// A phone OTP signer. The phone number must be in E.164 format (e.g. `"+15551234567"`).
-    case phone(String)
+    ///
+    /// `channel` selects how the OTP is delivered. It applies to each onboarding request rather
+    /// than to the signer, so ``Wallet/addSigner(_:)`` ignores it — the registration endpoint has
+    /// no channel field. The signer service delivers by SMS when no channel is given.
+    case phone(String, channel: OTPDeliveryChannel? = nil)
     /// An external wallet signer identified by its blockchain address.
     case externalWallet(String)
     /// The API key signer (server-side / custodial).
@@ -26,7 +32,7 @@ extension SignerConfig {
     var locator: String? {
         switch self {
         case .email(let email): "email:\(email)"
-        case .phone(let phone): "phone:\(phone)"
+        case .phone(let phone, _): "phone:\(phone)"
         case .externalWallet(let address): "external-wallet:\(address)"
         case .apiKey: "api-key"
         case .device, .passkey: nil

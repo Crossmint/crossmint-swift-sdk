@@ -1,24 +1,19 @@
 import CrossmintCommonTypes
+import Foundation
 import Web
 
 public final class SolanaEmailSigner: EmailSigner, Sendable {
-
     public typealias AdminType = EmailSignerData
 
-    private let state = EmailSignerState()
-
     let crossmintTEE: CrossmintTEE?
+    let identity: SignerIdentity
 
     public var adminSigner: EmailSignerData {
         get async {
-            guard let email = await state.email else {
-                return EmailSignerData(email: "")
-            }
-            return EmailSignerData(email: email)
+            EmailSignerData(email: await email ?? "")
         }
     }
 
-    // Hardcoded for Solana
     public var keyType: String {
         get async {
             "ed25519"
@@ -33,13 +28,8 @@ public final class SolanaEmailSigner: EmailSigner, Sendable {
 
     public var email: String? {
         get async {
-            await state.email
-        }
-    }
-
-    public var isInitialized: Bool {
-        get async {
-            await state.isInitialized
+            guard case .email(let address) = identity else { return nil }
+            return address
         }
     }
 
@@ -47,8 +37,6 @@ public final class SolanaEmailSigner: EmailSigner, Sendable {
 
     public init(email: String, crossmintTEE: CrossmintTEE?) {
         self.crossmintTEE = crossmintTEE
-        Task {
-            await state.update(email: email)
-        }
+        self.identity = .email(email)
     }
 }
