@@ -1,7 +1,7 @@
 import CrossmintCommonTypes
 import Web
 
-public final class StellarEmailSigner: EmailSigner, Sendable {
+public final class StellarEmailSigner: NonCustodialSigner, Sendable {
     public typealias AdminType = EmailSignerData
 
     let crossmintTEE: CrossmintTEE?

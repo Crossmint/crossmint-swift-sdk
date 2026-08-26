@@ -59,7 +59,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         )
 
         do {
-            try await (recovery as? any EmailSigner)?.load()
+            try await (recovery as? any NonCustodialSigner)?.load()
         } catch {
             Logger.smartWallet.warning(
                 """
@@ -98,7 +98,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
         )
 
         do {
-            try await (recovery as? any EmailSigner)?.load()
+            try await (recovery as? any NonCustodialSigner)?.load()
         } catch {
             Logger.smartWallet.warning(
                 """

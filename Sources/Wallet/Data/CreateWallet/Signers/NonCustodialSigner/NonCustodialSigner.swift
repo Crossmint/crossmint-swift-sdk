@@ -1,6 +1,6 @@
 import Web
 
-public enum EmailSignerError: Error {
+public enum NonCustodialSignerError: Error {
     case nonAvailable
     case teeNotStarted
     case generic(String)
@@ -17,17 +17,22 @@ public enum EmailSignerError: Error {
     }
 }
 
-protocol EmailSigner: Signer {
+/// Renamed when phone signers joined email signers behind the same protocol. Removable in the
+/// next major: no app-reachable API can throw it, since `load()` is capped to internal.
+@available(*, deprecated, renamed: "NonCustodialSignerError")
+public typealias EmailSignerError = NonCustodialSignerError
+
+protocol NonCustodialSigner: Signer {
     var crossmintTEE: CrossmintTEE? { get }
     var keyType: String { get async }
     var encoding: String { get async }
     var identity: SignerIdentity { get }
 
-    func load() async throws(EmailSignerError)
+    func load() async throws(NonCustodialSignerError)
     func processMessage(_ message: String) -> String
 }
 
-extension EmailSigner {
+extension NonCustodialSigner {
     @MainActor
     public func sign(message: String) async throws(SignerError) -> String {
         guard let crossmintTEE = crossmintTEE else { throw .notStarted }
@@ -51,7 +56,7 @@ extension EmailSigner {
         [.keypair(signer: await adminSigner.locator, signature: signature)]
     }
 
-    public func load() async throws(EmailSignerError) {
+    public func load() async throws(NonCustodialSignerError) {
         guard let crossmintTEE = crossmintTEE else { throw .teeNotStarted }
         do {
             try await crossmintTEE.load()

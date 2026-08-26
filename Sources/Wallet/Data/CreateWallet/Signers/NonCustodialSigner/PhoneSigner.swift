@@ -5,7 +5,7 @@ import Web
 ///
 /// One class covers every chain because all three differ only in the key type, the signature
 /// encoding, and whether the message carries a hex prefix.
-public final class PhoneSigner: EmailSigner, Sendable {
+public final class PhoneSigner: NonCustodialSigner, Sendable {
     public typealias AdminType = PhoneSignerData
 
     let crossmintTEE: CrossmintTEE?
