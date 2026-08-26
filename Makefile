@@ -1,4 +1,4 @@
-.PHONY: build test lint lint-fix clean resolve open build-evm-demo build-solana-demo run-solana-demo run-evm-demo
+.PHONY: build test lint lint-fix clean resolve open build-evm-demo run-evm-demo docs
 
 # Default task
 all: build
@@ -8,11 +8,10 @@ all: build
 # ==========================================
 
 # Simulator destination for builds and tests
-SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1
+SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5
 
 # Scheme names
 SDK_SCHEME := CrossmintClientSDK
-SOLANA_DEMO_SCHEME := SolanaDemo
 EVM_DEMO_SCHEME := SmartWalletsDemo
 
 # External programs
@@ -21,7 +20,6 @@ XCRUN := xcrun
 SWIFT := swift
 
 # Bundle identifiers for demos
-SOLANA_BUNDLE_ID := com.paella.SolanaDemo
 EVM_BUNDLE_ID := com.paella.SmartWalletsDemo
 
 # ==========================================
@@ -61,11 +59,6 @@ build-evm-demo:
 	@echo "Building EVM demo app..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -skipPackagePluginValidation)
 
-# Build the Solana demo app
-build-solana-demo:
-	@echo "Building Solana demo app..."
-	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SOLANA_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -skipPackagePluginValidation)
-
 # ==========================================
 # Test targets
 # ==========================================
@@ -93,7 +86,6 @@ ci-test:
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation)
 	@echo "Building demo apps..."
 	$(MAKE) build-evm-demo
-	$(MAKE) build-solana-demo
 
 # ==========================================
 # Lint targets
@@ -103,13 +95,6 @@ ci-test:
 lint:
 	@echo "Running SwiftLint via Swift Package Manager..."
 	$(SWIFT) package plugin --allow-writing-to-package-directory swiftlint lint-strict || (echo "SwiftLint found issues. Please fix them before running tests." && exit 1)
-	@echo "Running SwiftLint on SolanaDemo..."
-	@if [ -f "$(swiftlint_bin)" ]; then \
-		$(swiftlint_bin) lint Examples/SolanaDemo/SolanaDemo --strict || (echo "SwiftLint found issues in SolanaDemo. Please fix them before running tests." && exit 1); \
-	else \
-		echo "SwiftLint binary not found. Run 'make build' first to download dependencies."; \
-		exit 1; \
-	fi
 	@echo "Running SwiftLint on SmartWalletsDemo..."
 	@if [ -f "$(swiftlint_bin)" ]; then \
 		$(swiftlint_bin) lint Examples/SmartWalletsDemo/SmartWalletsDemo --strict || (echo "SwiftLint found issues in SmartWalletsDemo. Please fix them before running tests." && exit 1); \
@@ -122,13 +107,6 @@ lint:
 lint-fix:
 	@echo "Running SwiftLint with auto-fix option..."
 	$(SWIFT) package plugin --allow-writing-to-package-directory swiftlint --fix
-	@echo "Running SwiftLint auto-fix on SolanaDemo..."
-	@if [ -f "$(swiftlint_bin)" ]; then \
-		$(swiftlint_bin) --fix Examples/SolanaDemo/SolanaDemo; \
-	else \
-		echo "SwiftLint binary not found. Run 'make build' first to download dependencies."; \
-		exit 1; \
-	fi
 	@echo "Running SwiftLint auto-fix on SmartWalletsDemo..."
 	@if [ -f "$(swiftlint_bin)" ]; then \
 		$(swiftlint_bin) --fix Examples/SmartWalletsDemo/SmartWalletsDemo; \
@@ -145,8 +123,6 @@ lint-fix:
 clean:
 	@echo "Cleaning $(SDK_SCHEME)..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) clean)
-	@echo "Cleaning $(SOLANA_DEMO_SCHEME)..."
-	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SOLANA_DEMO_SCHEME) clean)
 	@echo "Cleaning $(EVM_DEMO_SCHEME)..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) clean)
 
@@ -160,18 +136,31 @@ open:
 	open *.xcworkspace
 
 # ==========================================
-# Demo run targets
+# Docs targets
 # ==========================================
 
-# Build and run SolanaDemo
-run-solana-demo:
-	@echo "Building and running $(SOLANA_DEMO_SCHEME)..."
-	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SOLANA_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -skipPackagePluginValidation build)
-	@echo "Launching $(SOLANA_DEMO_SCHEME) in simulator..."
-	$(XCRUN) simctl boot "iPhone 17 Pro" 2>/dev/null || true
-	open -a Simulator
-	$(XCRUN) simctl install "iPhone 17 Pro" "$$($(XCODEBUILD) -scheme $(SOLANA_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | awk '{print $$3}')/$(SOLANA_DEMO_SCHEME).app"
-	$(XCRUN) simctl launch "iPhone 17 Pro" $(SOLANA_BUNDLE_ID)
+DOCC_BUILD_DIR := /tmp/crossmint-swift-sdk-docc
+DOCS_OUTPUT := docs/sdk-reference/wallets/swift
+
+# Build the DocC archive and generate MDX files (override output with DOCS_OUTPUT).
+# CrossmintClient is the umbrella module consumers import — its archive covers
+# exactly the re-exported public API surface.
+docs:
+	@echo "Building DocC archives..."
+	$(call run-with-xcbeautify,$(XCODEBUILD) docbuild \
+		-scheme $(SDK_SCHEME) \
+		-destination "$(SIMULATOR_DEST)" \
+		-derivedDataPath $(DOCC_BUILD_DIR) \
+		-skipPackagePluginValidation \
+		OTHER_DOCC_FLAGS="--fallback-display-name CrossmintSDK --fallback-bundle-identifier com.crossmint.sdk --fallback-bundle-version 1")
+	@archive="$(DOCC_BUILD_DIR)/Build/Products/Debug-iphonesimulator/CrossmintClient.doccarchive"; \
+	if [ ! -d "$$archive" ]; then echo "Error: $$archive not found"; exit 1; fi; \
+	echo "Generating MDX files from $$archive..."; \
+	python3 scripts/docc-to-markdown.py "$$archive" --output $(DOCS_OUTPUT)
+
+# ==========================================
+# Demo run targets
+# ==========================================
 
 # Build and run SmartWalletsDemo (EVM)
 run-evm-demo:

@@ -1,3 +1,4 @@
+import CrossmintCommonTypes
 import Web
 
 @available(*, deprecated, message: "Use EVMSigners or SolanaSigners for type-safe chain compatibility")
@@ -12,9 +13,9 @@ public enum Signers: Sendable {
     public var signer: any Signer {
         switch self {
         case .evmFireblocksSigner:
-            EVMApiKeySigner()
+            ApiKeySigner(adminSigner: ApiKeySignerData())
         case .solanaFireblocksSigner:
-            SolanaApiKeySigner()
+            ApiKeySigner(adminSigner: ApiKeySignerData())
         case let .solanaEmailSigner(email):
             SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .evmEmailSigner(email):

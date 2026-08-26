@@ -1,4 +1,5 @@
 import CrossmintCommonTypes
+import DeviceSigner
 import Foundation
 import Logger
 
@@ -7,20 +8,38 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
+    /// Fetches the current list of signers from the API.
+    ///
+    /// Each ``WalletSigner`` includes its registration ``WalletSigner/status`` on this
+    /// wallet's chain. On EVM wallets, signers without a registration entry (pending or
+    /// completed) for the wallet's chain are omitted. A signer whose state lookup fails
+    /// is returned with ``SignerStatus/unknown`` rather than dropped.
+    ///
+    /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
+    public func signers() async throws(WalletError) -> [WalletSigner] {
+        try await signerListService.list()
+    }
+
     internal let smartWalletService: SmartWalletService
     internal let config: WalletConfig
     internal let blockchainAddress: Address
     internal let signer: any Signer
     internal let chain: Chain
+    var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
+    var deviceSignerService: DeviceSignerService
+    var signerRegistrationService: SignerRegistrationService
+    let signerListService: SignerListService
+    var selectedSigner: (any Signer)?
+    var selectedSignerLocator: String?
+    var _needsRecovery: Bool = false
+    var _deviceSignerApproved: Bool = false
+    var _deviceSignerUnsupported: Bool = false
+    var signerInitializationTask: Task<Void, Never>?
 
     private let owner: Owner?
     private let createdAt: Date
 
-    private var locator: WalletLocator {
-        .address(blockchainAddress)
-    }
-
-    private var onTransactionStart: (() -> Void)?
+    var onTransactionStart: (() -> Void)?
 
     internal init(
         smartWalletService: SmartWalletService,
@@ -28,7 +47,9 @@ open class Wallet: @unchecked Sendable {
         baseModel: WalletApiModel,
         chain: Chain,
         address: Address,
-        onTransactionStart: (() -> Void)?
+        onTransactionStart: (() -> Void)?,
+        deviceSignerKeyStorage: (any DeviceSignerKeyStorage)? = nil,
+        deviceSignerUnsupported: Bool = false
     ) throws(WalletError) {
         self.smartWalletService = smartWalletService
         self.owner = baseModel.owner
@@ -38,20 +59,144 @@ open class Wallet: @unchecked Sendable {
         self.signer = signer
         self.chain = chain
         self.onTransactionStart = onTransactionStart
+        self.deviceSignerKeyStorage = deviceSignerKeyStorage
+        self.deviceSignerService = DeviceSignerService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name,
+            address: address.description
+        )
+        self.signerRegistrationService = SignerRegistrationService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name
+        )
+        self.signerListService = SignerListService(
+            smartWalletService: smartWalletService,
+            chainType: chain.chainType,
+            chainName: chain.name
+        )
+        self._deviceSignerUnsupported = deviceSignerUnsupported
+        let delegatedSigners = baseModel.config.signers ?? []
+        self.signerInitializationTask = Task { [weak self] in
+            await self?.initDefaultSigner(delegatedSigners: delegatedSigners)
+        }
     }
 
+    /// Returns whether the given locator is registered as a signer on this wallet.
+    ///
+    /// Checks both the wallet signers (via a fresh API call) and the admin signer.
+    /// Returns `false` on any network error.
+    ///
+    /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
+    ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    public func signerIsRegistered(_ locator: String) async -> Bool {
+        let walletModel: WalletApiModel
+        do {
+            walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        } catch {
+            return false
+        }
+        let signerMatch = walletModel.config.signers?
+            .contains(where: { $0.locator == locator }) ?? false
+        if signerMatch { return true }
+        return walletModel.config.recovery.toDomain.locator == locator
+    }
+
+    /// Returns the locator of the device signer that keeps its private key on this device.
+    /// Returns `nil` if this device has no key, or if the wallet does not support device signers.
+    ///
+    /// This device keeps only one device key for each wallet. Device signing always uses that key.
+    /// Thus this is the only device signer that can sign here.
+    public func localDeviceSignerLocator() async -> String? {
+        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return nil }
+        return await deviceSignerService.locator(for: storage)
+    }
+
+    /// Returns whether the given signer is approved and usable on this wallet's chain.
+    ///
+    /// A freshly registered signer can require approval before it can sign — see ``addSigner(_:)``.
+    /// Returns `false` when the signer is not registered on this wallet.
+    ///
+    /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
+    ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    /// - Throws: ``WalletError`` if the request fails.
+    public func isSignerApproved(_ locator: String) async throws(WalletError) -> Bool {
+        Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedStart)
+        let response: AddDelegatedSignerResponse?
+        do {
+            response = try await smartWalletService.getSigner(locator, chainType: chain.chainType)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletIsSignerApprovedError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
+        guard let response else {
+            Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
+                "approved": "false"
+            ])
+            return false
+        }
+        let status = response.registrationStatus(chainType: chain.chainType, chainName: chain.name)
+        let approved = status == .active
+        Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedSuccess, attributes: [
+            "approved": "\(approved)"
+        ])
+        return approved
+    }
+
+    /// Returns a page of NFTs owned by this wallet.
+    ///
+    /// - Parameters:
+    ///   - page: Zero-based page index.
+    ///   - nftsPerPage: Number of NFTs per page.
     public func nfts(page: Int, nftsPerPage: Int) async throws(WalletError) -> [NFT] {
         try await smartWalletService.getNFTs(
             .init(walletLocator: .address(blockchainAddress), chain: chain, page: page, perPage: nftsPerPage)
         )
     }
 
-    public func approve(transactionId id: String) async throws(TransactionError) -> Transaction {
-        let transaction = try await self.transaction(withId: id)
-        guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
-            throw .transactionGeneric("Unknown error")
-        }
-        return signedTransaction
+    /// Fetches the transfer history for this wallet.
+    ///
+    /// Returns a list of incoming and outgoing transfers for the specified tokens.
+    /// Use this method to display transaction history in your application.
+    ///
+    /// - Parameter tokens: The cryptocurrency tokens to fetch transfers for.
+    ///   Common values include `.eth`, `.usdc`, `.sol`, etc.
+    ///
+    /// - Returns: A ``TransferListResult`` containing the transfer events sorted
+    ///   by timestamp (most recent first).
+    ///
+    /// - Throws: ``WalletError`` if the request fails.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// // Fetch ETH and USDC transfers
+    /// let result = try await wallet.listTransfers(tokens: [.eth, .usdc])
+    ///
+    /// for transfer in result.transfers {
+    ///     switch transfer.type {
+    ///     case .outgoing:
+    ///         print("Sent \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
+    ///     case .incoming:
+    ///         print("Received \(transfer.amount) \(transfer.tokenSymbol ?? "tokens")")
+    ///     case .unknown:
+    ///         break
+    ///     }
+    /// }
+    /// ```
+    public func listTransfers(
+        tokens: [CryptoCurrency]
+    ) async throws(WalletError) -> TransferListResult {
+        try await smartWalletService.listTransfers(
+            ListTransfersQueryParams(
+                walletLocator: .address(blockchainAddress),
+                chain: chain,
+                tokens: tokens
+            )
+        )
     }
 
     @available(*, deprecated, renamed: "balances", message: "Use the balances(tokens) instead")
@@ -67,6 +212,11 @@ open class Wallet: @unchecked Sendable {
         )
     }
 
+    /// Returns balances for the requested tokens, always including the chain's native token and USDC.
+    ///
+    /// - Parameters:
+    ///   - tokens: Additional tokens to include. Native token and USDC are always fetched.
+    ///   - chains: Additional chains to query. The wallet's own chain is always included.
     public func balances(
         _ tokens: [CryptoCurrency] = [],
         _ chains: [Chain] = []
@@ -98,6 +248,13 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
+    /// Funds the wallet with test tokens from the Crossmint faucet.
+    ///
+    /// Only available in staging/development environments; throws in production.
+    ///
+    /// - Parameters:
+    ///   - token: The token to fund.
+    ///   - amount: Amount in the token's smallest unit (e.g. lamports for SOL, wei for ETH).
     public func fund(
         token: CryptoCurrency,
         amount: Int
@@ -127,300 +284,12 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
-    @available(*, deprecated, renamed: "send(_:_:_:)", message: "Use the new send method. This one will be removed.")
-    public func send(
-        token: CryptoCurrency,
-        recipient: TransferTokenRecipient,
-        amount: String
-    ) async throws(TransactionError) -> Transaction {
-        Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
-            "token": token.name,
-            "recipient": recipient.description,
-            "amount": amount
-        ])
-
-        let transferTokenLocator: TransferTokenLocator
-        if let evmChain = EVMChain(chain.name) {
-            transferTokenLocator = .currency(.evm(evmChain, token))
-        } else if let solanaToken = SolanaSupportedToken.toSolanaSupportedToken(token) {
-            transferTokenLocator = .currency(.solana(solanaToken))
-        } else {
-            Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
-                "error": "Transaction creation failed"
-            ])
-            throw .transactionCreationFailed
-        }
-
-        guard let transaction = try await transferTokenAndPollWhilePending(
-            tokenLocator: transferTokenLocator.description,
-            recipient: recipient.description,
-            amount: amount
-        ) else {
-            Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
-                "error": "Unknown error"
-            ])
-            throw TransactionError.transactionGeneric("Unknown error")
-        }
-
-        Logger.smartWallet.debug(LogEvents.walletSendSuccess, attributes: [
-            "transactionId": transaction.id
-        ])
-
-        return transaction
-    }
-
-    public func send(
-        _ walletLocator: String,
-        _ tokenLocator: String,
-        _ amount: Double
-    ) async throws(TransactionError) -> TransactionSummary {
-        Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
-            "recipient": walletLocator,
-            "tokenLocator": tokenLocator,
-            "amount": "\(amount)"
-        ])
-
-        guard let transaction = try await transferTokenAndPollWhilePending(
-            tokenLocator: tokenLocator,
-            recipient: walletLocator,
-            amount: String(amount)
-        )?.toCompleted() else {
-            Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
-                "error": "Unknown error"
-            ])
-            throw TransactionError.transactionGeneric("Unknown error")
-        }
-
-        Logger.smartWallet.debug(LogEvents.walletSendSuccess, attributes: [
-            "transactionId": transaction.id
-        ])
-
-        return transaction.summary
-    }
-
-    public func transferToken(
-        tokenId: String? = nil,
-        recipient: TransferTokenRecipient,
-        amount: String
-    ) async throws(TransactionError) -> Transaction {
-        guard let tokenLocator = getTransferTokenLocator(
-            fromChain: chain,
-            andTokenId: tokenId
-        ) else {
-            throw .transactionCreationFailed
-        }
-
-        guard let transaction = try await transferTokenAndPollWhilePending(
-            tokenLocator: tokenLocator.description,
-            recipient: recipient.description,
-            amount: amount
-        ) else { throw .transactionGeneric("Unknown error") }
-
-        return transaction
-    }
-
-    internal func sendTransaction(
-        _ transactionRequest: any TransactionRequest
-    ) async throws(TransactionError) -> Transaction? {
-        onTransactionStart?()
-        let createdTransaction = try await createTransaction(transactionRequest)
-        let signedTransaction = try await signTransactionIfRequired(createdTransaction)
-
-        do {
-            return try await pollTransactionWhilePending(transaction: signedTransaction)
-        } catch {
-            switch error {
-            case .serviceError(let crossmintServiceError):
-                if case .invalidApiKey = crossmintServiceError {
-                    Logger.smartWallet.warn(
-                        """
-Transaction polling skipped due to insufficient API key permissions.
-Transaction was submitted successfully but status cannot be verified.
-Transaction ID: \(createdTransaction?.id ?? "unknown")
-"""
-                    )
-                    return createdTransaction
-                } else {
-                    throw error
-                }
-            default:
-                throw error
-            }
-        }
-    }
-
-    internal func transferTokenAndPollWhilePending(
-        tokenLocator: String,
-        recipient: String,
-        amount: String
-    ) async throws(TransactionError) -> Transaction? {
-        onTransactionStart?()
-        let createdTransaction = try await smartWalletService.transferToken(
-            chainType: chain.chainType.rawValue,
-            tokenLocator: tokenLocator,
-            recipient: recipient,
-            amount: amount
-        ).toDomain(withService: smartWalletService)
-
-        let signedTransaction = try await signTransactionIfRequired(createdTransaction)
-        return try await pollTransactionWhilePending(transaction: signedTransaction)
-    }
-
-    internal func signAndPollWhilePending(
-        _ transaction: Transaction?
-    ) async throws(TransactionError) -> Transaction? {
-        let signedTransaction = try await signTransactionIfRequired(transaction)
-        return try await pollTransactionWhilePending(transaction: signedTransaction)
-    }
-
-    internal func getTransferTokenLocator(
-        fromChain chain: AnyChain,
-        andTokenId tokenId: String?
-    ) -> TransferTokenLocator? {
-        if let tokenId {
-            switch blockchainAddress {
-            case .evm(let evmAddress):
-                guard let evmBlockchain = EVMChain(chain.name) else {
-                    return nil
-                }
-                return .tokenId(.evm(evmBlockchain, evmAddress), tokenId: tokenId)
-            case .solana(let solanaAddress):
-                return .tokenId(.solana(solanaAddress), tokenId: tokenId)
-            }
-        } else {
-            switch blockchainAddress {
-            case .evm(let evmAddress):
-                guard let evmBlockchain = EVMChain(chain.name) else {
-                    return nil
-                }
-                return .address(.evm(evmBlockchain, evmAddress))
-            case .solana(let solanaAddress):
-                return .address(.solana(solanaAddress))
-            }
-        }
-    }
-
-    internal func updateSignerIfRequired() async -> any Signer {
-        var updatedSigner: any Signer = signer
-        if let passkey = config.adminSigner as? PasskeySignerData {
-            if let passkeySigner = updatedSigner as? PasskeySigner {
-                updatedSigner = await passkeySigner.updateAdminSigner(
-                    passkey
-                )
-            }
-        }
-        return updatedSigner
-    }
-
-    private func transaction(withId id: String) async throws(TransactionError) -> Transaction {
-        guard let transaction = try await smartWalletService.fetchTransaction(
-                .init(transactionId: id, chainType: chain.chainType),
-        ).toDomain(withService: smartWalletService) else {
-            throw .transactionGeneric("Unknown error")
-        }
-        return transaction
-    }
-
-    private func approveTransaction(
-        transactionId: String,
-        message: String
-    ) async throws(TransactionError) -> Transaction? {
-        let request: SignRequestApi
-        do {
-            let updatedSigner: any Signer = await updateSignerIfRequired()
-            try await updatedSigner.initialize(smartWalletService)
-            request = SignRequestApi(
-                approvals: try await updatedSigner.approvals(
-                    withSignature: try await updatedSigner.sign(message: message)
-                )
-            )
-        } catch {
-            switch error {
-            case .invalidMessage:
-                throw .transactionSigningFailedNoMessage
-            case .invalidPrivateKey:
-                throw .transactionSigningFailedInvalidKey
-            case .cancelled:
-                throw .userCancelled
-            case .passkey(let passkeyError):
-                switch passkeyError {
-                case .cancelled:
-                    throw .userCancelled
-                default:
-                    throw .transactionSigningFailed(error)
-                }
-            case .signingFailed,
-                    .invalidAddress,
-                    .invalidEmail,
-                    .invalidSigner,
-                    .notStarted:
-                throw .transactionSigningFailed(error)
-            }
-        }
-
-        return try await smartWalletService.signTransaction(
-            .init(
-                transactionId: transactionId,
-                apiRequest: request,
-                chainType: chain.chainType
-            )
-        ).toDomain(withService: smartWalletService)
-    }
-
-    private func createTransaction(
-        _ transactionRequest: any TransactionRequest
-    ) async throws(TransactionError) -> Transaction? {
-        try await smartWalletService.createTransaction(
-            .init(request: transactionRequest, chainType: chain.chainType)
-        ).toDomain(withService: smartWalletService)
-    }
-
-    private func signTransactionIfRequired(
-        _ transaction: Transaction?
-    ) async throws(TransactionError) -> Transaction? {
-        if let transaction, let approvals = transaction.approvals {
-            let pendingApprovals = approvals.pending
-            guard pendingApprovals.count == 1, let pendingApproval = pendingApprovals.first else {
-                throw TransactionError.invalidApprovals(expected: 1, actual: pendingApprovals.count)
-            }
-
-            return try await approveTransaction(
-                transactionId: transaction.id,
-                message: pendingApproval.message
-            )
-        }
-        return transaction
-    }
-
-    private func pollTransactionWhilePending(
-        transaction: Transaction?
-    ) async throws(TransactionError) -> Transaction? {
-        guard let transaction else { return nil }
-
-        var updatedTransaction = transaction
-        while updatedTransaction.status == .pending || updatedTransaction.status == .awaitingApproval {
-            do {
-                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second in nanoseconds
-            } catch {
-                // If sleep fails, continue with the loop
-            }
-
-            guard let fetchedTransaction = try await smartWalletService.fetchTransaction(
-                .init(transactionId: updatedTransaction.id, chainType: chain.chainType),
-            ).toDomain(withService: smartWalletService) else {
-                throw TransactionError.transactionGeneric("Unknown error")
-            }
-
-            updatedTransaction = fetchedTransaction
-        }
-
-        return updatedTransaction
-    }
-
     private func getNativeToken(_ chain: AnyChain) -> CryptoCurrency {
         switch chain.name {
         case SolanaChain.solana.name:
             return .sol
+        case StellarChain.stellar.name:
+            return .xlm
         default:
             return .eth
         }

@@ -1,18 +1,20 @@
 @_exported import CrossmintAuth
 import CrossmintService
+import DeviceSigner
 import Foundation
 import Logger
 import SecureStorage
 import Wallet
 
-public final class CrossmintClientSDK: ClientSDK, Sendable {
+final class CrossmintClientSDK: ClientSDK, Sendable {
     private let apiKey: ApiKey
     private let secureStorage: SecureStorage
     private let secureWalletStorage: SecureWalletStorage
-    public let crossmintService: CrossmintService
-    public let authManager: any CrossmintAuth.AuthManager
+    let crossmintService: CrossmintService
+    let authManager: CrossmintAuthManager
+    let authClient: any AuthClient
 
-    init(apiKey: ApiKey, authManager: AuthManager? = nil) {
+    init(apiKey: ApiKey, authManager: CrossmintAuthManager? = nil) {
         self.apiKey = apiKey
 
         guard let bundleId = Bundle.main.bundleIdentifier else {
@@ -24,23 +26,21 @@ public final class CrossmintClientSDK: ClientSDK, Sendable {
         secureWalletStorage = KeychainSecureWalletStorage(bundleId: bundleId)
         crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId)
 
-        if let authManager {
-            self.authManager = authManager
-        } else {
-            self.authManager = CrossmintAuthManager(
-                authService: DefaultAuthService(crossmintService: crossmintService),
-                secureStorage: secureStorage
-            )
-        }
+        let authService = DefaultAuthService(crossmintService: crossmintService)
+        let resolvedAuthManager = authManager
+            ?? CrossmintAuthManager(authService: authService, secureStorage: secureStorage)
+        self.authManager = resolvedAuthManager
+        self.authClient = DefaultAuthClient(authService: authService, authManager: resolvedAuthManager)
     }
 
-    public func crossmintWallets() -> CrossmintWallets {
+    func crossmintWallets() -> CrossmintWallets {
         DefaultCrossmintWallets(
             service: DefaultSmartWalletService(
                 crossmintService: crossmintService,
                 authManager: authManager
             ),
-            secureWalletStorage: secureWalletStorage
+            secureWalletStorage: secureWalletStorage,
+            deviceSignerKeyStorage: .default
         )
     }
 }

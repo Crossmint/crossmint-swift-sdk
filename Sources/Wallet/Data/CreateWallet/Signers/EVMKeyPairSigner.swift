@@ -1,11 +1,12 @@
 import CrossmintCommonTypes
 import Foundation
-import secp256k1
+import P256K
+import libsecp256k1
 import Security
 import SwiftKeccak
 
-public typealias Secp256k1PrivateKey = secp256k1.Signing.PrivateKey
-public typealias Secp256k1PublicKey = secp256k1.Signing.PublicKey
+public typealias Secp256k1PrivateKey = P256K.Signing.PrivateKey
+public typealias Secp256k1PublicKey = P256K.Signing.PublicKey
 
 // swiftlint:disable:next large_tuple
 private typealias Signature = (r: [UInt8], s: [UInt8], v: UInt)

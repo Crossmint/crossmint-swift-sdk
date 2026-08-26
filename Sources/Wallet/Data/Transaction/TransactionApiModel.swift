@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Foundation
 
 public protocol TransactionApiModel: Decodable, Identifiable {
-    func toDomain(withService service: SmartWalletService) -> Transaction?
+    func toDomain() -> Transaction
 }
 
 public protocol WalletTypeTransactionMapping {
@@ -20,7 +20,7 @@ public enum SolanaSmartWalletMapping: WalletTypeTransactionMapping {
     public static let chainType: ChainType = .solana
 }
 
-public enum UnknownMapping: WalletTypeTransactionMapping {
-    public typealias APIModel = UnknownApiTransaction
-    public static let chainType: ChainType = .unknown
+public enum StellarSmartWalletMapping: WalletTypeTransactionMapping {
+    public typealias APIModel = StellarTransactionApiModel
+    public static let chainType: ChainType = .stellar
 }

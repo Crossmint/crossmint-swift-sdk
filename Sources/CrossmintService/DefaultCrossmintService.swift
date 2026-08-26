@@ -30,7 +30,7 @@ public struct DefaultCrossmintService: CrossmintService {
         _ endpoint: Endpoint,
         errorType: E.Type,
         _ transform: (NetworkError) -> E? = { _ in nil }
-    ) async throws(E) -> T where T: Decodable, E: ServiceError {
+    ) async throws(E) -> T where T: Decodable, E: CrossmintMappableError {
         do {
             let (data, _) = try await httpClient.fetch(try getRequest(endpoint))
             return try jsonCoder.decode(T.self, from: data)
@@ -52,7 +52,7 @@ public struct DefaultCrossmintService: CrossmintService {
         _ endpoint: Endpoint,
         errorType: E.Type,
         _ transform: (NetworkError) -> E? = { _ in nil }
-    ) async throws(E) where E: ServiceError {
+    ) async throws(E) where E: CrossmintMappableError {
         do {
             _ = try await httpClient.fetch(try getRequest(endpoint))
         } catch {
@@ -68,21 +68,16 @@ public struct DefaultCrossmintService: CrossmintService {
         _ endpoint: Endpoint,
         errorType: E.Type,
         _ transform: (NetworkError) -> E? = { _ in nil }
-    ) async throws(E) -> Data where E: ServiceError {
+    ) async throws(E) -> Data where E: CrossmintMappableError {
         do {
             let (data, _) = try await httpClient.fetch(try getRequest(endpoint))
             return data
-        } catch let networkError as NetworkError {
-            if let mappedError = transform(networkError) {
+        } catch {
+            if let mappedError = transform(error) {
                 throw mappedError
             }
 
-            throw E.fromNetworkError(networkError)
-        } catch let serviceError as CrossmintServiceError {
-            throw E.fromServiceError(serviceError)
-        } catch {
-            // This type of error should never happen.
-            throw E.fromServiceError(.unknown)
+            throw E.fromNetworkError(error)
         }
     }
 

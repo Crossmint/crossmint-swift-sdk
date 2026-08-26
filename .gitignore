@@ -42,5 +42,9 @@ Package.resolved
 *.log
 .idea/
 
+# Generated SDK reference docs
+docs/sdk-reference/
+sdk-reference/
+
 # Claude
 .claude/

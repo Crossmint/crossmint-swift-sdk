@@ -160,6 +160,7 @@ class PasskeyDelegate: NSObject, ASAuthorizationControllerDelegate,
         )
 
         let getResponse = AuthenticationResponseJSON(
+            type: .publicKey,
             id: credential.credentialID,
             rawId: credential.credentialID,
             authenticatorAttachment: nil,
@@ -189,6 +190,7 @@ class PasskeyDelegate: NSObject, ASAuthorizationControllerDelegate,
         )
 
         let getResponse = AuthenticationResponseJSON(
+            type: .publicKey,
             id: credential.credentialID,
             rawId: credential.credentialID,
             authenticatorAttachment: nil,

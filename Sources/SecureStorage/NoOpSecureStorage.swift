@@ -2,7 +2,7 @@ import Logger
 
 public struct NoOpSecureStorage: SecureStorage {
     public init() {
-        Logger.secureStorage.warn("Secure storage won't be functional. Using non-operational implementation")
+        Logger.secureStorage.warning("Secure storage won't be functional. Using non-operational implementation")
     }
 
     public func getOneTimeSecret() async throws(SecureStorageError) -> String? {

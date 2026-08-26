@@ -4,6 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>webcredentials:wallets-ios.demos-crossmint.com</string>
 		<string>webcredentials:wallets-ios.demos-crossmint.com?mode=developer</string>
 	</array>
 </dict>

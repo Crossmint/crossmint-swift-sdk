@@ -16,6 +16,7 @@ public struct NonEmptyString: Equatable, Hashable, Codable, CustomStringConverti
     }
 
     public init(stringInterpolation: DefaultStringInterpolation) {
+        // swiftlint:disable:next compiler_protocol_init
         let string = String(stringInterpolation: stringInterpolation)
         precondition(!string.isEmpty, "NonEmptyString cannot be initialized with an empty string interpolation")
         self.value = string
@@ -245,7 +246,9 @@ extension NonEmptyString {
         return String(value.suffix(maxLength))
     }
 
-    public func split(separator: Character, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true) -> [String] {
+    public func split(
+        separator: Character, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true
+    ) -> [String] {
         return value.split(
             separator: separator,
             maxSplits: maxSplits,

@@ -1,0 +1,129 @@
+name: Create Version Bump PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.2.0 or 1.2.0-beta)'
+        required: true
+        type: string
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+
+jobs:
+  create-version-pr:
+    name: Create Version Bump PR
+    runs-on: macos-26
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '26.5'
+
+    - name: Validate version format
+      run: |
+        if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$'; then
+          echo "Error: Version must follow semantic versioning (e.g., 1.2.0 or 1.2.0-beta)"
+          exit 1
+        fi
+
+    - name: Check if tag already exists
+      run: |
+        if git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
+          echo "Error: Tag ${{ inputs.version }} already exists"
+          exit 1
+        fi
+
+    - name: Cache SPM packages
+      uses: actions/cache@v4
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
+    - name: Run tests
+      run: make ci-test
+
+    - name: Run SwiftLint
+      run: make lint
+
+    - name: Lint podspec
+      run: pod lib lint CrossmintDeviceSigner.podspec --allow-warnings
+
+    - name: Update version in code
+      run: |
+        VERSION="${{ inputs.version }}"
+        sed -i '' "s/public static let version = \".*\"/public static let version = \"$VERSION\"/" Sources/Utils/SDKVersion.swift
+        sed -i '' "s/s\.version *= *'.*'/s.version          = '$VERSION'/" CrossmintDeviceSigner.podspec
+
+        if ! grep -q "public static let version = \"$VERSION\"" Sources/Utils/SDKVersion.swift; then
+          echo "Error: Failed to update Sources/Utils/SDKVersion.swift"
+          exit 1
+        fi
+        if ! grep -q "s.version          = '$VERSION'" CrossmintDeviceSigner.podspec; then
+          echo "Error: Failed to update CrossmintDeviceSigner.podspec"
+          exit 1
+        fi
+
+        echo "Updated SDKVersion.swift and CrossmintDeviceSigner.podspec to $VERSION"
+
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Create branch and commit
+      run: |
+        BRANCH_NAME="release-${{ inputs.version }}"
+        git checkout -b "$BRANCH_NAME"
+        git add Sources/Utils/SDKVersion.swift CrossmintDeviceSigner.podspec
+        git commit -m "Bump version to ${{ inputs.version }}"
+        git push origin "$BRANCH_NAME"
+
+    - name: Generate changelog preview
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        if [ -z "$LATEST_TAG" ]; then
+          git log --pretty=format:'- %s (%h)' --reverse > /tmp/changelog.md
+        else
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="${{ inputs.version }}" \
+            -f target_commitish="release-${{ inputs.version }}" \
+            -f previous_tag_name="$LATEST_TAG" \
+            --jq '.body' > /tmp/changelog.md
+        fi
+
+    - name: Create Pull Request
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        {
+          printf 'This PR bumps the SDK version to %s. Merging it tags the release and publishes automatically.\n\n' "${{ inputs.version }}"
+          printf '## Changes\n'
+          printf -- '- Updated `SDKVersion.swift` to %s\n' "${{ inputs.version }}"
+          printf -- '- Updated `CrossmintDeviceSigner.podspec` to %s\n\n' "${{ inputs.version }}"
+          printf '## Changelog preview\n'
+          cat /tmp/changelog.md
+        } > /tmp/pr-body.md
+        gh pr create \
+          --title "Release ${{ inputs.version }}" \
+          --base main \
+          --head "release-${{ inputs.version }}" \
+          --label "release" \
+          --body-file /tmp/pr-body.md

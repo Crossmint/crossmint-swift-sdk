@@ -2,11 +2,14 @@ import Utils
 
 public enum Address: BlockchainAddress, CustomStringConvertible {
     case solana(SolanaAddress)
+    case stellar(StellarAddress)
     case evm(EVMAddress)
 
     public init(address: String) throws(BlockchainAddressError) {
         if let solanaAddress = try? SolanaAddress(address: address) {
             self = .solana(solanaAddress)
+        } else if let stellarAddress = try? StellarAddress(address: address) {
+            self = .stellar(stellarAddress)
         } else if let evmAddress = try? EVMAddress(address: address) {
             self = .evm(evmAddress)
         } else {
@@ -21,6 +24,8 @@ public enum Address: BlockchainAddress, CustomStringConvertible {
             switch chain.chainType {
             case .solana:
                 return try? .solana(SolanaAddress(address: address))
+            case .stellar:
+                return try? .stellar(StellarAddress(address: address))
             case .evm:
                 return try? .evm(EVMAddress(address: address))
             case .unknown:
@@ -42,6 +47,8 @@ public enum Address: BlockchainAddress, CustomStringConvertible {
         switch self {
         case .solana(let solanaAddress):
             try container.encode(solanaAddress)
+        case .stellar(let stellarAddress):
+            try container.encode(stellarAddress)
         case .evm(let evmAddress):
             try container.encode(evmAddress)
         }
@@ -55,6 +62,8 @@ public enum Address: BlockchainAddress, CustomStringConvertible {
         switch self {
         case .solana(let solanaAddress):
             return solanaAddress.address
+        case .stellar(let stellarAddress):
+            return stellarAddress.address
         case .evm(let evmAddress):
             return evmAddress.address
         }

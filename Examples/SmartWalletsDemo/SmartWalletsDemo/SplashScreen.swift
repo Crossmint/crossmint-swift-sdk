@@ -38,11 +38,6 @@ struct SplashScreen: View {
     @State private var authenticationStatus: AuthenticationStatus?
     @State private var transitionOpacity: Double = 0
     @State private var error: Error?
-    @State private var showOTPView = false
-
-    private var authManager: AuthManager {
-        CrossmintSDK.shared.authManager
-    }
 
     @ViewBuilder
     private var splashContent: some View {
@@ -91,7 +86,7 @@ struct SplashScreen: View {
     }
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
 
             if authenticationStatus == nil {
                 splashContent
@@ -110,7 +105,7 @@ struct SplashScreen: View {
                     case .authenticating:
                         EmptyView()
                     case .authenticated:
-                        DashboardView(authenticationStatus: $authenticationStatus)
+                        PlaygroundView(authenticationStatus: $authenticationStatus)
                             .transition(.asymmetric(
                                 insertion: .opacity.combined(with: .move(edge: .trailing)),
                                 removal: .opacity.combined(with: .move(edge: .leading))
@@ -120,15 +115,10 @@ struct SplashScreen: View {
                 }
             }
             .animation(AnimationConstants.easeInOut(), value: authenticationStatus)
-            .sheet(isPresented: $showOTPView) {
-                OTPValidatorView()
-            }
         }
+        .tint(.green)
         .task {
             await authenticate()
-        }
-        .onReceive(CrossmintSDK.shared.isOTPRequred) {
-            showOTPView = $0
         }
     }
 
@@ -137,7 +127,7 @@ struct SplashScreen: View {
         guard authenticationStatus == nil else { return }
         isLoading = true
         do {
-            authenticationStatus = try await crossmintAuthManager.authenticationStatus
+            authenticationStatus = try await authManager.authenticationStatus
         } catch {
             if case .signInRequired = error {
                 self.error = .invalidCredentialsStored

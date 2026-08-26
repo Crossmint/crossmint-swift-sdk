@@ -8,10 +8,12 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
     public weak var webView: WKWebView?
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
     public var onUnknownMessage: (String, Data) -> Void = { _, _ in }
+    public var onWebContentProcessTerminated: @MainActor () -> Void = {}
 
     var loadedURLs: [URL] = []
     var sentMessages: [any WebViewMessage] = []
     var resetCount = 0
+    var completeOnboardingRequestCount = 0
 
     var shouldThrowOnLoad = false
     var loadError: WebViewError?
@@ -39,6 +41,9 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
     func sendMessage<T: WebViewMessage>(_ message: T) async throws(WebViewError) -> Any? {
         if shouldThrowOnSend {
             throw sendError ?? .javascriptEvaluationError
+        }
+        if message is CompleteOnboardingRequest {
+            completeOnboardingRequestCount += 1
         }
         sentMessages.append(message)
 
@@ -101,7 +106,9 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
 
     // MARK: - WKScriptMessageHandler
 
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    public func userContentController(
+        _ userContentController: WKUserContentController, didReceive message: WKScriptMessage
+    ) {
         // Mock implementation - not needed for tests
     }
 }

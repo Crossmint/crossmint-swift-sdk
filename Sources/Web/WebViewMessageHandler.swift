@@ -37,7 +37,10 @@ public class WebViewMessageHandler {
     }
 
     public func reset() {
-        Logger.web.debug("reset() - Resetting message handler, clearing \(messageListeners.count) listeners, \(pendingMessages.count) pending messages, \(messageBuffer.count) buffered messages")
+        Logger.web.debug(
+            "reset() - Resetting message handler, clearing \(messageListeners.count) listeners, " +
+            "\(pendingMessages.count) pending messages, \(messageBuffer.count) buffered messages"
+        )
         isReady = false
         pendingMessages.removeAll()
         messageBuffer.removeAll()
@@ -51,12 +54,12 @@ public class WebViewMessageHandler {
 
     public func processIncomingMessage(_ messageBody: Any) {
         guard let messageData = extractMessageData(from: messageBody) else {
-            Logger.web.warn("Failed to extract message data from: \(messageBody)")
+            Logger.web.warning("Failed to extract message data from: \(messageBody)")
             return
         }
 
         guard let messageTypeInfo = extractMessageType(from: messageData) else {
-            Logger.web.warn("Failed to extract message type from message data: \(messageBody)")
+            Logger.web.warning("Failed to extract message type from message data: \(messageBody)")
             return
         }
 
@@ -68,22 +71,33 @@ public class WebViewMessageHandler {
         if let decodedMessage = WebViewMessageRegistry.decode(messageType: messageTypeInfo, data: messageData) {
             Logger.web.debug("Web >> Native: \(String(data: messageData, encoding: .utf8) ?? "Unknown")")
 
-            // Add to message buffer
-            addToMessageBuffer(decodedMessage)
-
+            // Deliver to waiting listeners first; only buffer unclaimed messages.
+            // Buffering a listener-consumed message leaves a stale copy behind,
+            // and the next waitForMessage of the same type returns it instead of
+            // the fresh response (e.g. back-to-back TEE signs reusing the
+            // previous signature — WAL-11310).
+            var consumedByListener = false
             for (id, predicate) in messagePredicates {
                 if predicate(decodedMessage) {
                     if let continuation = messageListeners.removeValue(forKey: id) {
                         messagePredicates.removeValue(forKey: id)
                         continuation.resume(returning: decodedMessage)
+                        consumedByListener = true
                     }
                 }
+            }
+
+            if !consumedByListener {
+                addToMessageBuffer(decodedMessage)
             }
 
             delegate?.handleWebViewMessage(decodedMessage)
         } else {
             // Log unknown message before delegating
-            Logger.web.warn("Unknown message type: \(messageTypeInfo), data: \(String(data: messageData, encoding: .utf8) ?? "nil")")
+            Logger.web.warning(
+                "Unknown message type: \(messageTypeInfo), " +
+                "data: \(String(data: messageData, encoding: .utf8) ?? "nil")"
+            )
             delegate?.handleUnknownMessage(messageTypeInfo, data: messageData)
         }
     }
@@ -99,7 +113,7 @@ public class WebViewMessageHandler {
 
     private func extractMessageType(from data: Data) -> String? {
         guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-            Logger.web.warn("Failed to deserialize message data as JSON dictionary")
+            Logger.web.warning("Failed to deserialize message data as JSON dictionary")
             return nil
         }
 
@@ -114,7 +128,7 @@ public class WebViewMessageHandler {
             case .error:
                 Logger.web.error(logMessage)
             case .warn:
-                Logger.web.warn(logMessage)
+                Logger.web.warning(logMessage)
             case .debug:
                 Logger.web.debug(logMessage)
             case .info, .log, .trace:

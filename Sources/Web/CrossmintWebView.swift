@@ -30,10 +30,13 @@ public struct CrossmintWebView: UIViewRepresentable {
         Task { @MainActor in try? await tee.load() }
 
         let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = tee.signerWebsiteDataStore
         let userContentController = WKUserContentController()
 
         let communicationScript = WKUserScript(
-            source: CrossmintJavaScriptBridge.communicationScript(bundleID: bundleId, handlerName: webViewCommunicationProxy.name),
+            source: CrossmintJavaScriptBridge.communicationScript(
+                bundleID: bundleId, handlerName: webViewCommunicationProxy.name
+            ),
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         )

@@ -1,7 +1,23 @@
 import Logger
 import CrossmintService
 import SecureStorage
+import Utils
 
+/// Built-in ``AuthManager`` that authenticates users via email OTP.
+///
+/// ## OTP flow
+/// ```swift
+/// let auth = CrossmintSDK.shared.authManager
+///
+/// try await auth.sendEmailOtp(email: "user@example.com")
+/// // ... user enters the code from their inbox ...
+/// let status = try await auth.confirmEmailOtp(email: "user@example.com", code: userInput)
+/// if status.isAuthenticated {
+///     print("Signed in as", status.email ?? "")
+/// }
+/// ```
+///
+/// The JWT is refreshed automatically before expiry; no app-level polling is required.
 public actor CrossmintAuthManager: AuthManager {
     enum Errors: Error {
         case noBundleIdFound
@@ -30,7 +46,8 @@ public actor CrossmintAuthManager: AuthManager {
     public var authenticationStatus: AuthenticationStatus {
         get async throws(AuthError) {
             guard let authenticationStatus = _authenticationStatus else {
-                return try await performJWTRefresh(with: getOneTimeSecret())
+                let secret = await getOneTimeSecret()
+                return try await performJWTRefresh(with: secret)
             }
             return authenticationStatus
         }
@@ -71,61 +88,49 @@ public actor CrossmintAuthManager: AuthManager {
     }
 #endif
 
-    public func otpAuthentication(
-        email: String,
-        code: String? = nil,
-        forceRefresh: Bool = false
-    ) async throws(AuthManagerError) -> OTPAuthenticationStatus {
-        let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Sends a one-time password to the given email address. Call ``confirmEmailOtp(email:code:)`` next.
+    public func sendEmailOtp(email: String) async throws(AuthManagerError) {
+        let normalizedEmail = normalizeEmail(email)
+        guard isValidEmail(normalizedEmail) else {
+            throw AuthManagerError.invalidEmail
+        }
         do {
-            if forceRefresh || !otpAuthenticationStatus.isAuthenticating {
-                otpAuthenticationStatus = try await startEmailValidation(
-                    email: normalizedEmail
-                )
-            } else {
-                switch otpAuthenticationStatus {
-                case .authenticationStatus(let authenticationStatus):
-                    switch authenticationStatus {
-                    case .nonAuthenticated:
-                        otpAuthenticationStatus = try await startEmailValidation(email: normalizedEmail)
-                        jwtRefreshTimer?.invalidate()
-                    case .authenticated(let authenticatedEmail, _, _):
-                        if authenticatedEmail != normalizedEmail {
-                            // swiftlint:disable:next line_length
-                            Logger.auth.debug("Starting authentication again. \(email) is different from \(authenticatedEmail)")
-                            otpAuthenticationStatus = try await startEmailValidation(email: normalizedEmail)
-                            jwtRefreshTimer?.invalidate()
-                        } else {
-                            Logger.auth.debug("Already authenticated. Use force refresh to authenticate again")
-                        }
-                    case .authenticating:
-                        break
-                    }
-                case .emailSent(let verifiedEmail, let emailId):
-                    if let code {
-                        if verifiedEmail == normalizedEmail {
-                            try await refreshJWT(
-                                try await authService.validateToken(
-                                    ValidateTokenRequest(email: verifiedEmail, token: code, emailID: emailId)
-                                ).oneTimeSecret
-                            )
-                        } else {
-                            Logger.auth.debug("Email mismatch. Using \(normalizedEmail) to start authentication again")
-                            otpAuthenticationStatus = try await startEmailValidation(email: normalizedEmail)
-                        }
-                    } else {
-                        // swiftlint:disable:next line_length
-                        Logger.auth.debug("No code received while expecting it. Authentication won't proceed until a code is provided")
-                    }
-
-                }
-            }
-            return otpAuthenticationStatus
+            let newStatus = try await startEmailValidation(email: normalizedEmail)
+            jwtRefreshTimer?.invalidate()
+            otpAuthenticationStatus = newStatus
         } catch {
-            throw AuthManagerError.serviceError(error.errorMessage)
+            throw AuthManagerError.serviceError(error.message)
         }
     }
 
+    /// Validates the OTP code and, on success, establishes an authenticated session.
+    ///
+    /// Must be called after ``sendEmailOtp(email:)`` with the same email address.
+    /// Throws ``AuthManagerError/noPendingOTP`` if no email has been sent yet.
+    public func confirmEmailOtp(email: String, code: String) async throws(AuthManagerError) -> OTPAuthenticationStatus {
+        if code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw AuthManagerError.invalidInput("OTP code cannot be empty")
+        }
+        let normalizedEmail = normalizeEmail(email)
+        guard case let .emailSent(verifiedEmail, emailId) = otpAuthenticationStatus,
+              verifiedEmail == normalizedEmail else {
+            throw AuthManagerError.noPendingOTP
+        }
+        do {
+            try await refreshJWT(
+                try await authService.validateToken(
+                    ValidateTokenRequest(email: verifiedEmail, token: code, emailID: emailId)
+                ).oneTimeSecret
+            )
+            return otpAuthenticationStatus
+        } catch {
+            throw AuthManagerError.serviceError(error.message)
+        }
+    }
+
+    /// Invalidates the server-side refresh token and clears the local session.
+    ///
+    /// Has no effect if the user is not currently authenticated.
     public func logout() async throws(AuthManagerError) -> OTPAuthenticationStatus {
         guard case let .authenticationStatus(.authenticated(_, _, secret)) = otpAuthenticationStatus else {
             Logger.auth.debug("User is not authenticated. Nothing to logout")
@@ -142,10 +147,15 @@ public actor CrossmintAuthManager: AuthManager {
             return otpAuthenticationStatus
         } catch {
             Logger.auth.error("Error while logging out: \(error.localizedDescription)")
-            throw AuthManagerError.serviceError(error.errorMessage)
+            throw AuthManagerError.serviceError(error.message)
         }
     }
 
+    /// Clears the local session state without contacting the server.
+    ///
+    /// Use this when the server session is already gone (e.g. the refresh token expired or was
+    /// revoked externally) and you just need to reset local state. Prefer ``logout()`` when the
+    /// session is still valid and you want to revoke the server-side token as well.
     public func reset() async -> OTPAuthenticationStatus {
         otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
         return otpAuthenticationStatus
@@ -160,6 +170,14 @@ public actor CrossmintAuthManager: AuthManager {
         )
         otpAuthenticationStatus = .authenticationStatus(authStatus)
         _authenticationStatus = authStatus
+    }
+
+    internal func establishSession(oneTimeSecret: String) async throws(AuthError) -> (jwt: String, email: String) {
+        let authStatus = try await refreshJWT(oneTimeSecret)
+        guard case let .authenticated(email, jwt, _) = authStatus else {
+            throw AuthError.generic("Session could not be established")
+        }
+        return (jwt: jwt, email: email)
     }
 
     private func startEmailValidation(email: String) async throws(AuthError) -> OTPAuthenticationStatus {
@@ -217,12 +235,14 @@ public actor CrossmintAuthManager: AuthManager {
         }
     }
 
-    private func getOneTimeSecret() async throws(AuthError) -> String {
+    private func getOneTimeSecret() async -> String {
         do {
             return try await secureStorage.getOneTimeSecret() ?? ""
         } catch {
-            _authenticationStatus = nil
-            throw AuthError.generic("No one time secret found")
+            let message = "Failed to read one-time secret from keychain, " +
+                "treating as non-authenticated: \(error.localizedDescription)"
+            Logger.auth.error(message)
+            return ""
         }
     }
 
@@ -238,12 +258,8 @@ public actor CrossmintAuthManager: AuthManager {
             _authenticationStatus = authStatus
             return authStatus
         } catch {
-            if case .signInRequired = error {
-                _authenticationStatus = .nonAuthenticated
-            } else {
-                _authenticationStatus = nil
-            }
-            throw error
+            _authenticationStatus = .nonAuthenticated
+            throw AuthError.signInRequired
         }
     }
 }

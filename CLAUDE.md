@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Building the SDK
 ```bash
-
-# Build using xcodebuild directly
 make build
 ```
 
@@ -20,15 +18,14 @@ make test
 make ci-test
 
 # Run specific test target
-xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=latest" test
+xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=latest" test
 ```
 
 ### Linting
 ```bash
-# Run SwiftLint to check for issues
 make lint
 
-# Run SwiftLint with auto-fix
+# auto-fix
 make lint-fix
 
 # Using swift package directly
@@ -39,95 +36,123 @@ swift package plugin --allow-writing-to-package-directory swiftlint --fix
 ```bash
 # Build the EVM demo app (SmartWalletsDemo)
 make build-evm-demo
-
-# Build the Solana demo app
-make build-solana-demo
 ```
 
 ### Other Commands
 ```bash
-# Clean build artifacts
 make clean
-
-# Resolve Swift package dependencies
 make resolve
-
-# Open in Xcode
 make open
 # or double-click "Crossmint SDK.xcworkspace"
 ```
 
 ## Architecture Overview
 
-The Crossmint Swift SDK is a modular iOS SDK for integrating Crossmint services. The architecture follows a clean separation of concerns with distinct modules for different functionalities.
+The Crossmint Swift SDK follows a layered architecture with a configured singleton as the entry point, domain services for API communication, and chain-specific `Wallet` subclasses as the primary consumer-facing type.
 
-### Core Modules
+### Layered Architecture
 
-1. **CrossmintClient** - Main entry point providing the `ClientSDK` protocol implementation
-   - Aggregates all SDK functionality
-   - Provides access to wallets, authentication, and services
+```
+CrossmintSDK.shared                     (@MainActor final class)
+  ├── .crossmintWallets  (CrossmintWallets)
+  ├── .authClient        (AuthClient protocol)
+  ├── .authManager       (CrossmintAuthManager)
+  ├── .crossmintService  (CrossmintService — internal detail, avoid in app code)
+  └── setJWT(_:)
 
-2. **Wallet** - Smart wallet functionality
-   - Generic `Wallet` protocol with specialized implementations (`EVMWallet`, `SolanaWallet`)
-   - Supports multiple signer types (EOA, Passkeys)
-   - Transaction creation, signing, and management
+CrossmintWallets
+  └── getOrCreate(chain:signer:options:) → Wallet subclass
 
-3. **Auth** - Authentication management
-   - OTP-based authentication flow
-   - JWT token management
-   - Session persistence
+Wallet (open class — @unchecked Sendable)
+  ├── balances(_:_:) / nfts(page:nftsPerPage:) / listTransfers(tokens:)
+  ├── signers() / signerIsRegistered(_:)
+  └── EVMWallet / SolanaWallet / StellarWallet (chain-specific subclasses)
+      [transaction/signing logic in Wallet+Transactions.swift extensions]
 
-4. **Payments** - Payment processing
-   - Headless checkout functionality
-   - Embedded checkout UI components
-   - Multiple payment method support (crypto, card, express checkout)
+--- INTERNAL ---
+Services (structs — single-responsibility API calls)
+  WalletService / TransactionService / TransferService
+  BalanceService / NFTService / SignatureService / SignerRegistrationService
 
-5. **CrossmintService** - Low-level API communication
-   - Request building and execution
-   - Error handling
-   - Environment configuration
+Infrastructure
+  CrossmintAuth / Logger / SecureStorage / HTTP Client / DeviceSigner
+```
 
-### Supporting Modules
+### SDK Entry Point
 
-- **CrossmintCommonTypes** - Shared types across modules (blockchains, currencies, etc.)
-- **SecureStorage** - Keychain-based secure storage for sensitive data
-- **Http** - Network layer abstraction
-- **Logger** - Unified logging system
-- **Utils** - Common utilities and extensions
-- **Passkeys** - Passkey authentication support
+`CrossmintSDK` is a `@MainActor final class` in the `CrossmintClient` module:
 
-### Key Design Patterns
+```swift
+// Configure once, early in app startup
+CrossmintSDK.configure(apiKey: "ck_staging_...", logLevel: .error, trackingConsent: .granted)
 
-1. **Protocol-Oriented Design**: Most functionality exposed through protocols (`ClientSDK`, `AuthManager`, `CrossmintWallets`, `Wallet`, etc.)
+// Developer-managed auth (production — your backend issues the JWT)
+await CrossmintSDK.shared.setJWT(myJWT)
+await CrossmintSDK.shared.setJWT(nil)  // sign out
 
-2. **Dependency Injection**: Modules depend on protocol abstractions rather than concrete implementations
+// Crossmint-managed auth (email/phone OTP)
+let authClient = CrossmintSDK.shared.authClient  // AuthClient protocol
 
-3. **Error Handling**: Typed errors using Swift's throwing mechanism with specific error types per module
+// Wallet access
+let wallets = CrossmintSDK.shared.crossmintWallets
+```
 
-4. **Async/Await**: Modern Swift concurrency throughout the codebase
+Environment (staging vs production) is decoded from the API key format — never pass it explicitly. `crossmintService` is still a public property on the singleton but is an HTTP implementation detail — don't use it in application code.
 
-5. **SwiftUI Integration**: Provides environment values and view modifiers for easy SwiftUI integration
+### Package Boundaries
 
-### Environment Configuration
+```
+CrossmintClient       ← SDK singleton (CrossmintSDK), SwiftUI integration, environment values
+CrossmintAuth         ← AuthClient protocol, OTP flow, JWT management
+Wallet                ← Wallet class, domain services, signers
+CrossmintCommonTypes  ← shared types (Chain, CryptoCurrency, BlockchainType, etc.)
+CrossmintService      ← HTTP client, request building, error mapping
+DeviceSigner          ← Secure Enclave key storage (zero external dependencies)
+Passkeys              ← Passkey authentication support
+SecureStorage         ← Keychain-based secure storage
+Http / Logger / Utils / Web ← infrastructure
+```
 
-When running the demo apps, set these environment variables:
-- `CROSSMINT_API_KEY` - Your Crossmint API key
-- `CROSSMINT_WHITELISTED_DOMAIN` - Whitelisted domain for the SDK
+### Wallet
 
-## Test Structure
+`Wallet` is an `open class` with `@unchecked Sendable`. Sign/poll logic lives in `Wallet+Transactions.swift` extensions. Chain-specific subclasses (`EVMWallet`, `SolanaWallet`, `StellarWallet`) extend it with chain-unique methods.
 
-Tests are organized by module:
-- **CrossmintCommonTypesTests** - Tests for common types
-- **CrossmintServiceTests** - Service layer tests
-- **WalletTests** - Wallet functionality tests
-- **PaymentTests** - Payment processing tests
-- **UtilsTests** - Utility function tests
+Add `.crossmintNonCustodialSigner()` to your root view when using email/phone signers — this injects the hidden WebView required for TEE communication.
 
-Test resources (JSON fixtures) are included in each test target's Resources directory.
+### TEE Architecture
+
+The TEE WebView lives in the `Wallet` module (`CrossmintTEE`). It handles auto-recovery from WebKit content-process termination internally. TEE is an implementation detail of email/phone signers — developers never interact with it directly.
+
+### Auth State
+
+`CrossmintAuthManager` manages JWT state, persisting it to keychain. `setJWT(_:)` on the singleton stores a developer-supplied token (no refresh). `AuthClient.verifyOTP()` stores a JWT from Crossmint-managed auth. HTTP requests in the `Wallet` module inject the current JWT via `AuthenticatedCrossmintService`.
+
+### Error Protocol
+
+```swift
+public protocol CrossmintError: Error, Sendable {
+    var code: String { get }               // SCREAMING_SNAKE_CASE
+    var message: String { get }
+    var recoverySuggestion: String? { get }
+    var underlyingError: Error? { get }
+}
+```
+
+Domain errors: `WalletError`, `TransactionError`, `SignatureError`, `AuthError`.
+
+### Services
+
+Services make exactly one API call per method — no coordination, no polling. Multi-step flows (getOrCreate, sign + poll) live in the client (`DefaultCrossmintWallets`) or in `Wallet+Transactions.swift` extensions. Never embed flow logic or polling inside a service method.
+
+@docs/conventions/code.md
+@docs/conventions/tests.md
 
 ## Development Workflow
 
-1. All code must pass SwiftLint checks before merging
-2. Tests run on iPhone 16 Pro simulator by default
-3. The SDK uses Swift Package Manager for dependency management
-4. SwiftLint is integrated as a build tool plugin
+1. All code must pass SwiftLint checks before merging (`make lint`).
+2. Tests run on iPhone 17 Pro simulator by default.
+3. The SDK uses Swift Package Manager for dependency management.
+4. SwiftLint is integrated as a build tool plugin.
+5. Set these environment variables when running the demo app:
+   - `CROSSMINT_API_KEY` — your Crossmint API key
+   - `CROSSMINT_WHITELISTED_DOMAIN` — whitelisted domain for the SDK

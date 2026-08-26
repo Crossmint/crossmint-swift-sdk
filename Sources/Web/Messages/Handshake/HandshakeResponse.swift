@@ -6,9 +6,4 @@ public struct HandshakeResponse: WebViewMessage {
     }
     public let event: String
     public let data: Data
-
-    init(requestVerificationId: String) {
-        event = Self.messageType
-        data = Data(requestVerificationId: requestVerificationId)
-    }
 }

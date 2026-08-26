@@ -21,25 +21,15 @@ let package = Package(
             name: "CrossmintClientSDK",
             targets: [
                 "CrossmintClient"
-//                "PaymentsUI"
-            ]
-        ),
-        .library(
-            name: "CrossmintCheckout",
-            targets: [
-                "Checkout"
             ]
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/21-DOT-DEV/swift-secp256k1", exact: "0.18.0"),
-        .package(url: "https://github.com/airbnb/lottie-spm", from: "4.5.1"),
-//        .package(url: "https://github.com/checkout/checkout-ios-components", exact: "1.2.6"),
+        .package(url: "https://github.com/21-DOT-DEV/swift-secp256k1", exact: "0.20.0"),
         .package(url: "https://github.com/bitflying/SwiftKeccak", exact: "0.1.2"),
         .package(url: "https://github.com/attaswift/BigInt", from: "5.4.0"),
         .package(url: "https://github.com/ekscrypto/SwiftEmailValidator", exact: "1.0.4"),
         .package(url: "https://github.com/valpackett/SwiftCBOR", exact: "0.5.0"),
-        .package(url: "https://github.com/DataDog/dd-sdk-ios.git", from: "2.0.0"),
         // Plugins
         // If the Swiftlint version is updated, update the binary in the Makefile.
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", exact: "0.59.1")
@@ -52,8 +42,8 @@ let package = Package(
                 "Wallet",
                 "CrossmintAuth",
                 "CrossmintCommonTypes",
-//                "Payments",
-                "SecureStorage"
+                "SecureStorage",
+                "DeviceSigner"
             ],
             resources: [
                 .process("PrivacyInfo.xcprivacy")
@@ -78,10 +68,12 @@ let package = Package(
         .target(
             name: "Logger",
             dependencies: [
-                "Utils",
-                .product(name: "DatadogCore", package: "dd-sdk-ios"),
-                .product(name: "DatadogLogs", package: "dd-sdk-ios")
+                "Utils"
             ],
+            plugins: basePlugins
+        ),
+        .target(
+            name: "DeviceSigner",
             plugins: basePlugins
         ),
         .target(
@@ -93,7 +85,9 @@ let package = Package(
                 "CrossmintCommonTypes",
                 "SecureStorage",
                 "Passkeys",
-                .product(name: "secp256k1", package: "swift-secp256k1"),
+                "DeviceSigner",
+                .product(name: "P256K", package: "swift-secp256k1"),
+                .product(name: "libsecp256k1", package: "swift-secp256k1"),
                 .product(name: "SwiftKeccak", package: "SwiftKeccak"),
                 .product(name: "BigInt", package: "BigInt"),
                 "Web"
@@ -119,27 +113,6 @@ let package = Package(
             dependencies: baseDependencies,
             plugins: basePlugins
         ),
-//        .target(
-//            name: "Payments",
-//            dependencies: baseDependencies + [
-//                "Wallet",
-//                .product(name: "CheckoutComponents", package: "checkout-ios-components")
-//            ],
-//            plugins: basePlugins
-//        ),
-//        .target(
-//            name: "PaymentsUI",
-//            dependencies: baseDependencies + [
-//                "Payments",
-//                "CrossmintService",
-//                .product(name: "Lottie", package: "lottie-spm"),
-//                .product(name: "CheckoutComponents", package: "checkout-ios-components")
-//            ],
-//            resources: [
-//                .process("Resources")
-//            ],
-//            plugins: basePlugins
-//        ),
         .target(
             name: "Passkeys",
             dependencies: baseDependencies + [
@@ -151,11 +124,6 @@ let package = Package(
         .target(
             name: "Web",
             dependencies: baseDependencies + ["CrossmintAuth"],
-            plugins: basePlugins
-        ),
-        .target(
-            name: "Checkout",
-            dependencies: baseDependencies,
             plugins: basePlugins
         ),
         //
@@ -183,8 +151,6 @@ let package = Package(
                 "TestsUtils"
             ],
             resources: [
-                .process("Resources/Config/SmartWalletConfigResponseEOA.json"),
-                .process("Resources/Config/SmartWalletConfigResponsePasskeys.json"),
                 .process("Resources/WalletPasskey.json"),
                 .process("Resources/WalletEVMKeypair.json"),
                 .process("Resources/WalletSolanaFireblocks.json"),
@@ -193,26 +159,25 @@ let package = Package(
                 .process("Resources/Transaction/SignTransactionResponse.json"),
                 .process("Resources/Transaction/FailedTransactionResponse.json"),
                 .process("Resources/Transaction/CreateSolanaTransactionResponse.json"),
+                .process("Resources/Transaction/CreateStellarTransactionResponse.json"),
+                .process("Resources/Transaction/SolanaSignerRegistrationAwaitingApproval.json"),
+                .process("Resources/Transaction/ListTransactionsResponse.json"),
+                .process("Resources/Transaction/ListSolanaTransactionsResponse.json"),
+                .process("Resources/Transaction/ListTransactionsResponseWithBadRow.json"),
+                .process("Resources/Transaction/GetTransactionResponse.json"),
+                .process("Resources/Transaction/RemoveSignerTransactionSuccess.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
                 .process("Resources/WalletEVMApiKey.json"),
                 .process("Resources/WalletEVMEmail.json"),
                 .process("Resources/WalletSolanaEmail.json"),
-                .process("Resources/WalletEVMPhone.json")
+                .process("Resources/WalletSolanaSigners.json"),
+                .process("Resources/WalletEVMSigners.json"),
+                .process("Resources/WalletSolanaEmailWithStaleDeviceSigner.json"),
+                .process("Resources/WalletEVMPhone.json"),
+                .process("Resources/Transfer/ListTransfersResponse.json")
             ],
             plugins: basePlugins
         ),
-//        .testTarget(
-//            name: "PaymentTests",
-//            dependencies: [
-//                "Payments",
-//                "TestsUtils"
-//            ],
-//            resources: [
-//                .process("Order/Resources/GetLineItemDeliveryToken.json"),
-//                .process("Order/Resources/SolanaLineItemDeliveryTokenOut.json")
-//            ],
-//            plugins: basePlugins
-//        ),
         .testTarget(
             name: "UtilsTests",
             dependencies: [
@@ -226,6 +191,20 @@ let package = Package(
                 "Web",
                 "TestsUtils",
                 "CrossmintAuth"
+            ],
+            plugins: basePlugins
+        ),
+        .testTarget(
+            name: "DeviceSignerTests",
+            dependencies: [
+                "DeviceSigner"
+            ],
+            plugins: basePlugins
+        ),
+        .testTarget(
+            name: "LoggerTests",
+            dependencies: [
+                "Logger"
             ],
             plugins: basePlugins
         ),

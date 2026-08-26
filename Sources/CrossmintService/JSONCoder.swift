@@ -12,7 +12,7 @@ public protocol JSONCoder: Sendable {
 }
 
 public extension JSONCoder {
-    func encodeRequest<T: Encodable, E: ServiceError>(
+    func encodeRequest<T: Encodable, E: CrossmintMappableError>(
         _ request: T,
         errorType: E.Type
     ) throws(E) -> Data {

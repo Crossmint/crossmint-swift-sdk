@@ -3,23 +3,9 @@ import Testing
 @testable import Web
 @testable import Logger
 
-@Suite("WebViewMessageHandler Tests")
+@Suite("WebViewMessageHandler Tests", .tags(.unit))
 @MainActor
-// swiftlint:disable:next type_body_length
 struct WebViewMessageHandlerTests {
-    final class MockWebViewMessageHandlerDelegate: WebViewMessageHandlerDelegate {
-        var receivedMessages: [any WebViewMessage] = []
-        var receivedUnknownMessages: [(type: String, data: Data)] = []
-
-        func handleWebViewMessage<T: WebViewMessage>(_ message: T) {
-            receivedMessages.append(message)
-        }
-
-        func handleUnknownMessage(_ messageType: String, data: Data) {
-            receivedUnknownMessages.append((type: messageType, data: data))
-        }
-    }
-
     @Test("Process console.log message with data array")
     func testProcessConsoleLogMessage() throws {
         let handler = WebViewMessageHandler()
@@ -488,6 +474,44 @@ struct WebViewMessageHandlerTests {
                 timeout: 0.1
             )
         }
+    }
+
+    @Test("Listener-consumed message is not left in buffer for the next wait")
+    func testListenerConsumedMessageNotReusedByNextWait() async throws {
+        let handler = WebViewMessageHandler()
+
+        // First cycle: a listener is already waiting when the response arrives.
+        let firstWait = Task {
+            try await handler.waitForMessage(
+                ofType: HandshakeResponse.self,
+                timeout: 1.0
+            )
+        }
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        handler.processIncomingMessage(
+            """
+            {"event":"handshakeResponse","data":{"requestVerificationId":"FIRST"}}
+            """
+        )
+        let first = try await firstWait.value
+        #expect(first.data.requestVerificationId == "FIRST")
+
+        // Second cycle: the consumed FIRST response must not be served from the
+        // buffer — the wait must resolve with the fresh SECOND response.
+        let secondWait = Task {
+            try await handler.waitForMessage(
+                ofType: HandshakeResponse.self,
+                timeout: 1.0
+            )
+        }
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        handler.processIncomingMessage(
+            """
+            {"event":"handshakeResponse","data":{"requestVerificationId":"SECOND"}}
+            """
+        )
+        let second = try await secondWait.value
+        #expect(second.data.requestVerificationId == "SECOND")
     }
 
     @Test("New pattern: send message then wait")

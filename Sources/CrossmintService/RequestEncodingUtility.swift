@@ -1,7 +1,7 @@
 import Foundation
 
 enum RequestEncodingUtility {
-    static func encodeRequest<T: Encodable, E: ServiceError>(
+    static func encodeRequest<T: Encodable, E: CrossmintMappableError>(
         _ request: T,
         using jsonCoder: JSONCoder,
         errorType: E.Type

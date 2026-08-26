@@ -2,8 +2,6 @@ import SwiftUI
 import CrossmintClient
 
 struct VerificationView: View {
-    private let sdk: CrossmintSDK = .shared
-
     @Binding var authenticationStatus: AuthenticationStatus?
 
     @State private var verificationCode: String = ""
@@ -11,13 +9,15 @@ struct VerificationView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var opacity: Double = 0
-
-    private var authManager: AuthManager {
-        sdk.authManager
-    }
+    @State private var currentRequestId: String
 
     let email: String
-    let emailId: String
+
+    init(authenticationStatus: Binding<AuthenticationStatus?>, email: String, requestId: String) {
+        self._authenticationStatus = authenticationStatus
+        self.email = email
+        self._currentRequestId = State(initialValue: requestId)
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -47,6 +47,7 @@ struct VerificationView: View {
             )
             .autocapitalization(.none)
             .disableAutocorrection(true)
+            .accessibilityIdentifier("otp-input")
 
             PrimaryButton(
                 text: "Verify",
@@ -54,6 +55,7 @@ struct VerificationView: View {
                 isLoading: isVerifying,
                 isDisabled: verificationCode.isEmpty
             )
+            .accessibilityIdentifier("verify-button")
 
             SecondaryButton(
                 text: "Resend code",
@@ -65,7 +67,7 @@ struct VerificationView: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        .background(Color.white)
+        .background(Color(.systemBackground))
         .opacity(opacity)
         .onAppear {
             withAnimation(AnimationConstants.easeIn()) {
@@ -79,31 +81,11 @@ struct VerificationView: View {
 
     private func verifyCode() {
         guard !verificationCode.isEmpty else { return }
-
         isVerifying = true
         Task {
             do {
-                let status = try await crossmintAuthManager.otpAuthentication(
-                    email: email,
-                    code: verificationCode,
-                    forceRefresh: false
-                )
-
-                isVerifying = false
-
-                if case let .authenticationStatus(authStatus) = status {
-                    if case .authenticated = authStatus {
-                        withAnimation(AnimationConstants.easeOut()) {
-                            opacity = 0
-                        }
-
-                        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                            authenticationStatus = authStatus
-                        }
-                    }
-                } else {
-                    showAlert(with: "Invalid verification code. Please try again.")
-                }
+                let authStatus = try await resolveSession(for: verificationCode)
+                await animateSuccess(authStatus: authStatus)
             } catch {
                 isVerifying = false
                 showAlert(with: "Error: \(error.localizedDescription)")
@@ -112,18 +94,25 @@ struct VerificationView: View {
         }
     }
 
+    private func resolveSession(for code: String) async throws -> AuthenticationStatus {
+        let session = try await CrossmintSDK.shared.authClient.verifyOTP(code: code, requestId: currentRequestId)
+        // secret is intentionally empty — refresh state lives in CrossmintAuthManager, not this binding
+        return .authenticated(email: session.user.email, jwt: session.jwt, secret: "")
+    }
+
+    private func animateSuccess(authStatus: AuthenticationStatus) async {
+        isVerifying = false
+        withAnimation(AnimationConstants.easeOut()) { opacity = 0 }
+        try? await Task.sleep(for: .seconds(AnimationConstants.duration))
+        authenticationStatus = authStatus
+    }
+
     private func resendCode() {
         Task {
             do {
-                let status = try await crossmintAuthManager.otpAuthentication(
-                    email: email,
-                    code: nil,
-                    forceRefresh: true
-                )
-
-                if case .emailSent = status {
-                    showAlert(with: "A new verification code has been sent to your email.")
-                }
+                let otpRequest = try await CrossmintSDK.shared.authClient.sendOTP(to: email)
+                currentRequestId = otpRequest.requestId
+                showAlert(with: "A new verification code has been sent to your email.")
             } catch {
                 showAlert(with: "Error sending new code: \(error.localizedDescription)")
                 print("Error resending code: \(error)")
@@ -137,10 +126,8 @@ struct VerificationView: View {
         }
 
         Task {
-            _ = await crossmintAuthManager.reset()
-            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.duration) {
-                authenticationStatus = .nonAuthenticated
-            }
+            try? await Task.sleep(for: .seconds(AnimationConstants.duration))
+            authenticationStatus = .nonAuthenticated
         }
     }
 
@@ -154,6 +141,6 @@ struct VerificationView: View {
     VerificationView(
         authenticationStatus: .constant(nil),
         email: "example@email.com",
-        emailId: "sample-id"
+        requestId: "preview-request-id"
     )
 }

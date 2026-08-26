@@ -270,6 +270,7 @@ public enum EIP712 {
     }
 
     public enum CommonPatterns {
+        // swiftlint:disable:next function_parameter_count
         public static func permit(
             tokenName: String,
             tokenVersion: String = "1",
@@ -320,6 +321,7 @@ public enum EIP712 {
             )
         }
 
+        // swiftlint:disable:next function_parameter_count
         public static func metaTransaction(
             dappName: String,
             dappVersion: String = "1",

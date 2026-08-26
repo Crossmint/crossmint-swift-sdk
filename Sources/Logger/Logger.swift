@@ -4,15 +4,9 @@ import Utils
 public struct Logger: Sendable {
 
     private let providers: [LoggerProvider]
-    public nonisolated(unsafe) static var level: OSLogType = .fault
-
-    private let osLogger: OSLog
-    private let subsystem: String
+    public nonisolated(unsafe) static var level: LogLevel = .error
 
     public init(category: String) {
-        self.subsystem = "CrossmintSDK"
-        self.osLogger = OSLog(subsystem: subsystem, category: category)
-
         providers = [
             OSLoggerProvider(category: category),
             DataDogLoggerProvider(
@@ -23,31 +17,41 @@ public struct Logger: Sendable {
         ]
     }
 
+    init(testProviders: [LoggerProvider]) {
+        self.providers = testProviders
+    }
+
     public func debug(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard Logger.level == .debug else { return }
-        for provider in providers {
-            provider.debug(message, attributes: attributes)
-        }
+        forward(message, attributes) { $0.debug($1, attributes: $2) }
     }
 
     public func error(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard Logger.level != .fault else { return }
-        for provider in providers {
-            provider.error(message, attributes: attributes)
-        }
+        forward(message, attributes) { $0.error($1, attributes: $2) }
     }
 
     public func info(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard [.debug, .info].contains(Logger.level) else { return }
+        forward(message, attributes) { $0.info($1, attributes: $2) }
+    }
+
+    public func warning(_ message: String, attributes: [String: Encodable]? = nil) {
+        forward(message, attributes) { $0.warning($1, attributes: $2) }
+    }
+
+    private func forward(
+        _ message: String,
+        _ attributes: [String: Encodable]?,
+        to log: (LoggerProvider, String, [String: Encodable]?) -> Void
+    ) {
+        let message = CredentialScrubber.scrub(message)
+        let attributes = CredentialScrubber.scrub(attributes)
         for provider in providers {
-            provider.info(message, attributes: attributes)
+            log(provider, message, attributes)
         }
     }
 
-    public func warn(_ message: String, attributes: [String: Encodable]? = nil) {
-        guard [.debug, .info, .default].contains(Logger.level) else { return }
+    public func flush() async {
         for provider in providers {
-            provider.warn(message, attributes: attributes)
+            await provider.flush()
         }
     }
 }
