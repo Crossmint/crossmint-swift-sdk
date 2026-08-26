@@ -7,10 +7,12 @@ import Testing
 @Suite("Phone Onboarding", .tags(.unit))
 @MainActor
 struct CrossmintTEEPhoneOnboardingTests {
+    private static let phone = SignerIdentity.phone("+15551234567", channel: .whatsapp)
+
     @Test("Sends the phone auth id and the requested delivery channel")
     func sendsThePhoneAuthIdAndChannel() async throws {
-        let fixture = TEETestFixture()
-        await fixture.setupAuthentication(identity: .phone("+15551234567", channel: .whatsapp))
+        let fixture = TEETestFixture(identity: Self.phone)
+        await fixture.setupAuthentication()
         try await fixture.setupHandshake()
 
         fixture.configureNewDevice()
@@ -18,10 +20,8 @@ struct CrossmintTEEPhoneOnboardingTests {
         fixture.configureSignResponse(signature: "0xsignature456")
 
         let signTask = Task {
-            try await fixture.tee.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
-                keyType: "keyType",
-                encoding: "encoding"
+            try await fixture.signTransaction(
+                transaction: CrossmintTEETestHelpers.createTestTransaction()
             )
         }
 
@@ -36,22 +36,21 @@ struct CrossmintTEEPhoneOnboardingTests {
         )
     }
 
-    @Test("Onboards the identity the caller passed, not the one left on the TEE")
-    func onboardsTheIdentityPassedWithTheRequest() async throws {
-        let fixture = TEETestFixture()
-        await fixture.setupAuthentication(identity: .email("admin@example.com"))
-        try await fixture.setupHandshake()
+    @Test("A request that waits in the queue onboards with its own identity")
+    func keepsTheIdentityOfAQueuedRequest() async throws {
+        let fixture = TEETestFixture(identity: Self.phone)
+        await fixture.setupAuthentication()
 
+        // No setupHandshake, so the request is queued until the handshake resolves.
+        let handshakeResponse = CrossmintTEETestHelpers.createHandshakeResponse(verificationId: "test123")
+        fixture.webProxy.configureResponse(for: HandshakeResponse.self, response: handshakeResponse)
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature456")
 
         let signTask = Task {
-            try await fixture.tee.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
-                keyType: "keyType",
-                encoding: "encoding",
-                identity: .phone("+15551234567", channel: .sms)
+            try await fixture.signTransaction(
+                transaction: CrossmintTEETestHelpers.createTestTransaction()
             )
         }
 
@@ -61,27 +60,8 @@ struct CrossmintTEEPhoneOnboardingTests {
 
         fixture.verifyOnboardingRequests(
             authId: "phone:+15551234567",
-            channel: .sms,
+            channel: .whatsapp,
             otp: "123456"
         )
-    }
-
-    @Test("Fails with authMissing when no signer identity is set")
-    func failsWhenNoIdentityIsSet() async throws {
-        let fixture = TEETestFixture()
-        await fixture.authManager.setJWT(CrossmintTEETestHelpers.createTestJWT())
-        fixture.tee.identity = nil
-        try await fixture.setupHandshake()
-
-        fixture.configureNewDevice()
-        fixture.configureOnboardingFlow()
-
-        await #expect(throws: CrossmintTEE.Error.authMissing) {
-            try await fixture.tee.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
-                keyType: "keyType",
-                encoding: "encoding"
-            )
-        }
     }
 }

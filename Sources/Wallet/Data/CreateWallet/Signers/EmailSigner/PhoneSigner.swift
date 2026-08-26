@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import Foundation
 import Web
 
 /// A phone (SMS or WhatsApp) OTP signer.
@@ -10,18 +9,26 @@ public final class PhoneSigner: EmailSigner, Sendable {
     public typealias AdminType = PhoneSignerData
 
     let crossmintTEE: CrossmintTEE?
-    let identity: SignerIdentity
     private let chainType: ChainType
+
+    /// In E.164 format, e.g. `"+15551234567"`.
+    public let phone: String
+    public let channel: OTPDeliveryChannel?
+
+    var identity: SignerIdentity { .phone(phone, channel: channel) }
 
     public var adminSigner: PhoneSignerData {
         get async {
-            PhoneSignerData(phone: phone ?? "")
+            PhoneSignerData(phone: phone)
         }
     }
 
     public var keyType: String {
         get async {
-            chainType == .evm || chainType == .unknown ? "secp256k1" : "ed25519"
+            switch chainType {
+            case .evm, .unknown: "secp256k1"
+            case .solana, .stellar: "ed25519"
+            }
         }
     }
 
@@ -35,24 +42,19 @@ public final class PhoneSigner: EmailSigner, Sendable {
         }
     }
 
-    public var phone: String? {
-        guard case .phone(let number, _) = identity else { return nil }
-        return number
-    }
-
-    public var channel: OTPDeliveryChannel? {
-        identity.channel
-    }
-
     nonisolated public let signerType: SignerType = .phone
 
     public init(phone: String, channel: OTPDeliveryChannel?, chainType: ChainType, crossmintTEE: CrossmintTEE?) {
         self.crossmintTEE = crossmintTEE
         self.chainType = chainType
-        self.identity = .phone(phone, channel: channel)
+        self.phone = phone
+        self.channel = channel
     }
 
     func processMessage(_ message: String) -> String {
-        chainType == .evm || chainType == .unknown ? message.noHexPrefix : message
+        switch chainType {
+        case .evm, .unknown: message.noHexPrefix
+        case .solana, .stellar: message
+        }
     }
 }

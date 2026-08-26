@@ -23,7 +23,6 @@ public final class CrossmintTEE: ObservableObject {
         case handshakeRequired
         case jwtRequired
         case generic(String)
-        case authMissing
         case urlNotAvailable
         case userCancelled
         case newerSignatureRequested
@@ -43,7 +42,7 @@ public final class CrossmintTEE: ObservableObject {
         let transaction: String
         let keyType: String
         let encoding: String
-        let identity: SignerIdentity?
+        let identity: SignerIdentity
         let callback: (Result<String, CrossmintTEE.Error>) -> Void
         let timeoutTask: Task<Void, Never>
     }
@@ -59,7 +58,6 @@ public final class CrossmintTEE: ObservableObject {
     private var signRequestQueue: [PendingSignRequest] = []
     private let auth: AuthManager
     private let apiKey: String
-    public var identity: SignerIdentity?
 
     private var processTerminationRecoveryAttempts = 0
     private let maxProcessTerminationRecoveryAttempts = 3
@@ -108,12 +106,8 @@ public final class CrossmintTEE: ObservableObject {
         transaction: String,
         keyType: String,
         encoding: String,
-        identity: SignerIdentity? = nil
+        identity: SignerIdentity
     ) async throws(Error) -> String {
-        // Resolved before the first suspension so a request that waits in the queue onboards the
-        // signer that enqueued it, even if another signer replaces `self.identity` meanwhile.
-        let requestIdentity = identity ?? self.identity
-
         await signerStorage.clear()
 
         if case .completed = handshakeState {
@@ -121,7 +115,7 @@ public final class CrossmintTEE: ObservableObject {
                 transaction: transaction,
                 keyType: keyType,
                 encoding: encoding,
-                identity: requestIdentity
+                identity: identity
             )
         }
 
@@ -139,7 +133,7 @@ public final class CrossmintTEE: ObservableObject {
             transaction: transaction,
             keyType: keyType,
             encoding: encoding,
-            identity: requestIdentity
+            identity: identity
         )
     }
 
@@ -147,7 +141,7 @@ public final class CrossmintTEE: ObservableObject {
         transaction: String,
         keyType: String,
         encoding: String,
-        identity: SignerIdentity?
+        identity: SignerIdentity
     ) async throws(Error) -> String {
         guard let jwt = await auth.jwt else {
             Logger.tee.warning("JWT is missing, cannot proceed with signing")
@@ -197,12 +191,11 @@ public final class CrossmintTEE: ObservableObject {
         transaction: String,
         keyType: String,
         encoding: String,
-        identity: SignerIdentity?
+        identity: SignerIdentity
     ) async throws(Error) -> String {
-        let signerIdentity = try requireIdentity(identity)
         var attempt = 1
         while true {
-            let onboardingResponse = try await startOnboarding(jwt: jwt, identity: signerIdentity)
+            let onboardingResponse = try await startOnboarding(jwt: jwt, identity: identity)
             guard onboardingResponse.status == .success else {
                 Logger.tee.error(LogEvents.onboardingError, attributes: [
                     "error": onboardingResponse.errorMessage ?? "Unknown error"
@@ -537,16 +530,6 @@ public final class CrossmintTEE: ObservableObject {
         }
     }
 
-    private func requireIdentity(_ identity: SignerIdentity?) throws(Error) -> SignerIdentity {
-        guard let identity else {
-            Logger.tee.error(LogEvents.getAuthIdError, attributes: [
-                "error": "Signer identity is missing"
-            ])
-            throw .authMissing
-        }
-        return identity
-    }
-
     private func waitForOTP() async throws(Error) -> String {
         Logger.tee.debug(LogEvents.otpWait)
         do {
@@ -660,7 +643,7 @@ extension CrossmintTEE {
         transaction: String,
         keyType: String,
         encoding: String,
-        identity: SignerIdentity?
+        identity: SignerIdentity
     ) async throws(Error) -> String {
         let requestId = UUID()
         Logger.tee.debug(LogEvents.queueEnqueue, attributes: [

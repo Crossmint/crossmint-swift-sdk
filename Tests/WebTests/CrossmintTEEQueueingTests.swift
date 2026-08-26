@@ -26,7 +26,7 @@ struct ConcurrentRequestsTests {
         let transaction = CrossmintTEETestHelpers.createTestTransaction()
 
         let task1 = Task {
-            try await fixture.tee.signTransaction(
+            try await fixture.signTransaction(
                 transaction: transaction,
                 keyType: "keyType",
                 encoding: "encoding"
@@ -36,7 +36,7 @@ struct ConcurrentRequestsTests {
         await Task.yield()
 
         let task2 = Task {
-            try await fixture.tee.signTransaction(
+            try await fixture.signTransaction(
                 transaction: transaction,
                 keyType: "keyType",
                 encoding: "encoding"
@@ -82,7 +82,7 @@ struct ConcurrentRequestsTests {
         let transaction = CrossmintTEETestHelpers.createTestTransaction()
 
         let task1 = Task {
-            try await fixture.tee.signTransaction(
+            try await fixture.signTransaction(
                 transaction: transaction,
                 keyType: "keyType",
                 encoding: "encoding"
@@ -90,7 +90,7 @@ struct ConcurrentRequestsTests {
         }
 
         let task2 = Task {
-            try await fixture.tee.signTransaction(
+            try await fixture.signTransaction(
                 transaction: transaction,
                 keyType: "keyType",
                 encoding: "encoding"
@@ -98,7 +98,7 @@ struct ConcurrentRequestsTests {
         }
 
         let task3 = Task {
-            try await fixture.tee.signTransaction(
+            try await fixture.signTransaction(
                 transaction: transaction,
                 keyType: "keyType",
                 encoding: "encoding"
@@ -144,7 +144,7 @@ struct RecoveryTests {
         fixture.configureSignResponse(signature: "0xrecovered")
 
         let transaction = CrossmintTEETestHelpers.createTestTransaction()
-        let signature = try await fixture.tee.signTransaction(
+        let signature = try await fixture.signTransaction(
             transaction: transaction,
             keyType: "keyType",
             encoding: "encoding"
