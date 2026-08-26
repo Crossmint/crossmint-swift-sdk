@@ -32,7 +32,7 @@ extension EmailSigner {
     @MainActor
     public func sign(message: String) async throws(SignerError) -> String {
         guard let crossmintTEE = crossmintTEE else { throw .notStarted }
-        crossmintTEE.email = await email
+        crossmintTEE.identity = await email.map { .email($0) }
         do {
             return try await crossmintTEE.signTransaction(
                 transaction: processMessage(message),

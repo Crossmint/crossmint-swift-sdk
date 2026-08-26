@@ -121,7 +121,7 @@ Add `.crossmintNonCustodialSigner()` to your root view when using email/phone si
 
 ### TEE Architecture
 
-The TEE WebView lives in the `Wallet` module (`CrossmintTEE`). It handles auto-recovery from WebKit content-process termination internally. TEE is an implementation detail of email/phone signers — developers never interact with it directly.
+The TEE WebView lives in the `Web` module (`CrossmintTEE`). It handles auto-recovery from WebKit content-process termination internally. TEE is an implementation detail of email/phone signers — developers never interact with it directly.
 
 ### Auth State
 
