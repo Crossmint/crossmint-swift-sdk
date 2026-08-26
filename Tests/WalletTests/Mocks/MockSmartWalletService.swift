@@ -12,15 +12,25 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var getWalletError: WalletError?
     var getWalletCallCount = 0
 
+    var getWalletFixture: Data?
+    var getWalletSignerLocators: [String]?
+
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
         getWalletCallCount += 1
         if let getWalletError {
             throw getWalletError
         }
-        guard let getWalletResult else {
+        if let getWalletResult {
+            return getWalletResult
+        }
+        guard let getWalletFixture else {
             throw WalletError.walletGeneric("not implemented")
         }
-        return getWalletResult
+        do {
+            return try Self.walletModel(from: getWalletFixture, signerLocators: getWalletSignerLocators)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode getWallet fixture: \(error)")
+        }
     }
 
     // MARK: - getSigner
@@ -28,7 +38,10 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     // signers() looks up signer states concurrently from a task group, so the
     // tracking and gating state below is lock-guarded.
     private let getSignerLock = NSLock()
-    private var _getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(chains: nil, transaction: nil)
+    private var _getSignerResult: AddDelegatedSignerResponse? = AddDelegatedSignerResponse(
+        chains: nil,
+        transaction: nil
+    )
     private var _getSignerResponses: [String: AddDelegatedSignerResponse] = [:]
     private var _getSignerError: WalletError?
     private var _getSignerErrorLocators: Set<String> = []
@@ -200,22 +213,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             )
         } catch {
             throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")
-        }
-    }
-
-    // MARK: - getWallet
-
-    var getWalletFixture: Data?
-    var getWalletSignerLocators: [String]?
-
-    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        guard let getWalletFixture else {
-            throw WalletError.walletGeneric("not implemented")
-        }
-        do {
-            return try Self.walletModel(from: getWalletFixture, signerLocators: getWalletSignerLocators)
-        } catch {
-            throw WalletError.walletGeneric("Failed to decode getWallet fixture: \(error)")
         }
     }
 
