@@ -89,7 +89,7 @@ open class Wallet: @unchecked Sendable {
     /// Returns `false` on any network error.
     ///
     /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
-    ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
     public func signerIsRegistered(_ locator: String) async -> Bool {
         let walletModel: WalletApiModel
         do {
@@ -119,7 +119,7 @@ open class Wallet: @unchecked Sendable {
     /// Returns `false` when the signer is not registered on this wallet.
     ///
     /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
-    ///   `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
     /// - Throws: ``WalletError`` if the request fails.
     public func isSignerApproved(_ locator: String) async throws(WalletError) -> Bool {
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedStart)

@@ -1,3 +1,5 @@
+import CrossmintCommonTypes
+
 public struct StartOnboardingRequest: WebViewMessage {
     public static let messageType = "request:start-onboarding"
 
@@ -9,6 +11,18 @@ public struct StartOnboardingRequest: WebViewMessage {
     public struct RequestData: Codable, Sendable {
         public struct Data: Codable, Sendable {
             public let authId: String
+            public let channel: OTPDeliveryChannel?
+
+            enum CodingKeys: String, CodingKey {
+                case authId
+                case channel
+            }
+
+            public func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(authId, forKey: .authId)
+                try container.encodeIfPresent(channel, forKey: .channel)
+            }
         }
         public let authData: AuthData
         public let data: Data
@@ -17,11 +31,11 @@ public struct StartOnboardingRequest: WebViewMessage {
     public let event: String
     public let data: RequestData
 
-    public init(jwt: String, apiKey: String, authId: String) {
+    public init(jwt: String, apiKey: String, authId: String, channel: OTPDeliveryChannel? = nil) {
         event = Self.messageType
         data = RequestData(
             authData: AuthData(jwt: jwt, apiKey: apiKey),
-            data: RequestData.Data(authId: authId)
+            data: RequestData.Data(authId: authId, channel: channel)
         )
     }
 }

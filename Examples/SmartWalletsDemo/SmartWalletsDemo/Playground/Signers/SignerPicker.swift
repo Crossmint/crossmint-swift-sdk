@@ -50,7 +50,8 @@ struct SignerPicker: View {
     }
 
     private func isSelectable(_ locator: String) -> Bool {
-        locator.hasPrefix("email:") || locator.hasPrefix("api-key:") || locator.hasPrefix("device:")
+        locator.hasPrefix("email:") || locator.hasPrefix("phone:")
+            || locator.hasPrefix("api-key:") || locator.hasPrefix("device:")
     }
 }
 

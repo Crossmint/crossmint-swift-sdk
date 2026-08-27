@@ -8,19 +8,17 @@
 import CrossmintCommonTypes
 import Web
 
-public final class StellarEmailSigner: EmailSigner, Sendable {
+public final class StellarEmailSigner: NonCustodialSigner, Sendable {
     public typealias AdminType = EmailSignerData
 
-    private let state = EmailSignerState()
-
     let crossmintTEE: CrossmintTEE?
+    public let email: String
+
+    var identity: SignerIdentity { .email(email) }
 
     public var adminSigner: EmailSignerData {
         get async {
-            guard let email = await state.email else {
-                return EmailSignerData(email: "")
-            }
-            return EmailSignerData(email: email)
+            EmailSignerData(email: email)
         }
     }
 
@@ -36,24 +34,10 @@ public final class StellarEmailSigner: EmailSigner, Sendable {
         }
     }
 
-    public var email: String? {
-        get async {
-            await state.email
-        }
-    }
-
-    public var isInitialized: Bool {
-        get async {
-            await state.isInitialized
-        }
-    }
-
     nonisolated public let signerType: SignerType = .email
 
     public init(email: String, crossmintTEE: CrossmintTEE?) {
         self.crossmintTEE = crossmintTEE
-        Task {
-            await state.update(email: email)
-        }
+        self.email = email
     }
 }

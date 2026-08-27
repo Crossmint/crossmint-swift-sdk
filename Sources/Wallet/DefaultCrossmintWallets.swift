@@ -59,12 +59,12 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         )
 
         do {
-            try await (recovery as? any EmailSigner)?.load()
+            try await (recovery as? any NonCustodialSigner)?.load()
         } catch {
             Logger.smartWallet.warning(
                 """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
+There was an error initializing the non-custodial signer. \(error.errorDescription)
+Review if the .crossmintNonCustodialSigner() modifier is used as expected.
 """
             )
         }
@@ -98,12 +98,12 @@ Review if the .crossmintEnvironmentObject modifier is used as expected.
         )
 
         do {
-            try await (recovery as? any EmailSigner)?.load()
+            try await (recovery as? any NonCustodialSigner)?.load()
         } catch {
             Logger.smartWallet.warning(
                 """
-There was an error initializing the Email signer. \(error.errorDescription)
-Review if the .crossmintEnvironmentObject modifier is used as expected.
+There was an error initializing the non-custodial signer. \(error.errorDescription)
+Review if the .crossmintNonCustodialSigner() modifier is used as expected.
 """
             )
         }

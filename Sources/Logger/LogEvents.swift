@@ -126,9 +126,6 @@ public enum LogEvents {
     /// Error loading TEE
     public static let loadError = "signer.load.error"
 
-    /// Missing email for authId
-    public static let getAuthIdError = "signer.getAuthId.error"
-
     // MARK: - Web Content Process Events
 
     /// The web view's content process was terminated by the system

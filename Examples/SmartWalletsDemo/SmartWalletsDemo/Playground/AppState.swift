@@ -29,6 +29,7 @@ final class AppState {
     private var loadingChains: Set<SupportedChain> = []
     private var notFoundChains: Set<SupportedChain> = []
     private var currentEmail: String?
+    private var phoneChannels: [String: OTPDeliveryChannel] = [:]
 
     // Signer selection (shared across Transfer/Signing/Signers)
     private(set) var selectedSignerLocator: String?
@@ -150,6 +151,12 @@ final class AppState {
         }
     }
 
+    /// Records how the user wants a phone signer's OTP delivered, so a later selection can
+    /// request the same channel.
+    func rememberChannel(_ channel: OTPDeliveryChannel, for locator: String) {
+        phoneChannels[locator] = channel
+    }
+
     /// Selects the given signer locator as active for all wallet operations.
     /// Returns an error message on failure, or nil on success.
     @discardableResult
@@ -223,6 +230,12 @@ final class AppState {
         if locator.hasPrefix("device:") { return .device }
         if locator.hasPrefix("api-key:") { return .apiKey }
         if locator.hasPrefix("email:") { return .email(String(locator.dropFirst("email:".count))) }
+        if locator.hasPrefix("phone:") {
+            // The channel is per onboarding request and the API never returns it, so a locator
+            // alone cannot say how the OTP should be delivered.
+            let number = String(locator.dropFirst("phone:".count))
+            return .phone(number, channel: phoneChannels[locator])
+        }
         return nil
     }
 
