@@ -236,8 +236,6 @@ final class AppState {
         case .device: .device
         case .apiKey: .apiKey
         case .email(let email): .email(email)
-        // The channel is per onboarding request and the API never returns it, so a locator
-        // alone cannot say how the OTP should be delivered.
         case .phone(let number): .phone(number, channel: phoneChannels[locator.value])
         default: nil
         }
