@@ -11,16 +11,25 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var getWalletResult: WalletApiModel?
     var getWalletError: WalletError?
     var getWalletCallCount = 0
+    var getWalletFixture: Data?
+    var getWalletSignerLocators: [String]?
 
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
         getWalletCallCount += 1
         if let getWalletError {
             throw getWalletError
         }
-        guard let getWalletResult else {
+        if let getWalletResult {
+            return getWalletResult
+        }
+        guard let getWalletFixture else {
             throw WalletError.walletGeneric("not implemented")
         }
-        return getWalletResult
+        do {
+            return try Self.walletModel(from: getWalletFixture, signerLocators: getWalletSignerLocators)
+        } catch {
+            throw WalletError.walletGeneric("Failed to decode getWallet fixture: \(error)")
+        }
     }
 
     // MARK: - getSigner
@@ -200,22 +209,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             )
         } catch {
             throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")
-        }
-    }
-
-    // MARK: - getWallet
-
-    var getWalletFixture: Data?
-    var getWalletSignerLocators: [String]?
-
-    func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
-        guard let getWalletFixture else {
-            throw WalletError.walletGeneric("not implemented")
-        }
-        do {
-            return try Self.walletModel(from: getWalletFixture, signerLocators: getWalletSignerLocators)
-        } catch {
-            throw WalletError.walletGeneric("Failed to decode getWallet fixture: \(error)")
         }
     }
 
