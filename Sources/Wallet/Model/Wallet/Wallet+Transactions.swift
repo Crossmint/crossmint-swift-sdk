@@ -130,10 +130,7 @@ extension Wallet {
     /// - Parameter locator: The signer locator string that identifies the signer to remove,
     ///   for example `"device:ABC123..."` or `"external-wallet:0x456..."`.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
-    @available(
-        *, deprecated, renamed: "removeSigner(locator:)",
-        message: "Use the SignerLocator overload instead of raw strings."
-    )
+    @available(*, deprecated, message: "Use the SignerLocator overload instead of raw strings.")
     public func removeSigner(locator: String) async throws(TransactionError) -> Transaction {
         try await removeSignerByLocatorString(locator)
     }
