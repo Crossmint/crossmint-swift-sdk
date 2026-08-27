@@ -90,7 +90,7 @@ open class Wallet: @unchecked Sendable {
     /// as a ``SignerLocator``.
     ///
     /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
-    ///   `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
+    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
     @available(*, deprecated, message: "Use the SignerLocator overload instead of raw strings.")
     public func signerIsRegistered(_ locator: String) async -> Bool {
         guard let parsed = try? SignerLocator(from: locator) else { return false }
@@ -143,7 +143,7 @@ open class Wallet: @unchecked Sendable {
     /// to register a signer. This method returns `false` when the signer is not registered on this wallet.
     ///
     /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
-    ///   `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
+    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
     /// - Throws: ``WalletError`` if the request fails, or ``WalletError/signerLocatorError(_:)``
     ///   when the locator string does not parse as a ``SignerLocator``.
     @available(*, deprecated, message: "Use the SignerLocator overload instead of raw strings.")

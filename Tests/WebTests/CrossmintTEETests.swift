@@ -1,4 +1,5 @@
 import CrossmintAuth
+import CrossmintCommonTypes
 import Foundation
 import Testing
 @testable import Web
@@ -8,9 +9,14 @@ struct TEETestFixture {
     let authManager = MockAuthManager()
     let webProxy = MockWebViewCommunicationProxy()
     let apiKey = "test-api-key"
+    let identity: SignerIdentity
     let tee: CrossmintTEE
 
-    init(isProductionEnvironment: Bool = true) {
+    init(
+        isProductionEnvironment: Bool = true,
+        identity: SignerIdentity = .email("test@example.com")
+    ) {
+        self.identity = identity
         self.tee = CrossmintTEE(
             auth: authManager,
             webProxy: webProxy,
@@ -20,12 +26,22 @@ struct TEETestFixture {
         )
     }
 
-    func setupAuthentication(
-        jwt: String? = nil,
-        email: String? = nil
-    ) async {
+    func setupAuthentication(jwt: String? = nil) async {
         await authManager.setJWT(jwt ?? CrossmintTEETestHelpers.createTestJWT())
-        tee.email = email ?? "test@example.com"
+    }
+
+    /// Mirrors production, where the signer owns its identity and passes it with each request.
+    func signTransaction(
+        transaction: String,
+        keyType: String = "keyType",
+        encoding: String = "encoding"
+    ) async throws(CrossmintTEE.Error) -> String {
+        try await tee.signTransaction(
+            transaction: transaction,
+            keyType: keyType,
+            encoding: encoding,
+            identity: identity
+        )
     }
 
     func setupHandshake(verificationId: String = "test123") async throws {
@@ -104,10 +120,11 @@ struct TEETestFixture {
         #expect(signRequest?.data.data.bytes == expectedTransaction)
     }
 
-    func verifyOnboardingRequests(email: String, otp: String) {
+    func verifyOnboardingRequests(authId: String, channel: OTPDeliveryChannel?, otp: String) {
         let startOnboardingRequest = webProxy.lastSentMessage(ofType: StartOnboardingRequest.self)
         #expect(startOnboardingRequest != nil)
-        #expect(startOnboardingRequest?.data.data.authId == "email:\(email)")
+        #expect(startOnboardingRequest?.data.data.authId == authId)
+        #expect(startOnboardingRequest?.data.data.channel == channel)
 
         let completeOnboardingRequest = webProxy.lastSentMessage(ofType: CompleteOnboardingRequest.self)
         #expect(completeOnboardingRequest != nil)
@@ -155,7 +172,7 @@ struct CrossmintTEETests {
             #expect(fixture.webProxy.resetCount == 1)
 
             await #expect(throws: CrossmintTEE.Error.handshakeFailed) {
-                _ = try await fixture.tee.signTransaction(
+                _ = try await fixture.signTransaction(
                     transaction: "test",
                     keyType: "keyType",
                     encoding: "encoding"
@@ -189,7 +206,7 @@ struct CrossmintTEETests {
             fixture.configureSignResponse(signature: "0xsignature123")
 
             let transaction = CrossmintTEETestHelpers.createTestTransaction()
-            let signature = try await fixture.tee.signTransaction(
+            let signature = try await fixture.signTransaction(
                 transaction: transaction,
                 keyType: "keyType",
                 encoding: "encoding"
@@ -204,7 +221,7 @@ struct CrossmintTEETests {
             let fixture = TEETestFixture()
 
             await #expect(throws: CrossmintTEE.Error.handshakeFailed) {
-                _ = try await fixture.tee.signTransaction(
+                _ = try await fixture.signTransaction(
                     transaction: "test",
                     keyType: "keyType",
                     encoding: "encoding"
@@ -218,7 +235,7 @@ struct CrossmintTEETests {
             try await fixture.setupHandshake()
 
             await #expect(throws: CrossmintTEE.Error.jwtRequired) {
-                _ = try await fixture.tee.signTransaction(
+                _ = try await fixture.signTransaction(
                     transaction: "test",
                     keyType: "keyType",
                     encoding: "encoding"
@@ -235,7 +252,7 @@ struct CrossmintTEETests {
             fixture.configureErrorResponse(errorMessage: "Server error occurred")
 
             await #expect(throws: CrossmintTEE.Error.generic("Server error occurred")) {
-                _ = try await fixture.tee.signTransaction(
+                _ = try await fixture.signTransaction(
                     transaction: "test",
                     keyType: "keyType",
                     encoding: "encoding"
@@ -258,7 +275,7 @@ struct CrossmintTEETests {
             fixture.webProxy.configureResponse(for: NonCustodialSignResponse.self, response: signResponse)
 
             await #expect(throws: CrossmintTEE.Error.invalidSignature) {
-                _ = try await fixture.tee.signTransaction(
+                _ = try await fixture.signTransaction(
                     transaction: "test",
                     keyType: "keyType",
                     encoding: "encoding"
@@ -276,7 +293,7 @@ struct CrossmintTEETests {
             fixture.configureSignResponse(signature: "not-a-hex-ecdsa-signature")
 
             await #expect(throws: CrossmintTEE.Error.invalidSignature) {
-                _ = try await fixture.tee.signTransaction(
+                _ = try await fixture.signTransaction(
                     transaction: CrossmintTEETestHelpers.createTestTransaction(),
                     keyType: "secp256k1",
                     encoding: "hex"
@@ -295,7 +312,7 @@ struct CrossmintTEETests {
             // must be passed through verbatim, not decoded (regression for WAL-11310).
             fixture.configureSignResponse(signature: "0x48656c6c6f")
 
-            let signature = try await fixture.tee.signTransaction(
+            let signature = try await fixture.signTransaction(
                 transaction: CrossmintTEETestHelpers.createTestTransaction(),
                 keyType: "secp256k1",
                 encoding: "hex"
@@ -320,7 +337,7 @@ struct CrossmintTEETests {
             fixture.webProxy.configureResponse(for: NonCustodialSignResponse.self, response: signResponse)
 
             await #expect(throws: CrossmintTEE.Error.generic("Signing failed in frame")) {
-                _ = try await fixture.tee.signTransaction(
+                _ = try await fixture.signTransaction(
                     transaction: "test",
                     keyType: "keyType",
                     encoding: "encoding"
@@ -343,7 +360,7 @@ struct CrossmintTEETests {
             fixture.configureSignResponse(signature: "0xsignature456")
 
             let signTask = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: CrossmintTEETestHelpers.createTestTransaction(),
                     keyType: "keyType",
                     encoding: "encoding"
@@ -358,7 +375,7 @@ struct CrossmintTEETests {
             #expect(signature == "0xsignature456")
             #expect(fixture.tee.isOTPRequired == false)
 
-            fixture.verifyOnboardingRequests(email: "test@example.com", otp: "123456")
+            fixture.verifyOnboardingRequests(authId: "email:test@example.com", channel: nil, otp: "123456")
         }
 
         @Test("OTP cancellation handled correctly")
@@ -371,7 +388,7 @@ struct CrossmintTEETests {
             fixture.configureOnboardingFlow()
 
             let signTask = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: CrossmintTEETestHelpers.createTestTransaction(),
                     keyType: "keyType",
                     encoding: "encoding"
@@ -402,7 +419,7 @@ struct CrossmintTEETests {
             fixture.configureSignResponse(signature: "0xsignature789")
 
             let signTask = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: CrossmintTEETestHelpers.createTestTransaction(),
                     keyType: "keyType",
                     encoding: "encoding"
@@ -430,7 +447,7 @@ struct CrossmintTEETests {
             fixture.configureSignResponse(signature: "0xsignature_reonboard")
 
             let signTask = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: CrossmintTEETestHelpers.createTestTransaction(),
                     keyType: "keyType",
                     encoding: "encoding"
@@ -457,7 +474,6 @@ struct CrossmintTEETests {
             #expect(fixture.webProxy.completeOnboardingRequestCount == 2)
         }
     }
-
     @Suite("Concurrent Requests")
     @MainActor
     struct ConcurrentRequestsTests {
@@ -478,7 +494,7 @@ struct CrossmintTEETests {
             let transaction = CrossmintTEETestHelpers.createTestTransaction()
 
             let task1 = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: transaction,
                     keyType: "keyType",
                     encoding: "encoding"
@@ -488,7 +504,7 @@ struct CrossmintTEETests {
             await Task.yield()
 
             let task2 = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: transaction,
                     keyType: "keyType",
                     encoding: "encoding"
@@ -534,7 +550,7 @@ struct CrossmintTEETests {
             let transaction = CrossmintTEETestHelpers.createTestTransaction()
 
             let task1 = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: transaction,
                     keyType: "keyType",
                     encoding: "encoding"
@@ -542,7 +558,7 @@ struct CrossmintTEETests {
             }
 
             let task2 = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: transaction,
                     keyType: "keyType",
                     encoding: "encoding"
@@ -550,7 +566,7 @@ struct CrossmintTEETests {
             }
 
             let task3 = Task {
-                try await fixture.tee.signTransaction(
+                try await fixture.signTransaction(
                     transaction: transaction,
                     keyType: "keyType",
                     encoding: "encoding"
@@ -596,7 +612,7 @@ struct CrossmintTEETests {
             fixture.configureSignResponse(signature: "0xrecovered")
 
             let transaction = CrossmintTEETestHelpers.createTestTransaction()
-            let signature = try await fixture.tee.signTransaction(
+            let signature = try await fixture.signTransaction(
                 transaction: transaction,
                 keyType: "keyType",
                 encoding: "encoding"

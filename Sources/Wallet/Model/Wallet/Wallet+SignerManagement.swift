@@ -127,8 +127,8 @@ extension Wallet {
             try await activateDeviceSigner()
         case .email(let email):
             try await activateEmailSigner(email: email)
-        case .phone(let phone):
-            try await activatePhoneSigner(phone: phone)
+        case .phone(let phone, let channel):
+            try await activatePhoneSigner(phone: phone, channel: channel)
         case .externalWallet(let address):
             try await activateExternalWalletSigner(address: address)
         case .passkey(let name, let host):
@@ -237,10 +237,12 @@ extension Wallet {
         selectedSignerLocator = locator
     }
 
-    private func activatePhoneSigner(phone: String) async throws(WalletError) {
+    private func activatePhoneSigner(phone: String, channel: OTPDeliveryChannel?) async throws(WalletError) {
         let locator = SignerLocator.phone(phone)
         guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        throw .walletGeneric("Phone OTP signing is not yet supported on iOS.")
+        let newSigner: any Signer = await MainActor.run { makePhoneSigner(phone: phone, channel: channel) }
+        selectedSigner = newSigner
+        selectedSignerLocator = locator
     }
 
     private func activateExternalWalletSigner(address: String) async throws(WalletError) {
@@ -288,6 +290,16 @@ extension Wallet {
         _ = await passkeySigner.updateAdminSigner(passkeyData)
         selectedSigner = passkeySigner
         selectedSignerLocator = locator
+    }
+
+    @MainActor
+    internal func makePhoneSigner(phone: String, channel: OTPDeliveryChannel?) -> any Signer {
+        PhoneSigner(
+            phone: phone,
+            channel: channel,
+            chainType: chain.chainType,
+            crossmintTEE: CrossmintTEE.shared
+        )
     }
 
     @MainActor

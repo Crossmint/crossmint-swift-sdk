@@ -12,6 +12,7 @@ struct AddSignerSheet: View {
 
     @State private var selectedType: SignerTypeOption = .device
     @State private var inputText = ""
+    @State private var channel: OTPDeliveryChannel = .sms
     @State private var isAdding = false
     @State private var errorMessage: String?
 
@@ -19,6 +20,7 @@ struct AddSignerSheet: View {
         case device = "Device"
         case passkey = "Passkey"
         case externalWallet = "External Wallet"
+        case phone = "Phone"
 
         var id: String { rawValue }
 
@@ -27,6 +29,7 @@ struct AddSignerSheet: View {
             case .device: return "iphone"
             case .passkey: return "touchid"
             case .externalWallet: return "wallet.bifold"
+            case .phone: return "phone"
             }
         }
 
@@ -39,7 +42,7 @@ struct AddSignerSheet: View {
 
         var inputRequired: Bool {
             switch self {
-            case .externalWallet: return true
+            case .externalWallet, .phone: return true
             default: return false
             }
         }
@@ -48,6 +51,7 @@ struct AddSignerSheet: View {
             switch self {
             case .passkey: return "Name"
             case .externalWallet: return "Address"
+            case .phone: return "Phone number"
             default: return ""
             }
         }
@@ -56,6 +60,7 @@ struct AddSignerSheet: View {
             switch self {
             case .passkey: return "e.g. My Yubikey"
             case .externalWallet: return "0x..."
+            case .phone: return "+15551234567"
             default: return ""
             }
         }
@@ -92,6 +97,17 @@ struct AddSignerSheet: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .font(selectedType == .passkey ? .body : .system(.body, design: .monospaced))
+                            .keyboardType(selectedType == .phone ? .phonePad : .default)
+                    }
+                }
+
+                if selectedType == .phone {
+                    Section("OTP delivery") {
+                        Picker("Channel", selection: $channel) {
+                            Text("SMS").tag(OTPDeliveryChannel.sms)
+                            Text("WhatsApp").tag(OTPDeliveryChannel.whatsapp)
+                        }
+                        .pickerStyle(.segmented)
                     }
                 }
 
@@ -151,6 +167,11 @@ struct AddSignerSheet: View {
                 try await wallet.addSigner(.passkey(name: passkeyName, host: passkeyHost))
             case .externalWallet:
                 try await wallet.addSigner(.externalWallet(value))
+            case .phone:
+                // The registration endpoint has no channel field, so the channel is remembered
+                // here and supplied again when the signer is selected for signing.
+                try await wallet.addSigner(.phone(value))
+                appState.rememberChannel(channel, for: "phone:\(value)")
             }
             dismiss()
         } catch {

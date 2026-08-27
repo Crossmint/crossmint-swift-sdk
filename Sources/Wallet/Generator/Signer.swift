@@ -5,6 +5,7 @@ public enum SignerType: String, Encodable, Sendable {
     case passkey
     case apiKey = "api-key"
     case email
+    case phone
 }
 
 public enum SignerError: Error, Equatable {

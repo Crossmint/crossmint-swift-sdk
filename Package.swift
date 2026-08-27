@@ -123,7 +123,7 @@ let package = Package(
         ),
         .target(
             name: "Web",
-            dependencies: baseDependencies + ["CrossmintAuth"],
+            dependencies: baseDependencies + ["CrossmintAuth", "CrossmintCommonTypes"],
             plugins: basePlugins
         ),
         //
@@ -191,7 +191,8 @@ let package = Package(
             dependencies: [
                 "Web",
                 "TestsUtils",
-                "CrossmintAuth"
+                "CrossmintAuth",
+                "CrossmintCommonTypes"
             ],
             plugins: basePlugins
         ),

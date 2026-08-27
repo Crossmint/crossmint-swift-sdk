@@ -36,14 +36,14 @@ private struct CrossmintNonCustodialSignerViewModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         ZStack {
-            HiddenEmailSignersView(crossmintTEE: crossmintTEE)
-                .environmentObject(InstanceTracker(name: "HiddenEmailSignersView"))
+            HiddenNonCustodialSignersView(crossmintTEE: crossmintTEE)
+                .environmentObject(InstanceTracker(name: "HiddenNonCustodialSignersView"))
             content
         }
     }
 }
 
-private struct HiddenEmailSignersView: View {
+private struct HiddenNonCustodialSignersView: View {
     private var crossmintTEE: CrossmintTEE
 
     init(crossmintTEE: CrossmintTEE) {
