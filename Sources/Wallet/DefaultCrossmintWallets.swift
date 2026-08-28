@@ -140,6 +140,8 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
                     throw .walletCreationFailed("Invalid user")
                 case .timedOut:
                     throw .walletCreationFailed("Timeout")
+                case .userVerificationMissing:
+                    throw .walletCreationFailed("Passkey created without user verification")
                 case .unknown, .requestFailed, .invalidChallenge, .badConfiguration:
                     throw .walletCreationFailed("Error initializing admin signer.")
                 }
