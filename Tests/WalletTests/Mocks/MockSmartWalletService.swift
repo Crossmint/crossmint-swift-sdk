@@ -14,9 +14,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var getWalletFixture: Data?
     var getWalletSignerLocators: [String]?
 
-    var getWalletFixture: Data?
-    var getWalletSignerLocators: [String]?
-
     func getWallet(_ request: GetMeWalletRequest) async throws(WalletError) -> WalletApiModel {
         getWalletCallCount += 1
         if let getWalletError {
