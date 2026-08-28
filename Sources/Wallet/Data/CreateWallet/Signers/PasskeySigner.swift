@@ -110,7 +110,11 @@ public final class PasskeySigner: Signer {
         do {
             let passkey = Passkey()
             let response = try await passkey.get(
-                PasskeyCredentialRequestOptions(challenge: preparedChallenge, rpId: host),
+                PasskeyCredentialRequestOptions(
+                    challenge: preparedChallenge,
+                    rpId: host,
+                    userVerification: .required
+                ),
                 forcePlatformKey: false,
                 forceSecurityKey: false
             )
@@ -138,6 +142,10 @@ public final class PasskeySigner: Signer {
         }
 
         let response = authResponse.response
+        guard response.authenticatorData.hasUserVerifiedFlag else {
+            throw SignerError.passkey(.userVerificationMissing)
+        }
+
         guard let signature = parseAsn1Signature(response.signature) else {
             throw SignerError.signingFailed
         }
@@ -221,6 +229,19 @@ public final class PasskeySigner: Signer {
         }
 
         return (r: paddedHex(r), s: paddedHex(s))
+    }
+}
+
+private extension Data {
+    /// Whether this authenticator data has the user-verified (UV) flag set.
+    ///
+    /// The on-chain WebAuthn verifier requires user verification, so an assertion with UV unset is
+    /// rejected by the bundler as an opaque `AA24` signature error even though its P-256 signature
+    /// is valid. Layout: rpIdHash (32 bytes) + flags (1 byte) + signCount (4 bytes) + …
+    var hasUserVerifiedFlag: Bool {
+        let flagsOffset = 32
+        guard count >= flagsOffset + 5 else { return false }
+        return self[index(startIndex, offsetBy: flagsOffset)] & 0x04 != 0
     }
 }
 
