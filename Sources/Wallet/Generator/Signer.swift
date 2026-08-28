@@ -17,6 +17,9 @@ public enum SignerError: Error, Equatable {
         case invalidUser
         case badConfiguration
         case timedOut
+        /// The authenticator returned an assertion without verifying the user (no biometrics or
+        /// PIN). The on-chain verifier requires user verification and rejects such assertions.
+        case userVerificationMissing
         case unknown
     }
     case invalidPrivateKey
