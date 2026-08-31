@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'CrossmintDeviceSigner'
-  s.version          = '1.1.4'
+  s.version          = '1.2.0'
   s.summary          = 'Hardware-backed device signer key storage for Crossmint wallets (iOS).'
   s.homepage         = 'https://github.com/Crossmint/crossmint-swift-sdk'
   s.license          = { :type => 'Apache-2.0', :file => 'LICENSE' }
