@@ -124,13 +124,29 @@ extension Wallet {
 
     /// Removes an assigned signer from this wallet.
     ///
-    /// Submits a remove-signer transaction on-chain. If the transaction requires approval,
-    /// the current signer signs it automatically before polling for completion.
+    /// This method submits a remove-signer transaction on-chain. If the transaction needs approval,
+    /// the current signer signs it. The method then polls until the transaction completes.
     ///
-    /// - Parameter locator: The signer locator string identifying the signer to remove
-    ///   (e.g. `"device:ABC123..."`, `"external-wallet:0x456..."`).
+    /// - Parameter locator: The signer locator string that identifies the signer to remove,
+    ///   for example `"device:ABC123..."` or `"external-wallet:0x456..."`.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
+    @available(*, deprecated, message: "Use the SignerLocator overload instead of raw strings.")
     public func removeSigner(locator: String) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator)
+    }
+
+    /// Removes an assigned signer from this wallet.
+    ///
+    /// This method submits a remove-signer transaction on-chain. If the transaction needs approval,
+    /// the current signer signs it. The method then polls until the transaction completes.
+    ///
+    /// - Parameter locator: The locator that identifies the signer to remove.
+    /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
+    public func removeSigner(locator: SignerLocator) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator.value)
+    }
+
+    private func removeSignerByLocatorString(_ locator: String) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
             "locator": locator
         ])
@@ -337,20 +353,17 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let signerLocator: String?
-        if let active = selectedSignerLocator {
-            signerLocator = active
-        } else if let storage = deviceSignerKeyStorage {
-            signerLocator = await deviceSignerService.locator(for: storage)
+        let locator: SignerLocator? = if let selectedSignerLocator {
+            selectedSignerLocator
         } else {
-            signerLocator = nil
+            await localDeviceSigner()
         }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
-            signer: signerLocator,
+            signer: locator?.value,
             idempotencyKey: idempotencyKey
         )
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)

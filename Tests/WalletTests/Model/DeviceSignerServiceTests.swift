@@ -41,6 +41,20 @@ struct DeviceSignerServiceTests {
     }
 
     @Test
+    func sendsDevicePublicKeyAndNameWhenRegistering() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let service = makeSolanaService(walletService: walletService)
+
+        try await service.register(storage: storage, signer: MockSigner())
+
+        let registeredSigner = try #require(walletService.lastAddSignerEntry?.signer)
+        let publicKeyBase64 = try #require(await storage.getKey(address: walletAddress))
+        let expectedKey = try #require(DevicePublicKey(publicKeyBase64: publicKeyBase64))
+        #expect(registeredSigner == .device(publicKey: expectedKey, name: "Test Device"))
+    }
+
+    @Test
     func wipesThePendingKeyWhenTheTransactionApprovalFails() async throws {
         let walletService = MockSmartWalletService()
         walletService.addSignerResult = AddDelegatedSignerResponse(

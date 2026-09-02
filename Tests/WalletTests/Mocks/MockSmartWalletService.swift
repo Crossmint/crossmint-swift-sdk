@@ -3,6 +3,40 @@ import CrossmintService
 import Foundation
 @testable import Wallet
 
+struct CorruptedFixtureError: Error, CustomStringConvertible {
+    let description: String
+}
+
+extension DelegatedSignerEntry.Signer {
+    /// The locator string the backend derives for this entry.
+    func locatorValue() throws -> String {
+        switch self {
+        case .locator(let locator): locator.value
+        case .device(let publicKey, _): "device:\(try publicKey.uncompressedBase64())"
+        }
+    }
+}
+
+extension DevicePublicKey {
+    func uncompressedBase64() throws -> String {
+        func bytes(fromHex hex: String) throws -> [UInt8] {
+            let clean = hex.hasPrefix("0x") ? String(hex.dropFirst(2)) : hex
+            var out: [UInt8] = []
+            var index = clean.startIndex
+            while index < clean.endIndex {
+                guard let next = clean.index(index, offsetBy: 2, limitedBy: clean.endIndex),
+                      let byte = UInt8(clean[index..<next], radix: 16) else {
+                    throw CorruptedFixtureError(description: "Invalid hex in device public key coordinate: \(hex)")
+                }
+                out.append(byte)
+                index = next
+            }
+            return out
+        }
+        return try Data([0x04] + bytes(fromHex: x) + bytes(fromHex: y)).base64EncodedString()
+    }
+}
+
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var isProductionEnvironment: Bool { false }
 
@@ -205,7 +239,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         do {
             return try Self.walletModel(
                 from: createWalletFixture,
-                signerLocators: request.config.delegatedSigners?.map(\.signer)
+                signerLocators: request.config.delegatedSigners?.map { try $0.signer.locatorValue() }
             )
         } catch {
             throw WalletError.walletGeneric("Failed to decode createWallet fixture: \(error)")

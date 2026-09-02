@@ -30,7 +30,7 @@ open class Wallet: @unchecked Sendable {
     var signerRegistrationService: SignerRegistrationService
     let signerListService: SignerListService
     var selectedSigner: (any Signer)?
-    var selectedSignerLocator: String?
+    var selectedSignerLocator: SignerLocator?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false
@@ -85,47 +85,84 @@ open class Wallet: @unchecked Sendable {
 
     /// Returns whether the given locator is registered as a signer on this wallet.
     ///
-    /// Checks both the wallet signers (via a fresh API call) and the admin signer.
-    /// Returns `false` on any network error.
+    /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
+    /// It returns `false` on any network error, and when the locator string does not parse
+    /// as a ``SignerLocator``.
     ///
-    /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
-    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
+    /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
+    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
+    @available(*, deprecated, message: "Use the SignerLocator overload instead of raw strings.")
     public func signerIsRegistered(_ locator: String) async -> Bool {
+        guard let parsed = try? SignerLocator(from: locator) else { return false }
+        return await signerIsRegistered(parsed)
+    }
+
+    /// Returns whether the given locator is registered as a signer on this wallet.
+    ///
+    /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
+    /// It returns `false` on any network error.
+    public func signerIsRegistered(_ locator: SignerLocator) async -> Bool {
         let walletModel: WalletApiModel
         do {
             walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
         } catch {
             return false
         }
-        let signerMatch = walletModel.config.signers?
-            .contains(where: { $0.locator == locator }) ?? false
-        if signerMatch { return true }
-        return walletModel.config.recovery.toDomain.locator == locator
+        let delegatedMatch = walletModel.config.signers?
+            .map(\.locator)
+            .contains(locator) ?? false
+        if delegatedMatch { return true }
+        let recovery = try? SignerLocator(from: walletModel.config.recovery.toDomain.locator)
+        return recovery == locator
     }
 
-    /// Returns the locator of the device signer that keeps its private key on this device.
-    /// Returns `nil` if this device has no key, or if the wallet does not support device signers.
+    /// Returns the locator of the device signer whose private key is on this device.
+    /// Returns `nil` if this wallet has no such signer.
     ///
-    /// This device keeps only one device key for each wallet. Device signing always uses that key.
-    /// Thus this is the only device signer that can sign here.
-    public func localDeviceSignerLocator() async -> String? {
+    /// A wallet can have `device:` delegated signers registered from other devices.
+    /// This method only returns a locator when the matching key is present in local secure storage.
+    public func localDeviceSigner() async -> SignerLocator? {
         guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return nil }
-        return await deviceSignerService.locator(for: storage)
+        guard let publicKey = await deviceSignerService.publicKey(for: storage) else { return nil }
+        return .device(publicKey: publicKey)
+    }
+
+    /// Returns the locator string of the device signer whose private key is on this device.
+    /// Returns `nil` if this wallet has no such signer.
+    @available(
+        *, deprecated, renamed: "localDeviceSigner()",
+        message: "Use localDeviceSigner(), which returns a typed SignerLocator."
+    )
+    public func localDeviceSignerLocator() async -> String? {
+        await localDeviceSigner()?.value
     }
 
     /// Returns whether the given signer is approved and usable on this wallet's chain.
     ///
-    /// A freshly registered signer can require approval before it can sign — see ``addSigner(_:)``.
-    /// Returns `false` when the signer is not registered on this wallet.
+    /// A freshly registered signer can need approval before it can sign. Call ``addSigner(_:)``
+    /// to register a signer. This method returns `false` when the signer is not registered on this wallet.
     ///
-    /// - Parameter locator: A signer locator string, e.g. `"email:user@example.com"`,
-    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, `"passkey:<id>"`.
-    /// - Throws: ``WalletError`` if the request fails.
+    /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
+    ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
+    /// - Throws: ``WalletError`` if the request fails, or ``WalletError/signerLocatorError(_:)``
+    ///   when the locator string does not parse as a ``SignerLocator``.
+    @available(*, deprecated, message: "Use the SignerLocator overload instead of raw strings.")
     public func isSignerApproved(_ locator: String) async throws(WalletError) -> Bool {
+        try await isSignerApproved(SignerLocator(from: locator))
+    }
+
+    /// Returns whether the given signer is approved and usable on this wallet's chain.
+    ///
+    /// A freshly registered signer can need approval before it can sign. Call ``addSigner(_:)``
+    /// to register a signer. This method returns `false` when the signer is not registered on this wallet.
+    ///
+    /// - Parameter locator: The locator of the signer to check.
+    /// - Throws: ``WalletError`` if the request fails.
+    public func isSignerApproved(_ locator: SignerLocator) async throws(WalletError) -> Bool {
         Logger.smartWallet.debug(LogEvents.walletIsSignerApprovedStart)
         let response: AddDelegatedSignerResponse?
         do {
-            response = try await smartWalletService.getSigner(locator, chainType: chain.chainType)
+            response = try await smartWalletService.getSigner(locator.value, chainType: chain.chainType)
         } catch {
             Logger.smartWallet.error(LogEvents.walletIsSignerApprovedError, attributes: [
                 "error": "\(error)"

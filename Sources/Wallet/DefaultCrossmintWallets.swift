@@ -194,7 +194,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
                 )
             }
 
-            let createSigners = creation.model.config.signers?.map(\.locator) ?? []
+            let createSigners = creation.model.config.signers?.map(\.locator.value) ?? []
             let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,
@@ -222,7 +222,10 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
         }
         do {
             let publicKeyBase64 = try await storage.generateKey(address: nil)
-            let entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
+            guard let publicKey = DevicePublicKey(publicKeyBase64: publicKeyBase64) else {
+                throw WalletError.walletCreationFailed("Invalid device signer public key")
+            }
+            let entry = DelegatedSignerEntry(signer: .device(publicKey: publicKey, name: await storage.deviceName))
             Logger.smartWallet.debug(LogEvents.walletCreateDeviceSignerPrepared, attributes: [
                 "publicKeyBase64Prefix": String(publicKeyBase64.prefix(16))
             ])
@@ -384,11 +387,9 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     ) -> String? {
         guard let signers = wallet.config.signers else { return nil }
         for entry in signers {
-            let locator = entry.locator
-            guard locator.hasPrefix("device:") else { continue }
-            let b64 = String(locator.dropFirst("device:".count))
-            if storage.hasKey(publicKeyBase64: b64) {
-                return b64
+            guard case .device(let publicKey) = entry.locator else { continue }
+            if storage.hasKey(publicKeyBase64: publicKey) {
+                return publicKey
             }
         }
         return nil
@@ -400,20 +401,10 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     }
 
     private func isDeviceSignerRegistered(_ publicKeyBase64: String?, in wallet: WalletApiModel) -> Bool {
-        guard let keyBase64 = publicKeyBase64,
-              let rawKey = Data(base64Encoded: keyBase64),
-              rawKey.count == 65, rawKey[0] == 0x04 else {
+        guard let keyBase64 = publicKeyBase64, DevicePublicKey(publicKeyBase64: keyBase64) != nil else {
             return false
         }
-        let locator = "device:\(keyBase64)"
-        return wallet.config.signers?.contains(where: { $0.locator == locator }) ?? false
+        return wallet.config.signers?.contains(where: { $0.locator == .device(publicKey: keyBase64) }) ?? false
     }
 
-    private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
-        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64),
-              rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
-            throw WalletError.walletCreationFailed("Invalid device signer public key")
-        }
-        return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
-    }
 }

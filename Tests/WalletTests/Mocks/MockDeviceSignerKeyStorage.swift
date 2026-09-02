@@ -2,6 +2,7 @@ import DeviceSigner
 import Foundation
 
 final class MockDeviceSignerKeyStorage: DeviceSignerKeyStorage, @unchecked Sendable {
+    let deviceName = "Test Device"
     private(set) var keysByAddress: [String: String] = [:]
     private(set) var pendingKeys: Set<String> = []
     private(set) var deleteKeyCallCount = 0
