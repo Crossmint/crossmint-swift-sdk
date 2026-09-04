@@ -45,7 +45,7 @@ struct DefaultCrossmintWalletsTests {
         #expect(walletService.createWalletCallCount == 1)
         #expect(await wallet.needsRecovery() == false)
         try await wallet.useSigner(.device)
-        #expect(wallet.selectedSignerLocator?.hasPrefix("device:") == true)
+        #expect(wallet.selectedSigner is DeviceSigner)
     }
 
     @Test

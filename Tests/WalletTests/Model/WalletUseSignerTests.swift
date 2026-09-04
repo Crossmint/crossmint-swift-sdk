@@ -35,7 +35,7 @@ struct WalletUseSignerTests {
 
         try await wallet.useSigner(.phone("+14155552671", channel: .whatsapp))
 
-        #expect(wallet.selectedSignerLocator == "phone:+14155552671")
+        #expect(await wallet.selectedSigner?.locator == "phone:+14155552671")
         let selected = try #require(wallet.selectedSigner as? PhoneSigner)
         #expect(selected.channel == .whatsapp)
     }
@@ -56,7 +56,7 @@ struct WalletUseSignerTests {
             guard case .signerNotRegistered(let locator) = error as? WalletError else { return false }
             return locator == "phone:+15550000000"
         }
-        #expect(wallet.selectedSignerLocator == nil)
+        #expect(wallet.selectedSigner == nil)
     }
 
     @Test func buildsAPhoneLocatorThatIgnoresTheChannel() {

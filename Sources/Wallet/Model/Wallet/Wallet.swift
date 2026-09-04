@@ -29,8 +29,7 @@ open class Wallet: @unchecked Sendable {
     var deviceSignerService: DeviceSignerService
     var signerRegistrationService: SignerRegistrationService
     let signerListService: SignerListService
-    var selectedSigner: (any Signer)?
-    var selectedSignerLocator: String?
+    var selectedSigner: (any ApprovalSigner)?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false
@@ -40,6 +39,10 @@ open class Wallet: @unchecked Sendable {
     private let createdAt: Date
 
     var onTransactionStart: (() -> Void)?
+
+    var deviceSigner: DeviceSigner? {
+        deviceSignerKeyStorage.map { DeviceSigner(storage: $0, address: address) }
+    }
 
     internal init(
         smartWalletService: SmartWalletService,
@@ -109,8 +112,8 @@ open class Wallet: @unchecked Sendable {
     /// This device keeps only one device key for each wallet. Device signing always uses that key.
     /// Thus this is the only device signer that can sign here.
     public func localDeviceSignerLocator() async -> String? {
-        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return nil }
-        return await deviceSignerService.locator(for: storage)
+        guard let deviceSigner, !_deviceSignerUnsupported else { return nil }
+        return await deviceSigner.locator
     }
 
     /// Returns whether the given signer is approved and usable on this wallet's chain.
