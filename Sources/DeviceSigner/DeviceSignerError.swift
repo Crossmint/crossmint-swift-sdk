@@ -69,3 +69,16 @@ public enum DeviceSignerError: Error, Sendable {
         }
     }
 }
+
+extension DeviceSignerError: Equatable {
+    public static func == (lhs: DeviceSignerError, rhs: DeviceSignerError) -> Bool {
+        switch (lhs, rhs) {
+        case let (.signingFailed(lhsOperation, _), .signingFailed(rhsOperation, _)):
+            lhsOperation == rhsOperation
+        case let (.storageError(lhsStatus), .storageError(rhsStatus)):
+            lhsStatus == rhsStatus
+        default:
+            lhs.code == rhs.code
+        }
+    }
+}

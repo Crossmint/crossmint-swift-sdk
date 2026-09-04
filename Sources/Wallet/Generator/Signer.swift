@@ -1,4 +1,5 @@
 import CrossmintCommonTypes
+import DeviceSigner
 
 public enum SignerType: String, Encodable, Sendable {
     case externalWallet = "external-wallet"
@@ -31,15 +32,31 @@ public enum SignerError: Error, Equatable {
     case invalidEmail
     case passkey(PasskeyError)
     case cancelled
+    /// The device signer key on this device could not sign. See ``DeviceSignerError`` for the cause.
+    case device(DeviceSignerError)
 }
 
-public protocol Signer<AdminType>: Sendable {
+/// A signer that can approve a Crossmint transaction or signature request.
+///
+/// Every ``Signer`` is an `ApprovalSigner`. Signers that are never the wallet's admin signer, such
+/// as the device signer, conform to this protocol only.
+public protocol ApprovalSigner: Sendable {
+    /// The locator the Crossmint API uses for this signer, e.g. `"email:user@example.com"` or
+    /// `"device:<pubkey>"`. `nil` when the locator is not known yet, such as a device signer with
+    /// no key on this device.
+    var locator: String? { get async }
+
+    func initialize(_ service: SmartWalletService?) async throws(SignerError)
+
+    /// Signs `message` and returns the approval entries to submit for it.
+    func approvals(for message: String) async throws(SignerError) -> [SignRequestApi.Approval]
+}
+
+public protocol Signer<AdminType>: ApprovalSigner {
     associatedtype AdminType: AdminSignerData
 
     var signerType: SignerType { get }
     var adminSigner: AdminType { get async }
-
-    func initialize(_ service: SmartWalletService?) async throws(SignerError)
 
     func sign(
         message: String
@@ -51,6 +68,19 @@ public protocol Signer<AdminType>: Sendable {
 }
 
 extension Signer {
+    public var locator: String? {
+        get async {
+            await adminSigner.locator
+        }
+    }
+
+    public func approvals(for message: String) async throws(SignerError) -> [SignRequestApi.Approval] {
+        let signature = try await sign(message: message)
+        return try await approvals(withSignature: signature)
+    }
+}
+
+extension ApprovalSigner {
     public func initialize() async throws(SignerError) {
         try await initialize(nil)
     }
