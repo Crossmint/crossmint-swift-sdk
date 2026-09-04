@@ -1,5 +1,4 @@
 import CrossmintCommonTypes
-import DeviceSigner
 import Foundation
 import Logger
 
@@ -353,8 +352,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let locator: SignerLocator? = if let selectedSignerLocator {
-            selectedSignerLocator
+        let locator: SignerLocator? = if let selectedSigner {
+            await selectedSigner.locator
         } else {
             await localDeviceSigner()
         }
@@ -424,59 +423,11 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         signerLocator: String,
         message: String
     ) async throws(TransactionError) {
-        if signerLocator.hasPrefix("device:") {
-            try await approveTransactionWithDeviceSigner(
-                transactionId: transactionId,
-                signerLocator: signerLocator,
-                message: message
-            )
-        } else {
-            try await approveTransactionWithActiveSigner(
-                transactionId: transactionId,
-                message: message
-            )
-        }
-    }
-
-    private func approveTransactionWithDeviceSigner(
-        transactionId: String,
-        signerLocator: String,
-        message: String
-    ) async throws(TransactionError) {
-        guard let storage = deviceSignerKeyStorage else {
-            throw TransactionError.transactionSigningFailed(DeviceSignerError.keyNotFound)
-        }
         let request: SignRequestApi
         do {
-            request = try await deviceSignerService.buildSignRequest(
-                signerLocator: signerLocator, message: message, storage: storage
-            )
-        } catch {
-            throw TransactionError.transactionSigningFailed(error)
-        }
-        _ = try await smartWalletService.signTransaction(
-            .init(transactionId: transactionId, apiRequest: request, chainType: chain.chainType)
-        )
-    }
-
-    private func approveTransactionWithActiveSigner(
-        transactionId: String,
-        message: String
-    ) async throws(TransactionError) {
-        let request: SignRequestApi
-        do {
-            let updatedSigner: any Signer
-            if let active = selectedSigner {
-                updatedSigner = active
-            } else {
-                updatedSigner = await updateSignerIfRequired()
-            }
-            try await updatedSigner.initialize(smartWalletService)
-            request = SignRequestApi(
-                approvals: try await updatedSigner.approvals(
-                    withSignature: try await updatedSigner.sign(message: message)
-                )
-            )
+            let signer = try await approvalSigner(for: signerLocator)
+            try await signer.initialize(smartWalletService)
+            request = SignRequestApi(approvals: try await signer.approvals(for: message))
         } catch {
             switch error {
             case .invalidMessage:
@@ -492,6 +443,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 default:
                     throw .transactionSigningFailed(error)
                 }
+            case .device(let deviceError):
+                throw .transactionSigningFailed(deviceError)
             case .signingFailed,
                     .invalidAddress,
                     .invalidEmail,

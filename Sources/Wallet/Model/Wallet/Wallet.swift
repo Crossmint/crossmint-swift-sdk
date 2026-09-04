@@ -37,8 +37,7 @@ open class Wallet: @unchecked Sendable {
     var deviceSignerService: DeviceSignerService
     var signerRegistrationService: SignerRegistrationService
     let signerListService: SignerListService
-    var selectedSigner: (any Signer)?
-    var selectedSignerLocator: SignerLocator?
+    var selectedSigner: (any ApprovalSigner)?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false
@@ -48,6 +47,10 @@ open class Wallet: @unchecked Sendable {
     private let createdAt: Date
 
     var onTransactionStart: (() -> Void)?
+
+    var deviceSigner: DeviceSigner? {
+        deviceSignerKeyStorage.map { DeviceSigner(storage: $0, address: address) }
+    }
 
     internal init(
         smartWalletService: SmartWalletService,
@@ -131,9 +134,8 @@ open class Wallet: @unchecked Sendable {
     /// A wallet can have `device:` delegated signers registered from other devices.
     /// This method only returns a locator when the matching key is present in local secure storage.
     public func localDeviceSigner() async -> SignerLocator? {
-        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return nil }
-        guard let publicKey = await deviceSignerService.publicKey(for: storage) else { return nil }
-        return .device(publicKey: publicKey)
+        guard let deviceSigner, !_deviceSignerUnsupported else { return nil }
+        return await deviceSigner.locator
     }
 
     /// Returns the locator string of the device signer whose private key is on this device.
