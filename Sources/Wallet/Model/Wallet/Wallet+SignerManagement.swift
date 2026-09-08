@@ -193,6 +193,12 @@ extension Wallet {
         return await updateSignerIfRequired()
     }
 
+    internal func makeSignRequest(for locator: String, message: String) async throws(SignerError) -> SignRequestApi {
+        let signer = try await approvalSigner(for: locator)
+        try await signer.initialize(smartWalletService)
+        return SignRequestApi(approvals: try await signer.approvals(for: message))
+    }
+
     internal func preAuthIfNeeded() async throws(WalletError) {
         await signerInitializationTask?.value
         if _needsRecovery {
