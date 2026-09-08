@@ -320,9 +320,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) {
         let request: SignRequestApi
         do {
-            let signer = try await approvalSigner(for: signerLocator)
-            try await signer.initialize(smartWalletService)
-            request = SignRequestApi(approvals: try await signer.approvals(for: message))
+            request = try await makeSignRequest(for: signerLocator, message: message)
         } catch {
             throw mapSignerError(error)
         }
