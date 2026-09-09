@@ -337,14 +337,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let signerLocator: String?
-        if let active = selectedSignerLocator {
-            signerLocator = active
-        } else if let storage = deviceSignerKeyStorage {
-            signerLocator = await deviceSignerService.locator(for: storage)
-        } else {
-            signerLocator = nil
-        }
+        let signerLocator = await transactionSignerLocator()
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
@@ -358,6 +351,23 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
+    }
+
+    /// The locator to name as the transaction's signer.
+    ///
+    /// Explicit selection wins, then the device signer. With a single recovery signer the
+    /// field is omitted so the backend keeps choosing the admin as it always has; with several,
+    /// the backend requires an explicit signer, so the active recovery signer is named.
+    internal func transactionSignerLocator() async -> String? {
+        if let active = selectedSignerLocator {
+            return active
+        }
+        if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported,
+           let deviceLocator = await deviceSignerService.locator(for: storage) {
+            return deviceLocator
+        }
+        guard config.recoveryMethods.count > 1 else { return nil }
+        return await signer.adminSigner.locator
     }
 
     internal func signAndPollWhilePending(

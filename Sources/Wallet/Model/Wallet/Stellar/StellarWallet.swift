@@ -65,7 +65,7 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
         Logger.smartWallet.info(LogEvents.stellarSendTransactionStart)
 
         guard let tx = try await super.sendTransaction(
-            CreateStellarTransactionRequest(transaction: transaction)
+            CreateStellarTransactionRequest(transaction: transaction, signer: await transactionSignerLocator())
         ) else {
             throw .transactionGeneric("Unknown error")
         }

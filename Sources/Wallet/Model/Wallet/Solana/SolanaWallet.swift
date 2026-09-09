@@ -62,7 +62,7 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
         transaction: String
     ) async throws(TransactionError) -> Transaction {
         guard let transaction = try await super.sendTransaction(
-            CreateSolanaTransactionRequest(transaction: transaction)
+            CreateSolanaTransactionRequest(transaction: transaction, signer: await transactionSignerLocator())
         ) else { throw .transactionGeneric("Unknown error") }
 
         return transaction
@@ -83,7 +83,7 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
         Logger.smartWallet.info(LogEvents.solanaSendTransactionStart)
 
         guard let tx = try await super.sendTransaction(
-            CreateSolanaTransactionRequest(transaction: transaction)
+            CreateSolanaTransactionRequest(transaction: transaction, signer: await transactionSignerLocator())
         ) else { throw .transactionGeneric("Unknown error") }
 
         Logger.smartWallet.info(LogEvents.solanaSendTransactionPrepared, attributes: [
