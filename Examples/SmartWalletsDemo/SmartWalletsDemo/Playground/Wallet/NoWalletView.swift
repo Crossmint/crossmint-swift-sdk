@@ -47,7 +47,6 @@ struct NoWalletView: View {
         .padding(.vertical, 4)
     }
 
-    /// Lets the tester add a phone as a second recovery signer, next to the login email.
     @ViewBuilder
     private var recoveryPhoneFields: some View {
         Toggle("Add a phone recovery signer", isOn: $addRecoveryPhone)

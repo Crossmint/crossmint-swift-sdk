@@ -12,7 +12,6 @@ public struct WalletConfig {
         self.recoveryMethods = recoveryMethods ?? [recovery]
     }
 
-    /// The first recovery signer of the given concrete type, if the wallet has one.
     func recoverySigner<T: AdminSignerData>(ofType type: T.Type) -> T? {
         for method in recoveryMethods {
             if let match = method as? T { return match }

@@ -75,7 +75,6 @@ enum SupportedChain: Equatable, Identifiable {
         self == .evm
     }
 
-    /// Solana and Stellar wallets can be created with several recovery signers; EVM takes one.
     var supportsRecoveryList: Bool {
         self != .evm
     }
