@@ -64,7 +64,7 @@ struct PlaygroundView: View {
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
             case .signers:
-                SignersView().environment(appState)
+                SignersView(email: email).environment(appState)
             case .transfer:
                 TransferView { await appState.fetchBalance() }.environment(appState)
             case .activity:

@@ -18,41 +18,15 @@ struct SignersView: View {
 
     private var isRemovingSigner: Bool { removingSignerLocator != nil }
 
+    let email: String?
+
     var body: some View {
         NavigationStack {
             List {
-                recoverySection()
-
-                Section("Signers") {
-                    if appState.signers.isEmpty && !isLoadingSigners {
-                        ContentUnavailableView(
-                            "No Signers",
-                            systemImage: "person.badge.key",
-                            description: Text("No signers are registered on this wallet.")
-                        )
-                    } else {
-                        ForEach(Array(appState.signers.enumerated()), id: \.element.locator) { index, item in
-                            SignerRow(
-                                index: index,
-                                locator: item.locator,
-                                status: item.status.rawValue,
-                                isRemoving: removingSignerLocator == item.locator,
-                                canRemove: true,
-                                onSelect: {},
-                                onRemove: { Task { await removeSigner(locator: item.locator) } }
-                            )
-                        }
-                    }
-                }
-
-                Section {
-                    Button {
-                        showAddSigner = true
-                    } label: {
-                        Label("Add Signer…", systemImage: "plus.circle")
-                    }
-                    .disabled(appState.wallet == nil)
-                    .accessibilityIdentifier("signers-add-button")
+                if appState.wallet == nil, let email {
+                    RecoverySetupSection(email: email) { await loadSigners() }
+                } else {
+                    walletSections()
                 }
             }
             .accessibilityIdentifier("signers-list")
@@ -61,7 +35,7 @@ struct SignersView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                        .disabled(isRemovingSigner)
+                        .disabled(isRemovingSigner || appState.isCreatingWallet)
                 }
             }
             .alert(alertTitle, isPresented: $showAlert) {
@@ -72,12 +46,49 @@ struct SignersView: View {
                 await loadSigners()
             }
         }
-        .interactiveDismissDisabled(isRemovingSigner)
+        .interactiveDismissDisabled(isRemovingSigner || appState.isCreatingWallet)
         .sheet(isPresented: $showAddSigner, onDismiss: { Task { await loadSigners() } }) {
             AddSignerSheet()
                 .environment(appState)
         }
         .otpSheet()
+    }
+
+    @ViewBuilder
+    private func walletSections() -> some View {
+        recoverySection()
+
+        Section("Signers") {
+            if appState.signers.isEmpty && !isLoadingSigners {
+                ContentUnavailableView(
+                    "No Signers",
+                    systemImage: "person.badge.key",
+                    description: Text("No signers are registered on this wallet.")
+                )
+            } else {
+                ForEach(Array(appState.signers.enumerated()), id: \.element.locator) { index, item in
+                    SignerRow(
+                        index: index,
+                        locator: item.locator,
+                        status: item.status.rawValue,
+                        isRemoving: removingSignerLocator == item.locator,
+                        canRemove: true,
+                        onSelect: {},
+                        onRemove: { Task { await removeSigner(locator: item.locator) } }
+                    )
+                }
+            }
+        }
+
+        Section {
+            Button {
+                showAddSigner = true
+            } label: {
+                Label("Add Signer…", systemImage: "plus.circle")
+            }
+            .disabled(appState.wallet == nil)
+            .accessibilityIdentifier("signers-add-button")
+        }
     }
 
     @ViewBuilder
