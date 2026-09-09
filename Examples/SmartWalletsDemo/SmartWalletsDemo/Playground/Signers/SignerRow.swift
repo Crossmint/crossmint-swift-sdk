@@ -25,10 +25,9 @@ struct SignerRow: View {
         return "Unknown"
     }
 
-    private var signerInfo: (type: String, icon: String) {
-        let type = Self.typeLabel(for: locator)
+    static func icon(for locator: String) -> String {
         let prefix = locator.components(separatedBy: ":").first ?? ""
-        let icon: String = switch prefix {
+        return switch prefix {
         case "device": "iphone"
         case "passkey": "touchid"
         case "email": "envelope"
@@ -38,7 +37,15 @@ struct SignerRow: View {
         case "server": "server.rack"
         default: "questionmark.circle"
         }
-        return (type, icon)
+    }
+
+    static func value(for locator: String) -> String {
+        guard let separator = locator.firstIndex(of: ":") else { return locator }
+        return String(locator[locator.index(after: separator)...])
+    }
+
+    private var signerInfo: (type: String, icon: String) {
+        (Self.typeLabel(for: locator), Self.icon(for: locator))
     }
 
     var body: some View {

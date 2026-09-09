@@ -174,12 +174,14 @@ struct AddSignerSheet: View {
 
                 if asksForApprover {
                     Section("Authorize with") {
-                        Picker("Recovery signer", selection: $approverLocator) {
+                        Picker("Authorize with", selection: $approverLocator) {
                             ForEach(approverChoices, id: \.self) { locator in
-                                Text(locator).tag(locator)
+                                Label(SignerRow.value(for: locator), systemImage: SignerRow.icon(for: locator))
+                                    .tag(locator)
                             }
                         }
                         .pickerStyle(.menu)
+                        .labelsHidden()
                         .accessibilityIdentifier("add-signer-approver")
                     }
                 }
