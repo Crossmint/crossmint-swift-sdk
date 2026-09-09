@@ -14,6 +14,7 @@ struct AddSignerSheet: View {
     @State private var selectedType: SignerTypeOption = .device
     @State private var inputText = ""
     @State private var channel: OTPDeliveryChannel = .sms
+    @State private var approverLocator = ""
     @State private var isAdding = false
     @State private var errorMessage: String?
 
@@ -96,6 +97,14 @@ struct AddSignerSheet: View {
         appState.wallet != nil
     }
 
+    private var approverChoices: [String] {
+        appState.recoveryLocators.filter { appState.signerConfig(for: $0) != nil }
+    }
+
+    private var asksForApprover: Bool {
+        mode == .signer && appState.wallet != nil && appState.recoveryLocators.count > 1
+    }
+
     private var availableTypes: [SignerTypeOption] {
         switch mode {
         case .recovery:
@@ -163,6 +172,18 @@ struct AddSignerSheet: View {
                     }
                 }
 
+                if asksForApprover {
+                    Section("Authorize with") {
+                        Picker("Recovery signer", selection: $approverLocator) {
+                            ForEach(approverChoices, id: \.self) { locator in
+                                Text(locator).tag(locator)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .accessibilityIdentifier("add-signer-approver")
+                    }
+                }
+
                 if selectedType == .phone {
                     Section("OTP delivery") {
                         Picker("Channel", selection: $channel) {
@@ -204,6 +225,8 @@ struct AddSignerSheet: View {
             .onAppear {
                 mode = canAddSigner ? .signer : .recovery
                 selectedType = availableTypes[0]
+                approverLocator = appState.selectedSignerLocator.flatMap { approverChoices.contains($0) ? $0 : nil }
+                    ?? approverChoices.first ?? ""
             }
             .onChange(of: mode) { _, _ in
                 selectedType = availableTypes[0]
@@ -254,20 +277,21 @@ struct AddSignerSheet: View {
         isAdding = true
         errorMessage = nil
         let value = inputText.trimmingCharacters(in: .whitespaces)
+        let approver = asksForApprover ? appState.signerConfig(for: approverLocator) : nil
 
         do {
             switch selectedType {
             case .device:
-                try await wallet.addSigner(.device)
+                try await wallet.addSigner(.device, approver: approver)
             case .passkey:
                 let passkeyName = value.isEmpty ? "Crossmint Demo" : value
-                try await wallet.addSigner(.passkey(name: passkeyName, host: passkeyHost))
+                try await wallet.addSigner(.passkey(name: passkeyName, host: passkeyHost), approver: approver)
             case .externalWallet:
-                try await wallet.addSigner(.externalWallet(value))
+                try await wallet.addSigner(.externalWallet(value), approver: approver)
             case .phone:
                 // The registration endpoint has no channel field, so the channel is remembered
                 // here and supplied again when the signer is selected for signing.
-                try await wallet.addSigner(.phone(value))
+                try await wallet.addSigner(.phone(value), approver: approver)
                 appState.rememberChannel(channel, for: "phone:\(value)")
             case .email, .apiKey:
                 return
