@@ -1,0 +1,31 @@
+{
+  "type": "smart",
+  "chainType": "solana",
+  "config": {
+    "adminSigner": {
+      "type": "email",
+      "email": "alice@example.com",
+      "locator": "email:alice@example.com"
+    },
+    "recovery": [
+      {
+        "type": "email",
+        "email": "alice@example.com",
+        "locator": "email:alice@example.com"
+      },
+      {
+        "type": "phone",
+        "phone": "+14155552671",
+        "locator": "phone:+14155552671"
+      },
+      {
+        "type": "external-wallet",
+        "address": "GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7",
+        "locator": "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
+      }
+    ]
+  },
+  "address": "7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",
+  "linkedUser": "email:alice@example.com",
+  "createdAt": "2026-09-01T10:00:00.000Z"
+}
