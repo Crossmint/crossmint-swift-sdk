@@ -97,18 +97,15 @@ final class AppState {
         loadingChains.remove(chain)
     }
 
-    func createWallet(email: String, recoveryPhone: String? = nil, channel: OTPDeliveryChannel = .sms) async {
+    func createWallet(email: String, extraRecovery: [RecoverySignerDraft] = []) async {
         let chain = selectedChain
         isCreatingWallet = true
         walletErrorMessage = nil
 
         do {
-            let w: Wallet
-            if let recoveryPhone, chain.supportsRecoveryList {
-                w = try await makeWallet(chain: chain, email: email, recoveryPhone: recoveryPhone, channel: channel)
-                rememberChannel(channel, for: "phone:\(recoveryPhone)")
-            } else {
-                w = try await makeWallet(chain: chain, email: email)
+            let w = try await makeWallet(chain: chain, email: email, extraRecovery: extraRecovery)
+            for draft in extraRecovery where draft.kind == .phone {
+                if let locator = draft.locator { rememberChannel(draft.channel, for: locator) }
             }
             walletCache[chain] = w
             notFoundChains.remove(chain)
@@ -299,9 +296,11 @@ final class AppState {
     private func makeWallet(
         chain: SupportedChain,
         email: String,
-        recoveryPhone: String,
-        channel: OTPDeliveryChannel
+        extraRecovery: [RecoverySignerDraft]
     ) async throws -> Wallet {
+        guard chain.supportsRecoveryList, !extraRecovery.isEmpty else {
+            return try await makeWallet(chain: chain, email: email)
+        }
         let options = WalletOptions(deviceSigner: true)
         switch chain {
         case .evm:
@@ -309,13 +308,13 @@ final class AppState {
         case .solana:
             return try await sdk.crossmintWallets.createWallet(
                 chain: SolanaChain.solana,
-                recovery: [.email(email), .phone(recoveryPhone, channel: channel)],
+                recovery: [.email(email)] + extraRecovery.map(\.solanaSigner),
                 options: options
             )
         case .stellar:
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
-                recovery: [.email(email), .phone(recoveryPhone, channel: channel)],
+                recovery: [.email(email)] + extraRecovery.map(\.stellarSigner),
                 options: options
             )
         }

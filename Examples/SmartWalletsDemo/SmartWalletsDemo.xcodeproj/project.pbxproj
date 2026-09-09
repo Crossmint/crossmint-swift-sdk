@@ -19,6 +19,8 @@
 		7CAB00000000000000000008 /* AddressRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000008 /* AddressRow.swift */; };
 		7CAB00000000000000000009 /* BalanceRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000009 /* BalanceRow.swift */; };
 		7CAB0000000000000000000A /* AddFundsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000A /* AddFundsRow.swift */; };
+		7CAB00000000000000000021 /* RecoverySignerDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000021 /* RecoverySignerDraft.swift */; };
+		7CAB00000000000000000022 /* RecoverySignerListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF00000000000000000022 /* RecoverySignerListEditor.swift */; };
 		7CAB0000000000000000000B /* TransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000B /* TransferView.swift */; };
 		7CAB0000000000000000000C /* SigningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000C /* SigningView.swift */; };
 		7CAB0000000000000000000D /* SignersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000D /* SignersView.swift */; };
@@ -59,6 +61,8 @@
 		7CAF00000000000000000008 /* AddressRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressRow.swift; sourceTree = "<group>"; };
 		7CAF00000000000000000009 /* BalanceRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceRow.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000A /* AddFundsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundsRow.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000021 /* RecoverySignerDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySignerDraft.swift; sourceTree = "<group>"; };
+		7CAF00000000000000000022 /* RecoverySignerListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySignerListEditor.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000B /* TransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferView.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000C /* SigningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningView.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000D /* SignersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignersView.swift; sourceTree = "<group>"; };
@@ -133,6 +137,8 @@
 				7CAF00000000000000000008 /* AddressRow.swift */,
 				7CAF00000000000000000009 /* BalanceRow.swift */,
 				7CAF0000000000000000000A /* AddFundsRow.swift */,
+				7CAF00000000000000000021 /* RecoverySignerDraft.swift */,
+				7CAF00000000000000000022 /* RecoverySignerListEditor.swift */,
 			);
 			path = Wallet;
 			sourceTree = "<group>";
@@ -333,6 +339,8 @@
 				7CAB00000000000000000008 /* AddressRow.swift in Sources */,
 				7CAB00000000000000000009 /* BalanceRow.swift in Sources */,
 				7CAB0000000000000000000A /* AddFundsRow.swift in Sources */,
+				7CAB00000000000000000021 /* RecoverySignerDraft.swift in Sources */,
+				7CAB00000000000000000022 /* RecoverySignerListEditor.swift in Sources */,
 				7CAB0000000000000000000B /* TransferView.swift in Sources */,
 				7CAB0000000000000000000C /* SigningView.swift in Sources */,
 				7CAB0000000000000000000D /* SignersView.swift in Sources */,
