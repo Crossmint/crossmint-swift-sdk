@@ -68,8 +68,6 @@ struct SignersView: View {
             }
         } header: {
             Text("Recovery")
-        } footer: {
-            Text("Each recovery signer can authorize on its own once the wallet is created.")
         }
 
         Section {
