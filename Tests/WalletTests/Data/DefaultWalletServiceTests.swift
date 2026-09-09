@@ -129,6 +129,55 @@ struct DefaultWalletServiceTests {
     }
 
     @Test
+    func throwsTypedErrorWhenCreateWalletRejectsTheRecoveryList() async throws {
+        let body = Data(
+            """
+            {
+                "error": true,
+                "message": "duplicate signer email:alice@example.com",
+                "code": "RECOVERY_DUPLICATE_SIGNER"
+            }
+            """.utf8
+        )
+        let service = try makeService(errorBody: body)
+        let params = CreateWalletParams(
+            chainType: .solana,
+            type: .smart,
+            config: .init(
+                recovery: [EmailSignerData(email: "alice@example.com"), EmailSignerData(email: "alice@example.com")],
+                delegatedSigners: nil
+            )
+        )
+
+        await #expect {
+            _ = try await service.createWallet(params)
+        } throws: { error in
+            guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
+            return code == WalletError.RECOVERY_DUPLICATE_SIGNER
+                && message == "duplicate signer email:alice@example.com"
+        }
+    }
+
+    @Test
+    func usesFallbackMessageWhenRecoveryErrorBodyOmitsMessage() async throws {
+        let body = Data(#"{"error": true, "code": "SIGNER_LIMIT_EXCEEDED"}"#.utf8)
+        let service = try makeService(errorBody: body)
+        let params = CreateWalletParams(
+            chainType: .stellar,
+            type: .smart,
+            config: .init(recovery: [EmailSignerData(email: "alice@example.com")], delegatedSigners: nil)
+        )
+
+        await #expect {
+            _ = try await service.createWallet(params)
+        } throws: { error in
+            guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
+            return code == "SIGNER_LIMIT_EXCEEDED"
+                && message == "The wallet exceeds the maximum number of recovery signers"
+        }
+    }
+
+    @Test
     func keepsGenericErrorForOtherCodes() async throws {
         let body = Data(#"{"error": true, "message": "boom", "code": "SOMETHING_ELSE"}"#.utf8)
         let service = try makeService(errorBody: body)

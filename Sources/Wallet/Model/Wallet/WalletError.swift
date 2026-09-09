@@ -21,6 +21,37 @@ public enum WalletError: CrossmintError {
     /// error code. ``Wallet/recover()`` catches it and falls back to the
     /// recovery signer.
     case deviceSignerNotSupported(String)
+    /// The recovery signer list was rejected. `code` is one of the stable codes below
+    /// so callers can branch on it; `message` is the explanation that came with it.
+    case recoveryConfigRejected(code: String, message: String)
+
+    // MARK: - Recovery signer list codes
+
+    /// The list has more recovery signers than the chain allows.
+    public static let SIGNER_LIMIT_EXCEEDED = "SIGNER_LIMIT_EXCEEDED"
+    /// The same signer appears more than once in the list.
+    public static let RECOVERY_DUPLICATE_SIGNER = "RECOVERY_DUPLICATE_SIGNER"
+    /// A recovery signer is also registered as a delegated signer.
+    public static let RECOVERY_SIGNER_CONFLICT = "RECOVERY_SIGNER_CONFLICT"
+    /// The wallet has several recovery signers, so the operation must name the one that authorizes it.
+    public static let SIGNER_REQUIRED = "SIGNER_REQUIRED"
+    /// The chain accepts a single recovery signer only.
+    public static let RECOVERY_NOT_SUPPORTED_ON_CHAIN = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
+    /// The API version in use predates recovery signer lists.
+    public static let NOT_SUPPORTED_ON_API_VERSION = "NOT_SUPPORTED_ON_API_VERSION"
+    /// The request named both `adminSigner` and `recovery`. The SDK never sends both, so this
+    /// points at a backend change.
+    public static let RECOVERY_ADMIN_SIGNER_CONFLICT = "RECOVERY_ADMIN_SIGNER_CONFLICT"
+
+    static let recoveryConfigCodes: Set<String> = [
+        SIGNER_LIMIT_EXCEEDED,
+        RECOVERY_DUPLICATE_SIGNER,
+        RECOVERY_SIGNER_CONFLICT,
+        SIGNER_REQUIRED,
+        RECOVERY_NOT_SUPPORTED_ON_CHAIN,
+        NOT_SUPPORTED_ON_API_VERSION,
+        RECOVERY_ADMIN_SIGNER_CONFLICT
+    ]
 
     public var code: String {
         switch self {
@@ -38,6 +69,7 @@ public enum WalletError: CrossmintError {
         case .invalidToken: "INVALID_TOKEN"
         case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
         case .deviceSignerNotSupported: "DEVICE_SIGNER_NOT_SUPPORTED"
+        case .recoveryConfigRejected(let code, _): code
         }
     }
 
@@ -65,7 +97,7 @@ public enum WalletError: CrossmintError {
             "Invalid token: \(token.name)"
         case .signerNotRegistered(let locator):
             "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
-        case .deviceSignerNotSupported(let message):
+        case .deviceSignerNotSupported(let message), .recoveryConfigRejected(_, let message):
             message
         }
     }
@@ -84,6 +116,8 @@ public enum WalletError: CrossmintError {
             "Ensure the wallet locator is in the correct format."
         case .deviceSignerNotSupported:
             "Use the recovery signer or another registered signer for this wallet."
+        case .recoveryConfigRejected(let code, _):
+            Self.recoverySuggestion(forRecoveryCode: code)
         default:
             nil
         }
@@ -92,6 +126,47 @@ public enum WalletError: CrossmintError {
     public var underlyingError: Swift.Error? {
         guard case .serviceError(let error) = self else { return nil }
         return error
+    }
+}
+
+extension WalletError {
+    /// Fallback when the backend returns one of the recovery codes without a `message`.
+    static func defaultMessage(forRecoveryCode code: String) -> String {
+        switch code {
+        case SIGNER_LIMIT_EXCEEDED:
+            "The wallet exceeds the maximum number of recovery signers"
+        case RECOVERY_DUPLICATE_SIGNER:
+            "The recovery list contains the same signer more than once"
+        case RECOVERY_SIGNER_CONFLICT:
+            "A recovery signer cannot also be registered as an operational signer"
+        case SIGNER_REQUIRED:
+            "This wallet has multiple recovery signers, so the signer to authorize with must be specified explicitly"
+        case RECOVERY_NOT_SUPPORTED_ON_CHAIN:
+            "Multiple recovery signers are not supported on this chain yet"
+        case NOT_SUPPORTED_ON_API_VERSION:
+            "Multiple recovery signers are not supported on this API version"
+        case RECOVERY_ADMIN_SIGNER_CONFLICT:
+            "Only one of `adminSigner` and `recovery` can be provided"
+        default:
+            "The recovery signer configuration was rejected"
+        }
+    }
+
+    private static func recoverySuggestion(forRecoveryCode code: String) -> String? {
+        switch code {
+        case SIGNER_LIMIT_EXCEEDED:
+            "Pass fewer recovery signers."
+        case RECOVERY_DUPLICATE_SIGNER:
+            "Remove the duplicated signer from the recovery list."
+        case RECOVERY_SIGNER_CONFLICT:
+            "Use a signer that is not already registered as a delegated signer."
+        case SIGNER_REQUIRED:
+            "Call useSigner to select which recovery signer authorizes this operation."
+        case RECOVERY_NOT_SUPPORTED_ON_CHAIN:
+            "Pass a single recovery signer on this chain."
+        default:
+            nil
+        }
     }
 }
 
