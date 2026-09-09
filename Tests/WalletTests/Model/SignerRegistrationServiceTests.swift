@@ -16,7 +16,7 @@ struct SignerRegistrationServiceTests {
         )
     }
 
-    // MARK: - register(locator:signer:)
+    // MARK: - register(locator:approver:)
 
     @Test
     func registerLocator_callsAddSignerWithLocator() async throws {
@@ -24,7 +24,10 @@ struct SignerRegistrationServiceTests {
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
-        try await service.register(locator: "email:test@example.com", signer: signer)
+        try await service.register(
+            locator: "email:test@example.com",
+            approver: RecoveryApprover(locator: "email:mock@example.com", signer: signer, named: false)
+        )
 
         #expect(walletService.addSignerCallCount == 1)
         #expect(walletService.lastAddSignerEntry?.signer == "email:test@example.com")
@@ -39,7 +42,10 @@ struct SignerRegistrationServiceTests {
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
-        try await service.register(locator: "email:test@example.com", signer: signer)
+        try await service.register(
+            locator: "email:test@example.com",
+            approver: RecoveryApprover(locator: "email:mock@example.com", signer: signer, named: false)
+        )
 
         #expect(walletService.approveSignatureCallCount == 0)
     }
@@ -60,7 +66,10 @@ struct SignerRegistrationServiceTests {
         let signer = MockSigner()
         let service = makeService(walletService: walletService)
 
-        try await service.register(locator: "email:test@example.com", signer: signer)
+        try await service.register(
+            locator: "email:test@example.com",
+            approver: RecoveryApprover(locator: "email:mock@example.com", signer: signer, named: false)
+        )
 
         #expect(walletService.approveSignatureCallCount == 2)
         #expect(signer.initializeCallCount == 1)

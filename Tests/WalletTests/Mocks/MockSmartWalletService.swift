@@ -142,16 +142,19 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var addSignerCallCount = 0
     var lastAddSignerEntry: DelegatedSignerEntry?
     var lastAddSignerDeployImmediately: Bool?
+    var lastAddSignerApprover: String?
 
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String,
-        deployImmediately: Bool?
+        deployImmediately: Bool?,
+        approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         addSignerCallCount += 1
         lastAddSignerEntry = entry
         lastAddSignerDeployImmediately = deployImmediately
+        lastAddSignerApprover = approver
         if let addSignerError {
             throw addSignerError
         }
@@ -163,15 +166,18 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var registerTypedSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)
     var registerTypedSignerCallCount = 0
     var lastRegisterTypedSignerDeployImmediately: Bool?
+    var lastRegisterTypedSignerApprover: String?
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
-        deployImmediately: Bool?
+        deployImmediately: Bool?,
+        approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         registerTypedSignerCallCount += 1
         lastRegisterTypedSignerDeployImmediately = deployImmediately
+        lastRegisterTypedSignerApprover = approver
         return registerTypedSignerResult
     }
 
@@ -278,14 +284,17 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var removeSignerError: TransactionError?
     var removeSignerCallCount = 0
     var removeSignerLastLocator: String?
+    var removeSignerLastApprover: String?
 
     func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        approver: String?
     ) async throws(TransactionError) -> any TransactionApiModel {
         removeSignerCallCount += 1
         removeSignerLastLocator = signerLocator
+        removeSignerLastApprover = approver
         if let removeSignerError {
             throw removeSignerError
         }

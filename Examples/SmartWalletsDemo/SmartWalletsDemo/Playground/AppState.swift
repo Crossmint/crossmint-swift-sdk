@@ -233,7 +233,7 @@ final class AppState {
             .first { signerConfig(for: $0) != nil }
     }
 
-    private func signerConfig(for locator: String) -> SignerConfig? {
+    func signerConfig(for locator: String) -> SignerConfig? {
         if locator.hasPrefix("device:") { return .device }
         if locator.hasPrefix("api-key:") { return .apiKey }
         if locator.hasPrefix("email:") { return .email(String(locator.dropFirst("email:".count))) }

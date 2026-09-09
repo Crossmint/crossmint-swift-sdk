@@ -6,12 +6,14 @@ struct RegisterSignerBody: Encodable {
     let signer: String
     let chain: String?
     let deployImmediately: Bool?
+    let approver: String?
 }
 
 struct RegisterTypedSignerBody: Encodable {
     let signer: AdminSignerRequestApiModel
     let chain: String?
     let deployImmediately: Bool?
+    let approver: String?
 }
 
 extension Endpoint {

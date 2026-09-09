@@ -15,7 +15,7 @@ final class SignerRegistrationService: Sendable {
 
     func register(
         locator: String,
-        signer: any Signer,
+        approver: RecoveryApprover,
         deployImmediately: Bool = true
     ) async throws(WalletError) {
         let entry = DelegatedSignerEntry(signer: locator)
@@ -23,15 +23,16 @@ final class SignerRegistrationService: Sendable {
             entry,
             chainType: chainType,
             chainName: chainName,
-            deployImmediately: deployImmediately
+            deployImmediately: deployImmediately,
+            approver: approver.requestLocator
         )
-        try await approveIfNeeded(registration: registration, signer: signer)
+        try await approveIfNeeded(registration: registration, signer: approver.signer)
     }
 
     func registerPasskey(
         name: String,
         host: String,
-        adminSigner: any Signer,
+        approver: RecoveryApprover,
         deployImmediately: Bool = true
     ) async throws(WalletError) {
         let passkeySigner = PasskeySigner(name: name, host: host)
@@ -49,9 +50,10 @@ final class SignerRegistrationService: Sendable {
             passkeyData,
             chainType: chainType,
             chainName: chainName,
-            deployImmediately: deployImmediately
+            deployImmediately: deployImmediately,
+            approver: approver.requestLocator
         )
-        try await approveIfNeeded(registration: registration, signer: adminSigner)
+        try await approveIfNeeded(registration: registration, signer: approver.signer)
     }
 
     func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {
