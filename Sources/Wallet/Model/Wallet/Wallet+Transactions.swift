@@ -127,23 +127,35 @@ extension Wallet {
     /// Submits a remove-signer transaction on-chain. If the transaction requires approval,
     /// the current signer signs it automatically before polling for completion.
     ///
-    /// - Parameter locator: The signer locator string identifying the signer to remove
-    ///   (e.g. `"device:ABC123..."`, `"external-wallet:0x456..."`).
+    /// - Parameters:
+    ///   - locator: The signer locator string identifying the signer to remove
+    ///     (e.g. `"device:ABC123..."`, `"external-wallet:0x456..."`).
+    ///   - approver: The recovery signer that authorizes the removal. See ``addSigner(_:approver:)``.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
-    public func removeSigner(locator: String) async throws(TransactionError) -> Transaction {
+    public func removeSigner(
+        locator: String,
+        approver approverConfig: SignerConfig? = nil
+    ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
             "locator": locator
         ])
 
         do {
+            let approver: RecoveryApprover
+            do {
+                approver = try await recoveryApprover(approverConfig)
+            } catch {
+                throw TransactionError.transactionGeneric(error.message)
+            }
             onTransactionStart?()
             let transactionModel = try await smartWalletService.removeSigner(
                 locator,
                 chainType: chain.chainType,
-                chainName: chain.name
+                chainName: chain.name,
+                approver: approver.requestLocator
             )
             let transaction = transactionModel.toDomain()
-            guard let result = try await signAndPollWhilePending(transaction) else {
+            guard let result = try await signAndPollWhilePending(transaction, signer: approver.signer) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
             Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
@@ -329,7 +341,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             do {
                 try await deviceSignerService.ensureRegistered(
                     storage: storage,
-                    signer: await updateSignerIfRequired()
+                    approver: await defaultRecoveryApprover()
                 )
             } catch {
                 if case .deviceSignerNotSupported = error {
@@ -366,9 +378,10 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     }
 
     internal func signAndPollWhilePending(
-        _ transaction: Transaction?
+        _ transaction: Transaction?,
+        signer: (any Signer)? = nil
     ) async throws(TransactionError) -> Transaction? {
-        let signedTransaction = try await signTransactionIfRequired(transaction)
+        let signedTransaction = try await signTransactionIfRequired(transaction, signer: signer)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
@@ -414,7 +427,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     private func approveTransaction(
         transactionId: String,
         signerLocator: String,
-        message: String
+        message: String,
+        signer: (any Signer)?
     ) async throws(TransactionError) {
         if signerLocator.hasPrefix("device:") {
             try await approveTransactionWithDeviceSigner(
@@ -425,7 +439,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         } else {
             try await approveTransactionWithActiveSigner(
                 transactionId: transactionId,
-                message: message
+                message: message,
+                signer: signer
             )
         }
     }
@@ -453,12 +468,15 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
     private func approveTransactionWithActiveSigner(
         transactionId: String,
-        message: String
+        message: String,
+        signer: (any Signer)?
     ) async throws(TransactionError) {
         let request: SignRequestApi
         do {
             let updatedSigner: any Signer
-            if let active = selectedSigner {
+            if let signer {
+                updatedSigner = signer
+            } else if let active = selectedSigner {
                 updatedSigner = active
             } else {
                 updatedSigner = await updateSignerIfRequired()
@@ -506,7 +524,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     }
 
     private func signTransactionIfRequired(
-        _ transaction: Transaction?
+        _ transaction: Transaction?,
+        signer: (any Signer)? = nil
     ) async throws(TransactionError) -> Transaction? {
         if let transaction, let approvals = transaction.approvals, !approvals.pending.isEmpty {
             Logger.smartWallet.debug("wallet.signTransaction.pendingApprovals", attributes: [
@@ -517,7 +536,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 try await approveTransaction(
                     transactionId: transaction.id,
                     signerLocator: pendingApproval.signer,
-                    message: pendingApproval.message
+                    message: pendingApproval.message,
+                    signer: signer
                 )
             }
             return transaction

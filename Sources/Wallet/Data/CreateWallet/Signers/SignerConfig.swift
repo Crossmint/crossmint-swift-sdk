@@ -38,4 +38,9 @@ extension SignerConfig {
         case .device, .passkey: nil
         }
     }
+
+    var phoneChannel: OTPDeliveryChannel? {
+        guard case .phone(_, let channel) = self else { return nil }
+        return channel
+    }
 }

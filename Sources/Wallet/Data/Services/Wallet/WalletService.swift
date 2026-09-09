@@ -19,20 +19,23 @@ public protocol WalletService: Sendable {
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String,
-        deployImmediately: Bool?
+        deployImmediately: Bool?,
+        approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
-        deployImmediately: Bool?
+        deployImmediately: Bool?,
+        approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        approver: String?
     ) async throws(TransactionError) -> any TransactionApiModel
 
     func getSigner(
