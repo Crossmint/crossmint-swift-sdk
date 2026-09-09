@@ -202,7 +202,6 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
             "recoverySignerCount": "\(recovery.signers.count)"
         ])
 
-        // Sequential on purpose: passkey creation shows a system prompt, and two at once are rejected.
         for signer in recovery.signers {
             try await initializeSigner(signer)
         }

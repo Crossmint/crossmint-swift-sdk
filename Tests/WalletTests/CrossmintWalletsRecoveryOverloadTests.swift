@@ -12,7 +12,6 @@ import TestsUtils
 
 @testable import Wallet
 
-/// Records what the chain-typed list overloads hand to the protocol's `[any Signer]` entry points.
 private final class SpyCrossmintWallets: CrossmintWallets, @unchecked Sendable {
     var receivedChain: Chain?
     var receivedSigners: [any Signer] = []

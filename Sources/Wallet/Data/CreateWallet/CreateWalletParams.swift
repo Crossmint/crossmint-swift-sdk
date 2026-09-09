@@ -6,9 +6,7 @@ public struct DelegatedSignerEntry: Encodable {
 
 public struct CreateWalletParams: Encodable {
     struct InputConfig: Encodable {
-        /// A single recovery signer, sent under the legacy `adminSigner` key.
         let adminSigner: AdminSignerRequestApiModel?
-        /// A list of recovery signers, sent under `recovery`. The API rejects a body that carries both.
         let recovery: [AdminSignerRequestApiModel]?
         let delegatedSigners: [DelegatedSignerEntry]?
 

@@ -7,10 +7,6 @@
 
 import CrossmintCommonTypes
 
-/// The recovery signers a caller supplied, keeping track of which overload they used.
-///
-/// The wire shape follows the overload: one signer goes under the legacy `adminSigner` key,
-/// a list goes under `recovery`, even when the list has a single entry.
 enum RecoveryInput {
     case single(any Signer)
     case list([any Signer])
@@ -20,7 +16,6 @@ enum RecoveryInput {
         case recovery([any AdminSignerData])
     }
 
-    /// Chains whose create endpoint accepts a list of recovery signers.
     private static let chainsWithRecoveryList: Set<ChainType> = [.solana, .stellar]
 
     var signers: [any Signer] {
@@ -30,7 +25,6 @@ enum RecoveryInput {
         }
     }
 
-    /// The signer the wallet signs with until ``Wallet/useSigner(_:)`` selects another one.
     var active: any Signer {
         switch self {
         case .single(let signer): signer

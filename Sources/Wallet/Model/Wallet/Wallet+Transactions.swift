@@ -353,11 +353,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
-    /// The locator to name as the transaction's signer.
-    ///
-    /// Explicit selection wins, then the device signer. With a single recovery signer the
-    /// field is omitted so the backend keeps choosing the admin as it always has; with several,
-    /// the backend requires an explicit signer, so the active recovery signer is named.
     internal func transactionSignerLocator() async -> String? {
         if let active = selectedSignerLocator {
             return active

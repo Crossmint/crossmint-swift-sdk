@@ -44,7 +44,6 @@ public struct WalletConfigApiModel: Decodable {
         case type
     }
 
-    /// Decodes the `type` discriminator first, then the concrete signer model.
     private static func decodeSigner(from decoder: Decoder) throws -> AdminSignerApiModel {
         let typeContainer = try decoder.container(keyedBy: AdminSignerCodingKeys.self)
         let type = try typeContainer.decode(AdminSignerDataType.self, forKey: .type)

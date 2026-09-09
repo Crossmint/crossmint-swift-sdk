@@ -25,8 +25,6 @@ public enum WalletError: CrossmintError {
     /// so callers can branch on it; `message` is the explanation that came with it.
     case recoveryConfigRejected(code: String, message: String)
 
-    // MARK: - Recovery signer list codes
-
     /// The list has more recovery signers than the chain allows.
     public static let SIGNER_LIMIT_EXCEEDED = "SIGNER_LIMIT_EXCEEDED"
     /// The same signer appears more than once in the list.
@@ -130,7 +128,6 @@ public enum WalletError: CrossmintError {
 }
 
 extension WalletError {
-    /// Fallback when the backend returns one of the recovery codes without a `message`.
     static func defaultMessage(forRecoveryCode code: String) -> String {
         switch code {
         case SIGNER_LIMIT_EXCEEDED:
