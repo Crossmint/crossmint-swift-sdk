@@ -26,11 +26,44 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         recovery: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet? {
+        try await getWallet(chain: chain, recovery: .single(recovery), options: options)
+    }
+
+    public func getWallet(
+        chain: Chain,
+        recovery: [any Signer],
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet? {
+        try await getWallet(chain: chain, recovery: .list(recovery), options: options)
+    }
+
+    public func createWallet(
+        chain: Chain,
+        recovery: any Signer,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        try await createWallet(chain: chain, recovery: .single(recovery), options: options)
+    }
+
+    public func createWallet(
+        chain: Chain,
+        recovery: [any Signer],
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        try await createWallet(chain: chain, recovery: .list(recovery), options: options)
+    }
+
+    private func getWallet(
+        chain: Chain,
+        recovery: RecoveryInput,
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet? {
         try assertValid(chain)
+        try recovery.assertValid(for: chain)
 
         Logger.smartWallet.debug(LogEvents.walletGetStart, attributes: [
             "chain": chain.name,
-            "signerType": recovery.signerType.rawValue
+            "signerType": recovery.active.signerType.rawValue
         ])
 
         let deviceSignerStorage = self.deviceSignerStorage(for: options)
@@ -53,35 +86,27 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
-            signer: recovery,
+            signer: recovery.active,
             options: options,
             deviceSignerStorage: deviceSignerStorage
         )
 
-        do {
-            try await (recovery as? any NonCustodialSigner)?.load()
-        } catch {
-            Logger.smartWallet.warning(
-                """
-There was an error initializing the non-custodial signer. \(error.errorDescription)
-Review if the .crossmintNonCustodialSigner() modifier is used as expected.
-"""
-            )
-        }
+        await loadNonCustodialSigner(recovery.active)
 
         return wallet
     }
 
-    public func createWallet(
+    private func createWallet(
         chain: Chain,
-        recovery: any Signer,
-        options: WalletOptions? = nil
+        recovery: RecoveryInput,
+        options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
         try assertValid(chain)
+        try recovery.assertValid(for: chain)
 
         let deviceSignerStorage = self.deviceSignerStorage(for: options)
         let creation = try await createWalletApiModel(
-            signer: recovery,
+            recovery: recovery,
             chainType: chain.chainType,
             walletType: .smart,
             options: options,
@@ -91,14 +116,20 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
         let wallet = try buildWallet(
             from: creation.model,
             chain: chain,
-            signer: recovery,
+            signer: recovery.active,
             options: options,
             deviceSignerStorage: deviceSignerStorage,
             deviceSignerUnsupported: creation.deviceSignerRejected
         )
 
+        await loadNonCustodialSigner(recovery.active)
+
+        return wallet
+    }
+
+    private func loadNonCustodialSigner(_ signer: any Signer) async {
         do {
-            try await (recovery as? any NonCustodialSigner)?.load()
+            try await (signer as? any NonCustodialSigner)?.load()
         } catch {
             Logger.smartWallet.warning(
                 """
@@ -107,8 +138,6 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
 """
             )
         }
-
-        return wallet
     }
 
     private func assertValid(_ chain: Chain) throws(WalletError) {
@@ -161,7 +190,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     }
 
     private func createWalletApiModel(
-        signer: any Signer,
+        recovery: RecoveryInput,
         chainType: ChainType,
         walletType: WalletType,
         options: WalletOptions?,
@@ -169,20 +198,24 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     ) async throws(WalletError) -> (model: WalletApiModel, deviceSignerRejected: Bool) {
         Logger.smartWallet.debug(LogEvents.walletCreateStart, attributes: [
             "chainType": chainType.rawValue,
-            "signerType": signer.signerType.rawValue
+            "signerType": recovery.active.signerType.rawValue,
+            "recoverySignerCount": "\(recovery.signers.count)"
         ])
 
-        try await initializeSigner(signer)
+        // Sequential on purpose: passkey creation shows a system prompt, and two at once are rejected.
+        for signer in recovery.signers {
+            try await initializeSigner(signer)
+        }
 
         options?.experimentalCallbacks?.onWalletCreationStart()
 
         let pendingDeviceSigner = await prepareDeviceSignerEntry(storage: deviceSignerStorage)
-        let adminSigner = await signer.adminSigner
+        let recoveryRequest = await recovery.request
         do {
             let creation = try await createWalletRetryingOnceWithoutDeviceSigner(
                 chainType: chainType,
                 walletType: walletType,
-                adminSigner: adminSigner,
+                recovery: recoveryRequest,
                 pendingDeviceSigner: pendingDeviceSigner
             )
 
@@ -239,14 +272,14 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     private func createWalletRetryingOnceWithoutDeviceSigner(
         chainType: ChainType,
         walletType: WalletType,
-        adminSigner: any AdminSignerData,
+        recovery: RecoveryInput.Request,
         pendingDeviceSigner: PendingDeviceSigner?
     ) async throws(WalletError) -> (model: WalletApiModel, deviceSignerRejected: Bool) {
         do {
             let model = try await requestWalletCreation(
                 chainType: chainType,
                 walletType: walletType,
-                adminSigner: adminSigner,
+                recovery: recovery,
                 delegatedSigners: pendingDeviceSigner.map { [$0.entry] }
             )
             return (model, deviceSignerRejected: false)
@@ -258,7 +291,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
             let model = try await requestWalletCreation(
                 chainType: chainType,
                 walletType: walletType,
-                adminSigner: adminSigner,
+                recovery: recovery,
                 delegatedSigners: nil
             )
             return (model, deviceSignerRejected: true)
@@ -283,15 +316,18 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     private func requestWalletCreation(
         chainType: ChainType,
         walletType: WalletType,
-        adminSigner: any AdminSignerData,
+        recovery: RecoveryInput.Request,
         delegatedSigners: [DelegatedSignerEntry]?
     ) async throws(WalletError) -> WalletApiModel {
-        try await smartWalletService.createWallet(
-            CreateWalletParams(
-                chainType: chainType,
-                type: walletType,
-                config: .init(adminSigner: adminSigner, delegatedSigners: delegatedSigners)
-            )
+        let config: CreateWalletParams.InputConfig
+        switch recovery {
+        case .adminSigner(let adminSigner):
+            config = .init(adminSigner: adminSigner, delegatedSigners: delegatedSigners)
+        case .recovery(let methods):
+            config = .init(recovery: methods, delegatedSigners: delegatedSigners)
+        }
+        return try await smartWalletService.createWallet(
+            CreateWalletParams(chainType: chainType, type: walletType, config: config)
         )
     }
 
