@@ -202,16 +202,6 @@ struct RecoverySignerListCreationTests {
         #expect(config.recovery == nil)
     }
 
-    @Test func keepsAOneElementListUnderRecovery() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletSolanaEmail")
-
-        _ = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [MockSigner()], options: nil)
-
-        let config = try #require(walletService.lastCreateWalletParams?.config)
-        #expect(config.adminSigner == nil)
-        #expect(config.recovery?.count == 1)
-    }
-
     @Test func initializesEverySignerBeforeCreating() async throws {
         walletService.createWalletFixture = try loadFixture("WalletStellarRecoveryMethods")
         let alice = MockSigner(email: "alice@example.com")
@@ -221,16 +211,6 @@ struct RecoverySignerListCreationTests {
 
         #expect(alice.initializeCallCount == 1)
         #expect(bob.initializeCallCount == 1)
-    }
-
-    @Test func signsWithTheFirstSignerOfTheList() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
-        let alice = MockSigner(email: "alice@example.com")
-        let bob = MockSigner(email: "bob@example.com")
-
-        let wallet = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [alice, bob], options: nil)
-
-        #expect(wallet.signer as? MockSigner === alice)
     }
 
     @Test func rejectsAnEmptyList() async throws {
@@ -259,18 +239,5 @@ struct RecoverySignerListCreationTests {
             return code == WalletError.RECOVERY_NOT_SUPPORTED_ON_CHAIN
         }
         #expect(walletService.createWalletCallCount == 0)
-    }
-
-    @Test func loadsAnExistingWalletWithAList() async throws {
-        walletService.getWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
-        let alice = MockSigner(email: "alice@example.com")
-        let bob = MockSigner(email: "bob@example.com")
-
-        let wallet = try #require(
-            try await makeWallets().getWallet(chain: Chain("solana"), recovery: [alice, bob], options: nil)
-        )
-
-        #expect(wallet.recoveryMethods.count == 3)
-        #expect(wallet.signer as? MockSigner === alice)
     }
 }

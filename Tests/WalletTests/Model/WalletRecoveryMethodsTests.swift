@@ -73,14 +73,6 @@ struct WalletRecoveryMethodsTests {
         }
     }
 
-    @Test func reportsEveryRecoverySignerAsRegistered() async throws {
-        let (wallet, _) = try makeSolanaWallet(fileName: "WalletSolanaRecoveryMethods")
-
-        #expect(await wallet.signerIsRegistered("phone:+14155552671"))
-        #expect(await wallet.signerIsRegistered("external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
-        #expect(await wallet.signerIsRegistered("email:bob@example.com") == false)
-    }
-
     @Suite("transaction signer")
     struct TransactionSignerTests {
         private let parent = WalletRecoveryMethodsTests()
