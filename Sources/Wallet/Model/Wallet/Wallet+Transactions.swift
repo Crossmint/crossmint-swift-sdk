@@ -474,10 +474,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         let request: SignRequestApi
         do {
             let updatedSigner: any Signer
-            if let signer {
+            if let signer = signer ?? selectedSigner {
                 updatedSigner = signer
-            } else if let active = selectedSigner {
-                updatedSigner = active
             } else {
                 updatedSigner = await updateSignerIfRequired()
             }

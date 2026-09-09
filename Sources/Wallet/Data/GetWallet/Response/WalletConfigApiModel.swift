@@ -6,14 +6,15 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
 }
 
 public struct WalletConfigApiModel: Decodable {
-    /// The first recovery signer. Kept as the single-signer view so existing callers keep working.
-    public let recovery: AdminSignerApiModel
     /// Every recovery signer of the wallet, in the order the backend reports them.
     ///
     /// Solana and Stellar wallets report the full list under `recovery`; EVM wallets only report
     /// `adminSigner`, so the list has exactly one entry there.
     public let recoveryMethods: [AdminSignerApiModel]
     let signers: [WalletSignerConfigApiModel]?
+
+    /// The first recovery signer.
+    public var recovery: AdminSignerApiModel { recoveryMethods[0] }
 
     enum CodingKeys: String, CodingKey {
         case adminSigner
@@ -36,7 +37,6 @@ public struct WalletConfigApiModel: Decodable {
         }
 
         recoveryMethods = methods
-        recovery = methods[0]
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
 
@@ -65,9 +65,6 @@ public struct WalletConfigApiModel: Decodable {
     }
 
     var toDomain: WalletConfig {
-        WalletConfig(
-            recovery: recovery.toDomain,
-            recoveryMethods: recoveryMethods.map(\.toDomain)
-        )
+        WalletConfig(recoveryMethods: recoveryMethods.map(\.toDomain))
     }
 }

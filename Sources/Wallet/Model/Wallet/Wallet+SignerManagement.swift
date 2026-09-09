@@ -155,30 +155,7 @@ extension Wallet {
         await signerInitializationTask?.value
         do {
             let approver = try await recoveryApprover(approverConfig)
-            switch config {
-            case .device:
-                let storage = deviceSignerKeyStorage ?? .default
-                try await registerDeviceSigner(
-                    storage: storage,
-                    approver: approver,
-                    deployImmediately: deployImmediately
-                )
-                deviceSignerKeyStorage = storage
-            case .email, .phone, .externalWallet, .apiKey:
-                guard let locator = config.locator else { return }
-                try await signerRegistrationService.register(
-                    locator: locator,
-                    approver: approver,
-                    deployImmediately: deployImmediately
-                )
-            case .passkey(let name, let host):
-                try await signerRegistrationService.registerPasskey(
-                    name: name,
-                    host: host,
-                    approver: approver,
-                    deployImmediately: deployImmediately
-                )
-            }
+            try await submitRegistration(of: config, approver: approver, deployImmediately: deployImmediately)
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
         } catch {
             Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
@@ -190,58 +167,71 @@ extension Wallet {
         }
     }
 
+    private func submitRegistration(
+        of config: SignerConfig,
+        approver: RecoveryApprover,
+        deployImmediately: Bool
+    ) async throws(WalletError) {
+        switch config {
+        case .device:
+            let storage = deviceSignerKeyStorage ?? .default
+            try await registerDeviceSigner(storage: storage, approver: approver, deployImmediately: deployImmediately)
+            deviceSignerKeyStorage = storage
+        case .email, .phone, .externalWallet, .apiKey:
+            guard let locator = config.locator else { return }
+            try await signerRegistrationService.register(
+                locator: locator,
+                approver: approver,
+                deployImmediately: deployImmediately
+            )
+        case .passkey(let name, let host):
+            try await signerRegistrationService.registerPasskey(
+                name: name,
+                host: host,
+                approver: approver,
+                deployImmediately: deployImmediately
+            )
+        }
+    }
+
     internal func recoveryApprover(_ approverConfig: SignerConfig?) async throws(WalletError) -> RecoveryApprover {
         guard let approverConfig else { return await defaultRecoveryApprover() }
-        guard let data = recoverySignerData(matching: approverConfig) else {
-            throw .signerNotRegistered(approverConfig.locator ?? "\(approverConfig)")
-        }
-        guard let signer = await makeRecoverySigner(data, channel: approverConfig.phoneChannel) else {
+        guard let signer = await makeRecoverySigner(for: approverConfig) else {
             throw .walletGeneric("Only email, phone and API key recovery signers can authorize from this device.")
         }
-        return RecoveryApprover(locator: data.locator, signer: signer, named: hasSeveralRecoverySigners)
+        let locator = await signer.adminSigner.locator
+        guard config.recoveryMethods.contains(where: { $0.locator == locator }) else {
+            throw .signerNotRegistered(locator)
+        }
+        return RecoveryApprover(signer: signer, requestLocator: approverLocatorForRequest(locator))
     }
 
     internal func defaultRecoveryApprover() async -> RecoveryApprover {
         let recoveryLocators = config.recoveryMethods.map(\.locator)
         if let selectedSignerLocator, let selectedSigner, recoveryLocators.contains(selectedSignerLocator) {
             return RecoveryApprover(
-                locator: selectedSignerLocator,
                 signer: selectedSigner,
-                named: hasSeveralRecoverySigners
+                requestLocator: approverLocatorForRequest(selectedSignerLocator)
             )
         }
         let defaultSigner = await updateSignerIfRequired()
-        return RecoveryApprover(
-            locator: await defaultSigner.adminSigner.locator,
-            signer: defaultSigner,
-            named: hasSeveralRecoverySigners
-        )
+        let locator = await defaultSigner.adminSigner.locator
+        return RecoveryApprover(signer: defaultSigner, requestLocator: approverLocatorForRequest(locator))
     }
 
-    private var hasSeveralRecoverySigners: Bool {
-        config.recoveryMethods.count > 1
+    private func approverLocatorForRequest(_ locator: String) -> String? {
+        config.recoveryMethods.count > 1 ? locator : nil
     }
 
-    private func recoverySignerData(matching approverConfig: SignerConfig) -> (any AdminSignerData)? {
+    private func makeRecoverySigner(for approverConfig: SignerConfig) async -> (any Signer)? {
         switch approverConfig {
+        case .email(let email):
+            return await MainActor.run { makeEmailSigner(email: email) }
+        case .phone(let phone, let channel):
+            return await MainActor.run { makePhoneSigner(phone: phone, channel: channel) }
         case .apiKey:
-            return config.recoverySigner(ofType: ApiKeySignerData.self)
-        case .email, .phone, .externalWallet:
-            return config.recoveryMethods.first { $0.locator == approverConfig.locator }
-        case .device, .passkey:
-            return nil
-        }
-    }
-
-    private func makeRecoverySigner(_ data: any AdminSignerData, channel: OTPDeliveryChannel?) async -> (any Signer)? {
-        switch data {
-        case let email as EmailSignerData:
-            return await MainActor.run { makeEmailSigner(email: email.email) }
-        case let phone as PhoneSignerData:
-            return await MainActor.run { makePhoneSigner(phone: phone.phone, channel: channel) }
-        case let apiKey as ApiKeySignerData:
-            return ApiKeySigner(adminSigner: apiKey)
-        default:
+            return config.recoverySigner(ofType: ApiKeySignerData.self).map(ApiKeySigner.init)
+        case .externalWallet, .device, .passkey:
             return nil
         }
     }
