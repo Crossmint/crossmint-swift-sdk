@@ -10,13 +10,10 @@ struct NoWalletView: View {
     @Environment(AppState.self) private var appState
     let email: String?
 
-    @State private var addRecoveryPhone = false
-    @State private var recoveryPhone = ""
-    @State private var channel: OTPDeliveryChannel = .sms
+    @State private var extraRecovery: [RecoverySignerDraft] = []
 
-    private var trimmedPhone: String? {
-        let phone = recoveryPhone.trimmingCharacters(in: .whitespaces)
-        return addRecoveryPhone && !phone.isEmpty ? phone : nil
+    private var canCreate: Bool {
+        !appState.isCreatingWallet && extraRecovery.allSatisfy(\.isComplete)
     }
 
     var body: some View {
@@ -24,13 +21,13 @@ struct NoWalletView: View {
             Text("No \(appState.selectedChain.chainDisplayName) wallet found.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            if appState.selectedChain.supportsRecoveryList {
-                recoveryPhoneFields
+            if appState.selectedChain.supportsRecoveryList, let email {
+                RecoverySignerListEditor(primaryLocator: "email:\(email)", drafts: $extraRecovery)
             }
             Button {
                 Task {
                     if let email {
-                        await appState.createWallet(email: email, recoveryPhone: trimmedPhone, channel: channel)
+                        await appState.createWallet(email: email, extraRecovery: extraRecovery)
                     }
                 }
             } label: {
@@ -42,27 +39,8 @@ struct NoWalletView: View {
                         .fontWeight(.medium)
                 }
             }
-            .disabled(appState.isCreatingWallet || (addRecoveryPhone && trimmedPhone == nil))
+            .disabled(!canCreate)
         }
         .padding(.vertical, 4)
-    }
-
-    @ViewBuilder
-    private var recoveryPhoneFields: some View {
-        Toggle("Add a phone recovery signer", isOn: $addRecoveryPhone)
-            .font(.subheadline)
-        if addRecoveryPhone {
-            TextField("Recovery phone number", text: $recoveryPhone, prompt: Text("+15551234567"))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.phonePad)
-                .font(.system(.body, design: .monospaced))
-                .accessibilityIdentifier("recovery-phone-field")
-            Picker("OTP delivery", selection: $channel) {
-                Text("SMS").tag(OTPDeliveryChannel.sms)
-                Text("WhatsApp").tag(OTPDeliveryChannel.whatsapp)
-            }
-            .pickerStyle(.segmented)
-        }
     }
 }
