@@ -31,6 +31,8 @@ final class AppState {
     private var currentEmail: String?
     private var phoneChannels: [String: OTPDeliveryChannel] = [:]
 
+    var pendingRecovery: [RecoverySignerDraft] = []
+
     // Signer selection (shared across Transfer/Signing/Signers)
     private(set) var selectedSignerLocator: String?
     private(set) var signers: [WalletSigner] = []
@@ -97,16 +99,14 @@ final class AppState {
         loadingChains.remove(chain)
     }
 
-    func createWallet(email: String, extraRecovery: [RecoverySignerDraft] = []) async {
+    func createWallet(email: String) async {
         let chain = selectedChain
         isCreatingWallet = true
         walletErrorMessage = nil
 
         do {
-            let w = try await makeWallet(chain: chain, email: email, extraRecovery: extraRecovery)
-            for draft in extraRecovery where draft.kind == .phone {
-                if let locator = draft.locator { rememberChannel(draft.channel, for: locator) }
-            }
+            let w = try await makeWallet(chain: chain, email: email, extraRecovery: pendingRecovery)
+            pendingRecovery = []
             walletCache[chain] = w
             notFoundChains.remove(chain)
             await fetchBalance()
@@ -129,6 +129,7 @@ final class AppState {
     func switchChain(_ chain: SupportedChain, email: String) async {
         guard chain != selectedChain else { return }
         selectedChain = chain
+        pendingRecovery = []
         selectedSignerLocator = nil
         signers = []
         localDeviceLocator = nil
@@ -308,15 +309,31 @@ final class AppState {
         case .solana:
             return try await sdk.crossmintWallets.createWallet(
                 chain: SolanaChain.solana,
-                recovery: [.email(email)] + extraRecovery.map(\.solanaSigner),
+                recovery: [.email(email)] + extraRecovery.map(solanaSigner),
                 options: options
             )
         case .stellar:
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
-                recovery: [.email(email)] + extraRecovery.map(\.stellarSigner),
+                recovery: [.email(email)] + extraRecovery.map(stellarSigner),
                 options: options
             )
+        }
+    }
+
+    private func solanaSigner(for draft: RecoverySignerDraft) -> SolanaSigners {
+        switch draft.kind {
+        case .email(let email): .email(email)
+        case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
+        case .apiKey: .apiKey
+        }
+    }
+
+    private func stellarSigner(for draft: RecoverySignerDraft) -> StellarSigners {
+        switch draft.kind {
+        case .email(let email): .email(email)
+        case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
+        case .apiKey: .apiKey
         }
     }
 }

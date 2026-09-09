@@ -24,7 +24,7 @@ struct SignersView: View {
         NavigationStack {
             List {
                 if appState.wallet == nil, let email {
-                    RecoverySetupSection(email: email) { await loadSigners() }
+                    pendingRecoverySections(email: email)
                 } else {
                     walletSections()
                 }
@@ -52,6 +52,55 @@ struct SignersView: View {
                 .environment(appState)
         }
         .otpSheet()
+    }
+
+    @ViewBuilder
+    private func pendingRecoverySections(email: String) -> some View {
+        Section {
+            SignerRow(locator: "email:\(email)", canRemove: false, onSelect: {})
+            ForEach(appState.pendingRecovery) { draft in
+                SignerRow(
+                    locator: draft.locator,
+                    canRemove: true,
+                    onSelect: {},
+                    onRemove: { appState.pendingRecovery.removeAll { $0.id == draft.id } }
+                )
+            }
+        } header: {
+            Text("Recovery")
+        } footer: {
+            Text("Each recovery signer can authorize on its own once the wallet is created.")
+        }
+
+        Section {
+            Button {
+                showAddSigner = true
+            } label: {
+                Label("Add Signer…", systemImage: "plus.circle")
+            }
+            .accessibilityIdentifier("signers-add-button")
+        }
+
+        Section {
+            Button {
+                Task { await appState.createWallet(email: email) }
+            } label: {
+                HStack(spacing: 8) {
+                    if appState.isCreatingWallet {
+                        ProgressView().scaleEffect(0.8)
+                    }
+                    Text(appState.isCreatingWallet ? "Creating Wallet…" : "Create Wallet")
+                        .fontWeight(.medium)
+                }
+            }
+            .disabled(appState.isCreatingWallet)
+            .accessibilityIdentifier("recovery-create-wallet-button")
+            if let error = appState.walletErrorMessage {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.red)
+                    .font(.footnote)
+            }
+        }
     }
 
     @ViewBuilder
