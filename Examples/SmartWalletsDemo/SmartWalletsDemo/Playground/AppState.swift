@@ -43,7 +43,12 @@ final class AppState {
     var wallet: Wallet? { walletCache[selectedChain] }
     var walletNotFound: Bool { notFoundChains.contains(selectedChain) }
     var isLoadingWallet: Bool { loadingChains.contains(selectedChain) }
-    var recoveryLocator: String? { currentEmail.map { "email:\($0)" } }
+    /// Every recovery signer of the current wallet. Falls back to the login email while the
+    /// wallet is still loading.
+    var recoveryLocators: [String] {
+        if let wallet { return wallet.recoveryMethods.map(\.locator) }
+        return currentEmail.map { ["email:\($0)"] } ?? []
+    }
 
     var formattedBalance: String {
         guard let balance else { return "—" }
@@ -94,13 +99,21 @@ final class AppState {
         loadingChains.remove(chain)
     }
 
-    func createWallet(email: String) async {
+    /// Creates the wallet for the selected chain. On Solana and Stellar, a `recoveryPhone`
+    /// adds a second recovery signer next to the email, so either one can recover the wallet.
+    func createWallet(email: String, recoveryPhone: String? = nil, channel: OTPDeliveryChannel = .sms) async {
         let chain = selectedChain
         isCreatingWallet = true
         walletErrorMessage = nil
 
         do {
-            let w = try await makeWallet(chain: chain, email: email)
+            let w: Wallet
+            if let recoveryPhone, chain.supportsRecoveryList {
+                w = try await makeWallet(chain: chain, email: email, recoveryPhone: recoveryPhone, channel: channel)
+                rememberChannel(channel, for: "phone:\(recoveryPhone)")
+            } else {
+                w = try await makeWallet(chain: chain, email: email)
+            }
             walletCache[chain] = w
             notFoundChains.remove(chain)
             await fetchBalance()
@@ -220,7 +233,7 @@ final class AppState {
     }
 
     private func firstSelectableLocator() -> String? {
-        if let recovery = recoveryLocator, signerConfig(for: recovery) != nil { return recovery }
+        if let recovery = recoveryLocators.first(where: { signerConfig(for: $0) != nil }) { return recovery }
         return signers
             .map(\.locator)
             .first { signerConfig(for: $0) != nil }
@@ -282,6 +295,31 @@ final class AppState {
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
                 recovery: StellarSigners.email(email),
+                options: options
+            )
+        }
+    }
+
+    private func makeWallet(
+        chain: SupportedChain,
+        email: String,
+        recoveryPhone: String,
+        channel: OTPDeliveryChannel
+    ) async throws -> Wallet {
+        let options = WalletOptions(deviceSigner: true)
+        switch chain {
+        case .evm:
+            return try await makeWallet(chain: chain, email: email)
+        case .solana:
+            return try await sdk.crossmintWallets.createWallet(
+                chain: SolanaChain.solana,
+                recovery: [.email(email), .phone(recoveryPhone, channel: channel)],
+                options: options
+            )
+        case .stellar:
+            return try await sdk.crossmintWallets.createWallet(
+                chain: StellarChain.stellar,
+                recovery: [.email(email), .phone(recoveryPhone, channel: channel)],
                 options: options
             )
         }

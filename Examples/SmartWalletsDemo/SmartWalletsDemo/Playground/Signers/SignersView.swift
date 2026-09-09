@@ -82,13 +82,16 @@ struct SignersView: View {
 
     @ViewBuilder
     private func recoverySection() -> some View {
-        if let locator = appState.recoveryLocator {
+        let locators = appState.recoveryLocators
+        if !locators.isEmpty {
             Section("Recovery") {
-                SignerRow(
-                    locator: locator,
-                    canRemove: false,
-                    onSelect: {}
-                )
+                ForEach(locators, id: \.self) { locator in
+                    SignerRow(
+                        locator: locator,
+                        canRemove: false,
+                        onSelect: {}
+                    )
+                }
             }
         }
     }

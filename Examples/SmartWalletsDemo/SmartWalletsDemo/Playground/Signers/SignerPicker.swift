@@ -19,7 +19,7 @@ struct SignerPicker: View {
 
     private var options: [Option] {
         var result: [Option] = []
-        if let recovery = appState.recoveryLocator, isSelectable(recovery) {
+        for recovery in appState.recoveryLocators where isSelectable(recovery) {
             result.append(Option(locator: recovery, typeLabel: SignerRow.typeLabel(for: recovery), isRecovery: true))
         }
         for signer in appState.signers {
