@@ -40,6 +40,22 @@ struct TransactionRequestSignerTests {
         #expect(json == #"{"params":{"signer":"email:alice@example.com","transaction":"AQ=="}}"#)
     }
 
+    @Test func solanaRequestDecodesTheSigner() throws {
+        let json = Data(#"{"params":{"transaction":"AQ==","signer":"phone:+14155552671"}}"#.utf8)
+
+        let request = try JSONDecoder().decode(CreateSolanaTransactionRequest.self, from: json)
+
+        #expect(request.signer == "phone:+14155552671")
+    }
+
+    @Test func stellarRequestDecodesWithoutASigner() throws {
+        let json = Data(#"{"params":{"transaction":"AQ=="}}"#.utf8)
+
+        let request = try JSONDecoder().decode(CreateStellarTransactionRequest.self, from: json)
+
+        #expect(request.signer == nil)
+    }
+
     @Test func stellarRequestOmitsTheSignerWhenAbsent() throws {
         let json = try encode(CreateStellarTransactionRequest(transaction: "AQ=="))
 

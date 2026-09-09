@@ -6,11 +6,6 @@
 //
 
 struct RecoveryApprover {
-    let locator: String
     let signer: any Signer
-    let named: Bool
-
-    var requestLocator: String? {
-        named ? locator : nil
-    }
+    let requestLocator: String?
 }

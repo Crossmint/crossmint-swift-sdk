@@ -42,6 +42,13 @@ struct WalletRecoveryMethodsTests {
         ])
     }
 
+    @Test func findsTheFirstRecoverySignerOfAType() throws {
+        let (wallet, _) = try makeSolanaWallet(fileName: "WalletSolanaRecoveryMethods")
+
+        #expect(wallet.config.recoverySigner(ofType: PhoneSignerData.self)?.phone == "+14155552671")
+        #expect(wallet.config.recoverySigner(ofType: ApiKeySignerData.self) == nil)
+    }
+
     @Test func fallsBackToTheAdminSignerWhenTheApiReportsNoList() throws {
         let (wallet, _) = try makeSolanaWallet(fileName: "WalletSolanaEmail")
 

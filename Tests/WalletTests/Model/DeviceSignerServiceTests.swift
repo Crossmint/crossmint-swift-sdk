@@ -35,7 +35,7 @@ struct DeviceSignerServiceTests {
 
         try await service.register(
             storage: storage,
-            approver: RecoveryApprover(locator: "email:mock@example.com", signer: MockSigner(), named: false)
+            approver: RecoveryApprover(signer: MockSigner(), requestLocator: nil)
         )
 
         #expect(walletService.signTransactionCallCount == 1)
@@ -56,7 +56,7 @@ struct DeviceSignerServiceTests {
         await #expect(throws: WalletError.self) {
             try await service.register(
             storage: storage,
-            approver: RecoveryApprover(locator: "email:mock@example.com", signer: MockSigner(), named: false)
+            approver: RecoveryApprover(signer: MockSigner(), requestLocator: nil)
         )
         }
         #expect(storage.deletePendingKeyCallCount == 1)

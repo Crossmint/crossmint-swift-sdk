@@ -139,6 +139,33 @@ struct WalletAddSignerTests {
             #expect(walletService.addSignerCallCount == 0)
         }
 
+        @Test func rejectsAnApproverTypeThatCannotSignHere() async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
+
+            await #expect {
+                try await wallet.addSigner(.externalWallet("Gb"), approver: .device)
+            } throws: { error in
+                guard case .walletGeneric(let message) = error as? WalletError else { return false }
+                return message.contains("Only email, phone and API key")
+            }
+            #expect(walletService.addSignerCallCount == 0)
+        }
+
+        @Test func threadsTheApproverThroughTheEVMOverload() async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeEVMWallet(walletService: walletService)
+
+            try await wallet.addSigner(
+                .externalWallet("0x456"),
+                deployImmediately: false,
+                approver: .email("user@example.com")
+            )
+
+            #expect(walletService.lastAddSignerDeployImmediately == false)
+            #expect(walletService.lastAddSignerApprover == nil)
+        }
+
         @Test func namesTheApproverWhenRemovingASigner() async throws {
             let walletService = MockSmartWalletService()
             let removed: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
