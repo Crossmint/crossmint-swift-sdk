@@ -14,12 +14,16 @@ struct FeaturesSection: View {
     @Environment(AppState.self) private var appState
     @Binding var presentedSheet: SheetType?
 
+    private var canSetUpRecovery: Bool {
+        appState.walletNotFound && appState.selectedChain.supportsRecoveryList
+    }
+
     var body: some View {
         Section("Features") {
             Button { presentedSheet = .signers } label: {
                 Label("Signers", systemImage: "person.badge.key")
             }
-            .disabled(appState.wallet == nil)
+            .disabled(appState.wallet == nil && !canSetUpRecovery)
 
             Button { presentedSheet = .transfer } label: {
                 Label("Transfer", systemImage: "arrow.up.circle")
