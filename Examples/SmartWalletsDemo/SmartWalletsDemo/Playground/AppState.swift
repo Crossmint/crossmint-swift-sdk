@@ -43,8 +43,6 @@ final class AppState {
     var wallet: Wallet? { walletCache[selectedChain] }
     var walletNotFound: Bool { notFoundChains.contains(selectedChain) }
     var isLoadingWallet: Bool { loadingChains.contains(selectedChain) }
-    /// Every recovery signer of the current wallet. Falls back to the login email while the
-    /// wallet is still loading.
     var recoveryLocators: [String] {
         if let wallet { return wallet.recoveryMethods.map(\.locator) }
         return currentEmail.map { ["email:\($0)"] } ?? []
@@ -99,8 +97,6 @@ final class AppState {
         loadingChains.remove(chain)
     }
 
-    /// Creates the wallet for the selected chain. On Solana and Stellar, a `recoveryPhone`
-    /// adds a second recovery signer next to the email, so either one can recover the wallet.
     func createWallet(email: String, recoveryPhone: String? = nil, channel: OTPDeliveryChannel = .sms) async {
         let chain = selectedChain
         isCreatingWallet = true
