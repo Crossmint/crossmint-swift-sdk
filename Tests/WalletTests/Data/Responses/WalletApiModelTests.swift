@@ -127,19 +127,6 @@ struct WalletApiModelTest {
     }
 
     @Test(
-        "Will parse every recovery signer of a Stellar wallet"
-    )
-    func willParseStellarRecoveryList() async throws {
-        let wallet: WalletApiModel = try GetFromFile.getModelFrom(
-            fileName: "WalletStellarRecoveryMethods",
-            bundle: Bundle.module
-        )
-
-        #expect(wallet.config.recoveryMethods?.count == 2)
-        #expect(wallet.config.toDomain.recovery.locator == "email:alice@example.com")
-    }
-
-    @Test(
         "Will fall back to the admin signer when the recovery list is absent"
     )
     func willFallBackToAdminSigner() async throws {

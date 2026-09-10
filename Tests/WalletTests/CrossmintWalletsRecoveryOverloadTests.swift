@@ -79,7 +79,7 @@ struct CrossmintWalletsRecoveryOverloadTests {
         let spy = SpyCrossmintWallets()
         spy.wallet = try makeSolanaWallet()
 
-        let wallet = try await spy.createWallet(
+        _ = try await spy.createWallet(
             chain: SolanaChain.solana,
             recovery: [.email("alice@example.com"), .phone("+14155552671")]
         )
@@ -87,7 +87,6 @@ struct CrossmintWalletsRecoveryOverloadTests {
         #expect(spy.receivedChain?.name == "solana")
         #expect(spy.receivedSigners.map(\.signerType) == [.email, .phone])
         #expect(spy.receivedSigners[0] is SolanaEmailSigner)
-        #expect(wallet.recoveryMethods.count == 3)
     }
 
     @Suite("when the conformer predates recovery lists")

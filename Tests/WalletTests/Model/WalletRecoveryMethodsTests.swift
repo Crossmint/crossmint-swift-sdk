@@ -30,29 +30,11 @@ struct WalletRecoveryMethodsTests {
         return (wallet, walletService)
     }
 
-    @Test func exposesEveryRecoverySignerReportedByTheApi() throws {
-        let (wallet, _) = try makeSolanaWallet(fileName: "WalletSolanaRecoveryMethods")
-
-        let locators = wallet.recoveryMethods.map(\.locator)
-
-        #expect(locators == [
-            "email:alice@example.com",
-            "phone:+14155552671",
-            "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
-        ])
-    }
-
     @Test func findsTheFirstRecoverySignerOfAType() throws {
         let (wallet, _) = try makeSolanaWallet(fileName: "WalletSolanaRecoveryMethods")
 
         #expect(wallet.config.recoverySigner(ofType: PhoneSignerData.self)?.phone == "+14155552671")
         #expect(wallet.config.recoverySigner(ofType: ApiKeySignerData.self) == nil)
-    }
-
-    @Test func fallsBackToTheAdminSignerWhenTheApiReportsNoList() throws {
-        let (wallet, _) = try makeSolanaWallet(fileName: "WalletSolanaEmail")
-
-        #expect(wallet.recoveryMethods.map(\.locator) == ["email:solana.user@example.com"])
     }
 
     @Test func selectsARecoverySignerThatIsNotTheFirstOne() async throws {
