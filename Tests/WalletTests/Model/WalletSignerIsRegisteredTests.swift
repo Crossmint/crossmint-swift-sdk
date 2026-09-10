@@ -34,10 +34,10 @@ struct WalletSignerIsRegisteredTests {
         #expect(await wallet.signerIsRegistered(.apiKey(address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb")))
     }
 
-    @Test func matchesApiKeySignerStoredInFallbackSpelling() async throws {
+    @Test func matchesSignerWithUnrecognizedPrefixByRawLocator() async throws {
         let wallet = try makeWallet(walletService: MockSmartWalletService())
 
-        #expect(await wallet.signerIsRegistered(.apiKey()))
+        #expect(await wallet.signerIsRegistered(.unknown("carrier-pigeon:0xabc")))
     }
 
     @Test func returnsFalseForUnregisteredSigner() async throws {

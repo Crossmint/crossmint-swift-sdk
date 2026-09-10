@@ -9,6 +9,7 @@ private let DEVICE_PUBLIC_KEY = "8Ht1jWbGgXcDqFv3nRkPzYw5mT2uLsEaK9oC4dNbV6xJ"
 private let DEVICE_LOCATOR = "device:\(DEVICE_PUBLIC_KEY)"
 private let EMAIL = "delegate@example.com"
 private let EMAIL_LOCATOR = "email:\(EMAIL)"
+private let UNKNOWN_LOCATOR = "carrier-pigeon:0xabc"
 
 private func makeSolanaWallet(
     walletService: MockSmartWalletService,
@@ -113,6 +114,19 @@ struct WalletSignersTests {
             WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .unknown),
             WalletSigner(locator: .email(EMAIL), status: .active)
         ])
+    }
+
+    @Test func keepsSignersWithAPrefixThisVersionDoesNotRecognize() async throws {
+        let walletService = MockSmartWalletService()
+        walletService.getSignerResponses = [
+            UNKNOWN_LOCATOR: solanaRegistration(status: "active")
+        ]
+        let wallet = try makeSolanaWallet(walletService: walletService, fixture: "WalletSolanaUnknownSigner")
+
+        let signers = try await wallet.signers()
+
+        #expect(signers == [WalletSigner(locator: .unknown(UNKNOWN_LOCATOR), status: .active)])
+        #expect(walletService.getSignerLocators == [UNKNOWN_LOCATOR])
     }
 
     @Test func returnsEmptyListForAWalletWithoutSigners() async throws {

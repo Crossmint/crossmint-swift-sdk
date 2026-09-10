@@ -16,6 +16,7 @@ public enum SignerLocator: Codable, Sendable, Hashable {
     case passkey(credentialId: String)
     case apiKey(address: String? = nil)
     case server(address: String)
+    case unknown(String)
 
     /// Whether this locator refers to a device signer, regardless of its public key.
     public var isDevice: Bool {
@@ -43,6 +44,8 @@ public enum SignerLocator: Codable, Sendable, Hashable {
             address.map { "api-key:\($0)" } ?? "api-key"
         case let .server(address):
             "server:\(address)"
+        case let .unknown(raw):
+            raw
         }
     }
 
@@ -52,13 +55,10 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         do {
             self = try SignerLocator(from: value)
         } catch {
-            Logger.smartWallet.error(LogEvents.signerLocatorParseError, attributes: [
+            Logger.smartWallet.warning(LogEvents.signerLocatorUnknown, attributes: [
                 "locator": value
             ])
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Invalid signer locator: \(value)"
-            )
+            self = .unknown(value)
         }
     }
 
@@ -86,9 +86,7 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         case ("passkey", .some(let credentialId)):
             self = .passkey(credentialId: credentialId)
         case ("api-key", let address):
-            // The client-side literal "api-key" (no address) and the backend's
-            // "api-key:api-key" fallback both mean "no address on this signer".
-            self = .apiKey(address: address == "api-key" ? nil : address)
+            self = .apiKey(address: address)
         case ("server", .some(let address)):
             self = .server(address: address)
         default:

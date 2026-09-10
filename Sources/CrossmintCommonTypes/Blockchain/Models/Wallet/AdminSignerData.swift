@@ -1,6 +1,7 @@
 public protocol AdminSignerData: Sendable {
     var type: AdminSignerDataType { get }
     var locatorId: String { get }
+    var locator: String { get }
 }
 
 public enum AdminSignerDataType: String, Sendable, Codable {
@@ -34,6 +35,11 @@ public struct ApiKeySignerData: AdminSignerData {
 
     public var type: AdminSignerDataType { .apiKey }
     public var locatorId: String { address ?? type.rawValue }
+    /// The locator string for this signer.
+    ///
+    /// The value is `api-key:<address>` when the signer has an address.
+    /// The value is `api-key` when the signer has no address.
+    public var locator: String { address.map { "api-key:\($0)" } ?? "api-key" }
 
     public init(address: String? = nil) {
         self.address = address

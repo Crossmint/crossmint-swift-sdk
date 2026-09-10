@@ -492,8 +492,8 @@ public enum LogEvents {
 
     // MARK: - SignerLocator Events
 
-    /// A signer locator string could not be parsed into a known signer type
-    public static let signerLocatorParseError = "signerLocator.parse.error"
+    /// A signer locator from the API has a prefix this SDK version does not recognize
+    public static let signerLocatorUnknown = "signerLocator.parse.unknown"
 
     // MARK: - WalletFactory Error Events
 

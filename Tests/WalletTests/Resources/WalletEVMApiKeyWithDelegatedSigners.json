@@ -12,7 +12,7 @@
         "locator": "email:user@example.com"
       },
       {
-        "locator": "api-key:api-key"
+        "locator": "carrier-pigeon:0xabc"
       }
     ]
   },
