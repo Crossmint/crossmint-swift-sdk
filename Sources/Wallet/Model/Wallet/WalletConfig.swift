@@ -13,7 +13,6 @@ public struct WalletConfig {
         self.recoveryMethods = recoveryMethods
     }
 
-    /// The recovery signers whose locator strings parse as a ``SignerLocator``.
     var recoveryLocators: [SignerLocator] {
         recoveryMethods.compactMap { try? SignerLocator(from: $0.locator) }
     }

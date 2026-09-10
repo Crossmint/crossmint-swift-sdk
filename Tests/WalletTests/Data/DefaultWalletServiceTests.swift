@@ -167,7 +167,7 @@ struct DefaultWalletServiceTests {
             _ = try await service.createWallet(params)
         } throws: { error in
             guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-            return code == WalletError.RECOVERY_DUPLICATE_SIGNER
+            return code == .duplicateSigner
                 && message == "duplicate signer email:alice@example.com"
         }
     }
@@ -186,7 +186,7 @@ struct DefaultWalletServiceTests {
             _ = try await service.createWallet(params)
         } throws: { error in
             guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-            return code == "SIGNER_LIMIT_EXCEEDED"
+            return code == .signerLimitExceeded
                 && message == "The recovery signer configuration was rejected"
         }
     }
@@ -205,7 +205,7 @@ struct DefaultWalletServiceTests {
             _ = try await service.createWallet(params)
         } throws: { error in
             guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-            return code == WalletError.DELEGATED_SIGNER_CONFLICT && message == "same key"
+            return code == .delegatedSignerConflict && message == "same key"
         }
     }
 

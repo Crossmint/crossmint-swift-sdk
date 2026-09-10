@@ -268,7 +268,7 @@ struct RecoverySignerListCreationTests {
             )
         } throws: { error in
             guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
-            return code == WalletError.RECOVERY_NOT_SUPPORTED_ON_CHAIN
+            return code == .notSupportedOnChain
         }
         #expect(walletService.createWalletCallCount == 0)
     }

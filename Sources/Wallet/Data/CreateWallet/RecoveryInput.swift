@@ -27,9 +27,6 @@ enum RecoveryInput {
         }
     }
 
-    /// The caller's signer for the wallet's first recovery signer. Email and phone signers match by
-    /// locator. Other types match by signer type only, because they know their locator after
-    /// `initialize` and `getWallet` does not initialize them.
     func activeSigner(for first: any AdminSignerData) async -> any Signer {
         guard case .list(let signers) = self else { return active }
         let sameType = signers.filter { $0.signerType.rawValue == first.type.rawValue }
@@ -60,7 +57,7 @@ enum RecoveryInput {
         }
         guard Self.chainsWithRecoveryList.contains(chain.chainType) else {
             throw .recoveryConfigRejected(
-                code: WalletError.RECOVERY_NOT_SUPPORTED_ON_CHAIN,
+                code: .notSupportedOnChain,
                 message: "Multiple recovery signers are not supported on \(chain.name) yet. "
                     + "Pass a single recovery signer."
             )

@@ -35,7 +35,7 @@ struct WalletErrorTests {
     @Test("WalletError.recoveryConfigRejected surfaces the backend code")
     func recoveryConfigRejected() {
         let error = WalletError.recoveryConfigRejected(
-            code: WalletError.RECOVERY_DUPLICATE_SIGNER,
+            code: .duplicateSigner,
             message: "duplicate signer"
         )
         #expect(error.code == "RECOVERY_DUPLICATE_SIGNER")
@@ -47,7 +47,7 @@ struct WalletErrorTests {
     @Test("WalletError.recoveryConfigRejected has no suggestion for codes the caller cannot act on")
     func recoveryConfigRejectedWithoutSuggestion() {
         let error = WalletError.recoveryConfigRejected(
-            code: WalletError.NOT_SUPPORTED_ON_API_VERSION,
+            code: .notSupportedOnApiVersion,
             message: "unsupported"
         )
         #expect(error.recoverySuggestion == nil)
