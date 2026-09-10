@@ -35,7 +35,10 @@ public struct ApiKeySignerData: AdminSignerData {
 
     public var type: AdminSignerDataType { .apiKey }
     public var locatorId: String { address ?? type.rawValue }
-    /// The backend identifies an address-less api-key signer by the bare "api-key" string.
+    /// The locator string for this signer.
+    ///
+    /// The value is `api-key:<address>` when the signer has an address.
+    /// The value is `api-key` when the signer has no address.
     public var locator: String { address.map { "api-key:\($0)" } ?? "api-key" }
 
     public init(address: String? = nil) {
