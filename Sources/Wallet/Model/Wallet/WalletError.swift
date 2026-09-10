@@ -11,6 +11,7 @@ public enum WalletError: CrossmintError {
     case walletGeneric(String)
     case walletInvalidCredentials
     case walletLocatorError(String)
+    case signerLocatorError(String)
     case walletInvalidSignerProvided
     case transactionNotFound
     case invalidChain(chain: Chain)
@@ -61,6 +62,7 @@ public enum WalletError: CrossmintError {
         case .walletGeneric: "WALLET_ERROR"
         case .walletInvalidCredentials: "WALLET_INVALID_CREDENTIALS"
         case .walletLocatorError: "WALLET_LOCATOR_ERROR"
+        case .signerLocatorError: "SIGNER_LOCATOR_ERROR"
         case .walletInvalidSignerProvided: "WALLET_INVALID_SIGNER"
         case .transactionNotFound: "TRANSACTION_NOT_FOUND"
         case .invalidChain: "INVALID_CHAIN"
@@ -83,6 +85,8 @@ public enum WalletError: CrossmintError {
             "The credentials provided are invalid for this wallet."
         case .walletLocatorError(let locator):
             "Invalid wallet locator: \(locator)"
+        case .signerLocatorError(let locator):
+            "Invalid signer locator: \(locator)"
         case .transactionNotFound:
             "Transaction not found"
         case .walletInvalidSignerProvided:
@@ -112,6 +116,8 @@ public enum WalletError: CrossmintError {
             "Check the list of supported chains for this environment."
         case .walletLocatorError:
             "Ensure the wallet locator is in the correct format."
+        case .signerLocatorError:
+            "Use the correct signer locator format, for example \"email:user@example.com\"."
         case .deviceSignerNotSupported:
             "Use the recovery signer or another registered signer for this wallet."
         case .recoveryConfigRejected(let code, _):

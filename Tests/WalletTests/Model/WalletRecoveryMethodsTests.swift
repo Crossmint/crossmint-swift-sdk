@@ -60,7 +60,7 @@ struct WalletRecoveryMethodsTests {
 
         try await wallet.useSigner(.phone("+14155552671"))
 
-        #expect(wallet.selectedSignerLocator == "phone:+14155552671")
+        #expect(wallet.selectedSignerLocator == .phone("+14155552671"))
         #expect(wallet.selectedSigner is PhoneSigner)
     }
 

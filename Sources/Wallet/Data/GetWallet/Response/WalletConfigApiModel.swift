@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Foundation
 
 struct WalletSignerConfigApiModel: Decodable, Sendable {
-    let locator: String
+    let locator: SignerLocator
 }
 
 public struct WalletConfigApiModel: Decodable {

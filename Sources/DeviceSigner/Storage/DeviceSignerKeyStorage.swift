@@ -8,6 +8,10 @@
 import Foundation
 import Security
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 /// Storage abstraction for device signer keys.
 ///
 /// Manages the full lifecycle of a P-256 signing key tied to a wallet address:
@@ -63,6 +67,19 @@ public protocol DeviceSignerKeyStorage: Sendable {
     ///
     /// - Parameter publicKeyBase64: The base64-encoded 65-byte uncompressed public key (0x04 ‖ x ‖ y).
     func hasKey(publicKeyBase64: String) -> Bool
+
+    /// A human-readable name for this device, used to label the device signer in the API.
+    @MainActor var deviceName: String { get }
+}
+
+extension DeviceSignerKeyStorage {
+    @MainActor public var deviceName: String {
+        #if canImport(UIKit)
+        "\(UIDevice.current.name) (\(UIDevice.current.systemName))"
+        #else
+        "Unknown Device"
+        #endif
+    }
 }
 
 extension DeviceSignerKeyStorage {
