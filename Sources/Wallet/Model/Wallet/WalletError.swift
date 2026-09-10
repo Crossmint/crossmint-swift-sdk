@@ -33,6 +33,9 @@ public enum WalletError: CrossmintError {
     /// The list contains a signer that is already registered on the wallet through
     /// ``Wallet/addSigner(_:approver:)``. A signer is a recovery signer or a registered signer, not both.
     public static let RECOVERY_SIGNER_CONFLICT = "RECOVERY_SIGNER_CONFLICT"
+    /// A signer in the request already holds another role on the wallet, for example a recovery
+    /// signer passed to ``Wallet/addSigner(_:approver:)``. Use a different signer.
+    public static let DELEGATED_SIGNER_CONFLICT = "DELEGATED_SIGNER_CONFLICT"
     /// The wallet has several recovery signers, and the operation did not name one. Pass `approver`,
     /// or call ``Wallet/useSigner(_:)`` first.
     public static let SIGNER_REQUIRED = "SIGNER_REQUIRED"
@@ -48,6 +51,7 @@ public enum WalletError: CrossmintError {
         SIGNER_LIMIT_EXCEEDED,
         RECOVERY_DUPLICATE_SIGNER,
         RECOVERY_SIGNER_CONFLICT,
+        DELEGATED_SIGNER_CONFLICT,
         SIGNER_REQUIRED,
         RECOVERY_NOT_SUPPORTED_ON_CHAIN,
         NOT_SUPPORTED_ON_API_VERSION,
@@ -142,8 +146,8 @@ extension WalletError {
             "Pass fewer recovery signers."
         case RECOVERY_DUPLICATE_SIGNER:
             "Remove the duplicated signer from the recovery list."
-        case RECOVERY_SIGNER_CONFLICT:
-            "Use a signer that is not already registered as a delegated signer."
+        case RECOVERY_SIGNER_CONFLICT, DELEGATED_SIGNER_CONFLICT:
+            "Use a signer that does not already hold another role on this wallet."
         case SIGNER_REQUIRED:
             "Call useSigner to select which recovery signer authorizes this operation."
         case RECOVERY_NOT_SUPPORTED_ON_CHAIN:
