@@ -2,8 +2,8 @@ import Foundation
 
 public struct CreateSolanaTransactionRequest: TransactionRequest, Codable {
     public let transaction: String
-    /// Locator of the signer that authorizes the transaction. Omitted when `nil`, so the
-    /// backend falls back to the wallet's admin signer.
+    /// Locator of the signer that authorizes the transaction. The SDK omits the field when `nil`.
+    /// The backend then uses the wallet's admin signer.
     public let signer: String?
 
     public init(transaction: String, signer: String? = nil) {

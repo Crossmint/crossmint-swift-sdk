@@ -69,16 +69,16 @@ public protocol CrossmintWallets: Sendable {
 
     /// Creates a new smart wallet with several recovery signers for the authenticated user.
     ///
-    /// Each recovery signer can authorize on its own, so the wallet stays usable when one of
-    /// them is lost. Only Solana and Stellar accept more than one recovery signer. The first
+    /// Each recovery signer can authorize on its own. The wallet stays usable when the user loses
+    /// one of them. Only Solana and Stellar accept more than one recovery signer. The first
     /// signer in `recovery` is the active signer until ``Wallet/useSigner(_:)`` selects another one.
     ///
     /// - Parameters:
     ///   - chain: The blockchain to deploy to.
     ///   - recovery: The signers that can each authorize recovery operations for this wallet.
     ///   - options: Optional configuration, such as enabling a device signer.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is not
-    ///   accepted for this chain.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain does not
+    ///   accept the list.
     func createWallet(
         chain: Chain,
         recovery: [any Signer],
@@ -87,6 +87,33 @@ public protocol CrossmintWallets: Sendable {
 }
 
 extension CrossmintWallets {
+    /// Default for conformers that do not support recovery signer lists. A list with one signer
+    /// uses the single-signer entry point. A longer list throws ``WalletError/walletGeneric(_:)``.
+    public func getWallet(
+        chain: Chain,
+        recovery: [any Signer],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet? {
+        let signer = try Self.onlySigner(in: recovery)
+        return try await getWallet(chain: chain, recovery: signer, options: options)
+    }
+
+    public func createWallet(
+        chain: Chain,
+        recovery: [any Signer],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet {
+        let signer = try Self.onlySigner(in: recovery)
+        return try await createWallet(chain: chain, recovery: signer, options: options)
+    }
+
+    private static func onlySigner(in recovery: [any Signer]) throws(WalletError) -> any Signer {
+        guard recovery.count == 1, let signer = recovery.first else {
+            throw .walletGeneric("This CrossmintWallets implementation accepts a single recovery signer")
+        }
+        return signer
+    }
+
     // MARK: - getWallet convenience overloads
 
     public func getWallet(
@@ -137,11 +164,11 @@ extension CrossmintWallets {
         return try typed(wallet, for: chain)
     }
 
-    /// Returns the authenticated user's wallet, or `nil` if none exists yet, using several recovery
-    /// signers. Each one can authorize on its own. Only Solana and Stellar accept more than one.
+    /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
     ///
+    /// Each recovery signer can authorize on its own. Only Solana and Stellar accept more than one.
     /// The first signer in `recovery` is the active signer until ``Wallet/useSigner(_:)`` selects another one.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain takes a single signer.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
     public func getWallet<C: ChainWithSigners>(
         chain: C,
         recovery: [C.SpecificSigner],
@@ -200,7 +227,7 @@ extension CrossmintWallets {
     /// Solana and Stellar accept more than one.
     ///
     /// The first signer in `recovery` is the active signer until ``Wallet/useSigner(_:)`` selects another one.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain takes a single signer.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
     public func createWallet<C: ChainWithSigners>(
         chain: C,
         recovery: [C.SpecificSigner],

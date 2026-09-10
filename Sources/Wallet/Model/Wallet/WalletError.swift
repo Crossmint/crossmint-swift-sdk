@@ -22,24 +22,24 @@ public enum WalletError: CrossmintError {
     /// error code. ``Wallet/recover()`` catches it and falls back to the
     /// recovery signer.
     case deviceSignerNotSupported(String)
-    /// The recovery signer list was rejected. `code` is one of the stable codes below
-    /// so callers can branch on it; `message` is the explanation that came with it.
+    /// The backend rejected the recovery signer list. `code` is one of the stable codes below,
+    /// so callers can branch on it. `message` is the explanation from the backend.
     case recoveryConfigRejected(code: String, message: String)
 
     /// The list has more recovery signers than the chain allows.
     public static let SIGNER_LIMIT_EXCEEDED = "SIGNER_LIMIT_EXCEEDED"
     /// The same signer appears more than once in the list.
     public static let RECOVERY_DUPLICATE_SIGNER = "RECOVERY_DUPLICATE_SIGNER"
-    /// A recovery signer is also registered as a delegated signer.
+    /// The list contains a signer that the wallet already has as a delegated signer.
     public static let RECOVERY_SIGNER_CONFLICT = "RECOVERY_SIGNER_CONFLICT"
-    /// The wallet has several recovery signers, so the operation must name the one that authorizes it.
+    /// The wallet has several recovery signers. The operation must name the signer that authorizes it.
     public static let SIGNER_REQUIRED = "SIGNER_REQUIRED"
     /// The chain accepts a single recovery signer only.
     public static let RECOVERY_NOT_SUPPORTED_ON_CHAIN = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
-    /// The API version in use predates recovery signer lists.
+    /// The API version in use does not support recovery signer lists.
     public static let NOT_SUPPORTED_ON_API_VERSION = "NOT_SUPPORTED_ON_API_VERSION"
     /// The request named both `adminSigner` and `recovery`. The SDK never sends both, so this
-    /// points at a backend change.
+    /// code shows a backend change.
     public static let RECOVERY_ADMIN_SIGNER_CONFLICT = "RECOVERY_ADMIN_SIGNER_CONFLICT"
 
     static let recoveryConfigCodes: Set<String> = [
