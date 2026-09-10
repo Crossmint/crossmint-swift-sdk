@@ -18,8 +18,8 @@ public struct CreateStellarTransactionRequest: TransactionRequest, Codable {
     }
 
     public let transaction: String
-    /// Locator of the signer that authorizes the transaction. The SDK omits the field when `nil`.
-    /// The backend then uses the wallet's admin signer.
+    /// Locator of the signer that authorizes the transaction. When `nil`, the wallet's first
+    /// recovery signer authorizes it.
     public let signer: String?
 
     public init(transaction: String, signer: String? = nil) {

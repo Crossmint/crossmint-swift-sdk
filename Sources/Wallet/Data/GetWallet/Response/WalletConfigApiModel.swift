@@ -6,10 +6,7 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
 }
 
 public struct WalletConfigApiModel: Decodable {
-    /// Every recovery signer of the wallet, in the order the backend reports them.
-    ///
-    /// Solana and Stellar wallets report the full list under `recovery`. EVM wallets report only
-    /// `adminSigner`, so the list has exactly one entry there.
+    /// Every recovery signer of the wallet, in API order. EVM wallets have exactly one.
     public let recoveryMethods: [AdminSignerApiModel]
     let signers: [WalletSignerConfigApiModel]?
 
