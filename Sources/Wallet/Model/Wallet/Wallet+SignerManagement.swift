@@ -81,23 +81,24 @@ extension Wallet {
         }
     }
 
-    private func findStaleDeviceSignerLocator() async -> String? {
-        let request = GetMeWalletRequest(chainType: chain.chainType)
-        guard let model = try? await smartWalletService.getWallet(request) else { return nil }
-        let deviceLocators = (model.config.signers ?? [])
+    private func findStaleDeviceSignerLocator() async -> SignerLocator? {
+        let currentSigners = (try? await signers()) ?? []
+        let deviceLocators = currentSigners
             .map(\.locator)
-            .filter { $0.hasPrefix("device:") }
+            .filter(\.isDevice)
         guard deviceLocators.count == 1 else { return nil }
         return deviceLocators[0]
     }
 
-    private func removeStaleDeviceSigner(_ locator: String) async {
+    private func removeStaleDeviceSigner(_ locator: SignerLocator) async {
         do {
             _ = try await removeSigner(locator: locator)
-            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: ["signerLocator": locator])
+            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [
+                "signerLocator": locator.value
+            ])
         } catch {
             Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
-                "signerLocator": locator,
+                "signerLocator": locator.value,
                 "error": "\(error)"
             ])
         }
@@ -194,8 +195,7 @@ extension Wallet {
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            let locator = delegatedSigners[0].locator
-            guard locator.hasPrefix("device:"),
+            guard case .device = delegatedSigners[0].locator,
                   let storage = deviceSignerKeyStorage else { return }
             if await storage.getKey(address: address) != nil {
                 _deviceSignerApproved = true
@@ -222,38 +222,38 @@ extension Wallet {
             throw .walletGeneric("No device key found for this wallet on this device. Call recover() first.")
         }
         deviceSignerKeyStorage = storage
-        guard let locator = await deviceSignerService.locator(for: storage) else {
+        guard let publicKey = await deviceSignerService.publicKey(for: storage) else {
             throw .walletGeneric("Failed to compute device signer locator")
         }
-        selectedSignerLocator = locator
+        selectedSignerLocator = .device(publicKey: publicKey)
         _deviceSignerApproved = true
     }
 
     private func activateEmailSigner(email: String) async throws(WalletError) {
-        let locator = "email:\(email)"
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+        let locator = SignerLocator.email(email)
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         let newSigner: any Signer = await MainActor.run { makeEmailSigner(email: email) }
         selectedSigner = newSigner
         selectedSignerLocator = locator
     }
 
     private func activatePhoneSigner(phone: String, channel: OTPDeliveryChannel?) async throws(WalletError) {
-        let locator = "phone:\(phone)"
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+        let locator = SignerLocator.phone(phone)
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         let newSigner: any Signer = await MainActor.run { makePhoneSigner(phone: phone, channel: channel) }
         selectedSigner = newSigner
         selectedSignerLocator = locator
     }
 
     private func activateExternalWalletSigner(address: String) async throws(WalletError) {
-        let locator = "external-wallet:\(address)"
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+        let locator = SignerLocator.externalWallet(address: address)
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         throw .walletGeneric("External wallet signers must approve transactions outside of the SDK.")
     }
 
     private func activateApiKeySigner() async throws(WalletError) {
-        let locator = config.recovery.locator
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator) }
+        let locator = try SignerLocator(from: config.recovery.locator)
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         guard let apiKeyData = config.recovery as? ApiKeySignerData else {
             throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
         }
@@ -269,20 +269,22 @@ extension Wallet {
             throw .walletGeneric("Failed to fetch wallet config")
         }
 
-        let passkeyLocator = walletModel.config.signers?
+        let delegatedPasskeyLocator = walletModel.config.signers?
             .map(\.locator)
-            .first(where: { $0.hasPrefix("passkey:") })
+            .first(where: \.isPasskey)
 
-        let locator: String
-        if let delegatedLocator = passkeyLocator {
-            locator = delegatedLocator
+        let locator: SignerLocator
+        if let delegatedPasskeyLocator {
+            locator = delegatedPasskeyLocator
         } else if config.recovery is PasskeySignerData {
-            locator = config.recovery.locator
+            locator = try SignerLocator(from: config.recovery.locator)
         } else {
-            throw .signerNotRegistered("passkey:\(name)")
+            throw .signerNotRegistered(SignerLocator.passkey(credentialId: name).value)
         }
 
-        let credentialId = String(locator.dropFirst("passkey:".count))
+        guard case .passkey(let credentialId) = locator else {
+            throw .walletGeneric("Recovery signer is not a passkey")
+        }
         let passkeyData = PasskeySignerData(id: credentialId, name: name, publicKey: .init(x: "0", y: "0"))
         let passkeySigner = PasskeySigner(name: name, host: host)
         _ = await passkeySigner.updateAdminSigner(passkeyData)
@@ -328,7 +330,7 @@ extension Wallet {
 
     // MARK: - Locator-based signer registration
 
-    private func registerLocatorSigner(_ locator: String, deployImmediately: Bool) async throws(WalletError) {
+    private func registerLocatorSigner(_ locator: SignerLocator, deployImmediately: Bool) async throws(WalletError) {
         let adminSigner = await updateSignerIfRequired()
         try await signerRegistrationService.register(
             locator: locator,

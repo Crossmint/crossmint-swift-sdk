@@ -3,7 +3,7 @@ import Foundation
 import Http
 
 struct RegisterSignerBody: Encodable {
-    let signer: String
+    let signer: DelegatedSignerEntry.Signer
     let chain: String?
     let deployImmediately: Bool?
 }

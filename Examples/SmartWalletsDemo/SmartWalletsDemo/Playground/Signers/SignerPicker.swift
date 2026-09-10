@@ -25,8 +25,10 @@ struct SignerPicker: View {
         for signer in appState.signers {
             let locator = signer.locator
             guard isSelectable(locator) else { continue }
-            if locator.hasPrefix("device:"), locator != appState.localDeviceLocator { continue }
-            result.append(Option(locator: locator, typeLabel: SignerRow.typeLabel(for: locator), isRecovery: false))
+            if locator.isDevice, locator.value != appState.localDeviceLocator { continue }
+            result.append(
+                Option(locator: locator.value, typeLabel: SignerRow.typeLabel(for: locator.value), isRecovery: false)
+            )
         }
         return result
     }
@@ -50,8 +52,15 @@ struct SignerPicker: View {
     }
 
     private func isSelectable(_ locator: String) -> Bool {
-        locator.hasPrefix("email:") || locator.hasPrefix("phone:")
-            || locator.hasPrefix("api-key:") || locator.hasPrefix("device:")
+        guard let parsed = try? SignerLocator(from: locator) else { return false }
+        return isSelectable(parsed)
+    }
+
+    private func isSelectable(_ locator: SignerLocator) -> Bool {
+        switch locator {
+        case .email, .phone, .apiKey, .device: true
+        default: false
+        }
     }
 }
 

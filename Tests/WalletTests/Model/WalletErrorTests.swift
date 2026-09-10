@@ -32,6 +32,14 @@ struct WalletErrorTests {
         #expect(error.underlyingError == nil)
     }
 
+    @Test("WalletError.signerLocatorError carries the invalid locator in message")
+    func signerLocatorError() {
+        let error = WalletError.signerLocatorError("carrier-pigeon:0xabc")
+        #expect(error.code == "SIGNER_LOCATOR_ERROR")
+        #expect(error.message.contains("carrier-pigeon:0xabc"))
+        #expect(error.recoverySuggestion != nil)
+    }
+
     @Test("WalletError.serviceError wraps underlying error")
     func serviceError() {
         let inner = CrossmintServiceError.invalidApiKey("bad-key")

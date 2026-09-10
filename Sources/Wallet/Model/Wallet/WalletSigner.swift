@@ -7,9 +7,9 @@
 
 /// A signer registered on a wallet, as returned by ``Wallet/signers()``.
 public struct WalletSigner: Sendable, Hashable {
-    /// The signer locator, e.g. `"email:user@example.com"`, `"device:<pubkey>"`,
-    /// `"external-wallet:<address>"`, `"passkey:<id>"`.
-    public let locator: String
+    /// The signer locator. Use ``SignerLocator/value`` for the string form,
+    /// e.g. `"email:user@example.com"` or `"device:<pubkey>"`.
+    public let locator: SignerLocator
 
     /// The registration status of this signer on the wallet's chain.
     public let status: SignerStatus
