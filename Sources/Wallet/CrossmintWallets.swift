@@ -39,8 +39,8 @@ public protocol CrossmintWallets: Sendable {
 
     /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
     ///
-    /// The first signer in `recovery` is the active signer until ``Wallet/useSigner(_:)`` selects
-    /// another one.
+    /// The wallet's first recovery signer, as the API reports it, is the active signer until
+    /// ``Wallet/useSigner(_:)`` selects another one.
     ///
     /// - Parameters:
     ///   - chain: The blockchain to look up.
@@ -168,7 +168,8 @@ extension CrossmintWallets {
     /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
     ///
     /// Each recovery signer can authorize on its own. Only Solana and Stellar accept more than one.
-    /// The first signer in `recovery` is the active signer until ``Wallet/useSigner(_:)`` selects another one.
+    /// The wallet's first recovery signer, as the API reports it, is the active signer until
+    /// ``Wallet/useSigner(_:)`` selects another one.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
     public func getWallet<C: ChainWithSigners>(
         chain: C,
@@ -227,7 +228,8 @@ extension CrossmintWallets {
     /// Creates a wallet with several recovery signers. Each one can authorize on its own. Only
     /// Solana and Stellar accept more than one.
     ///
-    /// The first signer in `recovery` is the active signer until ``Wallet/useSigner(_:)`` selects another one.
+    /// The wallet's first recovery signer, as the API reports it, is the active signer until
+    /// ``Wallet/useSigner(_:)`` selects another one.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
     public func createWallet<C: ChainWithSigners>(
         chain: C,
