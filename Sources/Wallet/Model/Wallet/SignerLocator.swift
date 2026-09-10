@@ -16,10 +16,6 @@ public enum SignerLocator: Codable, Sendable, Hashable {
     case passkey(credentialId: String)
     case apiKey(address: String? = nil)
     case server(address: String)
-    /// A locator whose prefix this SDK version does not recognize.
-    ///
-    /// The raw string is kept so a signer type the backend adds after this release
-    /// still loads and can be listed, compared, and removed.
     case unknown(String)
 
     /// Whether this locator refers to a device signer, regardless of its public key.
