@@ -209,12 +209,11 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
         options?.experimentalCallbacks?.onWalletCreationStart()
 
         let pendingDeviceSigner = await prepareDeviceSignerEntry(storage: deviceSignerStorage)
-        let recoveryRequest = await recovery.request
         do {
             let creation = try await createWalletRetryingOnceWithoutDeviceSigner(
                 chainType: chainType,
                 walletType: walletType,
-                recovery: recoveryRequest,
+                recovery: recovery,
                 pendingDeviceSigner: pendingDeviceSigner
             )
 
@@ -271,7 +270,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     private func createWalletRetryingOnceWithoutDeviceSigner(
         chainType: ChainType,
         walletType: WalletType,
-        recovery: RecoveryInput.Request,
+        recovery: RecoveryInput,
         pendingDeviceSigner: PendingDeviceSigner?
     ) async throws(WalletError) -> (model: WalletApiModel, deviceSignerRejected: Bool) {
         do {
@@ -315,16 +314,10 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     private func requestWalletCreation(
         chainType: ChainType,
         walletType: WalletType,
-        recovery: RecoveryInput.Request,
+        recovery: RecoveryInput,
         delegatedSigners: [DelegatedSignerEntry]?
     ) async throws(WalletError) -> WalletApiModel {
-        let config: CreateWalletParams.InputConfig
-        switch recovery {
-        case .adminSigner(let adminSigner):
-            config = .init(adminSigner: adminSigner, delegatedSigners: delegatedSigners)
-        case .recovery(let methods):
-            config = .init(recovery: methods, delegatedSigners: delegatedSigners)
-        }
+        let config = await recovery.inputConfig(delegatedSigners: delegatedSigners)
         return try await smartWalletService.createWallet(
             CreateWalletParams(chainType: chainType, type: walletType, config: config)
         )

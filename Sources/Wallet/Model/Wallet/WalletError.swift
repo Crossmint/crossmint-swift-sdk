@@ -128,27 +128,6 @@ public enum WalletError: CrossmintError {
 }
 
 extension WalletError {
-    static func defaultMessage(forRecoveryCode code: String) -> String {
-        switch code {
-        case SIGNER_LIMIT_EXCEEDED:
-            "The wallet exceeds the maximum number of recovery signers"
-        case RECOVERY_DUPLICATE_SIGNER:
-            "The recovery list contains the same signer more than once"
-        case RECOVERY_SIGNER_CONFLICT:
-            "A recovery signer cannot also be registered as an operational signer"
-        case SIGNER_REQUIRED:
-            "This wallet has multiple recovery signers, so the signer to authorize with must be specified explicitly"
-        case RECOVERY_NOT_SUPPORTED_ON_CHAIN:
-            "Multiple recovery signers are not supported on this chain yet"
-        case NOT_SUPPORTED_ON_API_VERSION:
-            "Multiple recovery signers are not supported on this API version"
-        case RECOVERY_ADMIN_SIGNER_CONFLICT:
-            "Only one of `adminSigner` and `recovery` can be provided"
-        default:
-            "The recovery signer configuration was rejected"
-        }
-    }
-
     private static func recoverySuggestion(forRecoveryCode code: String) -> String? {
         switch code {
         case SIGNER_LIMIT_EXCEEDED:

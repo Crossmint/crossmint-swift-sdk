@@ -27,6 +27,21 @@ struct DefaultWalletServiceTests {
         )
     }
 
+    private func addSigner(
+        _ service: DefaultWalletService,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await service.addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approver: nil
+        )
+    }
+
     @Test
     func decodesChainsRegistrationResponse() async throws {
         let body = Data(
@@ -81,13 +96,7 @@ struct DefaultWalletServiceTests {
         let service = try makeService(errorBody: body)
 
         await #expect {
-            _ = try await service.addSigner(
-                entry,
-                chainType: .solana,
-                chainName: "solana",
-                deployImmediately: nil,
-                approver: nil
-            )
+            _ = try await addSigner(service, chainType: .solana, chainName: "solana", deployImmediately: nil)
         } throws: { error in
             guard case .deviceSignerNotSupported(let message) = error as? WalletError else { return false }
             return message == "Device signers are not supported for this provider"
@@ -100,13 +109,7 @@ struct DefaultWalletServiceTests {
         let service = try makeService(errorBody: body)
 
         await #expect {
-            _ = try await service.addSigner(
-                entry,
-                chainType: .solana,
-                chainName: "solana",
-                deployImmediately: nil,
-                approver: nil
-            )
+            _ = try await addSigner(service, chainType: .solana, chainName: "solana", deployImmediately: nil)
         } throws: { error in
             guard case .deviceSignerNotSupported(let message) = error as? WalletError else { return false }
             return message == "Device signers are not supported for this wallet's provider."
@@ -187,7 +190,7 @@ struct DefaultWalletServiceTests {
         } throws: { error in
             guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
             return code == "SIGNER_LIMIT_EXCEEDED"
-                && message == "The wallet exceeds the maximum number of recovery signers"
+                && message == "The recovery signer configuration was rejected"
         }
     }
 
@@ -197,13 +200,7 @@ struct DefaultWalletServiceTests {
         let service = try makeService(errorBody: body)
 
         await #expect {
-            _ = try await service.addSigner(
-                entry,
-                chainType: .solana,
-                chainName: "solana",
-                deployImmediately: nil,
-                approver: nil
-            )
+            _ = try await addSigner(service, chainType: .solana, chainName: "solana", deployImmediately: nil)
         } throws: { error in
             if case .deviceSignerNotSupported = error as? WalletError { return false }
             return true
@@ -239,18 +236,27 @@ struct DefaultWalletServiceDeployImmediatelyTests {
         return try #require(json)
     }
 
+    private func addSigner(
+        _ service: DefaultWalletService,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await service.addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approver: nil
+        )
+    }
+
     @Test
     func sendsDeployImmediatelyTrueByDefaultForEVM() async throws {
         let capturedBody = SendableBox<Data?>(nil)
         let service = try makeService(capturingBodyInto: capturedBody)
 
-        _ = try await service.addSigner(
-            entry,
-            chainType: .evm,
-            chainName: "base-sepolia",
-            deployImmediately: true,
-            approver: nil
-        )
+        _ = try await addSigner(service, chainType: .evm, chainName: "base-sepolia", deployImmediately: true)
 
         let json = try decodedBody(capturedBody.value)
         #expect(json["deployImmediately"] as? Bool == true)
@@ -261,13 +267,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
         let capturedBody = SendableBox<Data?>(nil)
         let service = try makeService(capturingBodyInto: capturedBody)
 
-        _ = try await service.addSigner(
-            entry,
-            chainType: .evm,
-            chainName: "base-sepolia",
-            deployImmediately: false,
-            approver: nil
-        )
+        _ = try await addSigner(service, chainType: .evm, chainName: "base-sepolia", deployImmediately: false)
 
         let json = try decodedBody(capturedBody.value)
         #expect(json["deployImmediately"] as? Bool == false)
@@ -278,13 +278,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
         let capturedBody = SendableBox<Data?>(nil)
         let service = try makeService(capturingBodyInto: capturedBody)
 
-        _ = try await service.addSigner(
-            entry,
-            chainType: .solana,
-            chainName: "solana",
-            deployImmediately: true,
-            approver: nil
-        )
+        _ = try await addSigner(service, chainType: .solana, chainName: "solana", deployImmediately: true)
 
         let json = try decodedBody(capturedBody.value)
         #expect(json["deployImmediately"] == nil)
@@ -296,13 +290,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
         let capturedBody = SendableBox<Data?>(nil)
         let service = try makeService(capturingBodyInto: capturedBody)
 
-        _ = try await service.addSigner(
-            entry,
-            chainType: .stellar,
-            chainName: "stellar",
-            deployImmediately: true,
-            approver: nil
-        )
+        _ = try await addSigner(service, chainType: .stellar, chainName: "stellar", deployImmediately: true)
 
         let json = try decodedBody(capturedBody.value)
         #expect(json["deployImmediately"] == nil)
@@ -330,13 +318,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
         let capturedBody = SendableBox<Data?>(nil)
         let service = try makeService(capturingBodyInto: capturedBody)
 
-        _ = try await service.addSigner(
-            entry,
-            chainType: .solana,
-            chainName: "solana",
-            deployImmediately: nil,
-            approver: nil
-        )
+        _ = try await addSigner(service, chainType: .solana, chainName: "solana", deployImmediately: nil)
 
         let json = try decodedBody(capturedBody.value)
         #expect(json["approver"] == nil)

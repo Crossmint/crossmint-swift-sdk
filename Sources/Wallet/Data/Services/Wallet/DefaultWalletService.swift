@@ -185,7 +185,7 @@ struct DefaultWalletService: WalletService {
         guard let code, WalletError.recoveryConfigCodes.contains(code) else { return nil }
         return .recoveryConfigRejected(
             code: code,
-            message: message ?? WalletError.defaultMessage(forRecoveryCode: code)
+            message: message ?? "The recovery signer configuration was rejected"
         )
     }
 
