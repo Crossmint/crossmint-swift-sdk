@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import Wallet
@@ -14,7 +15,8 @@ struct SignerLocatorTests {
             (SignerLocator.passkey(credentialId: "cred-1"), "passkey:cred-1"),
             (SignerLocator.apiKey(address: "0xdef"), "api-key:0xdef"),
             (SignerLocator.apiKey(), "api-key"),
-            (SignerLocator.server(address: "0x999"), "server:0x999")
+            (SignerLocator.server(address: "0x999"), "server:0x999"),
+            (SignerLocator.unknown("carrier-pigeon:0xabc"), "carrier-pigeon:0xabc")
         ]
     )
     func producesExpectedValue(locatorAndExpected: (SignerLocator, String)) {
@@ -58,6 +60,19 @@ struct SignerLocatorTests {
             guard case .signerLocatorError("email") = error as? WalletError else { return false }
             return true
         }
+    }
+
+    @Test("Decodes an unrecognized prefix as unknown instead of failing")
+    func decodesUnrecognizedPrefixAsUnknown() throws {
+        let data = Data(#""carrier-pigeon:0xabc""#.utf8)
+        let decoded = try JSONDecoder().decode(SignerLocator.self, from: data)
+        #expect(decoded == .unknown("carrier-pigeon:0xabc"))
+    }
+
+    @Test("Encodes an unknown locator as its raw string")
+    func encodesUnknownAsRawString() throws {
+        let data = try JSONEncoder().encode(SignerLocator.unknown("carrier-pigeon:0xabc"))
+        #expect(String(bytes: data, encoding: .utf8) == #""carrier-pigeon:0xabc""#)
     }
 
     @Test("Round-trips through value and back")

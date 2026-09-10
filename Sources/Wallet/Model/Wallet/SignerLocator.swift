@@ -16,6 +16,11 @@ public enum SignerLocator: Codable, Sendable, Hashable {
     case passkey(credentialId: String)
     case apiKey(address: String? = nil)
     case server(address: String)
+    /// A locator whose prefix this SDK version does not recognize.
+    ///
+    /// The raw string is kept so a signer type the backend adds after this release
+    /// still loads and can be listed, compared, and removed.
+    case unknown(String)
 
     /// Whether this locator refers to a device signer, regardless of its public key.
     public var isDevice: Bool {
@@ -43,6 +48,8 @@ public enum SignerLocator: Codable, Sendable, Hashable {
             address.map { "api-key:\($0)" } ?? "api-key"
         case let .server(address):
             "server:\(address)"
+        case let .unknown(raw):
+            raw
         }
     }
 
@@ -52,13 +59,10 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         do {
             self = try SignerLocator(from: value)
         } catch {
-            Logger.smartWallet.error(LogEvents.signerLocatorParseError, attributes: [
+            Logger.smartWallet.warning(LogEvents.signerLocatorUnknown, attributes: [
                 "locator": value
             ])
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Invalid signer locator: \(value)"
-            )
+            self = .unknown(value)
         }
     }
 
