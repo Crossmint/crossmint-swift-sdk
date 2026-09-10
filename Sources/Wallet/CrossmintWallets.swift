@@ -87,8 +87,9 @@ public protocol CrossmintWallets: Sendable {
 }
 
 extension CrossmintWallets {
-    /// Default for conformers that do not support recovery signer lists. A list with one signer
-    /// uses the single-signer entry point. A longer list throws ``WalletError/walletGeneric(_:)``.
+    /// Conformers that implement only the single-signer entry points get this default. It forwards
+    /// a one-signer list to the single-signer entry point and throws ``WalletError/walletGeneric(_:)``
+    /// for a longer list.
     public func getWallet(
         chain: Chain,
         recovery: [any Signer],

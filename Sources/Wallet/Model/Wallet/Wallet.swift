@@ -8,7 +8,7 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
-    /// Every recovery signer of this wallet, from the API response that loaded the wallet.
+    /// Every recovery signer of this wallet. The list reflects the wallet at load time.
     ///
     /// Each one can authorize on its own. Select the one this device holds with
     /// ``useSigner(_:)``. EVM wallets always have exactly one.

@@ -22,24 +22,26 @@ public enum WalletError: CrossmintError {
     /// error code. ``Wallet/recover()`` catches it and falls back to the
     /// recovery signer.
     case deviceSignerNotSupported(String)
-    /// The backend rejected the recovery signer list. `code` is one of the stable codes below,
-    /// so callers can branch on it. `message` is the explanation from the backend.
+    /// Crossmint rejected the recovery signer list. Compare `code` with the constants below to
+    /// find the cause. `message` explains the rejection.
     case recoveryConfigRejected(code: String, message: String)
 
     /// The list has more recovery signers than the chain allows.
     public static let SIGNER_LIMIT_EXCEEDED = "SIGNER_LIMIT_EXCEEDED"
     /// The same signer appears more than once in the list.
     public static let RECOVERY_DUPLICATE_SIGNER = "RECOVERY_DUPLICATE_SIGNER"
-    /// The list contains a signer that the wallet already has as a delegated signer.
+    /// The list contains a signer that is already registered on the wallet through
+    /// ``Wallet/addSigner(_:approver:)``. A signer is a recovery signer or a registered signer, not both.
     public static let RECOVERY_SIGNER_CONFLICT = "RECOVERY_SIGNER_CONFLICT"
-    /// The wallet has several recovery signers. The operation must name the signer that authorizes it.
+    /// The wallet has several recovery signers, and the operation did not name one. Pass `approver`,
+    /// or call ``Wallet/useSigner(_:)`` first.
     public static let SIGNER_REQUIRED = "SIGNER_REQUIRED"
     /// The chain accepts a single recovery signer only.
     public static let RECOVERY_NOT_SUPPORTED_ON_CHAIN = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
-    /// The API version in use does not support recovery signer lists.
+    /// This SDK version targets an API version without recovery signer lists. Update the SDK.
     public static let NOT_SUPPORTED_ON_API_VERSION = "NOT_SUPPORTED_ON_API_VERSION"
-    /// The request named both `adminSigner` and `recovery`. The SDK never sends both, so this
-    /// code shows a backend change.
+    /// The request named both a single recovery signer and a recovery list. The SDK does not send
+    /// this combination, so contact Crossmint support if you receive this code.
     public static let RECOVERY_ADMIN_SIGNER_CONFLICT = "RECOVERY_ADMIN_SIGNER_CONFLICT"
 
     static let recoveryConfigCodes: Set<String> = [
