@@ -70,8 +70,9 @@ public protocol CrossmintWallets: Sendable {
     /// Creates a new smart wallet with several recovery signers for the authenticated user.
     ///
     /// Each recovery signer can authorize on its own. The wallet stays usable when the user loses
-    /// one of them. Only Solana and Stellar accept more than one recovery signer. The first
-    /// signer in `recovery` is the active signer until ``Wallet/useSigner(_:)`` selects another one.
+    /// one of them. Only Solana and Stellar accept more than one recovery signer. The wallet's first
+    /// recovery signer, as the API reports it, is the active signer until ``Wallet/useSigner(_:)``
+    /// selects another one.
     ///
     /// - Parameters:
     ///   - chain: The blockchain to deploy to.
