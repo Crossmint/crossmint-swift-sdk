@@ -33,7 +33,6 @@ struct SignerLocatorTests {
             ("passkey:cred-1", SignerLocator.passkey(credentialId: "cred-1")),
             ("api-key:0xdef", SignerLocator.apiKey(address: "0xdef")),
             ("api-key", SignerLocator.apiKey()),
-            ("api-key:api-key", SignerLocator.apiKey()),
             ("server:0x999", SignerLocator.server(address: "0x999"))
         ]
     )

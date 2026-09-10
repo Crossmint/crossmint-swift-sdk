@@ -90,9 +90,7 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         case ("passkey", .some(let credentialId)):
             self = .passkey(credentialId: credentialId)
         case ("api-key", let address):
-            // The client-side literal "api-key" (no address) and the backend's
-            // "api-key:api-key" fallback both mean "no address on this signer".
-            self = .apiKey(address: address == "api-key" ? nil : address)
+            self = .apiKey(address: address)
         case ("server", .some(let address)):
             self = .server(address: address)
         default:
