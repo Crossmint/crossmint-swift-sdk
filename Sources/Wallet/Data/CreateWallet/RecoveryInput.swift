@@ -27,6 +27,20 @@ enum RecoveryInput {
         }
     }
 
+    /// The caller's signer for the wallet's first recovery signer, so the active signer follows the
+    /// API's order the way the TypeScript SDK does.
+    func activeSigner(for first: any AdminSignerData) async -> any Signer {
+        guard case .list(let signers) = self else { return active }
+        let sameType = signers.filter { $0.signerType.rawValue == first.type.rawValue }
+        guard sameType.count > 1 else { return sameType.first ?? active }
+        // Email and phone signers know their locator before `initialize`. Passkey and key pair
+        // signers do not, and `getWallet` never initializes them.
+        for signer in sameType where signer.signerType == .email || signer.signerType == .phone {
+            if await signer.adminSigner.locator == first.locator { return signer }
+        }
+        return sameType[0]
+    }
+
     func inputConfig(delegatedSigners: [DelegatedSignerEntry]?) async -> CreateWalletParams.InputConfig {
         switch self {
         case .single(let signer):

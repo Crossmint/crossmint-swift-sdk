@@ -83,15 +83,16 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             await assignPendingDeviceSignerKey(storage: storage, walletApiModel: walletApiModel)
         }
 
+        let activeSigner = await recovery.activeSigner(for: walletApiModel.config.recovery.toDomain)
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
-            signer: recovery.active,
+            signer: activeSigner,
             options: options,
             deviceSignerStorage: deviceSignerStorage
         )
 
-        await loadNonCustodialSigner(recovery.active)
+        await loadNonCustodialSigner(activeSigner)
 
         return wallet
     }
@@ -113,16 +114,17 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             deviceSignerStorage: deviceSignerStorage
         )
 
+        let activeSigner = await recovery.activeSigner(for: creation.model.config.recovery.toDomain)
         let wallet = try buildWallet(
             from: creation.model,
             chain: chain,
-            signer: recovery.active,
+            signer: activeSigner,
             options: options,
             deviceSignerStorage: deviceSignerStorage,
             deviceSignerUnsupported: creation.deviceSignerRejected
         )
 
-        await loadNonCustodialSigner(recovery.active)
+        await loadNonCustodialSigner(activeSigner)
 
         return wallet
     }
