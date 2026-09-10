@@ -120,8 +120,8 @@ open class Wallet: @unchecked Sendable {
             .map(\.locator)
             .contains(locator) ?? false
         if delegatedMatch { return true }
-        return walletModel.config.recoveryMethods.contains {
-            (try? SignerLocator(from: $0.toDomain.locator)) == locator
+        return walletModel.config.toDomain.recoveryMethods.contains {
+            (try? SignerLocator(from: $0.locator)) == locator
         }
     }
 

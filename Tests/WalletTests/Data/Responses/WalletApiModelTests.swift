@@ -1,3 +1,4 @@
+import CrossmintService
 import Foundation
 import Testing
 import TestsUtils
@@ -116,7 +117,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recoveryMethods.map(\.type) == [.email, .phone, .externalWallet])
+        #expect(wallet.config.recoveryMethods?.map(\.type) == [.email, .phone, .externalWallet])
         #expect(wallet.config.recovery.type == .email)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == [
             "email:alice@example.com",
@@ -134,7 +135,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recoveryMethods.count == 2)
+        #expect(wallet.config.recoveryMethods?.count == 2)
         #expect(wallet.config.toDomain.recovery.locator == "email:alice@example.com")
     }
 
@@ -147,7 +148,21 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recoveryMethods.count == 1)
-        #expect(wallet.config.recoveryMethods[0].toDomain.locator == "email:user@example.com")
+        #expect(wallet.config.recoveryMethods == nil)
+        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
+    }
+
+    @Test(
+        "Will fall back to the admin signer when the recovery list is empty"
+    )
+    func willFallBackToAdminSignerOnEmptyList() async throws {
+        let url = try #require(Bundle.module.url(forResource: "WalletEVMEmail", withExtension: "json"))
+        let fixture = try String(contentsOf: url, encoding: .utf8)
+        let json = fixture.replacingOccurrences(of: "\"adminSigner\"", with: "\"recovery\": [], \"adminSigner\"")
+
+        let wallet = try DefaultJSONCoder().decode(WalletApiModel.self, from: Data(json.utf8))
+
+        #expect(wallet.config.recoveryMethods?.isEmpty == true)
+        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
     }
 }

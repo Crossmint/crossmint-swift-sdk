@@ -6,34 +6,30 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
 }
 
 public struct WalletConfigApiModel: Decodable {
-    /// Every recovery signer of the wallet, in API order. EVM wallets have exactly one.
-    public let recoveryMethods: [AdminSignerApiModel]
+    public let recovery: AdminSignerApiModel
+    let recoveryMethods: [AdminSignerApiModel]?
     let signers: [WalletSignerConfigApiModel]?
 
-    /// The first recovery signer.
-    public var recovery: AdminSignerApiModel { recoveryMethods[0] }
-
     enum CodingKeys: String, CodingKey {
-        case adminSigner
-        case recovery
+        case recovery = "adminSigner"
+        case recoveryMethods = "recovery"
         case signers = "delegatedSigners"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        var methods: [AdminSignerApiModel] = []
-        if container.contains(.recovery) {
-            var list = try container.nestedUnkeyedContainer(forKey: .recovery)
+        recovery = try Self.decodeSigner(from: container.superDecoder(forKey: .recovery))
+        if container.contains(.recoveryMethods) {
+            var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
+            var methods: [AdminSignerApiModel] = []
             while !list.isAtEnd {
                 methods.append(try Self.decodeSigner(from: list.superDecoder()))
             }
+            recoveryMethods = methods
+        } else {
+            recoveryMethods = nil
         }
-        if methods.isEmpty {
-            methods = [try Self.decodeSigner(from: container.superDecoder(forKey: .adminSigner))]
-        }
-
-        recoveryMethods = methods
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
 
@@ -62,6 +58,10 @@ public struct WalletConfigApiModel: Decodable {
     }
 
     var toDomain: WalletConfig {
-        WalletConfig(recoveryMethods: recoveryMethods.map(\.toDomain))
+        let all = recoveryMethods ?? [recovery]
+        return WalletConfig(
+            recovery: (all.first ?? recovery).toDomain,
+            otherRecoveryMethods: all.dropFirst().map(\.toDomain)
+        )
     }
 }
