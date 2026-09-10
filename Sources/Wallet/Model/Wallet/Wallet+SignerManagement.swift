@@ -26,10 +26,10 @@ extension Wallet {
     /// - Parameters:
     ///   - config: The signer configuration to register.
     ///   - approver: The recovery signer that authorizes the registration. Wallets with several
-    ///     recovery signers need one; it defaults to the active signer when that is a recovery
-    ///     signer, or to the wallet's first recovery signer otherwise.
+    ///     recovery signers need one. The default is the active signer when that signer is a
+    ///     recovery signer. Otherwise the default is the first recovery signer of the wallet.
     /// - Throws: ``WalletError/signerNotRegistered(_:)`` when `approver` is not one of
-    ///   ``recoveryMethods``, or ``WalletError`` if registration fails.
+    ///   ``recoveryMethods``. ``WalletError`` if the registration fails.
     public func addSigner(_ config: SignerConfig, approver: SignerConfig? = nil) async throws(WalletError) {
         try await registerSigner(config, deployImmediately: true, approver: approver)
     }
@@ -120,7 +120,7 @@ extension Wallet {
     ///
     /// After calling this method, send and sign operations will use the specified signer
     /// instead of the default admin signer. The signer must already be registered on this
-    /// wallet — use ``addSigner(_:)`` to register a new one first.
+    /// wallet — use ``addSigner(_:approver:)`` to register a new one first.
     ///
     /// - Parameter config: The signer to activate.
     /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet,

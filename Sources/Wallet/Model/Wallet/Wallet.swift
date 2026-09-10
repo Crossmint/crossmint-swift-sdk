@@ -8,7 +8,7 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
-    /// Every recovery signer of this wallet, as reported by the API when the wallet was loaded.
+    /// Every recovery signer of this wallet, from the API response that loaded the wallet.
     ///
     /// Each one can authorize on its own. Select the one this device holds with
     /// ``useSigner(_:)``. EVM wallets always have exactly one.
@@ -23,7 +23,7 @@ open class Wallet: @unchecked Sendable {
     /// completed) for the wallet's chain are omitted. A signer whose state lookup fails
     /// is returned with ``SignerStatus/unknown`` rather than dropped.
     ///
-    /// Always returns fresh data — safe to call after ``addSigner(_:)`` or ``removeSigner(locator:)``.
+    /// Always returns fresh data — safe to call after ``addSigner(_:approver:)`` or ``removeSigner(locator:)``.
     public func signers() async throws(WalletError) -> [WalletSigner] {
         try await signerListService.list()
     }
@@ -148,7 +148,7 @@ open class Wallet: @unchecked Sendable {
 
     /// Returns whether the given signer is approved and usable on this wallet's chain.
     ///
-    /// A freshly registered signer can need approval before it can sign. Call ``addSigner(_:)``
+    /// A freshly registered signer can need approval before it can sign. Call ``addSigner(_:approver:)``
     /// to register a signer. This method returns `false` when the signer is not registered on this wallet.
     ///
     /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
@@ -162,7 +162,7 @@ open class Wallet: @unchecked Sendable {
 
     /// Returns whether the given signer is approved and usable on this wallet's chain.
     ///
-    /// A freshly registered signer can need approval before it can sign. Call ``addSigner(_:)``
+    /// A freshly registered signer can need approval before it can sign. Call ``addSigner(_:approver:)``
     /// to register a signer. This method returns `false` when the signer is not registered on this wallet.
     ///
     /// - Parameter locator: The locator of the signer to check.
