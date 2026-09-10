@@ -195,6 +195,24 @@ struct DefaultWalletServiceTests {
     }
 
     @Test
+    func mapsDelegatedSignerConflictOnWalletCreation() async throws {
+        let body = Data(#"{"error": true, "message": "same key", "code": "DELEGATED_SIGNER_CONFLICT"}"#.utf8)
+        let service = try makeService(errorBody: body)
+        let params = CreateWalletParams(
+            chainType: .solana,
+            type: .smart,
+            config: .init(recovery: [EmailSignerData(email: "alice@example.com")], delegatedSigners: nil)
+        )
+
+        await #expect {
+            _ = try await service.createWallet(params)
+        } throws: { error in
+            guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
+            return code == WalletError.DELEGATED_SIGNER_CONFLICT && message == "same key"
+        }
+    }
+
+    @Test
     func keepsGenericErrorForOtherCodes() async throws {
         let body = Data(#"{"error": true, "message": "boom", "code": "SOMETHING_ELSE"}"#.utf8)
         let service = try makeService(errorBody: body)
