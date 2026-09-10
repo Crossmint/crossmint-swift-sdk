@@ -15,10 +15,6 @@ public struct WalletConfig {
         self.otherRecoveryMethods = otherRecoveryMethods
     }
 
-    var recoveryLocators: [SignerLocator] {
-        recoveryMethods.compactMap { try? SignerLocator(from: $0.locator) }
-    }
-
     func recoverySigner<T: AdminSignerData>(ofType type: T.Type) -> T? {
         for method in recoveryMethods {
             if let match = method as? T { return match }

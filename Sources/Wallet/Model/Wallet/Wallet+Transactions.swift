@@ -353,7 +353,12 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let signerLocator = await transactionSignerLocator()
+        let signerLocator: String?
+        if selectedSignerLocator == nil, let deviceLocator = await localDeviceSigner() {
+            signerLocator = deviceLocator.value
+        } else {
+            signerLocator = await transactionSignerLocator()
+        }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
@@ -372,9 +377,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     internal func transactionSignerLocator() async -> String? {
         if let selectedSignerLocator {
             return selectedSignerLocator.value
-        }
-        if let deviceLocator = await localDeviceSigner() {
-            return deviceLocator.value
         }
         guard config.recoveryMethods.count > 1 else { return nil }
         return await signer.adminSigner.locator
