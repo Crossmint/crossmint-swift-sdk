@@ -22,6 +22,41 @@ public enum WalletError: CrossmintError {
     /// error code. ``Wallet/recover()`` catches it and falls back to the
     /// recovery signer.
     case deviceSignerNotSupported(String)
+    /// Crossmint rejected the recovery signer list. Compare `code` with the constants below to
+    /// find the cause. `message` explains the rejection.
+    case recoveryConfigRejected(code: String, message: String)
+
+    /// The list has more recovery signers than the chain allows.
+    public static let SIGNER_LIMIT_EXCEEDED = "SIGNER_LIMIT_EXCEEDED"
+    /// The same signer appears more than once in the list.
+    public static let RECOVERY_DUPLICATE_SIGNER = "RECOVERY_DUPLICATE_SIGNER"
+    /// The list contains a signer that is already registered on the wallet through
+    /// ``Wallet/addSigner(_:)``. A signer is a recovery signer or a registered signer, not both.
+    public static let RECOVERY_SIGNER_CONFLICT = "RECOVERY_SIGNER_CONFLICT"
+    /// A signer in the request already holds another role on the wallet, for example a recovery
+    /// signer passed to ``Wallet/addSigner(_:)``. Use a different signer.
+    public static let DELEGATED_SIGNER_CONFLICT = "DELEGATED_SIGNER_CONFLICT"
+    /// The wallet has several recovery signers, and the operation did not name one. Call
+    /// ``Wallet/useSigner(_:)`` first.
+    public static let SIGNER_REQUIRED = "SIGNER_REQUIRED"
+    /// The chain accepts a single recovery signer only.
+    public static let RECOVERY_NOT_SUPPORTED_ON_CHAIN = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
+    /// This SDK version targets an API version without recovery signer lists. Update the SDK.
+    public static let NOT_SUPPORTED_ON_API_VERSION = "NOT_SUPPORTED_ON_API_VERSION"
+    /// The request named both a single recovery signer and a recovery list. The SDK does not send
+    /// this combination, so contact Crossmint support if you receive this code.
+    public static let RECOVERY_ADMIN_SIGNER_CONFLICT = "RECOVERY_ADMIN_SIGNER_CONFLICT"
+
+    static let recoveryConfigCodes: Set<String> = [
+        SIGNER_LIMIT_EXCEEDED,
+        RECOVERY_DUPLICATE_SIGNER,
+        RECOVERY_SIGNER_CONFLICT,
+        DELEGATED_SIGNER_CONFLICT,
+        SIGNER_REQUIRED,
+        RECOVERY_NOT_SUPPORTED_ON_CHAIN,
+        NOT_SUPPORTED_ON_API_VERSION,
+        RECOVERY_ADMIN_SIGNER_CONFLICT
+    ]
 
     public var code: String {
         switch self {
@@ -40,6 +75,7 @@ public enum WalletError: CrossmintError {
         case .invalidToken: "INVALID_TOKEN"
         case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
         case .deviceSignerNotSupported: "DEVICE_SIGNER_NOT_SUPPORTED"
+        case .recoveryConfigRejected(let code, _): code
         }
     }
 
@@ -69,7 +105,7 @@ public enum WalletError: CrossmintError {
             "Invalid token: \(token.name)"
         case .signerNotRegistered(let locator):
             "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
-        case .deviceSignerNotSupported(let message):
+        case .deviceSignerNotSupported(let message), .recoveryConfigRejected(_, let message):
             message
         }
     }
@@ -90,6 +126,8 @@ public enum WalletError: CrossmintError {
             "Use the correct signer locator format, for example \"email:user@example.com\"."
         case .deviceSignerNotSupported:
             "Use the recovery signer or another registered signer for this wallet."
+        case .recoveryConfigRejected(let code, _):
+            Self.recoverySuggestion(forRecoveryCode: code)
         default:
             nil
         }
@@ -98,6 +136,25 @@ public enum WalletError: CrossmintError {
     public var underlyingError: Swift.Error? {
         guard case .serviceError(let error) = self else { return nil }
         return error
+    }
+}
+
+extension WalletError {
+    private static func recoverySuggestion(forRecoveryCode code: String) -> String? {
+        switch code {
+        case SIGNER_LIMIT_EXCEEDED:
+            "Pass fewer recovery signers."
+        case RECOVERY_DUPLICATE_SIGNER:
+            "Remove the duplicated signer from the recovery list."
+        case RECOVERY_SIGNER_CONFLICT, DELEGATED_SIGNER_CONFLICT:
+            "Use a signer that does not already hold another role on this wallet."
+        case SIGNER_REQUIRED:
+            "Call useSigner to select which recovery signer authorizes this operation."
+        case RECOVERY_NOT_SUPPORTED_ON_CHAIN:
+            "Pass a single recovery signer on this chain."
+        default:
+            nil
+        }
     }
 }
 

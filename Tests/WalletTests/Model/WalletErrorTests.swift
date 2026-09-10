@@ -32,6 +32,27 @@ struct WalletErrorTests {
         #expect(error.underlyingError == nil)
     }
 
+    @Test("WalletError.recoveryConfigRejected surfaces the backend code")
+    func recoveryConfigRejected() {
+        let error = WalletError.recoveryConfigRejected(
+            code: WalletError.RECOVERY_DUPLICATE_SIGNER,
+            message: "duplicate signer"
+        )
+        #expect(error.code == "RECOVERY_DUPLICATE_SIGNER")
+        #expect(error.message == "duplicate signer")
+        #expect(error.recoverySuggestion == "Remove the duplicated signer from the recovery list.")
+        #expect(error.underlyingError == nil)
+    }
+
+    @Test("WalletError.recoveryConfigRejected has no suggestion for codes the caller cannot act on")
+    func recoveryConfigRejectedWithoutSuggestion() {
+        let error = WalletError.recoveryConfigRejected(
+            code: WalletError.NOT_SUPPORTED_ON_API_VERSION,
+            message: "unsupported"
+        )
+        #expect(error.recoverySuggestion == nil)
+    }
+
     @Test("WalletError.signerLocatorError carries the invalid locator in message")
     func signerLocatorError() {
         let error = WalletError.signerLocatorError("carrier-pigeon:0xabc")

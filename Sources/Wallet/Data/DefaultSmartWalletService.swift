@@ -88,7 +88,11 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await walletService.removeSigner(signerLocator, chainType: chainType, chainName: chainName)
+        try await walletService.removeSigner(
+            signerLocator,
+            chainType: chainType,
+            chainName: chainName
+        )
     }
 
     public func getSigner(
