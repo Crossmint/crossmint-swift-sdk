@@ -175,7 +175,7 @@ struct WalletAddSignerTests {
             walletService.removeSignerResult = removed
             let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
 
-            _ = try await wallet.removeSigner(locator: "device:abc", approver: .phone("+14155552671"))
+            _ = try await wallet.removeSigner(locator: .device(publicKey: "abc"), approver: .phone("+14155552671"))
 
             #expect(walletService.removeSignerLastApprover == "phone:+14155552671")
         }

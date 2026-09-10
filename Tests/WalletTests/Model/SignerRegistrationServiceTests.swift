@@ -25,12 +25,12 @@ struct SignerRegistrationServiceTests {
         let service = makeService(walletService: walletService)
 
         try await service.register(
-            locator: "email:test@example.com",
+            locator: .email("test@example.com"),
             approver: RecoveryApprover(signer: signer, requestLocator: nil)
         )
 
         #expect(walletService.addSignerCallCount == 1)
-        #expect(walletService.lastAddSignerEntry?.signer == "email:test@example.com")
+        #expect(walletService.lastAddSignerEntry?.signer == .locator(.email("test@example.com")))
     }
 
     @Test
@@ -43,7 +43,7 @@ struct SignerRegistrationServiceTests {
         let service = makeService(walletService: walletService)
 
         try await service.register(
-            locator: "email:test@example.com",
+            locator: .email("test@example.com"),
             approver: RecoveryApprover(signer: signer, requestLocator: nil)
         )
 
@@ -67,7 +67,7 @@ struct SignerRegistrationServiceTests {
         let service = makeService(walletService: walletService)
 
         try await service.register(
-            locator: "email:test@example.com",
+            locator: .email("test@example.com"),
             approver: RecoveryApprover(signer: signer, requestLocator: nil)
         )
 

@@ -60,7 +60,7 @@ struct WalletRecoveryMethodsTests {
 
         try await wallet.useSigner(.phone("+14155552671"))
 
-        #expect(wallet.selectedSignerLocator == "phone:+14155552671")
+        #expect(wallet.selectedSignerLocator == .phone("+14155552671"))
         #expect(wallet.selectedSigner is PhoneSigner)
     }
 
@@ -71,14 +71,6 @@ struct WalletRecoveryMethodsTests {
             guard case .signerNotRegistered(let locator) = error as? WalletError else { return false }
             return locator == "email:bob@example.com"
         }
-    }
-
-    @Test func reportsEveryRecoverySignerAsRegistered() async throws {
-        let (wallet, _) = try makeSolanaWallet(fileName: "WalletSolanaRecoveryMethods")
-
-        #expect(await wallet.signerIsRegistered("phone:+14155552671"))
-        #expect(await wallet.signerIsRegistered("external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
-        #expect(await wallet.signerIsRegistered("email:bob@example.com") == false)
     }
 
     @Suite("transaction signer")

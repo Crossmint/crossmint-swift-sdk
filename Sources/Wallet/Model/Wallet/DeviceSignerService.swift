@@ -67,14 +67,14 @@ final class DeviceSignerService: Sendable {
         deployImmediately: Bool,
         approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        let entry: DelegatedSignerEntry
-        do {
-            entry = try makeDelegatedSignerEntry(publicKeyBase64: publicKeyBase64)
-        } catch {
+        let deviceName = await storage.deviceName
+        guard let publicKey = DevicePublicKey(publicKeyBase64: publicKeyBase64) else {
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
+            let error = WalletError.walletGeneric("Invalid device signer public key")
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw error
         }
+        let entry = DelegatedSignerEntry(signer: .device(publicKey: publicKey, name: deviceName))
         do {
             return try await smartWalletService.addSigner(
                 entry,
@@ -132,11 +132,10 @@ final class DeviceSignerService: Sendable {
         }
     }
 
-    func locator(for storage: any DeviceSignerKeyStorage) async -> String? {
+    func publicKey(for storage: any DeviceSignerKeyStorage) async -> String? {
         guard let publicKeyBase64 = await storage.getKey(address: address),
-              let rawKey = Data(base64Encoded: publicKeyBase64),
-              rawKey.count == 65, rawKey[0] == 0x04 else { return nil }
-        return "device:\(publicKeyBase64)"
+              DevicePublicKey(publicKeyBase64: publicKeyBase64) != nil else { return nil }
+        return publicKeyBase64
     }
 
     func ensureRegistered(storage: any DeviceSignerKeyStorage, approver: RecoveryApprover) async throws(WalletError) {
@@ -159,18 +158,11 @@ final class DeviceSignerService: Sendable {
         storage: any DeviceSignerKeyStorage
     ) async throws(DeviceSignerError) -> SignRequestApi {
         let (r, s) = try await storage.signMessage(address: address, message: message)
-        let currentLocator = await locator(for: storage) ?? signerLocator
+        let currentPublicKey = await publicKey(for: storage)
+        let currentLocator = currentPublicKey.map { SignerLocator.device(publicKey: $0).value } ?? signerLocator
         return SignRequestApi(approvals: [
             .device(signer: currentLocator, signature: .init(r: r, s: s))
         ])
-    }
-
-    private func makeDelegatedSignerEntry(publicKeyBase64: String) throws(WalletError) -> DelegatedSignerEntry {
-        guard let rawPublicKey = Data(base64Encoded: publicKeyBase64),
-              rawPublicKey.count == 65, rawPublicKey[0] == 0x04 else {
-            throw WalletError.walletGeneric("Invalid device signer public key")
-        }
-        return DelegatedSignerEntry(signer: "device:\(publicKeyBase64)")
     }
 
 }

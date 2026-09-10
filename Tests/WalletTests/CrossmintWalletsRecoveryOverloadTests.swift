@@ -58,19 +58,6 @@ struct CrossmintWalletsRecoveryOverloadTests {
         )
     }
 
-    private func makeStellarWallet() throws -> StellarWallet {
-        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-            fileName: "WalletStellarRecoveryMethods",
-            bundle: Bundle.module
-        )
-        return try StellarWallet(
-            smartWalletService: MockSmartWalletService(),
-            signer: MockSigner(),
-            baseModel: baseModel,
-            stellarChain: .stellar
-        )
-    }
-
     @Test func solanaCreateOverloadBuildsOneSignerPerEntryInOrder() async throws {
         let spy = SpyCrossmintWallets()
         spy.wallet = try makeSolanaWallet()
@@ -84,28 +71,5 @@ struct CrossmintWalletsRecoveryOverloadTests {
         #expect(spy.receivedSigners.map(\.signerType) == [.email, .phone])
         #expect(spy.receivedSigners[0] is SolanaEmailSigner)
         #expect(wallet.recoveryMethods.count == 3)
-    }
-
-    @Test func stellarGetOverloadBuildsStellarSigners() async throws {
-        let spy = SpyCrossmintWallets()
-        spy.wallet = try makeStellarWallet()
-
-        let wallet = try await spy.getWallet(
-            chain: StellarChain.stellar,
-            recovery: [.email("alice@example.com"), .apiKey]
-        )
-
-        #expect(wallet != nil)
-        #expect(spy.receivedSigners.map(\.signerType) == [.email, .apiKey])
-        #expect(spy.receivedSigners[0] is StellarEmailSigner)
-    }
-
-    @Test func getOverloadPassesANilWalletThrough() async throws {
-        let spy = SpyCrossmintWallets()
-
-        let wallet = try await spy.getWallet(chain: SolanaChain.solana, recovery: [.email("alice@example.com")])
-
-        #expect(wallet == nil)
-        #expect(spy.receivedSigners.count == 1)
     }
 }

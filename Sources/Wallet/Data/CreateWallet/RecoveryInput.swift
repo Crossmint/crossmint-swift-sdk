@@ -11,11 +11,6 @@ enum RecoveryInput {
     case single(any Signer)
     case list([any Signer])
 
-    enum Request {
-        case adminSigner(any AdminSignerData)
-        case recovery([any AdminSignerData])
-    }
-
     private static let chainsWithRecoveryList: Set<ChainType> = [.solana, .stellar]
 
     var signers: [any Signer] {
@@ -32,18 +27,16 @@ enum RecoveryInput {
         }
     }
 
-    var request: Request {
-        get async {
-            switch self {
-            case .single(let signer):
-                return .adminSigner(await signer.adminSigner)
-            case .list(let signers):
-                var methods: [any AdminSignerData] = []
-                for signer in signers {
-                    methods.append(await signer.adminSigner)
-                }
-                return .recovery(methods)
+    func inputConfig(delegatedSigners: [DelegatedSignerEntry]?) async -> CreateWalletParams.InputConfig {
+        switch self {
+        case .single(let signer):
+            return .init(adminSigner: await signer.adminSigner, delegatedSigners: delegatedSigners)
+        case .list(let signers):
+            var methods: [any AdminSignerData] = []
+            for signer in signers {
+                methods.append(await signer.adminSigner)
             }
+            return .init(recovery: methods, delegatedSigners: delegatedSigners)
         }
     }
 

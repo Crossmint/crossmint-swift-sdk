@@ -120,7 +120,7 @@ final class AppState {
 
     func loadSigners() async {
         signers = (try? await wallet?.signers()) ?? []
-        localDeviceLocator = await wallet?.localDeviceSignerLocator()
+        localDeviceLocator = await wallet?.localDeviceSigner()?.value
         guard selectedSignerLocator == nil, let locator = firstSelectableLocator() else { return }
         await selectSigner(locator: locator)
     }
@@ -230,20 +230,24 @@ final class AppState {
         if let recovery = recoveryLocators.first(where: { signerConfig(for: $0) != nil }) { return recovery }
         return signers
             .map(\.locator)
-            .first { signerConfig(for: $0) != nil }
+            .first { signerConfig(for: $0) != nil }?
+            .value
     }
 
     func signerConfig(for locator: String) -> SignerConfig? {
-        if locator.hasPrefix("device:") { return .device }
-        if locator.hasPrefix("api-key:") { return .apiKey }
-        if locator.hasPrefix("email:") { return .email(String(locator.dropFirst("email:".count))) }
-        if locator.hasPrefix("phone:") {
-            // The channel is per onboarding request and the API never returns it, so a locator
-            // alone cannot say how the OTP should be delivered.
-            let number = String(locator.dropFirst("phone:".count))
-            return .phone(number, channel: phoneChannels[locator])
+        (try? SignerLocator(from: locator)).flatMap { signerConfig(for: $0) }
+    }
+
+    private func signerConfig(for locator: SignerLocator) -> SignerConfig? {
+        switch locator {
+        case .device: .device
+        case .apiKey: .apiKey
+        case .email(let email): .email(email)
+        // The channel is per onboarding request and the API never returns it, so a locator
+        // alone cannot say how the OTP should be delivered.
+        case .phone(let number): .phone(number, channel: phoneChannels[locator.value])
+        default: nil
         }
-        return nil
     }
 
     private func fetchWallet(chain: SupportedChain, email: String) async throws -> Wallet? {

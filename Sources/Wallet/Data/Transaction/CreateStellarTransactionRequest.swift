@@ -15,27 +15,6 @@ public struct CreateStellarTransactionRequest: TransactionRequest, Codable {
     private struct Params: Codable {
         let transaction: String
         let signer: String?
-
-        private enum CodingKeys: String, CodingKey {
-            case transaction, signer
-        }
-
-        init(transaction: String, signer: String?) {
-            self.transaction = transaction
-            self.signer = signer
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            transaction = try container.decode(String.self, forKey: .transaction)
-            signer = try container.decodeIfPresent(String.self, forKey: .signer)
-        }
-
-        func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(transaction, forKey: .transaction)
-            try container.encodeIfPresent(signer, forKey: .signer)
-        }
     }
 
     public let transaction: String

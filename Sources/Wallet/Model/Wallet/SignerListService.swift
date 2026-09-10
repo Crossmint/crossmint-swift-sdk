@@ -34,13 +34,13 @@ final class SignerListService: Sendable {
     /// Fetches each signer's state concurrently, so one broken signer doesn't fail the
     /// whole list: a failed lookup yields ``SignerStatus/unknown``. On EVM, signers without
     /// a registration entry for the wallet's chain are omitted. Preserves the config order.
-    private func states(for locators: [String]) async -> [WalletSigner] {
+    private func states(for locators: [SignerLocator]) async -> [WalletSigner] {
         await withTaskGroup(of: (Int, WalletSigner?).self) { group in
             for (index, locator) in locators.enumerated() {
                 group.addTask {
                     do {
                         guard let response = try await self.smartWalletService.getSigner(
-                            locator,
+                            locator.value,
                             chainType: self.chainType
                         ) else {
                             return (index, WalletSigner(locator: locator, status: .unknown))
@@ -54,7 +54,7 @@ final class SignerListService: Sendable {
                         return (index, WalletSigner(locator: locator, status: status))
                     } catch {
                         Logger.smartWallet.warning(LogEvents.walletSignersStateLookupFailed, attributes: [
-                            "locator": locator,
+                            "locator": locator.value,
                             "error": "\(error)"
                         ])
                         return (index, WalletSigner(locator: locator, status: .unknown))

@@ -124,17 +124,36 @@ extension Wallet {
 
     /// Removes an assigned signer from this wallet.
     ///
-    /// Submits a remove-signer transaction on-chain. If the transaction requires approval,
-    /// the current signer signs it automatically before polling for completion.
+    /// This method submits a remove-signer transaction on-chain. If the transaction needs approval,
+    /// the current signer signs it. The method then polls until the transaction completes.
+    ///
+    /// - Parameter locator: The signer locator string that identifies the signer to remove,
+    ///   for example `"device:ABC123..."` or `"external-wallet:0x456..."`.
+    /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
+    @available(*, deprecated, message: "Use the SignerLocator overload instead of raw strings.")
+    public func removeSigner(locator: String) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator, approver: nil)
+    }
+
+    /// Removes an assigned signer from this wallet.
+    ///
+    /// This method submits a remove-signer transaction on-chain. If the transaction needs approval,
+    /// the current signer signs it. The method then polls until the transaction completes.
     ///
     /// - Parameters:
-    ///   - locator: The signer locator string identifying the signer to remove
-    ///     (e.g. `"device:ABC123..."`, `"external-wallet:0x456..."`).
+    ///   - locator: The locator that identifies the signer to remove.
     ///   - approver: The recovery signer that authorizes the removal. See ``addSigner(_:approver:)``.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
     public func removeSigner(
-        locator: String,
-        approver approverConfig: SignerConfig? = nil
+        locator: SignerLocator,
+        approver: SignerConfig? = nil
+    ) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator.value, approver: approver)
+    }
+
+    private func removeSignerByLocatorString(
+        _ locator: String,
+        approver approverConfig: SignerConfig?
     ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
             "locator": locator
@@ -366,12 +385,11 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     }
 
     internal func transactionSignerLocator() async -> String? {
-        if let active = selectedSignerLocator {
-            return active
+        if let selectedSignerLocator {
+            return selectedSignerLocator.value
         }
-        if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported,
-           let deviceLocator = await deviceSignerService.locator(for: storage) {
-            return deviceLocator
+        if let deviceLocator = await localDeviceSigner() {
+            return deviceLocator.value
         }
         guard config.recoveryMethods.count > 1 else { return nil }
         return await signer.adminSigner.locator
