@@ -6,13 +6,13 @@ import TestsUtils
 
 @testable import Wallet
 
+private final class StubSecureWalletStorage: SecureWalletStorage, @unchecked Sendable {
+    func savePrivateKey(_ privateKey: String, forEmail email: String) {}
+    func getPrivateKey(forEmail email: String) -> String? { nil }
+}
+
 @Suite("Wallet Creation", .tags(.unit))
 struct DefaultCrossmintWalletsTests {
-    private final class StubSecureWalletStorage: SecureWalletStorage, @unchecked Sendable {
-        func savePrivateKey(_ privateKey: String, forEmail email: String) {}
-        func getPrivateKey(forEmail email: String) -> String? { nil }
-    }
-
     private let walletService = MockSmartWalletService()
     private let keyStorage = MockDeviceSignerKeyStorage()
 
@@ -162,5 +162,114 @@ struct DefaultCrossmintWalletsTests {
         #expect(keyStorage.pendingKeys.isEmpty)
         #expect(keyStorage.keysByAddress.isEmpty)
         #expect(wallet.deviceSignerKeyStorage == nil)
+    }
+}
+
+@Suite("Wallet Creation with a recovery signer list", .tags(.unit))
+struct RecoverySignerListCreationTests {
+    private let walletService = MockSmartWalletService()
+
+    private func makeWallets() -> DefaultCrossmintWallets {
+        DefaultCrossmintWallets(
+            service: walletService,
+            secureWalletStorage: StubSecureWalletStorage(),
+            deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
+        )
+    }
+
+    private func loadFixture(_ name: String) throws -> Data {
+        let url = try #require(Bundle.module.url(forResource: name, withExtension: "json"))
+        return try Data(contentsOf: url)
+    }
+
+    @Test func sendsTheListUnderRecoveryAndNoAdminSigner() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
+        let alice = MockSigner(email: "alice@example.com")
+        let bob = MockSigner(email: "bob@example.com")
+
+        _ = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [alice, bob], options: nil)
+
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        #expect(config.adminSigner == nil)
+        #expect(config.recovery?.count == 2)
+    }
+
+    @Test func sendsASingleSignerUnderAdminSigner() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletSolanaEmail")
+
+        _ = try await makeWallets().createWallet(chain: Chain("solana"), recovery: MockSigner(), options: nil)
+
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        #expect(config.adminSigner != nil)
+        #expect(config.recovery == nil)
+    }
+
+    @Test func activatesTheApiFirstRecoverySignerNotTheCallerFirst() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
+        let alice = MockSigner(email: "alice@example.com")
+        let bob = MockSigner(email: "bob@example.com")
+
+        let wallet = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [bob, alice], options: nil)
+
+        #expect(wallet.signer as? MockSigner === alice)
+    }
+
+    @Test func activatesTheApiFirstRecoverySignerOnGetWallet() async throws {
+        walletService.getWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
+        let alice = MockSigner(email: "alice@example.com")
+        let bob = MockSigner(email: "bob@example.com")
+
+        let wallet = try await makeWallets().getWallet(chain: Chain("solana"), recovery: [bob, alice], options: nil)
+
+        #expect(wallet?.signer as? MockSigner === alice)
+    }
+
+    @Test func fallsBackToTheCallerFirstSignerWhenNoneMatchesTheApi() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
+        let carol = MockSigner(email: "carol@example.com")
+        let dave = MockSigner(email: "dave@example.com")
+
+        let wallet = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [carol, dave], options: nil)
+
+        #expect(wallet.signer as? MockSigner === carol)
+    }
+
+    @Test func initializesEverySignerBeforeCreating() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletStellarRecoveryMethods")
+        let alice = MockSigner(email: "alice@example.com")
+        let bob = MockSigner(email: "bob@example.com")
+
+        _ = try await makeWallets().createWallet(chain: Chain("stellar"), recovery: [alice, bob], options: nil)
+
+        #expect(alice.initializeCallCount == 1)
+        #expect(bob.initializeCallCount == 1)
+    }
+
+    @Test func rejectsAnEmptyList() async throws {
+        let wallets = makeWallets()
+
+        await #expect {
+            _ = try await wallets.createWallet(chain: Chain("solana"), recovery: [any Signer](), options: nil)
+        } throws: { error in
+            guard case .walletGeneric = error as? WalletError else { return false }
+            return true
+        }
+        #expect(walletService.createWalletCallCount == 0)
+    }
+
+    @Test func rejectsAListOnEVMBeforeCallingTheApi() async throws {
+        let wallets = makeWallets()
+
+        await #expect {
+            _ = try await wallets.createWallet(
+                chain: Chain("base-sepolia"),
+                recovery: [MockSigner(email: "alice@example.com"), MockSigner(email: "bob@example.com")],
+                options: nil
+            )
+        } throws: { error in
+            guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
+            return code == .notSupportedOnChain
+        }
+        #expect(walletService.createWalletCallCount == 0)
     }
 }

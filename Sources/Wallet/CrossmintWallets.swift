@@ -17,6 +17,12 @@ import CrossmintCommonTypes
 ///     let wallet = try await wallets.createWallet(chain: .baseMainnet, recovery: .email("user@example.com"))
 ///     print("New wallet:", wallet.address)
 /// }
+///
+/// // Solana and Stellar accept several recovery signers. Each one can authorize on its own.
+/// let solanaWallet = try await wallets.createWallet(
+///     chain: .solana,
+///     recovery: [.email("user@example.com"), .phone("+15551234567")]
+/// )
 /// ```
 public protocol CrossmintWallets: Sendable {
     /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
@@ -28,6 +34,21 @@ public protocol CrossmintWallets: Sendable {
     func getWallet(
         chain: Chain,
         recovery: any Signer,
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet?
+
+    /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
+    ///
+    /// The wallet's first recovery signer, as the API reports it, is the active signer until
+    /// ``Wallet/useSigner(_:)`` selects another one.
+    ///
+    /// - Parameters:
+    ///   - chain: The blockchain to look up.
+    ///   - recovery: The signers that can each authorize recovery operations for this wallet.
+    ///   - options: Optional configuration, such as enabling a device signer.
+    func getWallet(
+        chain: Chain,
+        recovery: [any Signer],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet?
 
@@ -45,9 +66,56 @@ public protocol CrossmintWallets: Sendable {
         recovery: any Signer,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
+
+    /// Creates a new smart wallet with several recovery signers for the authenticated user.
+    ///
+    /// Each recovery signer can authorize on its own. The wallet stays usable when the user loses
+    /// one of them. Only Solana and Stellar accept more than one recovery signer. The wallet's first
+    /// recovery signer, as the API reports it, is the active signer until ``Wallet/useSigner(_:)``
+    /// selects another one.
+    ///
+    /// - Parameters:
+    ///   - chain: The blockchain to deploy to.
+    ///   - recovery: The signers that can each authorize recovery operations for this wallet.
+    ///   - options: Optional configuration, such as enabling a device signer.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain does not
+    ///   accept the list.
+    func createWallet(
+        chain: Chain,
+        recovery: [any Signer],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet
 }
 
 extension CrossmintWallets {
+    /// Conformers that implement only the single-signer entry points get this default. It forwards
+    /// a one-signer list to the single-signer entry point and throws ``WalletError/walletGeneric(_:)``
+    /// for a longer list.
+    public func getWallet(
+        chain: Chain,
+        recovery: [any Signer],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet? {
+        let signer = try Self.onlySigner(in: recovery)
+        return try await getWallet(chain: chain, recovery: signer, options: options)
+    }
+
+    public func createWallet(
+        chain: Chain,
+        recovery: [any Signer],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet {
+        let signer = try Self.onlySigner(in: recovery)
+        return try await createWallet(chain: chain, recovery: signer, options: options)
+    }
+
+    private static func onlySigner(in recovery: [any Signer]) throws(WalletError) -> any Signer {
+        guard recovery.count == 1, let signer = recovery.first else {
+            throw .walletGeneric("This CrossmintWallets implementation accepts a single recovery signer")
+        }
+        return signer
+    }
+
     // MARK: - getWallet convenience overloads
 
     public func getWallet(
@@ -106,6 +174,28 @@ extension CrossmintWallets {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
+            options: options
+        ) else { return nil }
+        guard let typed = wallet as? C.WalletType else {
+            throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
+        }
+        return typed
+    }
+
+    /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
+    ///
+    /// Each recovery signer can authorize on its own. Only Solana and Stellar accept more than one.
+    /// The wallet's first recovery signer, as the API reports it, is the active signer until
+    /// ``Wallet/useSigner(_:)`` selects another one.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
+    public func getWallet<C: ChainWithSigners>(
+        chain: C,
+        recovery: [C.SpecificSigner],
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> C.WalletType? {
+        guard let wallet = try await getWallet(
+            chain: Chain(chain.name),
+            recovery: await signers(recovery),
             options: options
         ) else { return nil }
         guard let typed = wallet as? C.WalletType else {
@@ -178,6 +268,33 @@ extension CrossmintWallets {
             throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
         }
         return typed
+    }
+
+    /// Creates a wallet with several recovery signers. Each one can authorize on its own. Only
+    /// Solana and Stellar accept more than one.
+    ///
+    /// The wallet's first recovery signer, as the API reports it, is the active signer until
+    /// ``Wallet/useSigner(_:)`` selects another one.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
+    public func createWallet<C: ChainWithSigners>(
+        chain: C,
+        recovery: [C.SpecificSigner],
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> C.WalletType {
+        let wallet = try await createWallet(
+            chain: Chain(chain.name),
+            recovery: await signers(recovery),
+            options: options
+        )
+        guard let typed = wallet as? C.WalletType else {
+            throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
+        }
+        return typed
+    }
+
+    @MainActor
+    private func signers(_ providers: [any SignerProvider]) -> [any Signer] {
+        providers.map(\.signer)
     }
 }
 
