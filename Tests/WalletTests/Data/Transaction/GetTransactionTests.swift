@@ -107,7 +107,7 @@ struct GetTransactionTests {
                 bundle: Bundle.module
             )
 
-            let transaction = try #require(model.toDomain())
+            let transaction = model.toDomain()
 
             #expect(transaction.id == "42bbb192-1707-43ba-bd21-6e96d28bdcc9")
             #expect(transaction.status == .success)

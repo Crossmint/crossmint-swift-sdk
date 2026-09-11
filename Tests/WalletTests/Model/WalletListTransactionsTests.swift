@@ -26,7 +26,7 @@ struct WalletListTransactionsTests {
             fileName: "GetTransactionResponse",
             bundle: Bundle.module
         )
-        let expected = try #require(model.toDomain())
+        let expected = model.toDomain()
         walletService.listTransactionsResult = [expected]
         let wallet = try makeEVMWallet(walletService: walletService)
 
