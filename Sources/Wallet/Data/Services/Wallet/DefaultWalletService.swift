@@ -32,10 +32,10 @@ struct DefaultWalletService: WalletService {
             Endpoint.createMeWallet(body: bodyData),
             errorType: WalletError.self
         ) { networkError in
-            mapToDeviceSignerNotSupportedErrorIfApplicable(
-                code: networkError.serviceErrorCode,
-                message: networkError.serviceErrorMessage
-            )
+            let code = networkError.serviceErrorCode
+            let message = networkError.serviceErrorMessage
+            return mapToDeviceSignerNotSupportedErrorIfApplicable(code: code, message: message)
+                ?? mapToRecoveryConfigRejectedIfApplicable(code: code, message: message)
         }
         let result = try decodeWalletOrThrow(responseData)
         Logger.smartWallet.info(LogEvents.apiCreateWalletSuccess, attributes: ["address": result.address])
@@ -170,6 +170,14 @@ struct DefaultWalletService: WalletService {
         guard code == "DEVICE_SIGNER_NOT_SUPPORTED" else { return nil }
         return .deviceSignerNotSupported(
             message ?? "Device signers are not supported for this wallet's provider."
+        )
+    }
+
+    private func mapToRecoveryConfigRejectedIfApplicable(code: String?, message: String?) -> WalletError? {
+        guard let code, let recoveryCode = WalletError.RecoveryConfigCode(rawValue: code) else { return nil }
+        return .recoveryConfigRejected(
+            code: recoveryCode,
+            message: message ?? "The recovery signer configuration was rejected"
         )
     }
 
