@@ -353,17 +353,18 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let locator: SignerLocator? = if let selectedSignerLocator {
-            selectedSignerLocator
+        let signerLocator: String?
+        if selectedSignerLocator == nil, let deviceLocator = await localDeviceSigner() {
+            signerLocator = deviceLocator.value
         } else {
-            await localDeviceSigner()
+            signerLocator = await transactionSignerLocator()
         }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
-            signer: locator?.value,
+            signer: signerLocator,
             idempotencyKey: idempotencyKey
         )
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
@@ -371,6 +372,14 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
+    }
+
+    internal func transactionSignerLocator() async -> String? {
+        if let selectedSignerLocator {
+            return selectedSignerLocator.value
+        }
+        guard config.recoveryMethods.count > 1 else { return nil }
+        return await signer.adminSigner.locator
     }
 
     internal func signAndPollWhilePending(
