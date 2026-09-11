@@ -1,3 +1,4 @@
+import CrossmintService
 import Foundation
 import Testing
 import TestsUtils
@@ -105,5 +106,50 @@ struct WalletApiModelTest {
         let locator = wallet.config.recovery.toDomain.locator
         let expectedLocator = "phone:+14155552671"
         #expect(locator == expectedLocator)
+    }
+
+    @Test(
+        "Will parse every recovery signer of a Solana wallet"
+    )
+    func willParseSolanaRecoveryList() async throws {
+        let wallet: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletSolanaRecoveryMethods",
+            bundle: Bundle.module
+        )
+
+        #expect(wallet.config.recoveryMethods?.map(\.type) == [.email, .phone, .externalWallet])
+        #expect(wallet.config.recovery.type == .email)
+        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == [
+            "email:alice@example.com",
+            "phone:+14155552671",
+            "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
+        ])
+    }
+
+    @Test(
+        "Will fall back to the admin signer when the recovery list is absent"
+    )
+    func willFallBackToAdminSigner() async throws {
+        let wallet: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletEVMEmail",
+            bundle: Bundle.module
+        )
+
+        #expect(wallet.config.recoveryMethods == nil)
+        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
+    }
+
+    @Test(
+        "Will fall back to the admin signer when the recovery list is empty"
+    )
+    func willFallBackToAdminSignerOnEmptyList() async throws {
+        let url = try #require(Bundle.module.url(forResource: "WalletEVMEmail", withExtension: "json"))
+        let fixture = try String(contentsOf: url, encoding: .utf8)
+        let json = fixture.replacingOccurrences(of: "\"adminSigner\"", with: "\"recovery\": [], \"adminSigner\"")
+
+        let wallet = try DefaultJSONCoder().decode(WalletApiModel.self, from: Data(json.utf8))
+
+        #expect(wallet.config.recoveryMethods?.isEmpty == true)
+        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
     }
 }
