@@ -7,35 +7,29 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
 
 public struct WalletConfigApiModel: Decodable {
     public let recovery: AdminSignerApiModel
+    let recoveryMethods: [AdminSignerApiModel]?
     let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
         case recovery = "adminSigner"
+        case recoveryMethods = "recovery"
         case signers = "delegatedSigners"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        // Decode the "type" field first to determine the correct signer type
-        let tempContainer = try container.nestedContainer(keyedBy: AdminSignerCodingKeys.self, forKey: .recovery)
-        let type = try tempContainer.decode(AdminSignerDataType.self, forKey: .type)
-
-        switch type {
-        case .passkey:
-            recovery = try container.decode(EvmPasskeySignerApiModel.self, forKey: .recovery)
-        case .email:
-            recovery = try container.decode(EmailSignerApiModel.self, forKey: .recovery)
-        case .phone:
-            recovery = try container.decode(PhoneSignerApiModel.self, forKey: .recovery)
-        case .apiKey:
-            recovery = try container.decode(ApiKeySignerApiModel.self, forKey: .recovery)
-        case .externalWallet:
-            recovery = try container.decode(ExternalWalletSignerApiModel.self, forKey: .recovery)
-        case .server:
-            recovery = try container.decode(ServerSignerApiModel.self, forKey: .recovery)
+        recovery = try Self.decodeSigner(from: container.superDecoder(forKey: .recovery))
+        if container.contains(.recoveryMethods) {
+            var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
+            var methods: [AdminSignerApiModel] = []
+            while !list.isAtEnd {
+                methods.append(try Self.decodeSigner(from: list.superDecoder()))
+            }
+            recoveryMethods = methods
+        } else {
+            recoveryMethods = nil
         }
-
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
 
@@ -43,7 +37,31 @@ public struct WalletConfigApiModel: Decodable {
         case type
     }
 
+    private static func decodeSigner(from decoder: Decoder) throws -> AdminSignerApiModel {
+        let typeContainer = try decoder.container(keyedBy: AdminSignerCodingKeys.self)
+        let type = try typeContainer.decode(AdminSignerDataType.self, forKey: .type)
+
+        switch type {
+        case .passkey:
+            return try EvmPasskeySignerApiModel(from: decoder)
+        case .email:
+            return try EmailSignerApiModel(from: decoder)
+        case .phone:
+            return try PhoneSignerApiModel(from: decoder)
+        case .apiKey:
+            return try ApiKeySignerApiModel(from: decoder)
+        case .externalWallet:
+            return try ExternalWalletSignerApiModel(from: decoder)
+        case .server:
+            return try ServerSignerApiModel(from: decoder)
+        }
+    }
+
     var toDomain: WalletConfig {
-        WalletConfig(recovery: recovery.toDomain)
+        let all = recoveryMethods ?? [recovery]
+        return WalletConfig(
+            recovery: (all.first ?? recovery).toDomain,
+            otherRecoveryMethods: all.dropFirst().map(\.toDomain)
+        )
     }
 }

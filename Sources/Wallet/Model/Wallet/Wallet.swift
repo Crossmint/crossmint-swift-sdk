@@ -8,6 +8,14 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
+    /// Every recovery signer of this wallet. The list reflects the wallet at load time.
+    ///
+    /// Each one can authorize on its own. Select the one this device holds with
+    /// ``useSigner(_:)``. EVM wallets always have exactly one.
+    public var recoveryMethods: [any AdminSignerData] {
+        config.recoveryMethods
+    }
+
     /// Fetches the current list of signers from the API.
     ///
     /// Each ``WalletSigner`` includes its registration ``WalletSigner/status`` on this
@@ -112,8 +120,9 @@ open class Wallet: @unchecked Sendable {
             .map(\.locator)
             .contains(locator) ?? false
         if delegatedMatch { return true }
-        let recovery = try? SignerLocator(from: walletModel.config.recovery.toDomain.locator)
-        return recovery == locator
+        return walletModel.config.toDomain.recoveryMethods.contains {
+            (try? SignerLocator(from: $0.locator)) == locator
+        }
     }
 
     /// Returns the locator of the device signer whose private key is on this device.
