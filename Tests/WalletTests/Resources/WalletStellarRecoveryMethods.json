@@ -1,0 +1,26 @@
+{
+  "type": "smart",
+  "chainType": "stellar",
+  "config": {
+    "adminSigner": {
+      "type": "email",
+      "email": "alice@example.com",
+      "locator": "email:alice@example.com"
+    },
+    "recovery": [
+      {
+        "type": "email",
+        "email": "alice@example.com",
+        "locator": "email:alice@example.com"
+      },
+      {
+        "type": "phone",
+        "phone": "+14155552671",
+        "locator": "phone:+14155552671"
+      }
+    ]
+  },
+  "address": "CA3SGE76PWYAM4OVKETY47GASUGYDF3Y3QFFSPIWFCNKQLUOO4SOIT2W",
+  "linkedUser": "email:alice@example.com",
+  "createdAt": "2026-09-01T10:00:00.000Z"
+}

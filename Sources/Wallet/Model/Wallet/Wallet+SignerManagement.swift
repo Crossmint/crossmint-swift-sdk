@@ -170,7 +170,7 @@ extension Wallet {
 
     internal func updateSignerIfRequired() async -> any Signer {
         var updatedSigner: any Signer = signer
-        if let passkey = config.recovery as? PasskeySignerData {
+        if let passkey = config.recoverySigner(ofType: PasskeySignerData.self) {
             if let passkeySigner = updatedSigner as? PasskeySigner {
                 updatedSigner = await passkeySigner.updateAdminSigner(
                     passkey
@@ -252,11 +252,11 @@ extension Wallet {
     }
 
     private func activateApiKeySigner() async throws(WalletError) {
-        let locator = try SignerLocator(from: config.recovery.locator)
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        guard let apiKeyData = config.recovery as? ApiKeySignerData else {
-            throw .walletGeneric("Recovery signer is not an ApiKeySignerData")
+        guard let apiKeyData = config.recoverySigner(ofType: ApiKeySignerData.self) else {
+            throw .signerNotRegistered(SignerLocator.apiKey().value)
         }
+        let locator = try SignerLocator(from: apiKeyData.locator)
+        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
         selectedSignerLocator = locator
     }
@@ -276,8 +276,8 @@ extension Wallet {
         let locator: SignerLocator
         if let delegatedPasskeyLocator {
             locator = delegatedPasskeyLocator
-        } else if config.recovery is PasskeySignerData {
-            locator = try SignerLocator(from: config.recovery.locator)
+        } else if let recoveryPasskey = config.recoverySigner(ofType: PasskeySignerData.self) {
+            locator = try SignerLocator(from: recoveryPasskey.locator)
         } else {
             throw .signerNotRegistered(SignerLocator.passkey(credentialId: name).value)
         }
