@@ -15,7 +15,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery.type == .passkey)
+        #expect(wallet.config.adminSigner.type == .passkey)
     }
 
     @Test(
@@ -27,8 +27,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery.type == .externalWallet)
-        let locator = wallet.config.recovery.toDomain.locator
+        #expect(wallet.config.adminSigner.type == .externalWallet)
+        let locator = wallet.config.adminSigner.toDomain.locator
         let expectedLocator = "external-wallet:0x1234567890123456789012345678901234567890"
         #expect(locator == expectedLocator)
     }
@@ -42,8 +42,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery.type == .externalWallet)
-        let locator = wallet.config.recovery.toDomain.locator
+        #expect(wallet.config.adminSigner.type == .externalWallet)
+        let locator = wallet.config.adminSigner.toDomain.locator
         let expectedLocator = "external-wallet:EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
         #expect(locator == expectedLocator)
     }
@@ -57,8 +57,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery.type == .apiKey)
-        let locator = wallet.config.recovery.toDomain.locator
+        #expect(wallet.config.adminSigner.type == .apiKey)
+        let locator = wallet.config.adminSigner.toDomain.locator
         let expectedLocator = "api-key:0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
         #expect(locator == expectedLocator)
     }
@@ -72,8 +72,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery.type == .email)
-        let locator = wallet.config.recovery.toDomain.locator
+        #expect(wallet.config.adminSigner.type == .email)
+        let locator = wallet.config.adminSigner.toDomain.locator
         let expectedLocator = "email:user@example.com"
         #expect(locator == expectedLocator)
     }
@@ -87,8 +87,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery.type == .email)
-        let locator = wallet.config.recovery.toDomain.locator
+        #expect(wallet.config.adminSigner.type == .email)
+        let locator = wallet.config.adminSigner.toDomain.locator
         let expectedLocator = "email:solana.user@example.com"
         #expect(locator == expectedLocator)
     }
@@ -102,8 +102,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery.type == .phone)
-        let locator = wallet.config.recovery.toDomain.locator
+        #expect(wallet.config.adminSigner.type == .phone)
+        let locator = wallet.config.adminSigner.toDomain.locator
         let expectedLocator = "phone:+14155552671"
         #expect(locator == expectedLocator)
     }
@@ -117,8 +117,8 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recoveryMethods?.map(\.type) == [.email, .phone, .externalWallet])
-        #expect(wallet.config.recovery.type == .email)
+        #expect(wallet.config.recovery?.map(\.type) == [.email, .phone, .externalWallet])
+        #expect(wallet.config.adminSigner.type == .email)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == [
             "email:alice@example.com",
             "phone:+14155552671",
@@ -135,7 +135,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recoveryMethods == nil)
+        #expect(wallet.config.recovery == nil)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
     }
 
@@ -149,7 +149,7 @@ struct WalletApiModelTest {
 
         let wallet = try DefaultJSONCoder().decode(WalletApiModel.self, from: Data(json.utf8))
 
-        #expect(wallet.config.recoveryMethods?.isEmpty == true)
+        #expect(wallet.config.recovery?.isEmpty == true)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
     }
 }

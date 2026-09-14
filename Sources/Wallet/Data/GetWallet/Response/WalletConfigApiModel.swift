@@ -6,29 +6,29 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
 }
 
 public struct WalletConfigApiModel: Decodable {
-    public let recovery: AdminSignerApiModel
-    let recoveryMethods: [AdminSignerApiModel]?
+    public let adminSigner: AdminSignerApiModel
+    let recovery: [AdminSignerApiModel]?
     let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
-        case recovery = "adminSigner"
-        case recoveryMethods = "recovery"
+        case adminSigner
+        case recovery
         case signers = "delegatedSigners"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        recovery = try Self.decodeSigner(from: container.superDecoder(forKey: .recovery))
-        if container.contains(.recoveryMethods) {
-            var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
-            var methods: [AdminSignerApiModel] = []
+        adminSigner = try Self.decodeSigner(from: container.superDecoder(forKey: .adminSigner))
+        if container.contains(.recovery) {
+            var list = try container.nestedUnkeyedContainer(forKey: .recovery)
+            var signers: [AdminSignerApiModel] = []
             while !list.isAtEnd {
-                methods.append(try Self.decodeSigner(from: list.superDecoder()))
+                signers.append(try Self.decodeSigner(from: list.superDecoder()))
             }
-            recoveryMethods = methods
+            recovery = signers
         } else {
-            recoveryMethods = nil
+            recovery = nil
         }
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
@@ -58,9 +58,9 @@ public struct WalletConfigApiModel: Decodable {
     }
 
     var toDomain: WalletConfig {
-        let all = recoveryMethods ?? [recovery]
+        let all = recovery ?? [adminSigner]
         return WalletConfig(
-            recovery: (all.first ?? recovery).toDomain,
+            recovery: (all.first ?? adminSigner).toDomain,
             otherRecoveryMethods: all.dropFirst().map(\.toDomain)
         )
     }
