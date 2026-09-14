@@ -58,10 +58,9 @@ public struct WalletConfigApiModel: Decodable {
     }
 
     var toDomain: WalletConfig {
-        let all = recovery ?? [adminSigner]
-        return WalletConfig(
-            recovery: (all.first ?? adminSigner).toDomain,
-            otherRecoveryMethods: all.dropFirst().map(\.toDomain)
-        )
+        guard let recovery, let first = recovery.first else {
+            return WalletConfig(recovery: adminSigner.toDomain)
+        }
+        return WalletConfig(recovery: first.toDomain, others: recovery.dropFirst().map(\.toDomain))
     }
 }

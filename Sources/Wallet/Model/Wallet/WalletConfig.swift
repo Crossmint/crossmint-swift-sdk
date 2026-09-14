@@ -2,17 +2,14 @@ import CrossmintCommonTypes
 import Foundation
 
 public struct WalletConfig {
-    /// The first recovery signer of the wallet.
-    public let recovery: AdminSignerData
-
     /// Every recovery signer of the wallet. Each one can authorize on its own.
-    public var recoveryMethods: [AdminSignerData] { [recovery] + otherRecoveryMethods }
+    public let recoveryMethods: [AdminSignerData]
 
-    let otherRecoveryMethods: [AdminSignerData]
+    /// The first recovery signer of the wallet.
+    public var recovery: AdminSignerData { recoveryMethods[0] }
 
-    init(recovery: AdminSignerData, otherRecoveryMethods: [AdminSignerData] = []) {
-        self.recovery = recovery
-        self.otherRecoveryMethods = otherRecoveryMethods
+    init(recovery: AdminSignerData, others: [AdminSignerData] = []) {
+        recoveryMethods = [recovery] + others
     }
 
     func recoverySigner<T: AdminSignerData>(ofType type: T.Type) -> T? {
