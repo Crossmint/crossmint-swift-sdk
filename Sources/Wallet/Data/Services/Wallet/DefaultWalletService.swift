@@ -32,10 +32,7 @@ struct DefaultWalletService: WalletService {
             Endpoint.createMeWallet(body: bodyData),
             errorType: WalletError.self
         ) { networkError in
-            mapToDeviceSignerNotSupportedErrorIfApplicable(
-                code: networkError.serviceErrorCode,
-                message: networkError.serviceErrorMessage
-            )
+            walletError(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
         }
         let result = try decodeWalletOrThrow(responseData)
         Logger.smartWallet.info(LogEvents.apiCreateWalletSuccess, attributes: ["address": result.address])
@@ -155,10 +152,7 @@ struct DefaultWalletService: WalletService {
             .meWalletSigners(chainType: chainType, body: bodyData),
             errorType: WalletError.self
         ) { networkError in
-            mapToDeviceSignerNotSupportedErrorIfApplicable(
-                code: networkError.serviceErrorCode,
-                message: networkError.serviceErrorMessage
-            )
+            walletError(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
         }
         guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: responseData) else {
             throw WalletError.walletGeneric("Failed to decode signer registration response")
@@ -166,11 +160,18 @@ struct DefaultWalletService: WalletService {
         return result
     }
 
-    private func mapToDeviceSignerNotSupportedErrorIfApplicable(code: String?, message: String?) -> WalletError? {
-        guard code == "DEVICE_SIGNER_NOT_SUPPORTED" else { return nil }
-        return .deviceSignerNotSupported(
-            message ?? "Device signers are not supported for this wallet's provider."
-        )
+    private func walletError(code: String?, message: String?) -> WalletError? {
+        guard let code else { return nil }
+        if code == "DEVICE_SIGNER_NOT_SUPPORTED" {
+            return .deviceSignerNotSupported(message ?? "Device signers are not supported for this wallet's provider.")
+        }
+        if let recoveryCode = WalletError.RecoveryConfigCode(rawValue: code) {
+            return .recoveryConfigRejected(
+                code: recoveryCode,
+                message: message ?? "The recovery signer configuration was rejected"
+            )
+        }
+        return nil
     }
 
     private func signerRegistrationChain(chainType: ChainType, chainName: String) -> String? {

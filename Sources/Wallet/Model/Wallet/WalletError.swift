@@ -22,6 +22,32 @@ public enum WalletError: CrossmintError {
     /// error code. ``Wallet/recover()`` catches it and falls back to the
     /// recovery signer.
     case deviceSignerNotSupported(String)
+    /// Crossmint rejected the recovery signer list. `message` explains the rejection.
+    case recoveryConfigRejected(code: RecoveryConfigCode, message: String)
+
+    /// The reason Crossmint rejected a recovery signer list.
+    public enum RecoveryConfigCode: String, Sendable {
+        /// The list has more recovery signers than the chain allows.
+        case signerLimitExceeded = "SIGNER_LIMIT_EXCEEDED"
+        /// The same signer appears more than once in the list.
+        case duplicateSigner = "RECOVERY_DUPLICATE_SIGNER"
+        /// The list contains a signer that is already registered on the wallet through
+        /// ``Wallet/addSigner(_:)``. A signer is a recovery signer or a registered signer, not both.
+        case signerConflict = "RECOVERY_SIGNER_CONFLICT"
+        /// A signer in the request already holds another role on the wallet, for example a recovery
+        /// signer passed to ``Wallet/addSigner(_:)``. Use a different signer.
+        case delegatedSignerConflict = "DELEGATED_SIGNER_CONFLICT"
+        /// The wallet has several recovery signers, and the operation did not name one. Call
+        /// ``Wallet/useSigner(_:)`` first.
+        case signerRequired = "SIGNER_REQUIRED"
+        /// The chain accepts a single recovery signer only.
+        case notSupportedOnChain = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
+        /// This SDK version targets an API version without recovery signer lists. Update the SDK.
+        case notSupportedOnApiVersion = "NOT_SUPPORTED_ON_API_VERSION"
+        /// The request named both a single recovery signer and a recovery list. The SDK does not
+        /// send this combination, so contact Crossmint support if you receive this code.
+        case adminSignerConflict = "RECOVERY_ADMIN_SIGNER_CONFLICT"
+    }
 
     public var code: String {
         switch self {
@@ -40,6 +66,7 @@ public enum WalletError: CrossmintError {
         case .invalidToken: "INVALID_TOKEN"
         case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
         case .deviceSignerNotSupported: "DEVICE_SIGNER_NOT_SUPPORTED"
+        case .recoveryConfigRejected(let code, _): code.rawValue
         }
     }
 
@@ -69,7 +96,7 @@ public enum WalletError: CrossmintError {
             "Invalid token: \(token.name)"
         case .signerNotRegistered(let locator):
             "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
-        case .deviceSignerNotSupported(let message):
+        case .deviceSignerNotSupported(let message), .recoveryConfigRejected(_, let message):
             message
         }
     }
@@ -90,6 +117,8 @@ public enum WalletError: CrossmintError {
             "Use the correct signer locator format, for example \"email:user@example.com\"."
         case .deviceSignerNotSupported:
             "Use the recovery signer or another registered signer for this wallet."
+        case .recoveryConfigRejected(let code, _):
+            code.recoverySuggestion
         default:
             nil
         }
@@ -98,6 +127,25 @@ public enum WalletError: CrossmintError {
     public var underlyingError: Swift.Error? {
         guard case .serviceError(let error) = self else { return nil }
         return error
+    }
+}
+
+extension WalletError.RecoveryConfigCode {
+    var recoverySuggestion: String? {
+        switch self {
+        case .signerLimitExceeded:
+            "Pass fewer recovery signers."
+        case .duplicateSigner:
+            "Remove the duplicated signer from the recovery list."
+        case .signerConflict, .delegatedSignerConflict:
+            "Use a signer that does not already hold another role on this wallet."
+        case .signerRequired:
+            "Call useSigner to select which recovery signer authorizes this operation."
+        case .notSupportedOnChain:
+            "Pass a single recovery signer on this chain."
+        case .notSupportedOnApiVersion, .adminSignerConflict:
+            nil
+        }
     }
 }
 
