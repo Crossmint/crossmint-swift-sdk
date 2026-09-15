@@ -24,6 +24,19 @@ struct DeviceInfoCache: Sendable {
     let networkConnectionType: String
     let cellularTechnology: String?
 
+    static let unknown = DeviceInfoCache(
+        model: "unknown",
+        deviceName: "unknown",
+        osName: "unknown",
+        osVersion: "unknown",
+        osBuild: "unknown",
+        architecture: "unknown",
+        appVersion: "unknown",
+        appBuild: "unknown",
+        networkConnectionType: "unknown",
+        cellularTechnology: nil
+    )
+
     #if canImport(UIKit)
     @MainActor
     private static func getDeviceModel() -> String {

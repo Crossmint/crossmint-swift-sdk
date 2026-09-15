@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Utils
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -17,14 +16,12 @@ actor DataDogLoggerProvider: LoggerProvider {
     private let batchTimeoutSeconds: TimeInterval = 5.0
 
     // MARK: - Configuration
-    private let service: String
-    private let environment: String
+    private let formatter: DataDogLogFormatter
     private let intakeUrl: String
 
     // MARK: - State
     private var batchQueue: [LogEntry] = []
     private var batchTask: Task<Void, Never>?
-    private let sessionId: String
     private var deviceInfo: DeviceInfoCache?
 
     // MARK: - Cached device info (single capture task)
@@ -39,13 +36,14 @@ actor DataDogLoggerProvider: LoggerProvider {
         return formatter
     }()
 
-    private let serviceName = "crossmint-ios-sdk"
-
     // MARK: - Initialization
     init(service: String, clientToken: String, environment: String) {
-        self.service = service
-        self.environment = environment
-        self.sessionId = Self.generateSessionId()
+        self.formatter = DataDogLogFormatter(
+            loggerName: service,
+            environment: environment,
+            sessionId: Self.generateSessionId(),
+            hostname: Bundle.main.bundleIdentifier ?? "unknown"
+        )
         self.deviceInfo = nil
 
         let datadogUrl = "https://http-intake.logs.datadoghq.com/v1/input/\(clientToken)"
@@ -183,84 +181,12 @@ actor DataDogLoggerProvider: LoggerProvider {
         return "\(message) \(attributeStrings)"
     }
 
-    // swiftlint:disable:next function_body_length
     private func formatLogForDataDog(_ entry: LogEntry) -> [String: Any] {
-        let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
-
-        let info = deviceInfo ?? DeviceInfoCache(
-            model: "unknown",
-            deviceName: "unknown",
-            osName: "unknown",
-            osVersion: "unknown",
-            osBuild: "unknown",
-            architecture: "unknown",
-            appVersion: "unknown",
-            appBuild: "unknown",
-            networkConnectionType: "unknown",
-            cellularTechnology: nil
+        formatter.payload(
+            for: entry,
+            deviceInfo: deviceInfo ?? .unknown,
+            threadName: Self.getThreadName()
         )
-
-        var attributes: [String: Any] = [
-            "date": entry.timestamp,
-            "os": [
-                "build": info.osBuild,
-                "name": info.osName,
-                "version": info.osVersion
-            ],
-            "build_version": info.appBuild,
-            "service": serviceName,
-            "logger": [
-                "thread_name": Self.getThreadName(),
-                "name": service,
-                "version": SDKVersion.version
-            ],
-            "version": info.appVersion,
-            "platform": "ios",
-            "_dd": [
-                "device": [
-                    "name": info.deviceName,
-                    "model": info.model,
-                    "brand": "Apple",
-                    "architecture": info.architecture
-                ]
-            ],
-            "status": mapLevelToStatus(entry.level)
-        ]
-
-        var networkInfo: [String: Any] = [
-            "client": [
-                "type": info.networkConnectionType
-            ]
-        ]
-
-        if let cellularTech = info.cellularTechnology {
-            if var client = networkInfo["client"] as? [String: Any] {
-                client["cellular_technology"] = cellularTech
-                networkInfo["client"] = client
-            }
-        }
-
-        attributes["network"] = networkInfo
-
-        for (key, value) in entry.context {
-            attributes[key] = value
-        }
-
-        let log: [String: Any] = [
-            "timestamp": entry.timestamp,
-            "tags": [
-                "env:\(environment)",
-                "version:\(info.appVersion)",
-                "source:ios"
-            ],
-            "service": serviceName,
-            "message": entry.message,
-            "hostname": bundleId,
-            "dd-session_id": sessionId,
-            "attributes": attributes
-        ]
-
-        return log
     }
 
     private static func getThreadName() -> String {
@@ -271,19 +197,6 @@ actor DataDogLoggerProvider: LoggerProvider {
             return name
         }
         return "background"
-    }
-
-    private func mapLevelToStatus(_ level: LogLevel) -> String {
-        switch level {
-        case .debug, .info:
-            return "info"
-        case .warning:
-            return "warn"
-        case .error:
-            return "error"
-        case .silent:
-            return "none"
-        }
     }
 
     // MARK: - Session ID Generation
