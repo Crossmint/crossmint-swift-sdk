@@ -46,6 +46,7 @@ public protocol ApprovalSigner: Sendable {
     /// with no key on this device.
     var locator: SignerLocator? { get async }
 
+    /// Prepares the signer to approve through `service`. Signers with no setup step do nothing.
     func initialize(_ service: SmartWalletService?) async throws(SignerError)
 
     /// Signs `message` and returns the approval entries to submit for it.
