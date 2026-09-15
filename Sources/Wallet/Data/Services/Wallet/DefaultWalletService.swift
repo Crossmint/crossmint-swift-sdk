@@ -166,7 +166,10 @@ struct DefaultWalletService: WalletService {
             return .deviceSignerNotSupported(message ?? "Device signers are not supported for this wallet's provider.")
         }
         if let recoveryCode = WalletError.RecoveryConfigCode(rawValue: code) {
-            return .recoveryConfigRejected(code: recoveryCode, message: message ?? "The recovery signer configuration was rejected")
+            return .recoveryConfigRejected(
+                code: recoveryCode,
+                message: message ?? "The recovery signer configuration was rejected"
+            )
         }
         return nil
     }
