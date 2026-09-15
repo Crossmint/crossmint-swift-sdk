@@ -65,7 +65,7 @@ public enum WalletError: CrossmintError {
         case .invalidChain: "INVALID_CHAIN"
         case .invalidToken: "INVALID_TOKEN"
         case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
-        case .deviceSignerNotSupported: "DEVICE_SIGNER_NOT_SUPPORTED"
+        case .deviceSignerNotSupported: Self.deviceSignerNotSupportedCode
         case .recoveryConfigRejected(let code, _): code.rawValue
         }
     }
@@ -128,6 +128,10 @@ public enum WalletError: CrossmintError {
         guard case .serviceError(let error) = self else { return nil }
         return error
     }
+}
+
+extension WalletError {
+    static let deviceSignerNotSupportedCode = "DEVICE_SIGNER_NOT_SUPPORTED"
 }
 
 extension WalletError.RecoveryConfigCode {

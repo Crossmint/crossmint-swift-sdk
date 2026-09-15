@@ -162,7 +162,7 @@ struct DefaultWalletService: WalletService {
 
     private func walletError(code: String?, message: String?) -> WalletError? {
         guard let code else { return nil }
-        if code == "DEVICE_SIGNER_NOT_SUPPORTED" {
+        if code == WalletError.deviceSignerNotSupportedCode {
             return .deviceSignerNotSupported(message ?? "Device signers are not supported for this wallet's provider.")
         }
         if let recoveryCode = WalletError.RecoveryConfigCode(rawValue: code) {
