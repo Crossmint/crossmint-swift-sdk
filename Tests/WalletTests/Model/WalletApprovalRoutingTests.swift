@@ -22,7 +22,7 @@ struct WalletApprovalRoutingTests {
     private let storage = MockDeviceSignerKeyStorage()
     private let adminSigner = MockSigner()
 
-    private func makeWallet() throws -> SolanaWallet {
+    private func makeWallet(withDeviceStorage: Bool = true) throws -> SolanaWallet {
         let fixtureUrl = try #require(Bundle.module.url(forResource: "WalletSolanaEmail", withExtension: "json"))
         walletService.getWalletFixture = try Data(contentsOf: fixtureUrl)
         let signedTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
@@ -41,7 +41,7 @@ struct WalletApprovalRoutingTests {
             baseModel: baseModel,
             solanaChain: .solana,
             onTransactionStart: nil,
-            deviceSignerKeyStorage: storage
+            deviceSignerKeyStorage: withDeviceStorage ? storage : nil
         )
     }
 
@@ -147,5 +147,55 @@ struct WalletApprovalRoutingTests {
             return
         }
         #expect(locator == ADMIN_LOCATOR)
+    }
+
+    @Test func buildsADeviceApprovalForADeviceLocator() async throws {
+        let wallet = try makeWallet()
+        let publicKeyBase64 = try await storage.generateKey(address: wallet.address)
+
+        let request = try await wallet.makeSignRequest(for: STALE_DEVICE_LOCATOR, message: "approval-message")
+
+        guard case let .device(locator, signature) = try #require(request.approvals.first) else {
+            Issue.record("Expected a device approval")
+            return
+        }
+        #expect(locator == "device:\(publicKeyBase64)")
+        #expect(signature.r == "0xr")
+        #expect(signature.s == "0xs")
+        #expect(adminSigner.initializeCallCount == 0)
+    }
+
+    @Test func buildsAKeypairApprovalForTheAdminLocator() async throws {
+        let wallet = try makeWallet()
+
+        let request = try await wallet.makeSignRequest(for: ADMIN_LOCATOR, message: "approval-message")
+
+        guard case let .keypair(locator, signature) = try #require(request.approvals.first) else {
+            Issue.record("Expected a keypair approval")
+            return
+        }
+        #expect(locator == ADMIN_LOCATOR)
+        #expect(signature == "admin-signature")
+        #expect(adminSigner.initializeCallCount == 1)
+    }
+
+    @Test func fallsBackToTheAdminSignerForAnUnrecognisedLocator() async throws {
+        let wallet = try makeWallet()
+
+        let request = try await wallet.makeSignRequest(for: "not-a-locator", message: "approval-message")
+
+        guard case let .keypair(locator, _) = try #require(request.approvals.first) else {
+            Issue.record("Expected a keypair approval")
+            return
+        }
+        #expect(locator == ADMIN_LOCATOR)
+    }
+
+    @Test func throwsKeyNotFoundForADeviceLocatorWithoutDeviceStorage() async throws {
+        let wallet = try makeWallet(withDeviceStorage: false)
+
+        await #expect(throws: SignerError.device(.keyNotFound)) {
+            try await wallet.makeSignRequest(for: STALE_DEVICE_LOCATOR, message: "approval-message")
+        }
     }
 }
