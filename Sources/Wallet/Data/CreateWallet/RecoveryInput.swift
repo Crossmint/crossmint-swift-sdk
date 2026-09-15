@@ -27,14 +27,21 @@ enum RecoveryInput {
         }
     }
 
-    func activeSigner(for first: any AdminSignerData) async -> any Signer {
+    func activeSigner(for first: any AdminSignerData, initialized: Bool) async -> any Signer {
         guard case .list(let signers) = self else { return active }
         let sameType = signers.filter { $0.signerType.rawValue == first.type.rawValue }
         guard sameType.count > 1 else { return sameType.first ?? active }
-        for signer in sameType where signer.signerType == .email || signer.signerType == .phone {
+        for signer in sameType where initialized || Self.knowsLocatorBeforeInitialization(signer) {
             if await signer.adminSigner.locator == first.locator { return signer }
         }
         return sameType[0]
+    }
+
+    private static func knowsLocatorBeforeInitialization(_ signer: any Signer) -> Bool {
+        switch signer.signerType {
+        case .email, .phone, .apiKey: true
+        case .passkey, .externalWallet: false
+        }
     }
 
     func inputConfig(delegatedSigners: [DelegatedSignerEntry]?) async -> CreateWalletParams.InputConfig {
