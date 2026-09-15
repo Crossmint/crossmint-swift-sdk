@@ -71,7 +71,7 @@ extension Signer {
     public var locator: SignerLocator? {
         get async {
             let rawLocator = await adminSigner.locator
-            return try? SignerLocator(from: rawLocator)
+            return SignerLocator(orUnknown: rawLocator)
         }
     }
 

@@ -181,7 +181,7 @@ extension Wallet {
     }
 
     internal func approvalSigner(for rawLocator: String) async throws(SignerError) -> any ApprovalSigner {
-        let locator = (try? SignerLocator(from: rawLocator)) ?? .unknown(rawLocator)
+        let locator = SignerLocator(orUnknown: rawLocator)
         if let selectedSigner, await selectedSigner.locator == locator {
             return selectedSigner
         }
