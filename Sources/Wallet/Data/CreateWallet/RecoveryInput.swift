@@ -53,7 +53,7 @@ enum RecoveryInput {
             for signer in signers {
                 methods.append(await signer.adminSigner)
             }
-            return .init(recovery: methods, delegatedSigners: delegatedSigners)
+            return .init(recoveryMethods: methods, delegatedSigners: delegatedSigners)
         }
     }
 

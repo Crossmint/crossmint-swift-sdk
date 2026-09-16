@@ -117,7 +117,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery?.map(\.type) == [.email, .phone, .externalWallet])
+        #expect(wallet.config.recoveryMethods?.map(\.type) == [.email, .phone, .externalWallet])
         #expect(wallet.config.adminSigner.type == .email)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == [
             "email:alice@example.com",
@@ -135,7 +135,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recovery == nil)
+        #expect(wallet.config.recoveryMethods == nil)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
     }
 
@@ -145,11 +145,11 @@ struct WalletApiModelTest {
     func willFallBackToAdminSignerOnEmptyList() async throws {
         let url = try #require(Bundle.module.url(forResource: "WalletEVMEmail", withExtension: "json"))
         let fixture = try String(contentsOf: url, encoding: .utf8)
-        let json = fixture.replacingOccurrences(of: "\"adminSigner\"", with: "\"recovery\": [], \"adminSigner\"")
+        let json = fixture.replacingOccurrences(of: "\"adminSigner\"", with: "\"recoveryMethods\": [], \"adminSigner\"")
 
         let wallet = try DefaultJSONCoder().decode(WalletApiModel.self, from: Data(json.utf8))
 
-        #expect(wallet.config.recovery?.isEmpty == true)
+        #expect(wallet.config.recoveryMethods?.isEmpty == true)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
     }
 }
