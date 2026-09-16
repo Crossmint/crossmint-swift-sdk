@@ -191,7 +191,7 @@ struct RecoverySignerListCreationTests {
 
         let config = try #require(walletService.lastCreateWalletParams?.config)
         #expect(config.adminSigner == nil)
-        #expect(config.recovery?.count == 2)
+        #expect(config.recoveryMethods?.count == 2)
     }
 
     @Test func sendsASingleSignerUnderAdminSigner() async throws {
@@ -201,7 +201,7 @@ struct RecoverySignerListCreationTests {
 
         let config = try #require(walletService.lastCreateWalletParams?.config)
         #expect(config.adminSigner != nil)
-        #expect(config.recovery == nil)
+        #expect(config.recoveryMethods == nil)
     }
 
     @Test func activatesTheApiFirstRecoverySignerNotTheCallerFirst() async throws {
