@@ -1,10 +1,3 @@
-//
-//  WalletApprovalRoutingTests.swift
-//  CrossmintSDK
-//
-//  Created by Tomas Martins on 04/09/26.
-//
-
 import CrossmintCommonTypes
 import Foundation
 import Testing
@@ -25,20 +18,15 @@ struct WalletApprovalRoutingTests {
     private func makeWallet(withDeviceStorage: Bool = true) throws -> SolanaWallet {
         let fixtureUrl = try #require(Bundle.module.url(forResource: "WalletSolanaEmail", withExtension: "json"))
         walletService.getWalletFixture = try Data(contentsOf: fixtureUrl)
-        let signedTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
             fileName: "SolanaSignerRegistrationAwaitingApproval",
             bundle: Bundle.module
-        )
-        walletService.fetchTransactionResult = signedTransaction
+        ) as SolanaTransactionApiModel
         adminSigner.approvalsResult = [.keypair(signer: ADMIN_LOCATOR, signature: "admin-signature")]
-        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-            fileName: "WalletSolanaEmail",
-            bundle: Bundle.module
-        )
         return try SolanaWallet(
             smartWalletService: walletService,
             signer: adminSigner,
-            baseModel: baseModel,
+            baseModel: try GetFromFile.getModelFrom(fileName: "WalletSolanaEmail", bundle: Bundle.module),
             solanaChain: .solana,
             onTransactionStart: nil,
             deviceSignerKeyStorage: withDeviceStorage ? storage : nil
@@ -53,17 +41,13 @@ struct WalletApprovalRoutingTests {
             params: .init(signer: locator),
             walletType: .smart,
             createdAt: Date(),
-            approvals: .init(
-                pending: [.init(signer: locator, message: "approval-message")],
-                submitted: []
-            ),
+            approvals: .init(pending: [.init(signer: locator, message: "approval-message")], submitted: []),
             error: nil
         )
     }
 
     private func submittedApproval() throws -> SignRequestApi.Approval {
-        let request = try #require(walletService.lastSignTransactionRequest)
-        return try #require(request.apiRequest.approvals.first)
+        try #require(walletService.lastSignTransactionRequest?.apiRequest.approvals.first)
     }
 
     @Test func routesDeviceLocatorToTheDeviceSigner() async throws {
@@ -72,25 +56,8 @@ struct WalletApprovalRoutingTests {
 
         _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: "device:\(publicKeyBase64)"))
 
-        guard case let .device(locator, _) = try submittedApproval() else {
-            Issue.record("Expected a device approval")
-            return
-        }
-        #expect(locator == "device:\(publicKeyBase64)")
+        #expect(try #require(submittedApproval().device).0 == "device:\(publicKeyBase64)")
         #expect(adminSigner.initializeCallCount == 0)
-    }
-
-    @Test func routesStaleDeviceLocatorToTheCurrentDeviceKey() async throws {
-        let wallet = try makeWallet()
-        let publicKeyBase64 = try await storage.generateKey(address: wallet.address)
-
-        _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: STALE_DEVICE_LOCATOR))
-
-        guard case let .device(locator, _) = try submittedApproval() else {
-            Issue.record("Expected a device approval")
-            return
-        }
-        #expect(locator == "device:\(publicKeyBase64)")
     }
 
     @Test func failsDeviceLocatorWithoutALocalKey() async throws {
@@ -110,12 +77,7 @@ struct WalletApprovalRoutingTests {
 
         _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: ADMIN_LOCATOR))
 
-        guard case let .keypair(locator, signature) = try submittedApproval() else {
-            Issue.record("Expected a keypair approval")
-            return
-        }
-        #expect(locator == ADMIN_LOCATOR)
-        #expect(signature == "admin-signature")
+        #expect(try #require(submittedApproval().keypair) == (ADMIN_LOCATOR, "admin-signature"))
         #expect(adminSigner.initializeCallCount == 1)
     }
 
@@ -127,11 +89,7 @@ struct WalletApprovalRoutingTests {
 
         _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: ADMIN_LOCATOR))
 
-        guard case let .keypair(_, signature) = try submittedApproval() else {
-            Issue.record("Expected a keypair approval")
-            return
-        }
-        #expect(signature == "selected-signature")
+        #expect(try #require(submittedApproval().keypair).1 == "selected-signature")
         #expect(adminSigner.initializeCallCount == 0)
     }
 
@@ -142,41 +100,19 @@ struct WalletApprovalRoutingTests {
 
         _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: ADMIN_LOCATOR))
 
-        guard case let .keypair(locator, _) = try submittedApproval() else {
-            Issue.record("Expected a keypair approval")
-            return
-        }
-        #expect(locator == ADMIN_LOCATOR)
+        #expect(try #require(submittedApproval().keypair).0 == ADMIN_LOCATOR)
     }
 
-    @Test func buildsADeviceApprovalForADeviceLocator() async throws {
+    @Test func buildsADeviceApprovalForAStaleDeviceLocator() async throws {
         let wallet = try makeWallet()
         let publicKeyBase64 = try await storage.generateKey(address: wallet.address)
 
         let request = try await wallet.makeSignRequest(for: STALE_DEVICE_LOCATOR, message: "approval-message")
 
-        guard case let .device(locator, signature) = try #require(request.approvals.first) else {
-            Issue.record("Expected a device approval")
-            return
-        }
-        #expect(locator == "device:\(publicKeyBase64)")
-        #expect(signature.r == "0xr")
-        #expect(signature.s == "0xs")
+        let (signer, signature) = try #require(request.approvals.first?.device)
+        #expect(signer == "device:\(publicKeyBase64)")
+        #expect((signature.r, signature.s) == ("0xr", "0xs"))
         #expect(adminSigner.initializeCallCount == 0)
-    }
-
-    @Test func buildsAKeypairApprovalForTheAdminLocator() async throws {
-        let wallet = try makeWallet()
-
-        let request = try await wallet.makeSignRequest(for: ADMIN_LOCATOR, message: "approval-message")
-
-        guard case let .keypair(locator, signature) = try #require(request.approvals.first) else {
-            Issue.record("Expected a keypair approval")
-            return
-        }
-        #expect(locator == ADMIN_LOCATOR)
-        #expect(signature == "admin-signature")
-        #expect(adminSigner.initializeCallCount == 1)
     }
 
     @Test func fallsBackToTheAdminSignerForAnUnrecognisedLocator() async throws {
@@ -184,11 +120,7 @@ struct WalletApprovalRoutingTests {
 
         let request = try await wallet.makeSignRequest(for: "not-a-locator", message: "approval-message")
 
-        guard case let .keypair(locator, _) = try #require(request.approvals.first) else {
-            Issue.record("Expected a keypair approval")
-            return
-        }
-        #expect(locator == ADMIN_LOCATOR)
+        #expect(try #require(request.approvals.first?.keypair).0 == ADMIN_LOCATOR)
     }
 
     @Test func throwsKeyNotFoundForADeviceLocatorWithoutDeviceStorage() async throws {
