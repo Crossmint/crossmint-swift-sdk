@@ -27,7 +27,7 @@ enum RecoveryInput {
         }
     }
 
-    func activeSigner(for first: any AdminSignerData, initialized: Bool) async -> any Signer {
+    func defaultSigner(for first: any AdminSignerData, initialized: Bool) async -> any Signer {
         guard case .list(let signers) = self else { return active }
         let sameType = signers.filter { $0.signerType.rawValue == first.type.rawValue }
         guard sameType.count > 1 else { return sameType.first ?? active }
