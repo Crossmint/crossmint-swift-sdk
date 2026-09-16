@@ -1,3 +1,10 @@
+//
+//  ApprovalHelpers.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 16/09/26.
+//
+
 @testable import Wallet
 
 extension SignRequestApi.Approval {

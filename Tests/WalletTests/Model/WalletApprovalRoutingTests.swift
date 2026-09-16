@@ -1,3 +1,10 @@
+//
+//  WalletApprovalRoutingTests.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 04/09/26.
+//
+
 import CrossmintCommonTypes
 import Foundation
 import Testing

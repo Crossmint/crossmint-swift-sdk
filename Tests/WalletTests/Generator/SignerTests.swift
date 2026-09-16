@@ -1,3 +1,10 @@
+//
+//  SignerTests.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 15/09/26.
+//
+
 import Testing
 
 @testable import Wallet

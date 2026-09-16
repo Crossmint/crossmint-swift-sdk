@@ -1,3 +1,10 @@
+//
+//  DeviceSignerTests.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 04/09/26.
+//
+
 import DeviceSigner
 import Foundation
 import Testing
