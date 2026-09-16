@@ -29,14 +29,6 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         try await getWallet(chain: chain, recovery: .single(recovery), options: options)
     }
 
-    public func getWallet(
-        chain: Chain,
-        recovery: [any Signer],
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> Wallet? {
-        try await getWallet(chain: chain, recovery: .list(recovery), options: options)
-    }
-
     public func createWallet(
         chain: Chain,
         recovery: any Signer,
@@ -83,7 +75,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             await assignPendingDeviceSignerKey(storage: storage, walletApiModel: walletApiModel)
         }
 
-        let defaultSigner = await recovery.defaultSigner(for: walletApiModel.config.toDomain.recovery, initialized: false)
+        let defaultSigner = recovery.active
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
@@ -114,7 +106,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             deviceSignerStorage: deviceSignerStorage
         )
 
-        let defaultSigner = await recovery.defaultSigner(for: creation.model.config.toDomain.recovery, initialized: true)
+        let defaultSigner = await recovery.defaultSigner(for: creation.model.config.toDomain.recovery)
         let wallet = try buildWallet(
             from: creation.model,
             chain: chain,

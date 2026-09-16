@@ -21,12 +21,6 @@ private final class SpyCrossmintWallets: CrossmintWallets, @unchecked Sendable {
         throw .walletGeneric("unexpected single-signer call")
     }
 
-    func getWallet(chain: Chain, recovery: [any Signer], options: WalletOptions?) async throws(WalletError) -> Wallet? {
-        receivedChain = chain
-        receivedSigners = recovery
-        return wallet
-    }
-
     func createWallet(chain: Chain, recovery: any Signer, options: WalletOptions?) async throws(WalletError) -> Wallet {
         throw .walletGeneric("unexpected single-signer call")
     }
@@ -106,7 +100,7 @@ struct CrossmintWalletsRecoveryOverloadTests {
             let wallets = SingleSignerCrossmintWallets()
 
             await #expect(throws: WalletError.self) {
-                _ = try await wallets.getWallet(
+                _ = try await wallets.createWallet(
                     chain: SolanaChain.solana,
                     recovery: [.email("alice@example.com"), .phone("+14155552671")]
                 )

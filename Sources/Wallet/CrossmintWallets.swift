@@ -37,21 +37,6 @@ public protocol CrossmintWallets: Sendable {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet?
 
-    /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
-    ///
-    /// The wallet's first recovery signer, as the API reports it, is the active signer until
-    /// ``Wallet/useSigner(_:)`` selects another one.
-    ///
-    /// - Parameters:
-    ///   - chain: The blockchain to look up.
-    ///   - recovery: The signers that can each authorize recovery operations for this wallet.
-    ///   - options: Optional configuration, such as enabling a device signer.
-    func getWallet(
-        chain: Chain,
-        recovery: [any Signer],
-        options: WalletOptions?
-    ) async throws(WalletError) -> Wallet?
-
     /// Creates a new smart wallet for the authenticated user on the given chain.
     ///
     /// Deploys the wallet contract on-chain. Calling this when a wallet already exists
@@ -88,32 +73,18 @@ public protocol CrossmintWallets: Sendable {
 }
 
 extension CrossmintWallets {
-    /// Conformers that implement only the single-signer entry points get this default. It forwards
+    /// Conformers that implement only the single-signer entry point get this default. It forwards
     /// a one-signer list to the single-signer entry point and throws ``WalletError/walletGeneric(_:)``
     /// for a longer list.
-    public func getWallet(
-        chain: Chain,
-        recovery: [any Signer],
-        options: WalletOptions?
-    ) async throws(WalletError) -> Wallet? {
-        let signer = try Self.onlySigner(in: recovery)
-        return try await getWallet(chain: chain, recovery: signer, options: options)
-    }
-
     public func createWallet(
         chain: Chain,
         recovery: [any Signer],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
-        let signer = try Self.onlySigner(in: recovery)
-        return try await createWallet(chain: chain, recovery: signer, options: options)
-    }
-
-    private static func onlySigner(in recovery: [any Signer]) throws(WalletError) -> any Signer {
         guard recovery.count == 1, let signer = recovery.first else {
             throw .walletGeneric("This CrossmintWallets implementation accepts a single recovery signer")
         }
-        return signer
+        return try await createWallet(chain: chain, recovery: signer, options: options)
     }
 
     // MARK: - getWallet convenience overloads
@@ -174,28 +145,6 @@ extension CrossmintWallets {
         guard let wallet = try await getWallet(
             chain: Chain(chain.name),
             recovery: await recovery.signer,
-            options: options
-        ) else { return nil }
-        guard let typed = wallet as? C.WalletType else {
-            throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
-        }
-        return typed
-    }
-
-    /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
-    ///
-    /// Each recovery signer can authorize on its own. Only Solana and Stellar accept more than one.
-    /// The wallet's first recovery signer, as the API reports it, is the active signer until
-    /// ``Wallet/useSigner(_:)`` selects another one.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
-    public func getWallet<C: ChainWithSigners>(
-        chain: C,
-        recovery: [C.SpecificSigner],
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> C.WalletType? {
-        guard let wallet = try await getWallet(
-            chain: Chain(chain.name),
-            recovery: await signers(recovery),
             options: options
         ) else { return nil }
         guard let typed = wallet as? C.WalletType else {
