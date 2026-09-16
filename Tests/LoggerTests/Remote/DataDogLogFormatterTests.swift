@@ -1,10 +1,3 @@
-//
-//  DataDogLogFormatterTests.swift
-//  CrossmintSDK
-//
-//  Created by Tomas Martins on 15/09/26.
-//
-
 import Foundation
 @testable import Logger
 import Testing
@@ -13,138 +6,90 @@ import Utils
 @Suite("DataDog log payload", .tags(.unit))
 struct DataDogLogFormatterTests {
     static let LOGGER_NAME = "wallet"
-    static let ENVIRONMENT = "production"
     static let SESSION_ID = "0123456789abcdef"
     static let HOSTNAME = "com.example.app"
     static let THREAD_NAME = "main"
+    static let STRUCTURED_OBJECTS: [(String, [String: String])] = [
+        ("os", ["name": "iOS", "version": "26.0", "build": "23A340"]),
+        ("device", ["name": "Tomas iPhone", "model": "iPhone", "brand": "Apple", "architecture": "arm64e"]),
+        ("logger", [
+            "name": LOGGER_NAME, "version": SDKVersion.version, "thread_name": THREAD_NAME, "app_id": HOSTNAME
+        ])
+    ]
+    static let NETWORK_CLIENTS: [(String?, [String: String])] = [
+        ("5G", ["type": "cellular", "cellular_technology": "5G"]),
+        (nil, ["type": "wifi"])
+    ]
 
     let formatter = DataDogLogFormatter(
         loggerName: LOGGER_NAME,
-        environment: ENVIRONMENT,
+        environment: "production",
         sessionId: SESSION_ID,
         hostname: HOSTNAME
     )
-
-    let deviceInfo = makeDeviceInfo()
 
     static func makeDeviceInfo(
         networkConnectionType: String = "cellular",
         cellularTechnology: String? = "5G"
     ) -> DeviceInfoCache {
         DeviceInfoCache(
-            model: "iPhone",
-            deviceName: "Tomas iPhone",
-            osName: "iOS",
-            osVersion: "26.0",
-            osBuild: "23A340",
-            architecture: "arm64e",
-            appVersion: "3.1.4",
-            appBuild: "42",
-            networkConnectionType: networkConnectionType,
-            cellularTechnology: cellularTechnology
+            model: "iPhone", deviceName: "Tomas iPhone", osName: "iOS", osVersion: "26.0", osBuild: "23A340",
+            architecture: "arm64e", appVersion: "3.1.4", appBuild: "42",
+            networkConnectionType: networkConnectionType, cellularTechnology: cellularTechnology
         )
     }
 
-    func makeEntry(
+    func payload(
         level: LogLevel = .info,
-        message: String = "wallet created",
-        context: [String: Encodable] = [:]
-    ) -> LogEntry {
-        LogEntry(level: level, message: message, timestamp: "2026-09-15T10:00:00.000Z", context: context)
-    }
-
-    func makePayload(entry: LogEntry? = nil) -> [String: Any] {
-        formatter.payload(for: entry ?? makeEntry(), deviceInfo: deviceInfo, threadName: Self.THREAD_NAME)
-    }
-
-    @Test func sendsTagsAsCommaSeparatedDdtagsString() throws {
-        let ddtags = try #require(makePayload()["ddtags"] as? String)
-
-        #expect(ddtags == "env:production,sdk_version:\(SDKVersion.version),version:3.1.4")
-    }
-
-    @Test func sendsSourceAsTopLevelDdsource() {
-        #expect(makePayload()["ddsource"] as? String == "ios")
+        context: [String: Encodable] = [:],
+        deviceInfo: DeviceInfoCache = makeDeviceInfo()
+    ) -> [String: Any] {
+        formatter.payload(
+            for: LogEntry(level: level, message: "wallet created", timestamp: "2026-09-15T10:00:00Z", context: context),
+            deviceInfo: deviceInfo,
+            threadName: Self.THREAD_NAME
+        )
     }
 
     @Test func sendsReservedAttributesAtTopLevel() {
-        let payload = makePayload()
+        let payload = payload()
 
+        #expect(payload["ddtags"] as? String == "env:production,sdk_version:\(SDKVersion.version),version:3.1.4")
+        #expect(payload["ddsource"] as? String == "ios")
         #expect(payload["message"] as? String == "wallet created")
-        #expect(payload["status"] as? String == "info")
         #expect(payload["service"] as? String == "crossmint-ios-sdk")
         #expect(payload["hostname"] as? String == Self.HOSTNAME)
-        #expect(payload["timestamp"] as? String == "2026-09-15T10:00:00.000Z")
+        #expect(payload["timestamp"] as? String == "2026-09-15T10:00:00Z")
         #expect(payload["dd-session_id"] as? String == Self.SESSION_ID)
         #expect(payload["platform"] as? String == "ios")
         #expect(payload["version"] as? String == "3.1.4")
         #expect(payload["build_version"] as? String == "42")
     }
 
-    @Test func sendsOsAsTopLevelObject() throws {
-        let os = try #require(makePayload()["os"] as? [String: String])
-
-        #expect(os == ["name": "iOS", "version": "26.0", "build": "23A340"])
+    @Test(arguments: STRUCTURED_OBJECTS)
+    func sendsStructuredObjectsAtTopLevel(key: String, expected: [String: String]) {
+        #expect(payload()[key] as? [String: String] == expected)
     }
 
-    @Test func sendsDeviceAsTopLevelObject() throws {
-        let device = try #require(makePayload()["device"] as? [String: String])
+    @Test(arguments: NETWORK_CLIENTS)
+    func sendsNetworkClientAtTopLevel(cellularTechnology: String?, expected: [String: String]) throws {
+        let deviceInfo = Self.makeDeviceInfo(
+            networkConnectionType: try #require(expected["type"]),
+            cellularTechnology: cellularTechnology
+        )
 
-        #expect(device == ["name": "Tomas iPhone", "model": "iPhone", "brand": "Apple", "architecture": "arm64e"])
+        let network = try #require(payload(deviceInfo: deviceInfo)["network"] as? [String: Any])
+
+        #expect(network["client"] as? [String: String] == expected)
     }
 
-    @Test func sendsLoggerAsTopLevelObject() throws {
-        let logger = try #require(makePayload()["logger"] as? [String: String])
-
-        #expect(logger == [
-            "name": Self.LOGGER_NAME,
-            "version": SDKVersion.version,
-            "thread_name": Self.THREAD_NAME,
-            "app_id": Self.HOSTNAME
-        ])
-    }
-
-    @Test func sendsNetworkClientAsTopLevelObject() throws {
-        let network = try #require(makePayload()["network"] as? [String: Any])
-        let client = try #require(network["client"] as? [String: String])
-
-        #expect(client == ["type": "cellular", "cellular_technology": "5G"])
-    }
-
-    @Test func omitsCellularTechnologyWhenUnavailable() throws {
-        let wifiInfo = Self.makeDeviceInfo(networkConnectionType: "wifi", cellularTechnology: nil)
-
-        let payload = formatter.payload(for: makeEntry(), deviceInfo: wifiInfo, threadName: Self.THREAD_NAME)
-        let network = try #require(payload["network"] as? [String: Any])
-        let client = try #require(network["client"] as? [String: String])
-
-        #expect(client == ["type": "wifi"])
-    }
-
-    @Test func sendsContextKeysAtTopLevel() {
-        let entry = makeEntry(context: ["chain": "base-sepolia", "attempt": 2])
-
-        let payload = makePayload(entry: entry)
+    @Test func mergesContextAtTopLevelWithoutOverridingReservedKeys() {
+        let payload = payload(context: ["chain": "base-sepolia", "attempt": 2, "status": "pending", "service": "x"])
 
         #expect(payload["chain"] as? String == "base-sepolia")
         #expect(payload["attempt"] as? Int == 2)
-    }
-
-    @Test func keepsReservedKeysWhenContextUsesTheSameName() {
-        let entry = makeEntry(context: ["status": "pending", "service": "other"])
-
-        let payload = makePayload(entry: entry)
-
         #expect(payload["status"] as? String == "info")
         #expect(payload["service"] as? String == "crossmint-ios-sdk")
-    }
-
-    @Test func dropsLegacyAttributesAndTagsWrappers() {
-        let payload = makePayload(entry: makeEntry(context: ["chain": "base-sepolia"]))
-
-        #expect(payload["attributes"] == nil)
-        #expect(payload["tags"] == nil)
-        #expect(payload["_dd"] == nil)
     }
 
     @Test(arguments: [
@@ -155,18 +100,19 @@ struct DataDogLogFormatterTests {
         (LogLevel.silent, "none")
     ])
     func mapsLevelToDatadogStatus(level: LogLevel, status: String) {
-        #expect(makePayload(entry: makeEntry(level: level))["status"] as? String == status)
+        #expect(payload(level: level)["status"] as? String == status)
     }
 
-    @Test func serializesToJson() throws {
-        let entry = makeEntry(context: ["chain": "base-sepolia", "attempt": 2])
+    @Test func serializesFlatPayloadToJson() throws {
+        let data = try JSONSerialization.data(withJSONObject: [payload(context: ["chain": "base-sepolia"])])
 
-        let data = try JSONSerialization.data(withJSONObject: [makePayload(entry: entry)])
         let decoded = try #require(try JSONSerialization.jsonObject(with: data) as? [[String: Any]])
         let log = try #require(decoded.first)
 
-        #expect(log["ddtags"] as? String == "env:production,sdk_version:\(SDKVersion.version),version:3.1.4")
         #expect(log["chain"] as? String == "base-sepolia")
         #expect((log["os"] as? [String: String])?["version"] == "26.0")
+        #expect(log["attributes"] == nil)
+        #expect(log["tags"] == nil)
+        #expect(log["_dd"] == nil)
     }
 }
