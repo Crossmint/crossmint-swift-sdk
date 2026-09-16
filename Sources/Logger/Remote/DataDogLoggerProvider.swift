@@ -1,3 +1,10 @@
+//
+//  DataDogLoggerProvider.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 2/12/25.
+//
+
 import Foundation
 #if canImport(UIKit)
 import UIKit

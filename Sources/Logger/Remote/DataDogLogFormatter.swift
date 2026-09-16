@@ -1,3 +1,10 @@
+//
+//  DataDogLogFormatter.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 15/09/26.
+//
+
 import Foundation
 import Utils
 
