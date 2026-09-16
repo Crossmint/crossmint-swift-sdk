@@ -340,17 +340,23 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         throw WalletError.walletGeneric("not implemented")
     }
 
+    var createTransactionCallCount = 0
+
     func createTransaction(
         _ request: CreateTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
+        createTransactionCallCount += 1
         throw TransactionError.transactionGeneric("not implemented")
     }
 
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
+    var transferTokenCallCount = 0
+
     func transferToken(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
+        transferTokenCallCount += 1
         throw TransactionError.transactionGeneric("not implemented")
     }
 

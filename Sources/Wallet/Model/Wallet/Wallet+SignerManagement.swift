@@ -192,6 +192,12 @@ extension Wallet {
         return await updateSignerIfRequired()
     }
 
+    internal func selectedSignerLocator() async throws(SignerError) -> SignerLocator? {
+        guard let selectedSigner else { return nil }
+        guard let locator = await selectedSigner.locator else { throw .device(.keyNotFound) }
+        return locator
+    }
+
     internal func makeSignRequest(for locator: String, message: String) async throws(SignerError) -> SignRequestApi {
         let signer = try await approvalSigner(for: locator)
         try await signer.initialize(smartWalletService)

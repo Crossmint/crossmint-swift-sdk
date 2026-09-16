@@ -352,7 +352,11 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let locator = if let selectedSigner { await selectedSigner.locator } else { await localDeviceSigner() }
+        let locator = if selectedSigner == nil {
+            await localDeviceSigner()
+        } else {
+            try await selectedSignerLocatorForTransactions()
+        }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
@@ -366,6 +370,15 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
+    }
+
+    internal func selectedSignerLocatorForTransactions() async throws(TransactionError) -> SignerLocator? {
+        do {
+            return try await selectedSignerLocator()
+        } catch {
+            if case .device(let deviceError) = error { throw .transactionSigningFailed(deviceError) }
+            throw .transactionSigningFailed(error)
+        }
     }
 
     internal func signAndPollWhilePending(
