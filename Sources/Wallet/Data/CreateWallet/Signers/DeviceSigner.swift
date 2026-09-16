@@ -1,10 +1,3 @@
-//
-//  DeviceSigner.swift
-//  CrossmintSDK
-//
-//  Created by Tomas Martins on 04/09/26.
-//
-
 import DeviceSigner
 import Foundation
 
@@ -23,15 +16,12 @@ struct DeviceSigner: ApprovalSigner {
     func initialize(_ service: SmartWalletService?) async throws(SignerError) {}
 
     func approvals(for message: String) async throws(SignerError) -> [SignRequestApi.Approval] {
-        guard let locator = await locator else {
-            throw .device(.keyNotFound)
-        }
-        let signature: (r: String, s: String)
+        guard let locator = await locator else { throw .device(.keyNotFound) }
         do {
-            signature = try await storage.signMessage(address: address, message: message)
+            let (r, s) = try await storage.signMessage(address: address, message: message)
+            return [.device(signer: locator.value, signature: .init(r: r, s: s))]
         } catch {
             throw .device(error)
         }
-        return [.device(signer: locator.value, signature: .init(r: signature.r, s: signature.s))]
     }
 }

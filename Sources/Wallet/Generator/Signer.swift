@@ -32,24 +32,21 @@ public enum SignerError: Error, Equatable {
     case invalidEmail
     case passkey(PasskeyError)
     case cancelled
-    /// The device signer key on this device could not sign. See ``DeviceSignerError`` for the cause.
+    /// The device signer key could not sign. The ``DeviceSignerError`` gives the cause.
     case device(DeviceSignerError)
 }
 
-/// A signer that can approve a Crossmint transaction or signature request.
-///
-/// Every ``Signer`` is an `ApprovalSigner`. Signers that are never the wallet's admin signer, such
-/// as the device signer, conform to this protocol only.
+/// A signer that can approve a transaction or a signature request.
+/// Every ``Signer`` is an `ApprovalSigner`. The device signer conforms to this protocol only.
 public protocol ApprovalSigner: Sendable {
-    /// The locator the Crossmint API uses for this signer, such as `.email("user@example.com")`
-    /// or `.device(publicKey:)`. `nil` when the locator is not known yet, such as a device signer
-    /// with no key on this device.
+    /// The locator that the Crossmint API uses for this signer.
+    /// `nil` when the signer does not have a locator yet, for example a device signer with no key.
     var locator: SignerLocator? { get async }
 
-    /// Prepares the signer to approve through `service`. Signers with no setup step do nothing.
+    /// Makes the signer ready to approve through `service`. A signer with no setup step does nothing.
     func initialize(_ service: SmartWalletService?) async throws(SignerError)
 
-    /// Signs `message` and returns the approval entries to submit for it.
+    /// Signs `message`. Returns the approvals to send for this message.
     func approvals(for message: String) async throws(SignerError) -> [SignRequestApi.Approval]
 }
 
@@ -70,15 +67,11 @@ public protocol Signer<AdminType>: ApprovalSigner {
 
 extension Signer {
     public var locator: SignerLocator? {
-        get async {
-            let rawLocator = await adminSigner.locator
-            return SignerLocator(orUnknown: rawLocator)
-        }
+        get async { SignerLocator(orUnknown: await adminSigner.locator) }
     }
 
     public func approvals(for message: String) async throws(SignerError) -> [SignRequestApi.Approval] {
-        let signature = try await sign(message: message)
-        return try await approvals(withSignature: signature)
+        try await approvals(withSignature: try await sign(message: message))
     }
 }
 

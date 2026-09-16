@@ -352,11 +352,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let locator: SignerLocator? = if let selectedSigner {
-            await selectedSigner.locator
-        } else {
-            await localDeviceSigner()
-        }
+        let locator = if let selectedSigner { await selectedSigner.locator } else { await localDeviceSigner() }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
