@@ -51,14 +51,17 @@ public enum SignerLocator: Codable, Sendable, Hashable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        let value = try container.decode(String.self)
+        self = SignerLocator(orUnknown: try container.decode(String.self))
+    }
+
+    init(orUnknown rawLocator: String) {
         do {
-            self = try SignerLocator(from: value)
+            self = try SignerLocator(from: rawLocator)
         } catch {
             Logger.smartWallet.warning(LogEvents.signerLocatorUnknown, attributes: [
-                "locator": value
+                "locator": rawLocator
             ])
-            self = .unknown(value)
+            self = .unknown(rawLocator)
         }
     }
 

@@ -42,7 +42,7 @@ struct WalletRecoveryMethodsTests {
 
         try await wallet.useSigner(.phone("+14155552671"))
 
-        #expect(wallet.selectedSignerLocator == .phone("+14155552671"))
+        #expect(await wallet.selectedSigner?.locator == .phone("+14155552671"))
         #expect(wallet.selectedSigner is PhoneSigner)
     }
 
@@ -62,13 +62,13 @@ struct WalletRecoveryMethodsTests {
         @Test func namesTheActiveRecoverySignerWhenTheWalletHasSeveral() async throws {
             let (wallet, _) = try parent.makeSolanaWallet(fileName: "WalletSolanaRecoveryMethods")
 
-            #expect(await wallet.transactionSignerLocator() == "email:alice@example.com")
+            #expect(try await wallet.transactionSignerLocator() == "email:alice@example.com")
         }
 
         @Test func omitsTheSignerWhenTheWalletHasASingleRecoverySigner() async throws {
             let (wallet, _) = try parent.makeSolanaWallet(fileName: "WalletSolanaEmail")
 
-            #expect(await wallet.transactionSignerLocator() == nil)
+            #expect(try await wallet.transactionSignerLocator() == nil)
         }
 
         @Test func prefersTheSelectedSigner() async throws {
@@ -76,7 +76,7 @@ struct WalletRecoveryMethodsTests {
 
             try await wallet.useSigner(.phone("+14155552671"))
 
-            #expect(await wallet.transactionSignerLocator() == "phone:+14155552671")
+            #expect(try await wallet.transactionSignerLocator() == "phone:+14155552671")
         }
     }
 }
