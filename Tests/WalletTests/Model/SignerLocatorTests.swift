@@ -61,6 +61,11 @@ struct SignerLocatorTests {
         }
     }
 
+    @Test("Wraps an unrecognized prefix as unknown instead of failing")
+    func wrapsUnrecognizedPrefixAsUnknown() {
+        #expect(SignerLocator(orUnknown: "carrier-pigeon:0xabc") == .unknown("carrier-pigeon:0xabc"))
+    }
+
     @Test("Decodes an unrecognized prefix as unknown instead of failing")
     func decodesUnrecognizedPrefixAsUnknown() throws {
         let data = Data(#""carrier-pigeon:0xabc""#.utf8)

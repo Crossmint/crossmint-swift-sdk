@@ -124,12 +124,6 @@ final class DeviceSignerService: Sendable {
         }
     }
 
-    func publicKey(for storage: any DeviceSignerKeyStorage) async -> String? {
-        guard let publicKeyBase64 = await storage.getKey(address: address),
-              DevicePublicKey(publicKeyBase64: publicKeyBase64) != nil else { return nil }
-        return publicKeyBase64
-    }
-
     func ensureRegistered(storage: any DeviceSignerKeyStorage, signer: any Signer) async throws(WalletError) {
         guard await storage.getKey(address: address) == nil else { return }
         Logger.smartWallet.info(LogEvents.walletAddDelegatedSignerStart, attributes: ["address": address])
@@ -143,18 +137,4 @@ final class DeviceSignerService: Sendable {
             }
         }
     }
-
-    func buildSignRequest(
-        signerLocator: String,
-        message: String,
-        storage: any DeviceSignerKeyStorage
-    ) async throws(DeviceSignerError) -> SignRequestApi {
-        let (r, s) = try await storage.signMessage(address: address, message: message)
-        let currentPublicKey = await publicKey(for: storage)
-        let currentLocator = currentPublicKey.map { SignerLocator.device(publicKey: $0).value } ?? signerLocator
-        return SignRequestApi(approvals: [
-            .device(signer: currentLocator, signature: .init(r: r, s: s))
-        ])
-    }
-
 }
