@@ -1,10 +1,3 @@
-//
-//  DeviceInfoCache.swift
-//  CrossmintSDK
-//
-//  Created by Tomas Martins on 29/12/24.
-//
-
 import Foundation
 import Network
 #if canImport(UIKit)

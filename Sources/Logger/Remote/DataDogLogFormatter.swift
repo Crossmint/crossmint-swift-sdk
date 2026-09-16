@@ -1,49 +1,25 @@
-//
-//  DataDogLogFormatter.swift
-//  CrossmintSDK
-//
-//  Created by Tomas Martins on 15/09/26.
-//
-
 import Foundation
 import Utils
 
 struct DataDogLogFormatter: Sendable {
-    static let serviceName = "crossmint-ios-sdk"
-    static let sourceName = "ios"
-    static let platform = "ios"
-    static let deviceBrand = "Apple"
-
     let loggerName: String
     let environment: String
     let sessionId: String
     let hostname: String
 
     func payload(for entry: LogEntry, deviceInfo: DeviceInfoCache, threadName: String) -> [String: Any] {
-        var log: [String: Any] = entry.context.mapValues { $0 as Any }
-        log.merge(reservedAttributes(for: entry, deviceInfo: deviceInfo)) { _, reserved in reserved }
-        log.merge(structuredAttributes(for: deviceInfo, threadName: threadName)) { _, reserved in reserved }
-        return log
-    }
-
-    private func reservedAttributes(for entry: LogEntry, deviceInfo: DeviceInfoCache) -> [String: Any] {
-        [
+        let reserved: [String: Any] = [
             "message": entry.message,
             "status": Self.status(for: entry.level),
-            "service": Self.serviceName,
-            "ddsource": Self.sourceName,
-            "ddtags": tags(appVersion: deviceInfo.appVersion),
+            "service": "crossmint-ios-sdk",
+            "ddsource": "ios",
+            "ddtags": "env:\(environment),sdk_version:\(SDKVersion.version),version:\(deviceInfo.appVersion)",
             "hostname": hostname,
             "timestamp": entry.timestamp,
             "dd-session_id": sessionId,
-            "platform": Self.platform,
+            "platform": "ios",
             "version": deviceInfo.appVersion,
-            "build_version": deviceInfo.appBuild
-        ]
-    }
-
-    private func structuredAttributes(for deviceInfo: DeviceInfoCache, threadName: String) -> [String: Any] {
-        [
+            "build_version": deviceInfo.appBuild,
             "os": [
                 "name": deviceInfo.osName,
                 "version": deviceInfo.osVersion,
@@ -52,10 +28,15 @@ struct DataDogLogFormatter: Sendable {
             "device": [
                 "name": deviceInfo.deviceName,
                 "model": deviceInfo.model,
-                "brand": Self.deviceBrand,
+                "brand": "Apple",
                 "architecture": deviceInfo.architecture
             ],
-            "network": network(for: deviceInfo),
+            "network": [
+                "client": [
+                    "type": deviceInfo.networkConnectionType,
+                    "cellular_technology": deviceInfo.cellularTechnology
+                ].compactMapValues { $0 }
+            ],
             "logger": [
                 "name": loggerName,
                 "version": SDKVersion.version,
@@ -63,34 +44,15 @@ struct DataDogLogFormatter: Sendable {
                 "app_id": hostname
             ]
         ]
-    }
-
-    private func tags(appVersion: String) -> String {
-        [
-            "env:\(environment)",
-            "sdk_version:\(SDKVersion.version)",
-            "version:\(appVersion)"
-        ].joined(separator: ",")
-    }
-
-    private func network(for deviceInfo: DeviceInfoCache) -> [String: Any] {
-        var client: [String: Any] = ["type": deviceInfo.networkConnectionType]
-        if let cellularTechnology = deviceInfo.cellularTechnology {
-            client["cellular_technology"] = cellularTechnology
-        }
-        return ["client": client]
+        return entry.context.mapValues { $0 as Any }.merging(reserved) { _, reserved in reserved }
     }
 
     private static func status(for level: LogLevel) -> String {
         switch level {
-        case .debug, .info:
-            return "info"
-        case .warning:
-            return "warn"
-        case .error:
-            return "error"
-        case .silent:
-            return "none"
+        case .debug, .info: "info"
+        case .warning: "warn"
+        case .error: "error"
+        case .silent: "none"
         }
     }
 }
