@@ -51,12 +51,31 @@ public struct DevicePublicKey: Encodable, Equatable {
 
 public struct CreateWalletParams: Encodable {
     struct InputConfig: Encodable {
-        let adminSigner: AdminSignerRequestApiModel
+        let adminSigner: AdminSignerRequestApiModel?
+        let recoveryMethods: [AdminSignerRequestApiModel]?
         let delegatedSigners: [DelegatedSignerEntry]?
 
         init(adminSigner: any AdminSignerData, delegatedSigners: [DelegatedSignerEntry]?) {
             self.adminSigner = AdminSignerRequestApiModel(adminSigner)
+            self.recoveryMethods = nil
             self.delegatedSigners = delegatedSigners
+        }
+
+        init(recoveryMethods: [any AdminSignerData], delegatedSigners: [DelegatedSignerEntry]?) {
+            self.adminSigner = nil
+            self.recoveryMethods = recoveryMethods.map(AdminSignerRequestApiModel.init)
+            self.delegatedSigners = delegatedSigners
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case adminSigner, recoveryMethods, delegatedSigners
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encodeIfPresent(adminSigner, forKey: .adminSigner)
+            try container.encodeIfPresent(recoveryMethods, forKey: .recoveryMethods)
+            try container.encodeIfPresent(delegatedSigners, forKey: .delegatedSigners)
         }
     }
 

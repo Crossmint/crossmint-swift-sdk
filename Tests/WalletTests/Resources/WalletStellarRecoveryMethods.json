@@ -7,7 +7,7 @@
       "email": "alice@example.com",
       "locator": "email:alice@example.com"
     },
-    "recovery": [
+    "recoveryMethods": [
       {
         "type": "email",
         "email": "alice@example.com",

@@ -7,12 +7,12 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
 
 public struct WalletConfigApiModel: Decodable {
     public let adminSigner: AdminSignerApiModel
-    let recovery: [AdminSignerApiModel]?
+    let recoveryMethods: [AdminSignerApiModel]?
     let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
         case adminSigner
-        case recovery
+        case recoveryMethods
         case signers = "delegatedSigners"
     }
 
@@ -20,15 +20,15 @@ public struct WalletConfigApiModel: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         adminSigner = try Self.decodeSigner(from: container.superDecoder(forKey: .adminSigner))
-        if container.contains(.recovery) {
-            var list = try container.nestedUnkeyedContainer(forKey: .recovery)
+        if container.contains(.recoveryMethods) {
+            var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
             var signers: [AdminSignerApiModel] = []
             while !list.isAtEnd {
                 signers.append(try Self.decodeSigner(from: list.superDecoder()))
             }
-            recovery = signers
+            recoveryMethods = signers
         } else {
-            recovery = nil
+            recoveryMethods = nil
         }
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
@@ -58,9 +58,9 @@ public struct WalletConfigApiModel: Decodable {
     }
 
     var toDomain: WalletConfig {
-        guard let recovery, let first = recovery.first else {
+        guard let recoveryMethods, let first = recoveryMethods.first else {
             return WalletConfig(recovery: adminSigner.toDomain)
         }
-        return WalletConfig(recovery: first.toDomain, others: recovery.dropFirst().map(\.toDomain))
+        return WalletConfig(recovery: first.toDomain, others: recoveryMethods.dropFirst().map(\.toDomain))
     }
 }
