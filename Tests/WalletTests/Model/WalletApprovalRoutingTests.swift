@@ -74,6 +74,15 @@ struct WalletApprovalRoutingTests {
         #expect(adminSigner.initializeCallCount == 1)
     }
 
+    @Test func refusesAnApprovalThatNamesASignerTheWalletDoesNotHold() async throws {
+        let wallet = try makeWallet()
+
+        await #expect(throws: SignerError.invalidSigner) {
+            _ = try await wallet.makeSignRequest(for: "email:someone-else@example.com", message: "approval-message")
+        }
+        #expect(adminSigner.initializeCallCount == 0)
+    }
+
     @Test func usesTheSelectedSignerWhenItsLocatorMatches() async throws {
         let wallet = try makeWallet()
         let selected = MockSigner()
