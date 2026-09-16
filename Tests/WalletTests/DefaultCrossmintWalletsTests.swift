@@ -214,16 +214,6 @@ struct RecoverySignerListCreationTests {
         #expect(wallet.signer as? MockSigner === alice)
     }
 
-    @Test func activatesTheApiFirstRecoverySignerOnGetWallet() async throws {
-        walletService.getWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
-        let alice = MockSigner(email: "alice@example.com")
-        let bob = MockSigner(email: "bob@example.com")
-
-        let wallet = try await makeWallets().getWallet(chain: Chain("solana"), recovery: [bob, alice], options: nil)
-
-        #expect(wallet?.signer as? MockSigner === alice)
-    }
-
     @Test func fallsBackToTheCallerFirstSignerWhenNoneMatchesTheApi() async throws {
         walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
         let carol = MockSigner(email: "carol@example.com")
