@@ -14,8 +14,7 @@ struct DeviceSigner: ApprovalSigner {
 
     var locator: SignerLocator? {
         get async {
-            guard let publicKeyBase64 = await storage.getKey(address: address),
-                  DevicePublicKey(publicKeyBase64: publicKeyBase64) != nil else { return nil }
+            guard let publicKeyBase64 = await validatedPublicKey() else { return nil }
             return .device(publicKey: publicKeyBase64)
         }
     }
@@ -30,5 +29,11 @@ struct DeviceSigner: ApprovalSigner {
         } catch {
             throw .device(error)
         }
+    }
+
+    private func validatedPublicKey() async -> String? {
+        guard let publicKeyBase64 = await storage.getKey(address: address),
+              DevicePublicKey(publicKeyBase64: publicKeyBase64) != nil else { return nil }
+        return publicKeyBase64
     }
 }
