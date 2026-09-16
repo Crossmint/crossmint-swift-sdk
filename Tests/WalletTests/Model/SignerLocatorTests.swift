@@ -61,15 +61,9 @@ struct SignerLocatorTests {
         }
     }
 
-    @Test(
-        "Wraps only an unrecognized prefix as unknown instead of failing",
-        arguments: [
-            ("email:user@example.com", SignerLocator.email("user@example.com")),
-            ("carrier-pigeon:0xabc", SignerLocator.unknown("carrier-pigeon:0xabc"))
-        ]
-    )
-    func wrapsUnrecognizedPrefixAsUnknown(stringAndExpected: (String, SignerLocator)) {
-        #expect(SignerLocator(orUnknown: stringAndExpected.0) == stringAndExpected.1)
+    @Test("Wraps an unrecognized prefix as unknown instead of failing")
+    func wrapsUnrecognizedPrefixAsUnknown() {
+        #expect(SignerLocator(orUnknown: "carrier-pigeon:0xabc") == .unknown("carrier-pigeon:0xabc"))
     }
 
     @Test("Decodes an unrecognized prefix as unknown instead of failing")

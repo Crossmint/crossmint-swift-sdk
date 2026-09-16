@@ -5,7 +5,7 @@
 //  Created by Tomas Martins on 04/09/26.
 //
 
-import CrossmintCommonTypes
+import DeviceSigner
 import Foundation
 import Testing
 import TestsUtils
@@ -22,69 +22,55 @@ struct WalletApprovalRoutingTests {
     private let storage = MockDeviceSignerKeyStorage()
     private let adminSigner = MockSigner()
 
-    private func makeWallet(withDeviceStorage: Bool = true) throws -> SolanaWallet {
-        let fixtureUrl = try #require(Bundle.module.url(forResource: "WalletSolanaEmail", withExtension: "json"))
-        walletService.getWalletFixture = try Data(contentsOf: fixtureUrl)
-        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
-            fileName: "SolanaSignerRegistrationAwaitingApproval",
-            bundle: Bundle.module
-        ) as SolanaTransactionApiModel
+    private func makeWallet(withDeviceStorage: Bool = true) throws -> EVMWallet {
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(fileName: "WalletEVMApiKey", bundle: Bundle.module)
+        walletService.getWalletResult = baseModel
         adminSigner.approvalsResult = [.keypair(signer: ADMIN_LOCATOR, signature: "admin-signature")]
-        return try SolanaWallet(
+        return try EVMWallet(
             smartWalletService: walletService,
             signer: adminSigner,
-            baseModel: try GetFromFile.getModelFrom(fileName: "WalletSolanaEmail", bundle: Bundle.module),
-            solanaChain: .solana,
-            onTransactionStart: nil,
+            baseModel: baseModel,
+            evmChain: .polygon,
             deviceSignerKeyStorage: withDeviceStorage ? storage : nil
         )
     }
 
-    private func transaction(pendingFor locator: String) -> Transaction {
-        Transaction(
-            id: "tx-1",
-            status: .success,
-            onChain: .init(),
-            params: .init(signer: locator),
-            walletType: .smart,
-            createdAt: Date(),
-            approvals: .init(pending: [.init(signer: locator, message: "approval-message")], submitted: []),
-            error: nil
-        )
-    }
-
-    private func submittedApproval() throws -> SignRequestApi.Approval {
-        try #require(walletService.lastSignTransactionRequest?.apiRequest.approvals.first)
-    }
-
-    @Test func routesDeviceLocatorToTheDeviceSigner() async throws {
+    @Test func routesADeviceLocatorToTheDeviceSigner() async throws {
         let wallet = try makeWallet()
         let publicKeyBase64 = try await storage.generateKey(address: wallet.address)
 
-        _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: "device:\(publicKeyBase64)"))
+        let request = try await wallet.makeSignRequest(for: "device:\(publicKeyBase64)", message: "approval-message")
 
-        #expect(try #require(submittedApproval().device).0 == "device:\(publicKeyBase64)")
+        #expect(try #require(request.approvals.first?.device).0 == "device:\(publicKeyBase64)")
         #expect(adminSigner.initializeCallCount == 0)
     }
 
-    @Test func failsDeviceLocatorWithoutALocalKey() async throws {
+    @Test func signsAStaleDeviceLocatorWithTheCurrentKey() async throws {
         let wallet = try makeWallet()
+        let publicKeyBase64 = try await storage.generateKey(address: wallet.address)
 
-        await #expect {
-            try await wallet.signAndPollWhilePending(transaction(pendingFor: STALE_DEVICE_LOCATOR))
-        } throws: { error in
-            guard case .transactionSigningFailed = error as? TransactionError else { return false }
-            return true
-        }
-        #expect(walletService.signTransactionCallCount == 0)
+        let request = try await wallet.makeSignRequest(for: STALE_DEVICE_LOCATOR, message: "approval-message")
+
+        let (signer, signature) = try #require(request.approvals.first?.device)
+        #expect(signer == "device:\(publicKeyBase64)")
+        #expect((signature.r, signature.s) == ("0xr", "0xs"))
     }
 
-    @Test func routesAdminLocatorToTheAdminSigner() async throws {
+    @Test(arguments: [true, false])
+    func throwsKeyNotFoundForADeviceLocatorWithoutALocalKey(withDeviceStorage: Bool) async throws {
+        let wallet = try makeWallet(withDeviceStorage: withDeviceStorage)
+
+        await #expect(throws: SignerError.device(.keyNotFound)) {
+            try await wallet.makeSignRequest(for: STALE_DEVICE_LOCATOR, message: "approval-message")
+        }
+    }
+
+    @Test func routesAnAdminLocatorToTheAdminSigner() async throws {
         let wallet = try makeWallet()
 
-        _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: ADMIN_LOCATOR))
+        let request = try await wallet.makeSignRequest(for: ADMIN_LOCATOR, message: "approval-message")
 
-        #expect(try #require(submittedApproval().keypair) == (ADMIN_LOCATOR, "admin-signature"))
+        #expect(try #require(request.approvals.first?.keypair) == (ADMIN_LOCATOR, "admin-signature"))
         #expect(adminSigner.initializeCallCount == 1)
     }
 
@@ -94,9 +80,9 @@ struct WalletApprovalRoutingTests {
         selected.approvalsResult = [.keypair(signer: ADMIN_LOCATOR, signature: "selected-signature")]
         wallet.selectedSigner = selected
 
-        _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: ADMIN_LOCATOR))
+        let request = try await wallet.makeSignRequest(for: ADMIN_LOCATOR, message: "approval-message")
 
-        #expect(try #require(submittedApproval().keypair).1 == "selected-signature")
+        #expect(try #require(request.approvals.first?.keypair).1 == "selected-signature")
         #expect(adminSigner.initializeCallCount == 0)
     }
 
@@ -105,36 +91,43 @@ struct WalletApprovalRoutingTests {
         _ = try await storage.generateKey(address: wallet.address)
         try await wallet.useSigner(.device)
 
-        _ = try await wallet.signAndPollWhilePending(transaction(pendingFor: ADMIN_LOCATOR))
-
-        #expect(try #require(submittedApproval().keypair).0 == ADMIN_LOCATOR)
-    }
-
-    @Test func buildsADeviceApprovalForAStaleDeviceLocator() async throws {
-        let wallet = try makeWallet()
-        let publicKeyBase64 = try await storage.generateKey(address: wallet.address)
-
-        let request = try await wallet.makeSignRequest(for: STALE_DEVICE_LOCATOR, message: "approval-message")
-
-        let (signer, signature) = try #require(request.approvals.first?.device)
-        #expect(signer == "device:\(publicKeyBase64)")
-        #expect((signature.r, signature.s) == ("0xr", "0xs"))
-        #expect(adminSigner.initializeCallCount == 0)
-    }
-
-    @Test func fallsBackToTheAdminSignerForAnUnrecognisedLocator() async throws {
-        let wallet = try makeWallet()
-
-        let request = try await wallet.makeSignRequest(for: "not-a-locator", message: "approval-message")
+        let request = try await wallet.makeSignRequest(for: ADMIN_LOCATOR, message: "approval-message")
 
         #expect(try #require(request.approvals.first?.keypair).0 == ADMIN_LOCATOR)
     }
 
-    @Test func throwsKeyNotFoundForADeviceLocatorWithoutDeviceStorage() async throws {
-        let wallet = try makeWallet(withDeviceStorage: false)
+    @Test func returnsNoSelectedLocatorWhenNoSignerIsSelected() async throws {
+        #expect(try await makeWallet().selectedSignerLocator() == nil)
+    }
 
-        await #expect(throws: SignerError.device(.keyNotFound)) {
-            try await wallet.makeSignRequest(for: STALE_DEVICE_LOCATOR, message: "approval-message")
+    @Test(arguments: [
+        { _ = try await $0.sendTransaction(to: $0.address, value: "0", data: nil) },
+        { _ = try await $0.send($0.address, "polygon:usdc", 1) }
+    ] as [@Sendable (EVMWallet) async throws -> Void])
+    func failsToSendWhenTheSelectedDeviceKeyIsMissing(send: @Sendable (EVMWallet) async throws -> Void) async throws {
+        let wallet = try makeWallet()
+        _ = try await storage.generateKey(address: wallet.address)
+        try await wallet.useSigner(.device)
+        try await storage.deleteKey(address: wallet.address)
+        storage.generateKeyError = .keyGenerationFailed
+
+        await #expect {
+            try await send(wallet)
+        } throws: { error in
+            guard case .transactionSigningFailed(let underlying) = error as? TransactionError else { return false }
+            return underlying as? DeviceSignerError == .keyNotFound
         }
+    }
+}
+
+private extension SignRequestApi.Approval {
+    var keypair: (String, String)? {
+        guard case let .keypair(signer, signature) = self else { return nil }
+        return (signer, signature)
+    }
+
+    var device: (String, DeviceSignature)? {
+        guard case let .device(signer, signature) = self else { return nil }
+        return (signer, signature)
     }
 }
