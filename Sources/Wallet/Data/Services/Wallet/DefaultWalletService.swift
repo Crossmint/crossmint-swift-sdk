@@ -52,8 +52,23 @@ struct DefaultWalletService: WalletService {
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String,
+        deployImmediately: Bool?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approver: nil
+        )
+    }
+
+    func addSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String,
         deployImmediately: Bool?,
-        approver: String? = nil
+        approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterSignerBody(
@@ -69,8 +84,23 @@ struct DefaultWalletService: WalletService {
         _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
+        deployImmediately: Bool?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await registerTypedSigner(
+            signer,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approver: nil
+        )
+    }
+
+    func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
         deployImmediately: Bool?,
-        approver: String? = nil
+        approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterTypedSignerBody(
@@ -85,8 +115,16 @@ struct DefaultWalletService: WalletService {
     func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
+        chainName: String
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        try await removeSigner(signerLocator, chainType: chainType, chainName: chainName, approver: nil)
+    }
+
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
         chainName: String,
-        approver: String? = nil
+        approver: String?
     ) async throws(TransactionError) -> any TransactionApiModel {
         let encodedLocator = encodedSignerLocator(signerLocator)
         var queryItems: [URLQueryItem] = []

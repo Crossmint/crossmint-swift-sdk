@@ -59,6 +59,20 @@ public final class DefaultSmartWalletService: SmartWalletService {
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String,
+        deployImmediately: Bool?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await walletService.addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately
+        )
+    }
+
+    public func addSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String,
         deployImmediately: Bool?,
         approver: String?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
@@ -68,6 +82,20 @@ public final class DefaultSmartWalletService: SmartWalletService {
             chainName: chainName,
             deployImmediately: deployImmediately,
             approver: approver
+        )
+    }
+
+    public func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await walletService.registerTypedSigner(
+            signer,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately
         )
     }
 
@@ -85,6 +113,14 @@ public final class DefaultSmartWalletService: SmartWalletService {
             deployImmediately: deployImmediately,
             approver: approver
         )
+    }
+
+    public func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        try await walletService.removeSigner(signerLocator, chainType: chainType, chainName: chainName)
     }
 
     public func removeSigner(
