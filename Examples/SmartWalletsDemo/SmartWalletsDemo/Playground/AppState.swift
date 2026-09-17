@@ -79,7 +79,7 @@ final class AppState {
                 if chain == selectedChain {
                     await fetchBalance()
                     await loadSigners()
-                    preloadOtherChains(email: email)
+                    preloadOtherChains()
                 }
             } else {
                 notFoundChains.insert(chain)
@@ -140,7 +140,7 @@ final class AppState {
 
     /// Re-fetches the current chain's wallet from the API and updates the cache.
     func reloadCurrentWallet() async {
-        guard let email = currentEmail else { return }
+        guard currentEmail != nil else { return }
         let chain = selectedChain
         do {
             if let found = try await fetchWallet(chain: chain) {
@@ -193,7 +193,7 @@ final class AppState {
 
     /// Kicks off background fetches for chains not yet in the cache.
     /// Uses unstructured Tasks (fire-and-forget) since these are not tied to any view lifecycle.
-    private func preloadOtherChains(email: String) {
+    private func preloadOtherChains() {
         let all: [SupportedChain] = [.evm, .solana, .stellar]
         for chain in all where chain != selectedChain {
             guard walletCache[chain] == nil,
