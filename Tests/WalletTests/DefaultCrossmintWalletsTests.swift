@@ -251,7 +251,35 @@ struct RecoverySignerListCreationTests {
         #expect(walletService.createWalletCallCount == 0)
     }
 
-    @Test func rejectsAListOnEVMBeforeCallingTheApi() async throws {
+    @Test func sendsAOneEntryListOnEVMUnderAdminSigner() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletEVMEmail")
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("base-sepolia"),
+            recoveryMethods: [MockSigner(email: "alice@example.com")],
+            options: nil
+        )
+
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        #expect(config.adminSigner != nil)
+        #expect(config.recoveryMethods == nil)
+    }
+
+    @Test func keepsAOneEntryListOnSolanaUnderRecoveryMethods() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [MockSigner(email: "alice@example.com")],
+            options: nil
+        )
+
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        #expect(config.adminSigner == nil)
+        #expect(config.recoveryMethods?.count == 1)
+    }
+
+    @Test func rejectsMoreThanOneSignerOnEVMBeforeCallingTheApi() async throws {
         let wallets = makeWallets()
 
         await #expect {
