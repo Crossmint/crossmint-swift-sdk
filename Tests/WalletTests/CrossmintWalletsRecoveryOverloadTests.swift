@@ -105,11 +105,14 @@ struct CrossmintWalletsRecoveryOverloadTests {
         @Test func rejectsALongerListBeforeAnyCall() async throws {
             let wallets = SingleSignerCrossmintWallets()
 
-            await #expect(throws: WalletError.self) {
+            await #expect {
                 _ = try await wallets.createWallet(
                     chain: SolanaChain.solana,
                     recoveryMethods: [.email("alice@example.com"), .phone("+14155552671")]
                 )
+            } throws: { error in
+                guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
+                return code == .invalidConfig
             }
             #expect(wallets.receivedSigner == nil)
         }

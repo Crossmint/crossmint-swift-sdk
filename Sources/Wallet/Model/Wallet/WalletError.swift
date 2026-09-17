@@ -22,11 +22,14 @@ public enum WalletError: CrossmintError {
     /// error code. ``Wallet/recover()`` catches it and falls back to the
     /// recovery signer.
     case deviceSignerNotSupported(String)
-    /// Crossmint rejected the recovery signer list. `message` explains the rejection.
+    /// The SDK or Crossmint rejected the recovery method list. `message` explains the rejection.
     case recoveryConfigRejected(code: RecoveryConfigCode, message: String)
 
-    /// The reason Crossmint rejected a recovery signer list.
+    /// The reason the SDK or Crossmint rejected a recovery method list.
     public enum RecoveryConfigCode: String, Sendable {
+        /// The list is empty, or the ``CrossmintWallets`` implementation accepts one recovery method only.
+        /// The SDK raises this before it calls Crossmint.
+        case invalidConfig = "INVALID_RECOVERY_CONFIG"
         /// The list has more recovery signers than the chain allows.
         case signerLimitExceeded = "SIGNER_LIMIT_EXCEEDED"
         /// The same signer appears more than once in the list.
@@ -133,6 +136,8 @@ public enum WalletError: CrossmintError {
 extension WalletError.RecoveryConfigCode {
     var recoverySuggestion: String? {
         switch self {
+        case .invalidConfig:
+            "Pass one recovery method. Implementations that accept a list take one or more."
         case .signerLimitExceeded:
             "Pass fewer recovery signers."
         case .duplicateSigner:

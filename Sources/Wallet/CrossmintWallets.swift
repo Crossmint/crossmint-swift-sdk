@@ -78,8 +78,8 @@ public protocol CrossmintWallets: Sendable {
     ///   - chain: The blockchain to deploy to.
     ///   - recoveryMethods: The signers that can each authorize recovery operations for this wallet.
     ///   - options: Optional configuration, such as enabling a device signer.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list has more than
-    ///   one signer on a chain that accepts one.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is empty, or has
+    ///   more than one signer on a chain that accepts one.
     func createWallet(
         chain: Chain,
         recoveryMethods: [any Signer],
@@ -107,15 +107,18 @@ extension CrossmintWallets {
     }
 
     /// Conformers that implement only the single-signer entry point get this default. It forwards
-    /// a one-signer list to the single-signer entry point and throws ``WalletError/walletGeneric(_:)``
-    /// for a longer list.
+    /// a one-signer list to the single-signer entry point and throws
+    /// ``WalletError/recoveryConfigRejected(code:message:)`` for an empty or longer list.
     public func createWallet(
         chain: Chain,
         recoveryMethods: [any Signer],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
         guard recoveryMethods.count == 1, let signer = recoveryMethods.first else {
-            throw .walletGeneric("This CrossmintWallets implementation accepts a single recovery method")
+            throw .recoveryConfigRejected(
+                code: .invalidConfig,
+                message: "This CrossmintWallets implementation accepts a single recovery method"
+            )
         }
         return try await createWallet(chain: chain, recovery: signer, options: options)
     }
@@ -307,8 +310,8 @@ extension CrossmintWallets {
     ///
     /// The wallet's first recovery signer, as the API reports it, is the active signer until
     /// ``Wallet/useSigner(_:)`` selects another one.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list has more than one signer on
-    ///   a chain that accepts one.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is empty, or has more than
+    ///   one signer on a chain that accepts one.
     public func createWallet<C: ChainWithSigners>(
         chain: C,
         recoveryMethods: [C.SpecificSigner],

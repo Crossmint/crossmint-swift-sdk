@@ -51,7 +51,10 @@ enum RecoveryInput {
     func resolved(for chain: Chain) throws(WalletError) -> RecoveryInput {
         guard case .list(let signers) = self else { return self }
         guard let first = signers.first else {
-            throw .walletGeneric("At least one recovery method is required")
+            throw .recoveryConfigRejected(
+                code: .invalidConfig,
+                message: "At least one recovery method is required"
+            )
         }
         guard !chainsWithRecoveryList.contains(chain.chainType) else { return self }
         guard signers.count == 1 else {
