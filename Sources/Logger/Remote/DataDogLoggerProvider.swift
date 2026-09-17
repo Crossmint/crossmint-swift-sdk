@@ -42,7 +42,7 @@ actor DataDogLoggerProvider: LoggerProvider {
             loggerName: service,
             environment: environment,
             sessionId: Self.generateSessionId(),
-            hostname: Bundle.main.bundleIdentifier ?? "unknown"
+            hostname: Bundle.main.bundleIdentifier
         )
 
         let datadogUrl = "https://http-intake.logs.datadoghq.com/v1/input/\(clientToken)"
@@ -134,7 +134,7 @@ actor DataDogLoggerProvider: LoggerProvider {
 
     private func sendBatch(_ batch: [LogEntry]) async {
         let logs = batch.map { entry in
-            formatter.payload(for: entry, deviceInfo: deviceInfo ?? .unknown, threadName: Self.getThreadName())
+            formatter.payload(for: entry, deviceInfo: deviceInfo ?? .empty, threadName: Self.getThreadName())
         }
 
         do {

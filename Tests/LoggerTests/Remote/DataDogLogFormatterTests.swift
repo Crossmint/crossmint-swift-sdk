@@ -36,14 +36,18 @@ struct DataDogLogFormatterTests {
     )
 
     static func makeDeviceInfo(
-        networkConnectionType: String = "cellular",
+        networkConnectionType: String? = "cellular",
         cellularTechnology: String? = "5G"
     ) -> DeviceInfoCache {
         DeviceInfoCache(
-            model: "iPhone", deviceName: "Tomas iPhone", osName: "iOS", osVersion: "26.0", osBuild: "23A340",
-            architecture: "arm64e", appVersion: "3.1.4", appBuild: "42",
+            model: "iPhone", deviceName: "Tomas iPhone", brand: "Apple", osName: "iOS", osVersion: "26.0",
+            osBuild: "23A340", architecture: "arm64e", appVersion: "3.1.4", appBuild: "42",
             networkConnectionType: networkConnectionType, cellularTechnology: cellularTechnology
         )
+    }
+
+    static func makeEntry(level: LogLevel = .info, context: [String: Encodable] = [:]) -> LogEntry {
+        LogEntry(level: level, message: "wallet created", timestamp: "2026-09-15T10:00:00Z", context: context)
     }
 
     func payload(
@@ -52,7 +56,7 @@ struct DataDogLogFormatterTests {
         deviceInfo: DeviceInfoCache = makeDeviceInfo()
     ) -> [String: Any] {
         formatter.payload(
-            for: LogEntry(level: level, message: "wallet created", timestamp: "2026-09-15T10:00:00Z", context: context),
+            for: Self.makeEntry(level: level, context: context),
             deviceInfo: deviceInfo,
             threadName: Self.THREAD_NAME
         )
@@ -121,5 +125,54 @@ struct DataDogLogFormatterTests {
         #expect(log["attributes"] == nil)
         #expect(log["tags"] == nil)
         #expect(log["_dd"] == nil)
+    }
+
+    @Test func omitsEveryDeviceKeyWhenNoDetailIsAvailable() throws {
+        let payload = payload(deviceInfo: DeviceInfoCache())
+
+        #expect(payload["os"] == nil)
+        #expect(payload["device"] == nil)
+        #expect(payload["network"] == nil)
+        #expect(payload["version"] == nil)
+        #expect(payload["build_version"] == nil)
+        #expect(payload["ddtags"] as? String == "env:production,sdk_version:\(SDKVersion.version)")
+
+        let data = try JSONSerialization.data(withJSONObject: payload)
+        let json = try #require(String(data: data, encoding: .utf8))
+
+        #expect(!json.contains("unknown"))
+    }
+
+    @Test func omitsOnlyTheValuesThatAreMissing() {
+        var deviceInfo = Self.makeDeviceInfo(networkConnectionType: nil, cellularTechnology: nil)
+        deviceInfo.osBuild = nil
+        deviceInfo.appBuild = nil
+
+        let payload = payload(deviceInfo: deviceInfo)
+
+        #expect(payload["os"] as? [String: String] == ["name": "iOS", "version": "26.0"])
+        #expect(payload["network"] == nil)
+        #expect(payload["build_version"] == nil)
+        #expect(payload["version"] as? String == "3.1.4")
+        #expect(payload["device"] as? [String: String] == [
+            "name": "Tomas iPhone", "model": "iPhone", "brand": "Apple", "architecture": "arm64e"
+        ])
+    }
+
+    @Test func omitsHostnameAndAppIdWhenTheBundleIdentifierIsMissing() {
+        let formatter = DataDogLogFormatter(
+            loggerName: Self.LOGGER_NAME, environment: "production", sessionId: Self.SESSION_ID, hostname: nil
+        )
+
+        let payload = formatter.payload(
+            for: Self.makeEntry(),
+            deviceInfo: Self.makeDeviceInfo(),
+            threadName: Self.THREAD_NAME
+        )
+
+        #expect(payload["hostname"] == nil)
+        #expect(payload["logger"] as? [String: String] == [
+            "name": Self.LOGGER_NAME, "version": SDKVersion.version, "thread_name": Self.THREAD_NAME
+        ])
     }
 }
