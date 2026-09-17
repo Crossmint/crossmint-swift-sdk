@@ -150,7 +150,11 @@ extension Wallet {
             switch config {
             case .device:
                 let storage = deviceSignerKeyStorage ?? .default
-                try await registerDeviceSigner(storage: storage, approver: approver, deployImmediately: deployImmediately)
+                try await registerDeviceSigner(
+                    storage: storage,
+                    approver: approver,
+                    deployImmediately: deployImmediately
+                )
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
                 guard let locator = config.locator else { return }
@@ -377,7 +381,11 @@ extension Wallet {
         approver: RecoveryApprover,
         deployImmediately: Bool = true
     ) async throws(WalletError) {
-        try await deviceSignerService.register(storage: storage, approver: approver, deployImmediately: deployImmediately)
+        try await deviceSignerService.register(
+            storage: storage,
+            approver: approver,
+            deployImmediately: deployImmediately
+        )
         _needsRecovery = false
         _deviceSignerApproved = true
     }
