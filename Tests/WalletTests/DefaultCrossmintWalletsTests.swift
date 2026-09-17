@@ -245,8 +245,8 @@ struct RecoverySignerListCreationTests {
         await #expect {
             _ = try await wallets.createWallet(chain: Chain("solana"), recoveryMethods: [any Signer](), options: nil)
         } throws: { error in
-            guard case .walletGeneric = error as? WalletError else { return false }
-            return true
+            guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
+            return code == .invalidConfig
         }
         #expect(walletService.createWalletCallCount == 0)
     }

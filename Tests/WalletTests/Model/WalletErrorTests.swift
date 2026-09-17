@@ -44,6 +44,20 @@ struct WalletErrorTests {
         #expect(error.underlyingError == nil)
     }
 
+    @Test("WalletError.recoveryConfigRejected surfaces the SDK-side invalid config code")
+    func recoveryConfigRejectedInvalidConfig() {
+        let error = WalletError.recoveryConfigRejected(
+            code: .invalidConfig,
+            message: "At least one recovery method is required"
+        )
+        #expect(error.code == "INVALID_RECOVERY_CONFIG")
+        #expect(error.message == "At least one recovery method is required")
+        #expect(
+            error.recoverySuggestion
+                == "Pass one recovery method. Implementations that accept a list take one or more."
+        )
+    }
+
     @Test("WalletError.recoveryConfigRejected has no suggestion for codes the caller cannot act on")
     func recoveryConfigRejectedWithoutSuggestion() {
         let error = WalletError.recoveryConfigRejected(
