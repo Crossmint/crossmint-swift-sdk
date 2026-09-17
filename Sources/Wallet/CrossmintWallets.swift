@@ -21,7 +21,7 @@ import CrossmintCommonTypes
 /// // Solana and Stellar accept several recovery signers. Each one can authorize on its own.
 /// let solanaWallet = try await wallets.createWallet(
 ///     chain: .solana,
-///     recovery: [.email("user@example.com"), .phone("+15551234567")]
+///     recoveryMethods: [.email("user@example.com"), .phone("+15551234567")]
 /// )
 /// ```
 public protocol CrossmintWallets: Sendable {
@@ -76,13 +76,13 @@ public protocol CrossmintWallets: Sendable {
     ///
     /// - Parameters:
     ///   - chain: The blockchain to deploy to.
-    ///   - recovery: The signers that can each authorize recovery operations for this wallet.
+    ///   - recoveryMethods: The signers that can each authorize recovery operations for this wallet.
     ///   - options: Optional configuration, such as enabling a device signer.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain does not
     ///   accept the list.
     func createWallet(
         chain: Chain,
-        recovery: [any Signer],
+        recoveryMethods: [any Signer],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
 }
@@ -111,10 +111,10 @@ extension CrossmintWallets {
     /// for a longer list.
     public func createWallet(
         chain: Chain,
-        recovery: [any Signer],
+        recoveryMethods: [any Signer],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
-        guard recovery.count == 1, let signer = recovery.first else {
+        guard recoveryMethods.count == 1, let signer = recoveryMethods.first else {
             throw .walletGeneric("This CrossmintWallets implementation accepts a single recovery signer")
         }
         return try await createWallet(chain: chain, recovery: signer, options: options)
@@ -310,12 +310,12 @@ extension CrossmintWallets {
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
     public func createWallet<C: ChainWithSigners>(
         chain: C,
-        recovery: [C.SpecificSigner],
+        recoveryMethods: [C.SpecificSigner],
         options: WalletOptions? = nil
     ) async throws(WalletError) -> C.WalletType {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
-            recovery: await signers(recovery),
+            recoveryMethods: await signers(recoveryMethods),
             options: options
         )
         guard let typed = wallet as? C.WalletType else {
