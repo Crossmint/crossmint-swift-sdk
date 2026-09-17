@@ -37,14 +37,10 @@ private final class SpyCrossmintWallets: CrossmintWallets, @unchecked Sendable {
     }
 }
 
-/// A conformer written before the recovery list entry points existed.
+/// A conformer written before the recovery list and `getWallet(chain:options:)` entry points existed.
 private final class SingleSignerCrossmintWallets: CrossmintWallets, @unchecked Sendable {
     var receivedSigner: (any Signer)?
     var wallet: Wallet?
-
-    func getWallet(chain: Chain, options: WalletOptions?) async throws(WalletError) -> Wallet? {
-        wallet
-    }
 
     func createWallet(chain: Chain, recovery: any Signer, options: WalletOptions?) async throws(WalletError) -> Wallet {
         receivedSigner = recovery
@@ -93,6 +89,14 @@ struct CrossmintWalletsRecoveryOverloadTests {
             _ = try await wallets.createWallet(chain: SolanaChain.solana, recovery: [.email("alice@example.com")])
 
             #expect(wallets.receivedSigner is SolanaEmailSigner)
+        }
+
+        @Test func throwsFromTheGetWalletDefault() async throws {
+            let wallets = SingleSignerCrossmintWallets()
+
+            await #expect(throws: WalletError.self) {
+                _ = try await wallets.getWallet(chain: SolanaChain.solana)
+            }
         }
 
         @Test func rejectsALongerListBeforeAnyCall() async throws {

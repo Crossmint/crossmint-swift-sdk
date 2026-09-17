@@ -88,6 +88,15 @@ public protocol CrossmintWallets: Sendable {
 }
 
 extension CrossmintWallets {
+    /// Conformers written before this entry point existed get this default. It throws
+    /// ``WalletError/walletGeneric(_:)``. Implement ``getWallet(chain:options:)`` to load wallets.
+    public func getWallet(
+        chain: Chain,
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet? {
+        throw .walletGeneric("This CrossmintWallets implementation does not implement getWallet(chain:options:)")
+    }
+
     @available(*, deprecated, message: "Use getWallet(chain:options:). The recovery signer comes from the API.")
     public func getWallet(
         chain: Chain,
