@@ -102,7 +102,7 @@ struct WalletAddSignerTests {
 
             try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
 
-            #expect(walletService.lastAddSignerApprover == "phone:+14155552671")
+            #expect(walletService.lastAddSignerApprover == .phone("+14155552671"))
         }
 
         @Test func namesTheFirstRecoverySignerWhenNothingIsSelected() async throws {
@@ -111,7 +111,7 @@ struct WalletAddSignerTests {
 
             try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
 
-            #expect(walletService.lastAddSignerApprover == "email:alice@example.com")
+            #expect(walletService.lastAddSignerApprover == .email("alice@example.com"))
         }
 
         @Test func refusesASelectedSignerThatIsNotARecoverySigner() async throws {
@@ -153,7 +153,7 @@ struct WalletAddSignerTests {
 
             _ = try await wallet.removeSigner(locator: .device(publicKey: "abc"))
 
-            #expect(walletService.removeSignerLastApprover == "phone:+14155552671")
+            #expect(walletService.removeSignerLastApprover == .phone("+14155552671"))
         }
     }
 }

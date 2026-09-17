@@ -74,7 +74,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: String?
+        approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         try await walletService.addSigner(
             entry,
@@ -104,7 +104,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: String?
+        approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         try await walletService.registerTypedSigner(
             signer,
@@ -127,7 +127,7 @@ public final class DefaultSmartWalletService: SmartWalletService {
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String,
-        approver: String?
+        approver: SignerLocator?
     ) async throws(TransactionError) -> any TransactionApiModel {
         try await walletService.removeSigner(
             signerLocator,

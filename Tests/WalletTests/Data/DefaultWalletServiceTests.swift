@@ -226,7 +226,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
             chainType: .solana,
             chainName: "solana",
             deployImmediately: nil,
-            approver: "email:alice@example.com"
+            approver: .email("alice@example.com")
         )
 
         let json = try decodedBody(capturedBody.value)

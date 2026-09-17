@@ -7,5 +7,5 @@
 
 struct RecoveryApprover {
     let signer: any Signer
-    let requestLocator: String?
+    let requestLocator: SignerLocator?
 }

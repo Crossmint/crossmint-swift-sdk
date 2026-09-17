@@ -65,7 +65,7 @@ final class DeviceSignerService: Sendable {
         of publicKeyBase64: String,
         storage: any DeviceSignerKeyStorage,
         deployImmediately: Bool,
-        approver: String?
+        approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deviceName = await storage.deviceName
         guard let publicKey = DevicePublicKey(publicKeyBase64: publicKeyBase64) else {

@@ -68,14 +68,14 @@ struct DefaultWalletService: WalletService {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: String?
+        approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterSignerBody(
             signer: entry.signer,
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
             deployImmediately: deploy,
-            approver: approver
+            approver: approver?.value
         )
         return try await sendRegistration(body, chainType: chainType)
     }
@@ -100,14 +100,14 @@ struct DefaultWalletService: WalletService {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: String?
+        approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterTypedSignerBody(
             signer: AdminSignerRequestApiModel(signer),
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
             deployImmediately: deploy,
-            approver: approver
+            approver: approver?.value
         )
         return try await sendRegistration(body, chainType: chainType)
     }
@@ -124,7 +124,7 @@ struct DefaultWalletService: WalletService {
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String,
-        approver: String?
+        approver: SignerLocator?
     ) async throws(TransactionError) -> any TransactionApiModel {
         let encodedLocator = encodedSignerLocator(signerLocator)
         var queryItems: [URLQueryItem] = []
@@ -132,7 +132,7 @@ struct DefaultWalletService: WalletService {
             queryItems.append(URLQueryItem(name: "chain", value: chain))
         }
         if let approver {
-            queryItems.append(URLQueryItem(name: "approver", value: approver))
+            queryItems.append(URLQueryItem(name: "approver", value: approver.value))
         }
         let endpoint = Endpoint.removeSigner(
             chainType: chainType,

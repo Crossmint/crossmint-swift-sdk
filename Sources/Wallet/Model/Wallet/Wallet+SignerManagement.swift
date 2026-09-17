@@ -188,7 +188,8 @@ extension Wallet {
         let recoveryLocators = config.recoveryMethods.compactMap { try? SignerLocator(from: $0.locator) }
         guard let selectedSigner else {
             let signer = try await recoverySigner()
-            return RecoveryApprover(signer: signer, requestLocator: await signer.adminSigner.locator)
+            let locator = try SignerLocator(from: await signer.adminSigner.locator)
+            return RecoveryApprover(signer: signer, requestLocator: locator)
         }
         guard let selected = await selectedSigner.locator,
               recoveryLocators.contains(selected),
@@ -199,7 +200,7 @@ extension Wallet {
                 message: "Only a recovery signer can add or remove signers. Call useSigner with one of: \(choices)"
             )
         }
-        return RecoveryApprover(signer: signer, requestLocator: selected.value)
+        return RecoveryApprover(signer: signer, requestLocator: selected)
     }
 
     internal func updateSignerIfRequired() async -> (any Signer)? {
