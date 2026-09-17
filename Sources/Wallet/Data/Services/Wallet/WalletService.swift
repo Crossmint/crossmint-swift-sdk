@@ -65,8 +65,6 @@ public protocol WalletService: Sendable {
 }
 
 public extension WalletService {
-    /// Conformers that predate recovery signer lists get this default. It drops `approver`, which
-    /// only matters on a wallet with several recovery signers.
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
