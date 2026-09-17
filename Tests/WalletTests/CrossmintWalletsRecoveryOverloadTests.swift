@@ -17,8 +17,8 @@ private final class SpyCrossmintWallets: CrossmintWallets, @unchecked Sendable {
     var receivedSigners: [any Signer] = []
     var wallet: Wallet?
 
-    func getWallet(chain: Chain, recovery: any Signer, options: WalletOptions?) async throws(WalletError) -> Wallet? {
-        throw .walletGeneric("unexpected single-signer call")
+    func getWallet(chain: Chain, options: WalletOptions?) async throws(WalletError) -> Wallet? {
+        throw .walletGeneric("unexpected getWallet call")
     }
 
     func createWallet(chain: Chain, recovery: any Signer, options: WalletOptions?) async throws(WalletError) -> Wallet {
@@ -42,9 +42,8 @@ private final class SingleSignerCrossmintWallets: CrossmintWallets, @unchecked S
     var receivedSigner: (any Signer)?
     var wallet: Wallet?
 
-    func getWallet(chain: Chain, recovery: any Signer, options: WalletOptions?) async throws(WalletError) -> Wallet? {
-        receivedSigner = recovery
-        return wallet
+    func getWallet(chain: Chain, options: WalletOptions?) async throws(WalletError) -> Wallet? {
+        wallet
     }
 
     func createWallet(chain: Chain, recovery: any Signer, options: WalletOptions?) async throws(WalletError) -> Wallet {
