@@ -10,20 +10,23 @@ import Web
 
 enum SignerFactory {
     @MainActor
-    static func email(_ email: String, chainType: ChainType) -> any Signer {
+    static func email(_ email: String, chainType: ChainType) -> (any Signer)? {
         switch chainType {
-        case .evm, .unknown:
+        case .evm:
             EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case .solana:
             SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case .stellar:
             StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
+        case .unknown:
+            nil
         }
     }
 
     @MainActor
-    static func phone(_ phone: String, channel: OTPDeliveryChannel?, chainType: ChainType) -> any Signer {
-        PhoneSigner(phone: phone, channel: channel, chainType: chainType, crossmintTEE: CrossmintTEE.shared)
+    static func phone(_ phone: String, channel: OTPDeliveryChannel?, chainType: ChainType) -> (any Signer)? {
+        guard chainType != .unknown else { return nil }
+        return PhoneSigner(phone: phone, channel: channel, chainType: chainType, crossmintTEE: CrossmintTEE.shared)
     }
 
     @MainActor

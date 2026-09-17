@@ -263,14 +263,18 @@ extension Wallet {
     private func activateEmailSigner(email: String) async throws(WalletError) {
         let locator = SignerLocator.email(email)
         guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        let newSigner: any Signer = await SignerFactory.email(email, chainType: chain.chainType)
+        guard let newSigner = await SignerFactory.email(email, chainType: chain.chainType) else {
+            throw .invalidChain(chain: chain)
+        }
         selectedSigner = newSigner
     }
 
     private func activatePhoneSigner(phone: String, channel: OTPDeliveryChannel?) async throws(WalletError) {
         let locator = SignerLocator.phone(phone)
         guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        let newSigner: any Signer = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType)
+        guard let newSigner = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType) else {
+            throw .invalidChain(chain: chain)
+        }
         selectedSigner = newSigner
     }
 
