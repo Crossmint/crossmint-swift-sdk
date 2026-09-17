@@ -26,9 +26,6 @@ enum SignerFactory {
         PhoneSigner(phone: phone, channel: channel, chainType: chainType, crossmintTEE: CrossmintTEE.shared)
     }
 
-    /// The signer the SDK drives for a recovery method the API reports, or `nil` when the SDK cannot
-    /// sign with it on its own: a passkey needs the relying-party host the API does not store, and
-    /// external-wallet and server signers approve outside the SDK.
     @MainActor
     static func recovery(_ data: any AdminSignerData, chainType: ChainType) -> (any Signer)? {
         switch data {

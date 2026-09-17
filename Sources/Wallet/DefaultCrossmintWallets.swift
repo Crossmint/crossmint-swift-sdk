@@ -53,8 +53,6 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         try await createWallet(chain: chain, recovery: .list(recovery), options: options)
     }
 
-    /// `recovery` is the caller-supplied signer of the deprecated entry point. When `nil`, the
-    /// wallet's signer is built from the first recovery method the API reports.
     private func getWallet(
         chain: Chain,
         recovery: RecoveryInput?,

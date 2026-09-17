@@ -176,8 +176,6 @@ extension Wallet {
         return signer
     }
 
-    /// The signer that approves admin operations such as registering another signer. Falls back to
-    /// the selected signer when the wallet was loaded without one the SDK can drive.
     internal func recoverySigner() async throws(WalletError) -> any Signer {
         if let signer = await updateSignerIfRequired() { return signer }
         if let selected = selectedSigner as? any Signer { return selected }

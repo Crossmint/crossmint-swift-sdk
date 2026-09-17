@@ -31,9 +31,6 @@ open class Wallet: @unchecked Sendable {
     internal let smartWalletService: SmartWalletService
     internal let config: WalletConfig
     internal let blockchainAddress: Address
-    /// The recovery signer the SDK drives. `nil` when the wallet was loaded from the API and its
-    /// first recovery method needs caller data to sign (passkey host) or approves outside the SDK
-    /// (external wallet, server). ``useSigner(_:)`` selects a signer in that case.
     internal let signer: (any Signer)?
     internal let chain: Chain
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
