@@ -193,8 +193,9 @@ extension Wallet {
             guard let deviceSigner else { throw .device(.keyNotFound) }
             return deviceSigner
         }
-        guard let signer = await updateSignerIfRequired() else { throw .invalidSigner }
-        return signer
+        guard let defaultSigner = await updateSignerIfRequired(),
+              await defaultSigner.locator == locator else { throw .invalidSigner }
+        return defaultSigner
     }
 
     internal func selectedSignerLocator() async throws(SignerError) -> SignerLocator? {

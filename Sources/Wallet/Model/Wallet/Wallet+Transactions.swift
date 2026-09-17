@@ -349,17 +349,18 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 }
             }
         }
-        let locator = if selectedSigner == nil {
-            await localDeviceSigner()
+        let signerLocator: String?
+        if selectedSigner == nil, let deviceLocator = await localDeviceSigner() {
+            signerLocator = deviceLocator.value
         } else {
-            try await selectedSignerLocatorForTransactions()
+            signerLocator = try await transactionSignerLocator()
         }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
             tokenLocator: tokenLocator,
             recipient: recipient,
             amount: amount,
-            signer: locator?.value,
+            signer: signerLocator,
             idempotencyKey: idempotencyKey
         )
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
@@ -367,6 +368,14 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
+    }
+
+    internal func transactionSignerLocator() async throws(TransactionError) -> String? {
+        if let selected = try await selectedSignerLocatorForTransactions() {
+            return selected.value
+        }
+        guard config.recoveryMethods.count > 1 else { return nil }
+        return await signer?.adminSigner.locator ?? config.recovery.locator
     }
 
     internal func selectedSignerLocatorForTransactions() async throws(TransactionError) -> SignerLocator? {
