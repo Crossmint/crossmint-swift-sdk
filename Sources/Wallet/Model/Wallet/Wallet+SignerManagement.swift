@@ -180,7 +180,7 @@ extension Wallet {
         if let signer = await updateSignerIfRequired() { return signer }
         if let selected = selectedSigner as? any Signer { return selected }
         throw .walletGeneric(
-            "This wallet's recovery signer needs data the SDK does not have. Call useSigner(_:) first."
+            "The SDK cannot sign with this wallet's recovery method on its own. Call useSigner(_:) first."
         )
     }
 
