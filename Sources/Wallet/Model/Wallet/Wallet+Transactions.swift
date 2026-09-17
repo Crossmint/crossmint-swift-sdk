@@ -342,10 +342,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         onTransactionStart?()
         if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported {
             do {
-                try await deviceSignerService.ensureRegistered(
-                    storage: storage,
-                    signer: await updateSignerIfRequired()
-                )
+                try await deviceSignerService.ensureRegistered(storage: storage, signer: try await recoverySigner())
             } catch {
                 if case .deviceSignerNotSupported = error {
                     _deviceSignerUnsupported = true
