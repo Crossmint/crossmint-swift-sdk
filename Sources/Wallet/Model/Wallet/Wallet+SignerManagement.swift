@@ -179,9 +179,7 @@ extension Wallet {
     internal func recoverySigner() async throws(WalletError) -> any Signer {
         if let signer = await updateSignerIfRequired() { return signer }
         if let selected = selectedSigner as? any Signer { return selected }
-        throw .walletGeneric(
-            "The SDK cannot sign with this wallet's recovery method on its own. Call useSigner(_:) first."
-        )
+        throw .walletGeneric("No signer is available for this wallet's recovery method. Call useSigner(_:) first.")
     }
 
     internal func approvalSigner(for rawLocator: String) async throws(SignerError) -> any ApprovalSigner {
