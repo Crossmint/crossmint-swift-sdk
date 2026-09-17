@@ -3,7 +3,6 @@ import CryptoKit
 import DeviceSigner
 import Foundation
 import Logger
-import Web
 
 extension Wallet {
 
@@ -184,13 +183,13 @@ extension Wallet {
 
     internal func authorizingRecovery() async throws(WalletError) -> RecoveryApprover {
         guard config.recoveryMethods.count > 1 else {
-            return RecoveryApprover(signer: await updateSignerIfRequired(), requestLocator: nil)
-        }
-        guard let selectedSigner else {
-            let signer = await updateSignerIfRequired()
-            return RecoveryApprover(signer: signer, requestLocator: await signer.adminSigner.locator)
+            return RecoveryApprover(signer: try await recoverySigner(), requestLocator: nil)
         }
         let recoveryLocators = config.recoveryMethods.compactMap { try? SignerLocator(from: $0.locator) }
+        guard let selectedSigner else {
+            let signer = try await recoverySigner()
+            return RecoveryApprover(signer: signer, requestLocator: await signer.adminSigner.locator)
+        }
         guard let selected = await selectedSigner.locator,
               recoveryLocators.contains(selected),
               let signer = selectedSigner as? any Signer else {
@@ -203,16 +202,19 @@ extension Wallet {
         return RecoveryApprover(signer: signer, requestLocator: selected.value)
     }
 
-    internal func updateSignerIfRequired() async -> any Signer {
-        var updatedSigner: any Signer = signer
-        if let passkey = config.recoverySigner(ofType: PasskeySignerData.self) {
-            if let passkeySigner = updatedSigner as? PasskeySigner {
-                updatedSigner = await passkeySigner.updateAdminSigner(
-                    passkey
-                )
-            }
+    internal func updateSignerIfRequired() async -> (any Signer)? {
+        guard let signer else { return nil }
+        if let passkey = config.recoverySigner(ofType: PasskeySignerData.self),
+           let passkeySigner = signer as? PasskeySigner {
+            return await passkeySigner.updateAdminSigner(passkey)
         }
-        return updatedSigner
+        return signer
+    }
+
+    internal func recoverySigner() async throws(WalletError) -> any Signer {
+        if let signer = await updateSignerIfRequired() { return signer }
+        if let selected = selectedSigner as? any Signer { return selected }
+        throw .walletGeneric("No signer is available for this wallet's recovery method. Call useSigner(_:) first.")
     }
 
     internal func approvalSigner(for rawLocator: String) async throws(SignerError) -> any ApprovalSigner {
@@ -224,8 +226,8 @@ extension Wallet {
             guard let deviceSigner else { throw .device(.keyNotFound) }
             return deviceSigner
         }
-        let defaultSigner = await updateSignerIfRequired()
-        guard await defaultSigner.locator == locator else { throw .invalidSigner }
+        guard let defaultSigner = await updateSignerIfRequired(),
+              await defaultSigner.locator == locator else { throw .invalidSigner }
         return defaultSigner
     }
 
@@ -294,14 +296,18 @@ extension Wallet {
     private func activateEmailSigner(email: String) async throws(WalletError) {
         let locator = SignerLocator.email(email)
         guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        let newSigner: any Signer = await MainActor.run { makeEmailSigner(email: email) }
+        guard let newSigner = await SignerFactory.email(email, chainType: chain.chainType) else {
+            throw .invalidChain(chain: chain)
+        }
         selectedSigner = newSigner
     }
 
     private func activatePhoneSigner(phone: String, channel: OTPDeliveryChannel?) async throws(WalletError) {
         let locator = SignerLocator.phone(phone)
         guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        let newSigner: any Signer = await MainActor.run { makePhoneSigner(phone: phone, channel: channel) }
+        guard let newSigner = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType) else {
+            throw .invalidChain(chain: chain)
+        }
         selectedSigner = newSigner
     }
 
@@ -348,30 +354,6 @@ extension Wallet {
         let passkeySigner = PasskeySigner(name: name, host: host)
         _ = await passkeySigner.updateAdminSigner(passkeyData)
         selectedSigner = passkeySigner
-    }
-
-    @MainActor
-    internal func makePhoneSigner(phone: String, channel: OTPDeliveryChannel?) -> any Signer {
-        PhoneSigner(
-            phone: phone,
-            channel: channel,
-            chainType: chain.chainType,
-            crossmintTEE: CrossmintTEE.shared
-        )
-    }
-
-    @MainActor
-    internal func makeEmailSigner(email: String) -> any Signer {
-        switch chain.chainType {
-        case .evm:
-            EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
-        case .solana:
-            SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
-        case .stellar:
-            StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
-        case .unknown:
-            EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
-        }
     }
 
     // MARK: - Device signer registration

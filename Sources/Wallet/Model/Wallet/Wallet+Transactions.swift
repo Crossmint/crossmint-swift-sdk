@@ -385,7 +385,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             return selected.value
         }
         guard config.recoveryMethods.count > 1 else { return nil }
-        return await signer.adminSigner.locator
+        return await signer?.adminSigner.locator ?? config.recovery.locator
     }
 
     internal func selectedSignerLocatorForTransactions() async throws(TransactionError) -> SignerLocator? {

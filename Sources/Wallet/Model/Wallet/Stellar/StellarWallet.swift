@@ -22,7 +22,7 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
     internal init(
         smartWalletService: SmartWalletService,
-        signer: any Signer,
+        signer: (any Signer)?,
         baseModel: WalletApiModel,
         stellarChain: StellarChain,
         onTransactionStart: (() -> Void)? = nil,

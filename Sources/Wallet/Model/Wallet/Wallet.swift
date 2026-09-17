@@ -31,7 +31,7 @@ open class Wallet: @unchecked Sendable {
     internal let smartWalletService: SmartWalletService
     internal let config: WalletConfig
     internal let blockchainAddress: Address
-    internal let signer: any Signer
+    internal let signer: (any Signer)?
     internal let chain: Chain
     var deviceSignerKeyStorage: (any DeviceSignerKeyStorage)?
     var deviceSignerService: DeviceSignerService
@@ -54,7 +54,7 @@ open class Wallet: @unchecked Sendable {
 
     internal init(
         smartWalletService: SmartWalletService,
-        signer: any Signer,
+        signer: (any Signer)?,
         baseModel: WalletApiModel,
         chain: Chain,
         address: Address,
