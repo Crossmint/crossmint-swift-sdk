@@ -27,10 +27,9 @@ import CrossmintCommonTypes
 public protocol CrossmintWallets: Sendable {
     /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
     ///
-    /// The wallet's recovery signers come from the API response. The first one is the active signer
-    /// until ``Wallet/useSigner(_:)`` selects another one. Call ``Wallet/useSigner(_:)`` before
-    /// signing when the first recovery signer is a passkey or an external wallet, because the SDK
-    /// needs the passkey host from you and cannot sign for an external wallet.
+    /// The wallet's first recovery signer is the active signer until ``Wallet/useSigner(_:)`` selects
+    /// another one. When that signer is a passkey or an external wallet, call ``Wallet/useSigner(_:)``
+    /// before signing.
     ///
     /// - Parameters:
     ///   - chain: The blockchain to look up.
@@ -89,8 +88,6 @@ public protocol CrossmintWallets: Sendable {
 }
 
 extension CrossmintWallets {
-    /// Conformers that implement only ``getWallet(chain:options:)`` get this default. It drops the
-    /// signer, since the wallet builds its own from the API response.
     @available(*, deprecated, message: "Use getWallet(chain:options:). The recovery signer comes from the API.")
     public func getWallet(
         chain: Chain,
