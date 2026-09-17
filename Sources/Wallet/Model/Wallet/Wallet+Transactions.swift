@@ -342,10 +342,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         onTransactionStart?()
         if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported {
             do {
-                try await deviceSignerService.ensureRegistered(
-                    storage: storage,
-                    signer: await updateSignerIfRequired()
-                )
+                try await deviceSignerService.ensureRegistered(storage: storage, signer: try await recoverySigner())
             } catch {
                 if case .deviceSignerNotSupported = error {
                     _deviceSignerUnsupported = true
@@ -378,7 +375,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             return selected.value
         }
         guard config.recoveryMethods.count > 1 else { return nil }
-        return await signer.adminSigner.locator
+        return await signer?.adminSigner.locator ?? config.recovery.locator
     }
 
     internal func selectedSignerLocatorForTransactions() async throws(TransactionError) -> SignerLocator? {

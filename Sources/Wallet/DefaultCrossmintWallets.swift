@@ -23,6 +23,14 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
 
     public func getWallet(
         chain: Chain,
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet? {
+        try await getWallet(chain: chain, recovery: nil, options: options)
+    }
+
+    @available(*, deprecated, message: "Use getWallet(chain:options:). The recovery signer comes from the API.")
+    public func getWallet(
+        chain: Chain,
         recovery: any Signer,
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet? {
@@ -47,15 +55,15 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
 
     private func getWallet(
         chain: Chain,
-        recovery: RecoveryInput,
+        recovery: RecoveryInput?,
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet? {
         try assertValid(chain)
-        try recovery.assertValid(for: chain)
+        try recovery?.assertValid(for: chain)
 
         Logger.smartWallet.debug(LogEvents.walletGetStart, attributes: [
             "chain": chain.name,
-            "signerType": recovery.active.signerType.rawValue
+            "signerType": recovery?.active.signerType.rawValue ?? "api"
         ])
 
         let deviceSignerStorage = self.deviceSignerStorage(for: options)
@@ -75,7 +83,13 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             await assignPendingDeviceSignerKey(storage: storage, walletApiModel: walletApiModel)
         }
 
-        let defaultSigner = recovery.active
+        let defaultSigner: (any Signer)?
+        if let recovery {
+            defaultSigner = recovery.active
+        } else {
+            let recoveryMethod = walletApiModel.config.toDomain.recovery
+            defaultSigner = await SignerFactory.recovery(recoveryMethod, chainType: walletApiModel.chainType)
+        }
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
@@ -84,7 +98,9 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             deviceSignerStorage: deviceSignerStorage
         )
 
-        await loadNonCustodialSigner(defaultSigner)
+        if let defaultSigner {
+            await loadNonCustodialSigner(defaultSigner)
+        }
 
         return wallet
     }
@@ -323,7 +339,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
     private func buildWallet(
         from walletApiModel: WalletApiModel,
         chain: Chain,
-        signer: any Signer,
+        signer: (any Signer)?,
         options: WalletOptions?,
         deviceSignerStorage: (any DeviceSignerKeyStorage)?,
         deviceSignerUnsupported: Bool = false

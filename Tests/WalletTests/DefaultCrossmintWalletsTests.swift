@@ -57,11 +57,7 @@ struct DefaultCrossmintWalletsTests {
         walletService.getWalletSignerLocators = ["device:\(pendingKeyBase64)"]
 
         let wallet = try #require(
-            try await makeWallets().getWallet(
-                chain: Chain("solana"),
-                recovery: MockSigner(),
-                options: WalletOptions(deviceSigner: true)
-            )
+            try await makeWallets().getWallet(chain: Chain("solana"), options: WalletOptions(deviceSigner: true))
         )
 
         #expect(await keyStorage.getKey(address: wallet.address) == pendingKeyBase64)
@@ -261,5 +257,88 @@ struct RecoverySignerListCreationTests {
             return code == .notSupportedOnChain
         }
         #expect(walletService.createWalletCallCount == 0)
+    }
+}
+
+@Suite("Wallet Loading", .tags(.unit))
+struct WalletLoadingTests {
+    private let walletService = MockSmartWalletService()
+
+    private func makeWallets() -> DefaultCrossmintWallets {
+        DefaultCrossmintWallets(
+            service: walletService,
+            secureWalletStorage: StubSecureWalletStorage(),
+            deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
+        )
+    }
+
+    private func loadWallet(fixture: String, chain: String) async throws -> Wallet {
+        let url = try #require(Bundle.module.url(forResource: fixture, withExtension: "json"))
+        walletService.getWalletFixture = try Data(contentsOf: url)
+        return try #require(try await makeWallets().getWallet(chain: Chain(chain), options: nil))
+    }
+
+    @Test func buildsAnEmailSignerFromTheApiRecoveryMethod() async throws {
+        let wallet = try await loadWallet(fixture: "WalletSolanaEmail", chain: "solana")
+
+        let signer = try #require(wallet.signer as? SolanaEmailSigner)
+        #expect(signer.email == "solana.user@example.com")
+    }
+
+    @Test func buildsAPhoneSignerWithoutAChannelFromTheApiRecoveryMethod() async throws {
+        let wallet = try await loadWallet(fixture: "WalletEVMPhone", chain: "base-sepolia")
+
+        let signer = try #require(wallet.signer as? PhoneSigner)
+        #expect(signer.phone == "+14155552671")
+        #expect(signer.channel == nil)
+    }
+
+    @Test func buildsAnApiKeySignerFromTheApiRecoveryMethod() async throws {
+        let wallet = try await loadWallet(fixture: "WalletEVMApiKey", chain: "base-sepolia")
+
+        let signer = try #require(wallet.signer as? ApiKeySigner)
+        #expect(signer.adminSigner.address == "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb")
+    }
+
+    @Test func leavesTheSignerUnsetForAPasskeyRecoveryMethod() async throws {
+        let wallet = try await loadWallet(fixture: "WalletPasskey", chain: "base-sepolia")
+
+        #expect(wallet.signer == nil)
+    }
+
+    @Test func leavesTheSignerUnsetForAnExternalWalletRecoveryMethod() async throws {
+        let wallet = try await loadWallet(fixture: "WalletEVMKeypair", chain: "base-sepolia")
+
+        #expect(wallet.signer == nil)
+    }
+
+    @Test func returnsNilWhenTheWalletDoesNotExist() async throws {
+        walletService.getWalletError = .walletNotFound
+
+        let wallet = try await makeWallets().getWallet(chain: Chain("solana"), options: nil)
+
+        #expect(wallet == nil)
+    }
+
+    @Test func rejectsRegisteringASignerBeforeUseSignerWhenTheSdkCannotDriveTheRecoverySigner() async throws {
+        let wallet = try await loadWallet(fixture: "WalletPasskey", chain: "base-sepolia")
+
+        await #expect { try await wallet.addSigner(.email("alice@example.com")) } throws: { error in
+            guard case .walletGeneric(let message) = error as? WalletError else { return false }
+            return message.contains("useSigner")
+        }
+        #expect(walletService.addSignerCallCount == 0)
+    }
+
+    @Test func honorsTheCallerSignerOnTheDeprecatedEntryPoint() async throws {
+        let url = try #require(Bundle.module.url(forResource: "WalletSolanaEmail", withExtension: "json"))
+        walletService.getWalletFixture = try Data(contentsOf: url)
+        let caller = MockSigner(email: "solana.user@example.com")
+
+        let wallet = try #require(
+            try await makeWallets().getWallet(chain: Chain("solana"), recovery: caller, options: nil)
+        )
+
+        #expect(wallet.signer as? MockSigner === caller)
     }
 }

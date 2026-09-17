@@ -73,13 +73,13 @@ final class AppState {
         walletErrorMessage = nil
 
         do {
-            if let found = try await fetchWallet(chain: chain, email: email) {
+            if let found = try await fetchWallet(chain: chain) {
                 walletCache[chain] = found
                 // Only update UI state if still on the same chain
                 if chain == selectedChain {
                     await fetchBalance()
                     await loadSigners()
-                    preloadOtherChains(email: email)
+                    preloadOtherChains()
                 }
             } else {
                 notFoundChains.insert(chain)
@@ -140,10 +140,10 @@ final class AppState {
 
     /// Re-fetches the current chain's wallet from the API and updates the cache.
     func reloadCurrentWallet() async {
-        guard let email = currentEmail else { return }
+        guard currentEmail != nil else { return }
         let chain = selectedChain
         do {
-            if let found = try await fetchWallet(chain: chain, email: email) {
+            if let found = try await fetchWallet(chain: chain) {
                 walletCache[chain] = found
             }
         } catch {
@@ -193,7 +193,7 @@ final class AppState {
 
     /// Kicks off background fetches for chains not yet in the cache.
     /// Uses unstructured Tasks (fire-and-forget) since these are not tied to any view lifecycle.
-    private func preloadOtherChains(email: String) {
+    private func preloadOtherChains() {
         let all: [SupportedChain] = [.evm, .solana, .stellar]
         for chain in all where chain != selectedChain {
             guard walletCache[chain] == nil,
@@ -203,7 +203,7 @@ final class AppState {
             loadingChains.insert(chain)
             Task {
                 do {
-                    if let found = try await fetchWallet(chain: chain, email: email) {
+                    if let found = try await fetchWallet(chain: chain) {
                         walletCache[chain] = found
                         if chain == selectedChain {
                             await fetchBalance()
@@ -241,27 +241,15 @@ final class AppState {
         }
     }
 
-    private func fetchWallet(chain: SupportedChain, email: String) async throws -> Wallet? {
+    private func fetchWallet(chain: SupportedChain) async throws -> Wallet? {
         let options = WalletOptions(deviceSigner: true)
         switch chain {
         case .evm:
-            return try await sdk.crossmintWallets.getWallet(
-                chain: EVMChain.baseSepolia,
-                recovery: EVMSigners.email(email),
-                options: options
-            )
+            return try await sdk.crossmintWallets.getWallet(chain: EVMChain.baseSepolia, options: options)
         case .solana:
-            return try await sdk.crossmintWallets.getWallet(
-                chain: SolanaChain.solana,
-                recovery: SolanaSigners.email(email),
-                options: options
-            )
+            return try await sdk.crossmintWallets.getWallet(chain: SolanaChain.solana, options: options)
         case .stellar:
-            return try await sdk.crossmintWallets.getWallet(
-                chain: StellarChain.stellar,
-                recovery: StellarSigners.email(email),
-                options: options
-            )
+            return try await sdk.crossmintWallets.getWallet(chain: StellarChain.stellar, options: options)
         }
     }
 
