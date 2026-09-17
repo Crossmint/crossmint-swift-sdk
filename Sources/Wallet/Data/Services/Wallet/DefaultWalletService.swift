@@ -52,13 +52,15 @@ struct DefaultWalletService: WalletService {
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String,
-        deployImmediately: Bool?
+        deployImmediately: Bool?,
+        approver: String? = nil
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterSignerBody(
             signer: entry.signer,
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
-            deployImmediately: deploy
+            deployImmediately: deploy,
+            approver: approver
         )
         return try await sendRegistration(body, chainType: chainType)
     }
@@ -67,13 +69,15 @@ struct DefaultWalletService: WalletService {
         _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
-        deployImmediately: Bool?
+        deployImmediately: Bool?,
+        approver: String? = nil
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterTypedSignerBody(
             signer: AdminSignerRequestApiModel(signer),
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
-            deployImmediately: deploy
+            deployImmediately: deploy,
+            approver: approver
         )
         return try await sendRegistration(body, chainType: chainType)
     }
@@ -81,12 +85,16 @@ struct DefaultWalletService: WalletService {
     func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
-        chainName: String
+        chainName: String,
+        approver: String? = nil
     ) async throws(TransactionError) -> any TransactionApiModel {
         let encodedLocator = encodedSignerLocator(signerLocator)
         var queryItems: [URLQueryItem] = []
         if let chain = signerRegistrationChain(chainType: chainType, chainName: chainName) {
             queryItems.append(URLQueryItem(name: "chain", value: chain))
+        }
+        if let approver {
+            queryItems.append(URLQueryItem(name: "approver", value: approver))
         }
         let endpoint = Endpoint.removeSigner(
             chainType: chainType,

@@ -151,11 +151,18 @@ extension Wallet {
         ])
 
         do {
+            let approver: RecoveryApprover
+            do {
+                approver = try await authorizingRecovery()
+            } catch {
+                throw TransactionError.transactionGeneric(error.message)
+            }
             onTransactionStart?()
             let transactionModel = try await smartWalletService.removeSigner(
                 locator,
                 chainType: chain.chainType,
-                chainName: chain.name
+                chainName: chain.name,
+                approver: approver.requestLocator
             )
             let transaction = transactionModel.toDomain()
             guard let result = try await signAndPollWhilePending(transaction) else {
@@ -344,7 +351,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             do {
                 try await deviceSignerService.ensureRegistered(
                     storage: storage,
-                    signer: await updateSignerIfRequired()
+                    approver: try await authorizingRecovery()
                 )
             } catch {
                 if case .deviceSignerNotSupported = error {
