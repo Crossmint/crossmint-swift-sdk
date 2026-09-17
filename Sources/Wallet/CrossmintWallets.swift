@@ -78,8 +78,8 @@ public protocol CrossmintWallets: Sendable {
     ///   - chain: The blockchain to deploy to.
     ///   - recoveryMethods: The signers that can each authorize recovery operations for this wallet.
     ///   - options: Optional configuration, such as enabling a device signer.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain does not
-    ///   accept the list.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list has more than
+    ///   one signer on a chain that accepts one.
     func createWallet(
         chain: Chain,
         recoveryMethods: [any Signer],
@@ -115,7 +115,7 @@ extension CrossmintWallets {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
         guard recoveryMethods.count == 1, let signer = recoveryMethods.first else {
-            throw .walletGeneric("This CrossmintWallets implementation accepts a single recovery signer")
+            throw .walletGeneric("This CrossmintWallets implementation accepts a single recovery method")
         }
         return try await createWallet(chain: chain, recovery: signer, options: options)
     }
@@ -307,7 +307,8 @@ extension CrossmintWallets {
     ///
     /// The wallet's first recovery signer, as the API reports it, is the active signer until
     /// ``Wallet/useSigner(_:)`` selects another one.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the chain accepts a single signer only.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list has more than one signer on
+    ///   a chain that accepts one.
     public func createWallet<C: ChainWithSigners>(
         chain: C,
         recoveryMethods: [C.SpecificSigner],

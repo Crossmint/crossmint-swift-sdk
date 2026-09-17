@@ -142,7 +142,7 @@ extension WalletError.RecoveryConfigCode {
         case .signerRequired:
             "Call useSigner to select which recovery signer authorizes this operation."
         case .notSupportedOnChain:
-            "Pass a single recovery signer on this chain."
+            "Pass a single recovery method on this chain."
         case .notSupportedOnApiVersion, .adminSignerConflict:
             nil
         }
