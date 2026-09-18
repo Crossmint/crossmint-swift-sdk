@@ -24,7 +24,7 @@ final class SignerRegistrationService: Sendable {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: approver.requestLocator
+            approver: approver.locator
         )
         try await approveIfNeeded(registration: registration, signer: approver.signer)
     }
@@ -51,7 +51,7 @@ final class SignerRegistrationService: Sendable {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: approver.requestLocator
+            approver: approver.locator
         )
         try await approveIfNeeded(registration: registration, signer: approver.signer)
     }

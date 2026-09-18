@@ -38,7 +38,7 @@ final class DeviceSignerService: Sendable {
             of: publicKeyBase64,
             storage: storage,
             deployImmediately: deployImmediately,
-            approver: approver.requestLocator
+            approver: approver.locator
         )
         try await approveRegistration(
             registration,

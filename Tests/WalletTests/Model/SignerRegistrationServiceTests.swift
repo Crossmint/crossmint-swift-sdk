@@ -26,7 +26,7 @@ struct SignerRegistrationServiceTests {
 
         try await service.register(
             locator: .email("test@example.com"),
-            approver: RecoveryApprover(signer: signer, requestLocator: nil)
+            approver: RecoveryApprover(signer: signer, locator: nil)
         )
 
         #expect(walletService.addSignerCallCount == 1)
@@ -44,7 +44,7 @@ struct SignerRegistrationServiceTests {
 
         try await service.register(
             locator: .email("test@example.com"),
-            approver: RecoveryApprover(signer: signer, requestLocator: nil)
+            approver: RecoveryApprover(signer: signer, locator: nil)
         )
 
         #expect(walletService.approveSignatureCallCount == 0)
@@ -68,7 +68,7 @@ struct SignerRegistrationServiceTests {
 
         try await service.register(
             locator: .email("test@example.com"),
-            approver: RecoveryApprover(signer: signer, requestLocator: nil)
+            approver: RecoveryApprover(signer: signer, locator: nil)
         )
 
         #expect(walletService.approveSignatureCallCount == 2)

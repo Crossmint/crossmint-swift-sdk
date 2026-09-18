@@ -162,7 +162,7 @@ extension Wallet {
                 locator,
                 chainType: chain.chainType,
                 chainName: chain.name,
-                approver: approver.requestLocator
+                approver: approver.locator
             )
             let transaction = transactionModel.toDomain()
             guard let result = try await signAndPollWhilePending(transaction) else {
