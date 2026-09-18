@@ -33,7 +33,10 @@ struct DeviceSignerServiceTests {
         let storage = MockDeviceSignerKeyStorage()
         let service = makeSolanaService(walletService: walletService)
 
-        try await service.register(storage: storage, signer: MockSigner())
+        try await service.register(
+            storage: storage,
+            approver: RecoveryApprover(signer: MockSigner(), locator: nil)
+        )
 
         #expect(walletService.signTransactionCallCount == 1)
         #expect(walletService.lastSignTransactionRequest?.transactionId == "registration-tx-1")
@@ -46,7 +49,10 @@ struct DeviceSignerServiceTests {
         let storage = MockDeviceSignerKeyStorage()
         let service = makeSolanaService(walletService: walletService)
 
-        try await service.register(storage: storage, signer: MockSigner())
+        try await service.register(
+            storage: storage,
+            approver: RecoveryApprover(signer: MockSigner(), locator: nil)
+        )
 
         let registeredSigner = try #require(walletService.lastAddSignerEntry?.signer)
         let publicKeyBase64 = try #require(await storage.getKey(address: walletAddress))
@@ -65,7 +71,10 @@ struct DeviceSignerServiceTests {
         let service = makeSolanaService(walletService: walletService)
 
         await #expect(throws: WalletError.self) {
-            try await service.register(storage: storage, signer: MockSigner())
+            try await service.register(
+            storage: storage,
+            approver: RecoveryApprover(signer: MockSigner(), locator: nil)
+        )
         }
         #expect(storage.deletePendingKeyCallCount == 1)
         #expect(await storage.getKey(address: walletAddress) == nil)

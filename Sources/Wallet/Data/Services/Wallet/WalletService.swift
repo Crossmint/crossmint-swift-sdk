@@ -22,11 +22,27 @@ public protocol WalletService: Sendable {
         deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
+    func addSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approver: SignerLocator?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse
+
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse
+
+    func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func removeSigner(
@@ -35,8 +51,56 @@ public protocol WalletService: Sendable {
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel
 
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String,
+        approver: SignerLocator?
+    ) async throws(TransactionError) -> any TransactionApiModel
+
     func getSigner(
         _ signerLocator: String,
         chainType: ChainType
     ) async throws(WalletError) -> AddDelegatedSignerResponse?
+}
+
+public extension WalletService {
+    func addSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approver: SignerLocator?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately
+        )
+    }
+
+    func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approver: SignerLocator?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await registerTypedSigner(
+            signer,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately
+        )
+    }
+
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String,
+        approver: SignerLocator?
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        try await removeSigner(signerLocator, chainType: chainType, chainName: chainName)
+    }
 }

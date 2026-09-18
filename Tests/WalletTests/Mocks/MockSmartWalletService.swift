@@ -177,6 +177,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var addSignerCallCount = 0
     var lastAddSignerEntry: DelegatedSignerEntry?
     var lastAddSignerDeployImmediately: Bool?
+    var lastAddSignerApprover: SignerLocator?
 
     func addSigner(
         _ entry: DelegatedSignerEntry,
@@ -184,9 +185,26 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainName: String,
         deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approver: nil
+        )
+    }
+
+    func addSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approver: SignerLocator?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
         addSignerCallCount += 1
         lastAddSignerEntry = entry
         lastAddSignerDeployImmediately = deployImmediately
+        lastAddSignerApprover = approver
         if let addSignerError {
             throw addSignerError
         }
@@ -198,6 +216,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var registerTypedSignerResult = AddDelegatedSignerResponse(chains: nil, transaction: nil)
     var registerTypedSignerCallCount = 0
     var lastRegisterTypedSignerDeployImmediately: Bool?
+    var lastRegisterTypedSignerApprover: SignerLocator?
 
     func registerTypedSigner(
         _ signer: any AdminSignerData,
@@ -205,8 +224,25 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainName: String,
         deployImmediately: Bool?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await registerTypedSigner(
+            signer,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approver: nil
+        )
+    }
+
+    func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approver: SignerLocator?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
         registerTypedSignerCallCount += 1
         lastRegisterTypedSignerDeployImmediately = deployImmediately
+        lastRegisterTypedSignerApprover = approver
         return registerTypedSignerResult
     }
 
@@ -313,14 +349,25 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var removeSignerError: TransactionError?
     var removeSignerCallCount = 0
     var removeSignerLastLocator: String?
+    var removeSignerLastApprover: SignerLocator?
 
     func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel {
+        try await removeSigner(signerLocator, chainType: chainType, chainName: chainName, approver: nil)
+    }
+
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String,
+        approver: SignerLocator?
+    ) async throws(TransactionError) -> any TransactionApiModel {
         removeSignerCallCount += 1
         removeSignerLastLocator = signerLocator
+        removeSignerLastApprover = approver
         if let removeSignerError {
             throw removeSignerError
         }

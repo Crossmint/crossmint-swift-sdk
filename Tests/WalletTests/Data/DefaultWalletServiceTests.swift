@@ -217,6 +217,34 @@ struct DefaultWalletServiceDeployImmediatelyTests {
     }
 
     @Test
+    func sendsTheApproverWhenNamed() async throws {
+        let capturedBody = SendableBox<Data?>(nil)
+        let service = try makeService(capturingBodyInto: capturedBody)
+
+        _ = try await service.addSigner(
+            entry,
+            chainType: .solana,
+            chainName: "solana",
+            deployImmediately: nil,
+            approver: .email("alice@example.com")
+        )
+
+        let json = try decodedBody(capturedBody.value)
+        #expect(json["approver"] as? String == "email:alice@example.com")
+    }
+
+    @Test
+    func omitsTheApproverWhenAbsent() async throws {
+        let capturedBody = SendableBox<Data?>(nil)
+        let service = try makeService(capturingBodyInto: capturedBody)
+
+        _ = try await service.addSigner(entry, chainType: .solana, chainName: "solana", deployImmediately: nil)
+
+        let json = try decodedBody(capturedBody.value)
+        #expect(json["approver"] == nil)
+    }
+
+    @Test
     func sendsDeployImmediatelyTrueByDefaultForEVM() async throws {
         let capturedBody = SendableBox<Data?>(nil)
         let service = try makeService(capturingBodyInto: capturedBody)
