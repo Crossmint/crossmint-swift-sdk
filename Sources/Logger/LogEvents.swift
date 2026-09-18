@@ -195,6 +195,18 @@ public enum LogEvents {
     /// Failed to get balances
     public static let walletBalancesError = "wallet.balances.error"
 
+    /// Could not read an available or locked amount
+    public static let walletBalancesMalformedAmount = "wallet.balances.malformedAmount"
+
+    /// Could not read the accounts list
+    public static let walletBalancesMalformedAccounts = "wallet.balances.malformedAccounts"
+
+    /// Left out an account that could not be read
+    public static let walletBalancesSkippedAccount = "wallet.balances.skippedAccount"
+
+    /// Found an account type this version does not know
+    public static let walletBalancesUnknownAccountType = "wallet.balances.unknownAccountType"
+
     /// Getting a transaction by ID
     public static let walletGetTransactionStart = "wallet.getTransaction.start"
 

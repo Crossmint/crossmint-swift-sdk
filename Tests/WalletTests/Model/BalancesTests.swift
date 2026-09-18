@@ -77,8 +77,8 @@ struct BalancesTest {
         #expect(balance.chainBalances[.unknown(name: "unknown-chain")] == 123)
     }
 
-    @Test("Will get all balances for the same currency together.")
-    func willGetAllBalancesForTheSameCurrencyTogether() async {
+    @Test("Uses the first entry when a currency is reported twice")
+    func usesTheFirstEntryWhenACurrencyIsReportedTwice() async {
         let balances = getBalances("""
                 [
                   {
@@ -116,9 +116,9 @@ struct BalancesTest {
             return
         }
 
-        #expect(usdc.total == 300)
+        #expect(usdc.total == 100)
         #expect(usdc[.ethereum] == 100)
-        #expect(usdc[.bsc] == 200)
+        #expect(usdc[.bsc] == 0)
     }
 
     @Test("Will parse different balances")

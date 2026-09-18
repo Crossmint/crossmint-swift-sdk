@@ -17,7 +17,13 @@ struct ChainBalanceTest {
     )
     // swiftlint:disable:next large_tuple
     func willNormalizeDecimalStrings(values: (Int, String, String?)) async {
-        let balance = ChainBalances(total: .zero, decimals: values.0, chainBalances: [:])
+        let balance = ChainBalances(
+            total: .zero,
+            reportedAmount: "0",
+            reportedRawAmount: nil,
+            decimals: values.0,
+            chainBalances: [:]
+        )
         #expect(balance.convertToBaseUnits(values.1) == values.2)
     }
 }
