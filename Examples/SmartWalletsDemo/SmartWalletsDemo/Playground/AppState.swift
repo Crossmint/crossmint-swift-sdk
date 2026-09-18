@@ -31,6 +31,8 @@ final class AppState {
     private var currentEmail: String?
     private var phoneChannels: [String: OTPDeliveryChannel] = [:]
 
+    var pendingRecovery: [RecoverySignerDraft] = []
+
     // Signer selection (shared across Transfer/Signing/Signers)
     private(set) var selectedSignerLocator: String?
     private(set) var signers: [WalletSigner] = []
@@ -43,7 +45,10 @@ final class AppState {
     var wallet: Wallet? { walletCache[selectedChain] }
     var walletNotFound: Bool { notFoundChains.contains(selectedChain) }
     var isLoadingWallet: Bool { loadingChains.contains(selectedChain) }
-    var recoveryLocator: String? { currentEmail.map { "email:\($0)" } }
+    var recoveryLocators: [String] {
+        if let wallet { return wallet.recoveryMethods.map(\.locator) }
+        return currentEmail.map { ["email:\($0)"] } ?? []
+    }
 
     var formattedBalance: String {
         guard let balance else { return "—" }
@@ -79,7 +84,7 @@ final class AppState {
                 if chain == selectedChain {
                     await fetchBalance()
                     await loadSigners()
-                    preloadOtherChains()
+                    preloadOtherChains(email: email)
                 }
             } else {
                 notFoundChains.insert(chain)
@@ -100,7 +105,8 @@ final class AppState {
         walletErrorMessage = nil
 
         do {
-            let w = try await makeWallet(chain: chain, email: email)
+            let w = try await makeWallet(chain: chain, email: email, extraRecovery: pendingRecovery)
+            pendingRecovery = []
             walletCache[chain] = w
             notFoundChains.remove(chain)
             await fetchBalance()
@@ -123,6 +129,7 @@ final class AppState {
     func switchChain(_ chain: SupportedChain, email: String) async {
         guard chain != selectedChain else { return }
         selectedChain = chain
+        pendingRecovery = []
         selectedSignerLocator = nil
         signers = []
         localDeviceLocator = nil
@@ -193,7 +200,7 @@ final class AppState {
 
     /// Kicks off background fetches for chains not yet in the cache.
     /// Uses unstructured Tasks (fire-and-forget) since these are not tied to any view lifecycle.
-    private func preloadOtherChains() {
+    private func preloadOtherChains(email: String) {
         let all: [SupportedChain] = [.evm, .solana, .stellar]
         for chain in all where chain != selectedChain {
             guard walletCache[chain] == nil,
@@ -220,14 +227,14 @@ final class AppState {
     }
 
     private func firstSelectableLocator() -> String? {
-        if let recovery = recoveryLocator, signerConfig(for: recovery) != nil { return recovery }
+        if let recovery = recoveryLocators.first(where: { signerConfig(for: $0) != nil }) { return recovery }
         return signers
             .map(\.locator)
             .first { signerConfig(for: $0) != nil }?
             .value
     }
 
-    private func signerConfig(for locator: String) -> SignerConfig? {
+    func signerConfig(for locator: String) -> SignerConfig? {
         (try? SignerLocator(from: locator)).flatMap { signerConfig(for: $0) }
     }
 
@@ -236,6 +243,8 @@ final class AppState {
         case .device: .device
         case .apiKey: .apiKey
         case .email(let email): .email(email)
+        // The channel is per onboarding request and the API never returns it, so a locator
+        // alone cannot say how the OTP should be delivered.
         case .phone(let number): .phone(number, channel: phoneChannels[locator.value])
         default: nil
         }
@@ -274,6 +283,49 @@ final class AppState {
                 recovery: StellarSigners.email(email),
                 options: options
             )
+        }
+    }
+
+    private func makeWallet(
+        chain: SupportedChain,
+        email: String,
+        extraRecovery: [RecoverySignerDraft]
+    ) async throws -> Wallet {
+        guard chain.supportsRecoveryList, !extraRecovery.isEmpty else {
+            return try await makeWallet(chain: chain, email: email)
+        }
+        let options = WalletOptions(deviceSigner: true)
+        switch chain {
+        case .evm:
+            return try await makeWallet(chain: chain, email: email)
+        case .solana:
+            return try await sdk.crossmintWallets.createWallet(
+                chain: SolanaChain.solana,
+                recovery: [.email(email)] + extraRecovery.map(solanaSigner),
+                options: options
+            )
+        case .stellar:
+            return try await sdk.crossmintWallets.createWallet(
+                chain: StellarChain.stellar,
+                recovery: [.email(email)] + extraRecovery.map(stellarSigner),
+                options: options
+            )
+        }
+    }
+
+    private func solanaSigner(for draft: RecoverySignerDraft) -> SolanaSigners {
+        switch draft.kind {
+        case .email(let email): .email(email)
+        case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
+        case .apiKey: .apiKey
+        }
+    }
+
+    private func stellarSigner(for draft: RecoverySignerDraft) -> StellarSigners {
+        switch draft.kind {
+        case .email(let email): .email(email)
+        case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
+        case .apiKey: .apiKey
         }
     }
 }
