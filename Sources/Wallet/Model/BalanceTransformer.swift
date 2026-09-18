@@ -1,36 +1,13 @@
 import CrossmintCommonTypes
 import Foundation
 
-public struct BalanceTransformer {
+struct BalanceTransformer {
 
-    @available(
-        *,
-        deprecated,
-        message: "Pass the wallet's chain to receive the available, locked and accounts breakdown"
-    )
-    public static func transform(
-        from balances: Balances,
-        nativeToken: CryptoCurrency,
-        requestedTokens: [CryptoCurrency]
-    ) -> Balance {
-        balance(from: balances, nativeToken: nativeToken, requestedTokens: requestedTokens, chain: nil)
-    }
-
-    /// - Parameter chain: The chain to report the available, locked and accounts values for.
-    public static func transform(
+    static func transform(
         from balances: Balances,
         nativeToken: CryptoCurrency,
         requestedTokens: [CryptoCurrency],
         chain: Chain
-    ) -> Balance {
-        balance(from: balances, nativeToken: nativeToken, requestedTokens: requestedTokens, chain: chain)
-    }
-
-    private static func balance(
-        from balances: Balances,
-        nativeToken: CryptoCurrency,
-        requestedTokens: [CryptoCurrency],
-        chain: Chain?
     ) -> Balance {
         let nativeTokenBalance = createTokenBalance(
             from: balances[nativeToken],
@@ -60,7 +37,7 @@ public struct BalanceTransformer {
     private static func createTokenBalance(
         from chainBalances: ChainBalances?,
         currency: CryptoCurrency,
-        chain: Chain?
+        chain: Chain
     ) -> TokenBalance {
         let symbol: TokenBalance.Symbol
         switch currency {
@@ -74,18 +51,15 @@ public struct BalanceTransformer {
             symbol = .symbol(currency.name)
         }
 
-        let amount = chainBalances?.reportedAmount ?? "0"
-        let decimals = chainBalances?.decimals
-        let rawAmount = chainBalances?.reportedRawAmount
-        let detail = chain.flatMap { chainBalances?.chainDetails[$0] }
+        let detail = chainBalances?.chainDetails[chain]
 
         return TokenBalance(
             symbol: symbol,
             name: currency.name,
-            amount: amount,
+            amount: chainBalances?.reportedAmount ?? "0",
             contractAddress: nil,
-            decimals: decimals,
-            rawAmount: rawAmount,
+            decimals: chainBalances?.decimals,
+            rawAmount: chainBalances?.reportedRawAmount,
             available: detail?.available,
             locked: detail?.locked,
             accounts: detail?.accounts

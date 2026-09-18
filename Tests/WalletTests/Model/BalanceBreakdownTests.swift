@@ -89,22 +89,6 @@ struct BalanceBreakdownTest {
         #expect(token.rawAmount == nil)
     }
 
-    @Test("Leaves the breakdown out when no chain is requested")
-    @available(*, deprecated, message: "Covers the deprecated overload that takes no chain")
-    func leavesTheBreakdownOutWhenNoChainIsRequested() throws {
-        let balances = try balancesFixture("BalancesBreakdown")
-        let result = BalanceTransformer.transform(
-            from: balances,
-            nativeToken: .xlm,
-            requestedTokens: []
-        )
-
-        #expect(result.usdc.amount == "1255.5")
-        #expect(result.usdc.available == nil)
-        #expect(result.usdc.locked == nil)
-        #expect(result.usdc.accounts == nil)
-    }
-
     private func transformBreakdown(
         chain: Chain,
         requestedTokens: [CryptoCurrency] = []
