@@ -1,0 +1,12 @@
+[
+  { "symbol": "usdc", "decimals": 6, "amount": "10", "rawAmount": "10000000",
+    "chains": { "stellar": { "amount": "10", "rawAmount": "10000000",
+      "available": { "amount": "1", "rawAmount": "1000000" },
+      "accounts": [ { "type": "wallet", "amount": "10", "rawAmount": "10000000",
+        "available": { "amount": "1", "rawAmount": "1000000" },
+        "locked": { "amount": "0", "rawAmount": "0" } } ] } } },
+  { "symbol": "usdc", "decimals": 6, "amount": "20", "rawAmount": "20000000",
+    "chains": { "stellar": { "amount": "20", "rawAmount": "20000000",
+      "available": { "amount": "3", "rawAmount": "3000000" },
+      "locked": { "amount": "6", "rawAmount": "6000000" } } } }
+]

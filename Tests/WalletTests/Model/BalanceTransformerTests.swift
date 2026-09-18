@@ -68,7 +68,8 @@ struct BalanceTransformerTest {
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
-            requestedTokens: [.weth]
+            requestedTokens: [.weth],
+            chain: .ethereum
         )
 
         #expect(result.nativeToken.symbol == .eth)
@@ -110,11 +111,12 @@ struct BalanceTransformerTest {
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
-            requestedTokens: []
+            requestedTokens: [],
+            chain: .ethereum
         )
 
         #expect(result.nativeToken.symbol == .eth)
-        #expect(result.nativeToken.amount == "1")
+        #expect(result.nativeToken.amount == "1.0")
 
         // USDC should have default values when not present
         #expect(result.usdc.symbol == .usdc)
@@ -148,7 +150,8 @@ struct BalanceTransformerTest {
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
-            requestedTokens: []
+            requestedTokens: [],
+            chain: .ethereum
         )
 
         // Native token should have default values when not present
@@ -199,7 +202,8 @@ struct BalanceTransformerTest {
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .sol,
-            requestedTokens: []
+            requestedTokens: [],
+            chain: .solana
         )
 
         #expect(result.nativeToken.symbol == .sol)
@@ -274,11 +278,12 @@ struct BalanceTransformerTest {
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
-            requestedTokens: [.matic, .weth]
+            requestedTokens: [.matic, .weth],
+            chain: .ethereum
         )
 
         #expect(result.nativeToken.symbol == .eth)
-        #expect(result.nativeToken.amount == "1")
+        #expect(result.nativeToken.amount == "1.0")
 
         #expect(result.usdc.symbol == .usdc)
         #expect(result.usdc.amount == "100")
@@ -353,7 +358,8 @@ struct BalanceTransformerTest {
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
-            requestedTokens: [.eth, .usdc, .weth]
+            requestedTokens: [.eth, .usdc, .weth],
+            chain: .ethereum
         )
 
         #expect(result.nativeToken.symbol == .eth)
@@ -415,7 +421,8 @@ struct BalanceTransformerTest {
         let result = BalanceTransformer.transform(
             from: balances,
             nativeToken: .eth,
-            requestedTokens: [.unknown("custom_token"), .unknown("non_existent")]
+            requestedTokens: [.unknown("custom_token"), .unknown("non_existent")],
+            chain: .ethereum
         )
 
         #expect(result.nativeToken.symbol == .eth)

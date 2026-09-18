@@ -1,26 +1,29 @@
 import CrossmintCommonTypes
 import Foundation
 
-public struct BalanceTransformer {
+struct BalanceTransformer {
 
-    public static func transform(
+    static func transform(
         from balances: Balances,
         nativeToken: CryptoCurrency,
-        requestedTokens: [CryptoCurrency]
+        requestedTokens: [CryptoCurrency],
+        chain: Chain
     ) -> Balance {
         let nativeTokenBalance = createTokenBalance(
             from: balances[nativeToken],
-            currency: nativeToken
+            currency: nativeToken,
+            chain: chain
         )
 
         let usdcBalance = createTokenBalance(
             from: balances[.usdc],
-            currency: .usdc
+            currency: .usdc,
+            chain: chain
         )
 
         let additionalTokens = requestedTokens.compactMap { token in
             token != nativeToken && token != .usdc
-                ? createTokenBalance(from: balances[token], currency: token)
+                ? createTokenBalance(from: balances[token], currency: token, chain: chain)
                 : nil
         }
 
@@ -33,7 +36,8 @@ public struct BalanceTransformer {
 
     private static func createTokenBalance(
         from chainBalances: ChainBalances?,
-        currency: CryptoCurrency
+        currency: CryptoCurrency,
+        chain: Chain
     ) -> TokenBalance {
         let symbol: TokenBalance.Symbol
         switch currency {
@@ -47,17 +51,18 @@ public struct BalanceTransformer {
             symbol = .symbol(currency.name)
         }
 
-        let amount = chainBalances?.total.description ?? "0"
-        let decimals = chainBalances?.decimals
-        let rawAmount = chainBalances?.convertToBaseUnits(amount)
+        let detail = chainBalances?.chainDetails[chain]
 
         return TokenBalance(
             symbol: symbol,
             name: currency.name,
-            amount: amount,
+            amount: chainBalances?.reportedAmount ?? "0",
             contractAddress: nil,
-            decimals: decimals,
-            rawAmount: rawAmount
+            decimals: chainBalances?.decimals,
+            rawAmount: chainBalances?.reportedRawAmount,
+            available: detail?.available,
+            locked: detail?.locked,
+            accounts: detail?.accounts
         )
     }
 }
