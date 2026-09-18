@@ -3,24 +3,50 @@ import Foundation
 
 public struct BalanceTransformer {
 
+    @available(
+        *,
+        deprecated,
+        message: "Pass the wallet's chain to receive the available, locked and accounts breakdown"
+    )
     public static func transform(
         from balances: Balances,
         nativeToken: CryptoCurrency,
         requestedTokens: [CryptoCurrency]
     ) -> Balance {
+        balance(from: balances, nativeToken: nativeToken, requestedTokens: requestedTokens, chain: nil)
+    }
+
+    /// - Parameter chain: The chain to report the available, locked and accounts values for.
+    public static func transform(
+        from balances: Balances,
+        nativeToken: CryptoCurrency,
+        requestedTokens: [CryptoCurrency],
+        chain: Chain
+    ) -> Balance {
+        balance(from: balances, nativeToken: nativeToken, requestedTokens: requestedTokens, chain: chain)
+    }
+
+    private static func balance(
+        from balances: Balances,
+        nativeToken: CryptoCurrency,
+        requestedTokens: [CryptoCurrency],
+        chain: Chain?
+    ) -> Balance {
         let nativeTokenBalance = createTokenBalance(
             from: balances[nativeToken],
-            currency: nativeToken
+            currency: nativeToken,
+            chain: chain
         )
 
         let usdcBalance = createTokenBalance(
             from: balances[.usdc],
-            currency: .usdc
+            currency: .usdc,
+            chain: chain
         )
 
         let additionalTokens = requestedTokens.compactMap { token in
             token != nativeToken && token != .usdc
-                ? createTokenBalance(from: balances[token], currency: token)
+                ? createTokenBalance(from: balances[token], currency: token, chain: chain)
                 : nil
         }
 
@@ -33,7 +59,8 @@ public struct BalanceTransformer {
 
     private static func createTokenBalance(
         from chainBalances: ChainBalances?,
-        currency: CryptoCurrency
+        currency: CryptoCurrency,
+        chain: Chain?
     ) -> TokenBalance {
         let symbol: TokenBalance.Symbol
         switch currency {
@@ -47,9 +74,10 @@ public struct BalanceTransformer {
             symbol = .symbol(currency.name)
         }
 
-        let amount = chainBalances?.total.description ?? "0"
+        let amount = chainBalances?.reportedAmount ?? "0"
         let decimals = chainBalances?.decimals
-        let rawAmount = chainBalances?.convertToBaseUnits(amount)
+        let rawAmount = chainBalances?.reportedRawAmount
+        let detail = chain.flatMap { chainBalances?.chainDetails[$0] }
 
         return TokenBalance(
             symbol: symbol,
@@ -57,7 +85,10 @@ public struct BalanceTransformer {
             amount: amount,
             contractAddress: nil,
             decimals: decimals,
-            rawAmount: rawAmount
+            rawAmount: rawAmount,
+            available: detail?.available,
+            locked: detail?.locked,
+            accounts: detail?.accounts
         )
     }
 }

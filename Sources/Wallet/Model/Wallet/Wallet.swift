@@ -286,7 +286,8 @@ open class Wallet: @unchecked Sendable {
             return BalanceTransformer.transform(
                 from: balances,
                 nativeToken: nativeToken,
-                requestedTokens: tokens
+                requestedTokens: tokens,
+                chain: chain
             )
         } catch {
             Logger.smartWallet.error(LogEvents.walletBalancesError, attributes: [
