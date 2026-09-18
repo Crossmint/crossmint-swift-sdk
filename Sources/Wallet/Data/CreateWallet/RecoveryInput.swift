@@ -11,7 +11,7 @@ enum RecoveryInput {
     case single(any Signer)
     case list([any Signer])
 
-    private var chainsWithRecoveryList: Set<ChainType> { [.solana, .stellar] }
+    private var chainTypesAcceptingSeveralMethods: Set<ChainType> { [.solana, .stellar] }
 
     var signers: [any Signer] {
         switch self {
@@ -56,7 +56,7 @@ enum RecoveryInput {
                 message: "At least one recovery method is required"
             )
         }
-        guard !chainsWithRecoveryList.contains(chain.chainType) else { return self }
+        guard !chainTypesAcceptingSeveralMethods.contains(chain.chainType) else { return self }
         guard signers.count == 1 else {
             throw .recoveryConfigRejected(
                 code: .notSupportedOnChain,
