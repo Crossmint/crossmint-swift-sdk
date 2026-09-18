@@ -47,10 +47,10 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
 
     public func createWallet(
         chain: Chain,
-        recovery: [any Signer],
+        recoveryMethods: [any Signer],
         options: WalletOptions? = nil
     ) async throws(WalletError) -> Wallet {
-        try await createWallet(chain: chain, recovery: .list(recovery), options: options)
+        try await createWallet(chain: chain, recovery: .list(recoveryMethods), options: options)
     }
 
     private func getWallet(
@@ -59,7 +59,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet? {
         try assertValid(chain)
-        try recovery?.assertValid(for: chain)
+        let recovery = try recovery?.resolved(for: chain)
 
         Logger.smartWallet.debug(LogEvents.walletGetStart, attributes: [
             "chain": chain.name,
@@ -111,7 +111,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
         try assertValid(chain)
-        try recovery.assertValid(for: chain)
+        let recovery = try recovery.resolved(for: chain)
 
         let deviceSignerStorage = self.deviceSignerStorage(for: options)
         let creation = try await createWalletApiModel(

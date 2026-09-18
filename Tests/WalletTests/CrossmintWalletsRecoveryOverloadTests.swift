@@ -27,11 +27,11 @@ private final class SpyCrossmintWallets: CrossmintWallets, @unchecked Sendable {
 
     func createWallet(
         chain: Chain,
-        recovery: [any Signer],
+        recoveryMethods: [any Signer],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
         receivedChain = chain
-        receivedSigners = recovery
+        receivedSigners = recoveryMethods
         guard let wallet else { throw .walletGeneric("no wallet configured") }
         return wallet
     }
@@ -70,7 +70,7 @@ struct CrossmintWalletsRecoveryOverloadTests {
 
         _ = try await spy.createWallet(
             chain: SolanaChain.solana,
-            recovery: [.email("alice@example.com"), .phone("+14155552671")]
+            recoveryMethods: [.email("alice@example.com"), .phone("+14155552671")]
         )
 
         #expect(spy.receivedChain?.name == "solana")
@@ -86,7 +86,10 @@ struct CrossmintWalletsRecoveryOverloadTests {
             let wallets = SingleSignerCrossmintWallets()
             wallets.wallet = try parent.makeSolanaWallet()
 
-            _ = try await wallets.createWallet(chain: SolanaChain.solana, recovery: [.email("alice@example.com")])
+            _ = try await wallets.createWallet(
+                chain: SolanaChain.solana,
+                recoveryMethods: [.email("alice@example.com")]
+            )
 
             #expect(wallets.receivedSigner is SolanaEmailSigner)
         }
@@ -102,11 +105,14 @@ struct CrossmintWalletsRecoveryOverloadTests {
         @Test func rejectsALongerListBeforeAnyCall() async throws {
             let wallets = SingleSignerCrossmintWallets()
 
-            await #expect(throws: WalletError.self) {
+            await #expect {
                 _ = try await wallets.createWallet(
                     chain: SolanaChain.solana,
-                    recovery: [.email("alice@example.com"), .phone("+14155552671")]
+                    recoveryMethods: [.email("alice@example.com"), .phone("+14155552671")]
                 )
+            } throws: { error in
+                guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
+                return code == .invalidConfig
             }
             #expect(wallets.receivedSigner == nil)
         }
