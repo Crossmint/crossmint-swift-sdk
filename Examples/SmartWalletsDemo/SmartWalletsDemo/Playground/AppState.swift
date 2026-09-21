@@ -84,7 +84,7 @@ final class AppState {
                 if chain == selectedChain {
                     await fetchBalance()
                     await loadSigners()
-                    preloadOtherChains(email: email)
+                    preloadOtherChains()
                 }
             } else {
                 notFoundChains.insert(chain)
@@ -200,7 +200,7 @@ final class AppState {
 
     /// Kicks off background fetches for chains not yet in the cache.
     /// Uses unstructured Tasks (fire-and-forget) since these are not tied to any view lifecycle.
-    private func preloadOtherChains(email: String) {
+    private func preloadOtherChains() {
         let all: [SupportedChain] = [.evm, .solana, .stellar]
         for chain in all where chain != selectedChain {
             guard walletCache[chain] == nil,
