@@ -85,7 +85,7 @@ struct DataDogLogFormatterTests {
     @Test(arguments: NETWORK_CLIENTS)
     func sendsNetworkClientAtTopLevel(cellularTechnology: String?, expected: [String: String]) throws {
         let deviceInfo = Self.makeDeviceInfo(
-            networkConnectionType: try #require(expected["type"]),
+            networkConnectionType: expected["type"],
             cellularTechnology: cellularTechnology
         )
 
