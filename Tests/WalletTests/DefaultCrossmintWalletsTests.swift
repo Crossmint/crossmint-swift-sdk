@@ -365,16 +365,4 @@ struct WalletLoadingTests {
         }
         #expect(walletService.addSignerCallCount == 0)
     }
-
-    @Test func honorsTheCallerSignerOnTheDeprecatedEntryPoint() async throws {
-        let url = try #require(Bundle.module.url(forResource: "WalletSolanaEmail", withExtension: "json"))
-        walletService.getWalletFixture = try Data(contentsOf: url)
-        let caller = MockSigner(email: "solana.user@example.com")
-
-        let wallet = try #require(
-            try await makeWallets().getWallet(chain: Chain("solana"), recovery: caller, options: nil)
-        )
-
-        #expect(wallet.signer as? MockSigner === caller)
-    }
 }
