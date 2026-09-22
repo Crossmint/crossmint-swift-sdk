@@ -301,13 +301,13 @@ final class AppState {
         case .solana:
             return try await sdk.crossmintWallets.createWallet(
                 chain: SolanaChain.solana,
-                recovery: [.email(email)] + extraRecovery.map(solanaSigner),
+                recoveryMethods: [.email(email)] + extraRecovery.map(solanaSigner),
                 options: options
             )
         case .stellar:
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
-                recovery: [.email(email)] + extraRecovery.map(stellarSigner),
+                recoveryMethods: [.email(email)] + extraRecovery.map(stellarSigner),
                 options: options
             )
         }
