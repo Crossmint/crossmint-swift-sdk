@@ -35,7 +35,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -72,7 +72,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -100,7 +100,7 @@ struct DefaultCrossmintWalletsTests {
         await #expect {
             _ = try await wallets.createWallet(
                 chain: Chain("solana"),
-                recovery: MockSigner(),
+                recoveryMethods: [MockSigner()],
                 options: WalletOptions(deviceSigner: true)
             )
         } throws: { error in
@@ -119,7 +119,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -135,7 +135,7 @@ struct DefaultCrossmintWalletsTests {
 
         _ = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -150,7 +150,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: false)
         )
 
@@ -183,19 +183,25 @@ struct RecoverySignerListCreationTests {
         let alice = MockSigner(email: "alice@example.com")
         let bob = MockSigner(email: "bob@example.com")
 
-        _ = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [alice, bob], options: nil)
+        _ = try await makeWallets().createWallet(chain: Chain("solana"), recoveryMethods: [alice, bob], options: nil)
 
         let config = try #require(walletService.lastCreateWalletParams?.config)
         #expect(config.adminSigner == nil)
         #expect(config.recoveryMethods?.count == 2)
     }
 
-    @Test func sendsASingleSignerUnderAdminSigner() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletSolanaEmail")
+    @Test func keepsASingleRecoveryMethodAsIsOnAChainThatAcceptsAList() throws {
+        let resolved = try RecoveryInput.single(MockSigner()).resolved(for: Chain("solana"))
 
-        _ = try await makeWallets().createWallet(chain: Chain("solana"), recovery: MockSigner(), options: nil)
+        guard case .single = resolved else {
+            Issue.record("A single recovery method must stay single on Solana")
+            return
+        }
+    }
 
-        let config = try #require(walletService.lastCreateWalletParams?.config)
+    @Test func sendsASingleRecoveryMethodUnderAdminSigner() async throws {
+        let config = await RecoveryInput.single(MockSigner()).inputConfig(delegatedSigners: nil)
+
         #expect(config.adminSigner != nil)
         #expect(config.recoveryMethods == nil)
     }
@@ -205,7 +211,11 @@ struct RecoverySignerListCreationTests {
         let alice = MockSigner(email: "alice@example.com")
         let bob = MockSigner(email: "bob@example.com")
 
-        let wallet = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [bob, alice], options: nil)
+        let wallet = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [bob, alice],
+            options: nil
+        )
 
         #expect(wallet.signer as? MockSigner === alice)
     }
@@ -215,7 +225,11 @@ struct RecoverySignerListCreationTests {
         let carol = MockSigner(email: "carol@example.com")
         let dave = MockSigner(email: "dave@example.com")
 
-        let wallet = try await makeWallets().createWallet(chain: Chain("solana"), recovery: [carol, dave], options: nil)
+        let wallet = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [carol, dave],
+            options: nil
+        )
 
         #expect(wallet.signer as? MockSigner === carol)
     }
@@ -225,7 +239,7 @@ struct RecoverySignerListCreationTests {
         let alice = MockSigner(email: "alice@example.com")
         let bob = MockSigner(email: "bob@example.com")
 
-        _ = try await makeWallets().createWallet(chain: Chain("stellar"), recovery: [alice, bob], options: nil)
+        _ = try await makeWallets().createWallet(chain: Chain("stellar"), recoveryMethods: [alice, bob], options: nil)
 
         #expect(alice.initializeCallCount == 1)
         #expect(bob.initializeCallCount == 1)
@@ -235,21 +249,49 @@ struct RecoverySignerListCreationTests {
         let wallets = makeWallets()
 
         await #expect {
-            _ = try await wallets.createWallet(chain: Chain("solana"), recovery: [any Signer](), options: nil)
+            _ = try await wallets.createWallet(chain: Chain("solana"), recoveryMethods: [any Signer](), options: nil)
         } throws: { error in
-            guard case .walletGeneric = error as? WalletError else { return false }
-            return true
+            guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
+            return code == .invalidConfig
         }
         #expect(walletService.createWalletCallCount == 0)
     }
 
-    @Test func rejectsAListOnEVMBeforeCallingTheApi() async throws {
+    @Test func sendsAOneEntryListOnEVMUnderAdminSigner() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletEVMEmail")
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("base-sepolia"),
+            recoveryMethods: [MockSigner(email: "alice@example.com")],
+            options: nil
+        )
+
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        #expect(config.adminSigner != nil)
+        #expect(config.recoveryMethods == nil)
+    }
+
+    @Test func keepsAOneEntryListOnSolanaUnderRecoveryMethods() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [MockSigner(email: "alice@example.com")],
+            options: nil
+        )
+
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        #expect(config.adminSigner == nil)
+        #expect(config.recoveryMethods?.count == 1)
+    }
+
+    @Test func rejectsMoreThanOneSignerOnEVMBeforeCallingTheApi() async throws {
         let wallets = makeWallets()
 
         await #expect {
             _ = try await wallets.createWallet(
                 chain: Chain("base-sepolia"),
-                recovery: [MockSigner(email: "alice@example.com"), MockSigner(email: "bob@example.com")],
+                recoveryMethods: [MockSigner(email: "alice@example.com"), MockSigner(email: "bob@example.com")],
                 options: nil
             )
         } throws: { error in
@@ -328,17 +370,5 @@ struct WalletLoadingTests {
             return message.contains("useSigner")
         }
         #expect(walletService.addSignerCallCount == 0)
-    }
-
-    @Test func honorsTheCallerSignerOnTheDeprecatedEntryPoint() async throws {
-        let url = try #require(Bundle.module.url(forResource: "WalletSolanaEmail", withExtension: "json"))
-        walletService.getWalletFixture = try Data(contentsOf: url)
-        let caller = MockSigner(email: "solana.user@example.com")
-
-        let wallet = try #require(
-            try await makeWallets().getWallet(chain: Chain("solana"), recovery: caller, options: nil)
-        )
-
-        #expect(wallet.signer as? MockSigner === caller)
     }
 }

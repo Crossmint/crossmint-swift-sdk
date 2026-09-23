@@ -11,7 +11,7 @@ enum RecoveryInput {
     case single(any Signer)
     case list([any Signer])
 
-    private var chainsWithRecoveryList: Set<ChainType> { [.solana, .stellar] }
+    private var chainTypesAcceptingSeveralMethods: Set<ChainType> { [.solana, .stellar] }
 
     var signers: [any Signer] {
         switch self {
@@ -48,17 +48,22 @@ enum RecoveryInput {
         }
     }
 
-    func assertValid(for chain: Chain) throws(WalletError) {
-        guard case .list(let signers) = self else { return }
-        guard !signers.isEmpty else {
-            throw .walletGeneric("At least one recovery signer is required")
-        }
-        guard chainsWithRecoveryList.contains(chain.chainType) else {
+    func resolved(for chain: Chain) throws(WalletError) -> RecoveryInput {
+        guard case .list(let signers) = self else { return self }
+        guard let first = signers.first else {
             throw .recoveryConfigRejected(
-                code: .notSupportedOnChain,
-                message: "Multiple recovery signers are not supported on \(chain.name) yet. "
-                    + "Pass a single recovery signer."
+                code: .invalidConfig,
+                message: "At least one recovery method is required"
             )
         }
+        guard !chainTypesAcceptingSeveralMethods.contains(chain.chainType) else { return self }
+        guard signers.count == 1 else {
+            throw .recoveryConfigRejected(
+                code: .notSupportedOnChain,
+                message: "Multiple recovery methods are not supported on \(chain.name) yet. "
+                    + "Pass a single recovery method."
+            )
+        }
+        return .single(first)
     }
 }
