@@ -35,7 +35,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -72,7 +72,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -100,7 +100,7 @@ struct DefaultCrossmintWalletsTests {
         await #expect {
             _ = try await wallets.createWallet(
                 chain: Chain("solana"),
-                recovery: MockSigner(),
+                recoveryMethods: [MockSigner()],
                 options: WalletOptions(deviceSigner: true)
             )
         } throws: { error in
@@ -119,7 +119,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -135,7 +135,7 @@ struct DefaultCrossmintWalletsTests {
 
         _ = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: true)
         )
 
@@ -150,7 +150,7 @@ struct DefaultCrossmintWalletsTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
-            recovery: MockSigner(),
+            recoveryMethods: [MockSigner()],
             options: WalletOptions(deviceSigner: false)
         )
 
@@ -190,7 +190,8 @@ struct RecoverySignerListCreationTests {
         #expect(config.recoveryMethods?.count == 2)
     }
 
-    @Test func sendsASingleSignerUnderAdminSigner() async throws {
+    @available(*, deprecated, message: "Pins the wire shape of the deprecated single-signer entry point.")
+    @Test func sendsASingleSignerUnderAdminSignerOnSolana() async throws {
         walletService.createWalletFixture = try loadFixture("WalletSolanaEmail")
 
         _ = try await makeWallets().createWallet(chain: Chain("solana"), recovery: MockSigner(), options: nil)
