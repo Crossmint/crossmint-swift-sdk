@@ -13,16 +13,19 @@ import CoreTelephony
 #endif
 
 struct DeviceInfoCache: Sendable {
-    let model: String
-    let deviceName: String
-    let osName: String
-    let osVersion: String
-    let osBuild: String
-    let architecture: String
-    let appVersion: String
-    let appBuild: String
-    let networkConnectionType: String
-    let cellularTechnology: String?
+    var model: String?
+    var deviceName: String?
+    var brand: String?
+    var osName: String?
+    var osVersion: String?
+    var osBuild: String?
+    var architecture: String?
+    var appVersion: String?
+    var appBuild: String?
+    var networkConnectionType: String?
+    var cellularTechnology: String?
+
+    static let empty = DeviceInfoCache()
 
     #if canImport(UIKit)
     @MainActor
@@ -45,16 +48,18 @@ struct DeviceInfoCache: Sendable {
         UIDevice.current.systemVersion
     }
 
-    private static func getOSBuild() -> String {
+    private static func getOSBuild() -> String? {
         var size = 0
         sysctlbyname("kern.osversion", nil, &size, nil, 0)
+        guard size > 0 else { return nil }
         var build = [UInt8](repeating: 0, count: size)
         sysctlbyname("kern.osversion", &build, &size, nil, 0)
         // swiftlint:disable:next optional_data_string_conversion
-        return String(decoding: build.prefix(while: { $0 != 0 }), as: UTF8.self)
+        let value = String(decoding: build.prefix(while: { $0 != 0 }), as: UTF8.self)
+        return value.isEmpty ? nil : value
     }
 
-    private static func getArchitecture() -> String {
+    private static func getArchitecture() -> String? {
         #if arch(arm64e)
         return "arm64e"
         #elseif arch(arm64)
@@ -62,16 +67,16 @@ struct DeviceInfoCache: Sendable {
         #elseif arch(x86_64)
         return "x86_64"
         #else
-        return "unknown"
+        return nil
         #endif
     }
 
-    private static func getNetworkConnectionType() -> String {
+    private static func getNetworkConnectionType() -> String? {
         #if targetEnvironment(simulator)
-        return "unknown"
+        return nil
         #else
         final class ConnectionTypeHolder: @unchecked Sendable {
-            var value: String = "unknown"
+            var value: String?
         }
 
         let pathMonitor = NWPathMonitor()
@@ -98,7 +103,7 @@ struct DeviceInfoCache: Sendable {
         let result = semaphore.wait(timeout: .now() + 0.1)
         pathMonitor.cancel()
 
-        return result == .success ? holder.value : "unknown"
+        return result == .success ? holder.value : nil
         #endif
     }
 
@@ -130,8 +135,8 @@ struct DeviceInfoCache: Sendable {
     }
 
     static func capture() async -> DeviceInfoCache {
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
-        let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
 
         let networkType = getNetworkConnectionType()
         let cellularTech = networkType == "cellular" ? getCellularTechnology() : nil
@@ -143,6 +148,7 @@ struct DeviceInfoCache: Sendable {
         return DeviceInfoCache(
             model: model,
             deviceName: deviceName,
+            brand: "Apple",
             osName: osName,
             osVersion: osVersion,
             osBuild: getOSBuild(),
@@ -156,20 +162,17 @@ struct DeviceInfoCache: Sendable {
     #else
 
     static func capture() async -> DeviceInfoCache {
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
-        let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        let appBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
 
         return DeviceInfoCache(
             model: "macOS",
             deviceName: ProcessInfo.processInfo.hostName,
+            brand: "Apple",
             osName: "macOS",
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
-            osBuild: "unknown",
-            architecture: "unknown",
             appVersion: appVersion,
-            appBuild: appBuild,
-            networkConnectionType: "unknown",
-            cellularTechnology: nil
+            appBuild: appBuild
         )
     }
     #endif

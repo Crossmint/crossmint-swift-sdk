@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Utils
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -17,14 +16,12 @@ actor DataDogLoggerProvider: LoggerProvider {
     private let batchTimeoutSeconds: TimeInterval = 5.0
 
     // MARK: - Configuration
-    private let service: String
-    private let environment: String
+    private let formatter: DataDogLogFormatter
     private let intakeUrl: String
 
     // MARK: - State
     private var batchQueue: [LogEntry] = []
     private var batchTask: Task<Void, Never>?
-    private let sessionId: String
     private var deviceInfo: DeviceInfoCache?
 
     // MARK: - Cached device info (single capture task)
@@ -39,14 +36,14 @@ actor DataDogLoggerProvider: LoggerProvider {
         return formatter
     }()
 
-    private let serviceName = "crossmint-ios-sdk"
-
     // MARK: - Initialization
     init(service: String, clientToken: String, environment: String) {
-        self.service = service
-        self.environment = environment
-        self.sessionId = Self.generateSessionId()
-        self.deviceInfo = nil
+        self.formatter = DataDogLogFormatter(
+            loggerName: service,
+            environment: environment,
+            sessionId: Self.generateSessionId(),
+            hostname: Bundle.main.bundleIdentifier
+        )
 
         let datadogUrl = "https://http-intake.logs.datadoghq.com/v1/input/\(clientToken)"
         let encodedUrl = datadogUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? datadogUrl
@@ -103,20 +100,16 @@ actor DataDogLoggerProvider: LoggerProvider {
 
         batchQueue.append(entry)
 
-        // Flush if batch is full
         if batchQueue.count >= batchSize {
             flush()
         } else {
-            // Schedule timeout flush if not already scheduled
             scheduleBatchTimeout()
         }
     }
 
     private func scheduleBatchTimeout() {
-        // Cancel existing task
         batchTask?.cancel()
 
-        // Schedule new flush
         let timeout = batchTimeoutSeconds
         batchTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
@@ -126,26 +119,22 @@ actor DataDogLoggerProvider: LoggerProvider {
     }
 
     func flush() {
-        // Cancel pending timeout
         batchTask?.cancel()
         batchTask = nil
 
         guard !batchQueue.isEmpty else { return }
 
-        // Take current batch
         let batch = batchQueue
         batchQueue.removeAll()
 
-        // Send asynchronously (don't await to avoid blocking)
         Task {
             await sendBatch(batch)
         }
     }
 
     private func sendBatch(_ batch: [LogEntry]) async {
-        // Format logs for DataDog
         let logs = batch.map { entry in
-            formatLogForDataDog(entry)
+            formatter.payload(for: entry, deviceInfo: deviceInfo ?? .empty, threadName: Self.getThreadName())
         }
 
         do {
@@ -165,7 +154,6 @@ actor DataDogLoggerProvider: LoggerProvider {
                 print("[SDK Logger] DataDog proxy returned error: \(httpResponse.statusCode)")
             }
         } catch {
-            // Don't let logging errors break the app
             print("[SDK Logger] Error sending logs to DataDog: \(error)")
         }
     }
@@ -183,86 +171,6 @@ actor DataDogLoggerProvider: LoggerProvider {
         return "\(message) \(attributeStrings)"
     }
 
-    // swiftlint:disable:next function_body_length
-    private func formatLogForDataDog(_ entry: LogEntry) -> [String: Any] {
-        let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
-
-        let info = deviceInfo ?? DeviceInfoCache(
-            model: "unknown",
-            deviceName: "unknown",
-            osName: "unknown",
-            osVersion: "unknown",
-            osBuild: "unknown",
-            architecture: "unknown",
-            appVersion: "unknown",
-            appBuild: "unknown",
-            networkConnectionType: "unknown",
-            cellularTechnology: nil
-        )
-
-        var attributes: [String: Any] = [
-            "date": entry.timestamp,
-            "os": [
-                "build": info.osBuild,
-                "name": info.osName,
-                "version": info.osVersion
-            ],
-            "build_version": info.appBuild,
-            "service": serviceName,
-            "logger": [
-                "thread_name": Self.getThreadName(),
-                "name": service,
-                "version": SDKVersion.version
-            ],
-            "version": info.appVersion,
-            "platform": "ios",
-            "_dd": [
-                "device": [
-                    "name": info.deviceName,
-                    "model": info.model,
-                    "brand": "Apple",
-                    "architecture": info.architecture
-                ]
-            ],
-            "status": mapLevelToStatus(entry.level)
-        ]
-
-        var networkInfo: [String: Any] = [
-            "client": [
-                "type": info.networkConnectionType
-            ]
-        ]
-
-        if let cellularTech = info.cellularTechnology {
-            if var client = networkInfo["client"] as? [String: Any] {
-                client["cellular_technology"] = cellularTech
-                networkInfo["client"] = client
-            }
-        }
-
-        attributes["network"] = networkInfo
-
-        for (key, value) in entry.context {
-            attributes[key] = value
-        }
-
-        let log: [String: Any] = [
-            "timestamp": entry.timestamp,
-            "tags": [
-                "env:\(environment)",
-                "version:\(info.appVersion)",
-                "source:ios"
-            ],
-            "service": serviceName,
-            "message": entry.message,
-            "hostname": bundleId,
-            "dd-session_id": sessionId,
-            "attributes": attributes
-        ]
-
-        return log
-    }
-
     private static func getThreadName() -> String {
         if Thread.isMainThread {
             return "main"
@@ -273,22 +181,8 @@ actor DataDogLoggerProvider: LoggerProvider {
         return "background"
     }
 
-    private func mapLevelToStatus(_ level: LogLevel) -> String {
-        switch level {
-        case .debug, .info:
-            return "info"
-        case .warning:
-            return "warn"
-        case .error:
-            return "error"
-        case .silent:
-            return "none"
-        }
-    }
-
     // MARK: - Session ID Generation
     private static func generateSessionId() -> String {
-        // Generate 16-character hex string (64-bit trace ID)
         var bytes = [UInt8](repeating: 0, count: 8)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         return bytes.map { String(format: "%02x", $0) }.joined()
@@ -297,7 +191,6 @@ actor DataDogLoggerProvider: LoggerProvider {
     // MARK: - Lifecycle Management
     private static func setupLifecycleObservers(provider: DataDogLoggerProvider) {
         #if canImport(UIKit)
-        // Flush when app goes to background
         NotificationCenter.default.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,
@@ -306,7 +199,6 @@ actor DataDogLoggerProvider: LoggerProvider {
             Task { await provider.flush() }
         }
 
-        // Final flush before termination
         NotificationCenter.default.addObserver(
             forName: UIApplication.willTerminateNotification,
             object: nil,
