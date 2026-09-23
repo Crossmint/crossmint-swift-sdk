@@ -37,6 +37,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         try await getWallet(chain: chain, recovery: .single(recovery), options: options)
     }
 
+    @available(*, deprecated, message: "Use createWallet(chain:recoveryMethods:options:).")
     public func createWallet(
         chain: Chain,
         recovery: any Signer,

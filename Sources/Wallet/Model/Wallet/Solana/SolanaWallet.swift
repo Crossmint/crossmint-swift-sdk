@@ -6,7 +6,7 @@ import Logger
 /// A Crossmint smart wallet on the Solana chain.
 ///
 /// Obtain an instance via ``CrossmintWallets/getWallet(chain:options:)``
-/// or ``CrossmintWallets/createWallet(chain:recovery:options:)``.
+/// or ``CrossmintWallets/createWallet(chain:recoveryMethods:options:)``.
 public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
     public typealias SpecificChain = SolanaChain
 
