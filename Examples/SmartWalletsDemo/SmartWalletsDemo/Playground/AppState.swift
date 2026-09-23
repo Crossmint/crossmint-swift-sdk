@@ -268,19 +268,19 @@ final class AppState {
         case .evm:
             return try await sdk.crossmintWallets.createWallet(
                 chain: EVMChain.baseSepolia,
-                recovery: EVMSigners.email(email),
+                recoveryMethods: [.email(email)],
                 options: options
             )
         case .solana:
             return try await sdk.crossmintWallets.createWallet(
                 chain: SolanaChain.solana,
-                recovery: SolanaSigners.email(email),
+                recoveryMethods: [.email(email)],
                 options: options
             )
         case .stellar:
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
-                recovery: StellarSigners.email(email),
+                recoveryMethods: [.email(email)],
                 options: options
             )
         }
