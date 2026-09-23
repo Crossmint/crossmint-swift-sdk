@@ -190,13 +190,18 @@ struct RecoverySignerListCreationTests {
         #expect(config.recoveryMethods?.count == 2)
     }
 
-    @available(*, deprecated, message: "Pins the wire shape of the deprecated single-signer entry point.")
-    @Test func sendsASingleSignerUnderAdminSignerOnSolana() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletSolanaEmail")
+    @Test func keepsASingleRecoveryMethodAsIsOnAChainThatAcceptsAList() throws {
+        let resolved = try RecoveryInput.single(MockSigner()).resolved(for: Chain("solana"))
 
-        _ = try await makeWallets().createWallet(chain: Chain("solana"), recovery: MockSigner(), options: nil)
+        guard case .single = resolved else {
+            Issue.record("A single recovery method must stay single on Solana")
+            return
+        }
+    }
 
-        let config = try #require(walletService.lastCreateWalletParams?.config)
+    @Test func sendsASingleRecoveryMethodUnderAdminSigner() async throws {
+        let config = await RecoveryInput.single(MockSigner()).inputConfig(delegatedSigners: nil)
+
         #expect(config.adminSigner != nil)
         #expect(config.recoveryMethods == nil)
     }
