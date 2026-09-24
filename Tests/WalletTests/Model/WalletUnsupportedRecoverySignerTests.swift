@@ -63,7 +63,7 @@ struct WalletUnsupportedRecoverySignerTests {
             try DefaultJSONCoder().decode(WalletApiModel.self, from: data)
         } throws: { error in
             guard case .invalidData(let message) = error as? CrossmintServiceError else { return false }
-            return message == "Unsupported recovery signer type \"totp\""
+            return message == "This SDK version does not support the signer type \"totp\""
         }
     }
 }

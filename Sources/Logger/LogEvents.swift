@@ -509,10 +509,12 @@ public enum LogEvents {
 
     // MARK: - WalletConfig Events
 
-    /// A recovery signer from the API has a type this SDK version does not recognize
+    /// The wallet has a recovery signer type that this SDK version does not support.
+    /// The SDK ignores this signer.
     public static let walletConfigRecoverySignerSkipped = "walletConfig.recoverySigner.skipped"
 
-    /// The admin signer from the API could not be decoded, so the first recovery signer takes its place
+    /// This SDK version cannot read the admin signer of the wallet.
+    /// The SDK uses the first supported recovery signer instead.
     public static let walletConfigAdminSignerFallback = "walletConfig.adminSigner.fallback"
 
     // MARK: - WalletFactory Error Events

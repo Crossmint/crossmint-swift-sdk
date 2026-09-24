@@ -69,7 +69,7 @@ public struct WalletConfigApiModel: Decodable {
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
                 in: typeContainer,
-                debugDescription: "Unsupported recovery signer type \"\(rawType)\""
+                debugDescription: "This SDK version does not support the signer type \"\(rawType)\""
             )
         }
 
