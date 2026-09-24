@@ -113,19 +113,16 @@ open class Wallet: @unchecked Sendable {
     /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
     /// It returns `false` on any network error.
     public func signerIsRegistered(_ locator: SignerLocator) async -> Bool {
-        let walletModel: WalletApiModel
-        do {
-            walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        } catch {
-            return false
-        }
+        (try? await fetchSignerRegistration(locator)) ?? false
+    }
+
+    internal func fetchSignerRegistration(_ locator: SignerLocator) async throws(WalletError) -> Bool {
+        let walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
         let delegatedMatch = walletModel.config.signers?
             .map(\.locator)
             .contains(locator) ?? false
         if delegatedMatch { return true }
-        return walletModel.config.toDomain.recoveryMethods.contains {
-            (try? SignerLocator(from: $0.locator)) == locator
-        }
+        return walletModel.config.toDomain.containsRecoveryMethod(locator)
     }
 
     /// Returns the locator of the device signer whose private key is on this device.
