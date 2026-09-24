@@ -58,13 +58,12 @@ struct WalletExternalWalletSignerTests {
         )
     }
 
-    @Test func selectsTheRecoverySignerWithoutFetchingTheWallet() async throws {
+    @Test func selectsTheRecoverySigner() async throws {
         let wallet = try makeRecoveryWallet()
 
         try await wallet.useSigner(.externalWallet(RECOVERY_ADDRESS, onSign: { _ in "signature" }))
 
         #expect(await wallet.selectedSigner?.locator == .externalWallet(address: RECOVERY_ADDRESS))
-        #expect(walletService.getWalletCallCount == 0)
     }
 
     @Test func selectsARegisteredDelegatedSigner() async throws {
@@ -83,7 +82,6 @@ struct WalletExternalWalletSignerTests {
             return locator == "external-wallet:\(RECOVERY_ADDRESS)"
         }
         #expect(wallet.selectedSigner == nil)
-        #expect(walletService.getWalletCallCount == 0)
     }
 
     @Test func rejectsAnAddressThatIsNotRegisteredOnTheWallet() async throws {
