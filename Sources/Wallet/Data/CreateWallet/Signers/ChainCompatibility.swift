@@ -10,8 +10,9 @@ public enum EVMSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
-    /// An external wallet signer identified by its blockchain address. `onSign` signs each approval
-    /// payload. ``SignerConfig/externalWallet(_:onSign:)`` describes the payload and the signature.
+    /// A signer that uses an external wallet. The first value is the address of the wallet.
+    /// `onSign` signs each approval message. For the format of the message and of the signature,
+    /// see ``SignerConfig/externalWallet(_:onSign:)``.
     case externalWallet(String, onSign: @Sendable (String) async throws -> String)
     case passkey(name: String, host: String)
 
@@ -36,8 +37,9 @@ public enum SolanaSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
-    /// An external wallet signer identified by its blockchain address. `onSign` signs each approval
-    /// payload. ``SignerConfig/externalWallet(_:onSign:)`` describes the payload and the signature.
+    /// A signer that uses an external wallet. The first value is the address of the wallet.
+    /// `onSign` signs each approval message. For the format of the message and of the signature,
+    /// see ``SignerConfig/externalWallet(_:onSign:)``.
     case externalWallet(String, onSign: @Sendable (String) async throws -> String)
 
     @MainActor
@@ -59,8 +61,9 @@ public enum StellarSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
-    /// An external wallet signer identified by its blockchain address. `onSign` signs each approval
-    /// payload. ``SignerConfig/externalWallet(_:onSign:)`` describes the payload and the signature.
+    /// A signer that uses an external wallet. The first value is the address of the wallet.
+    /// `onSign` signs each approval message. For the format of the message and of the signature,
+    /// see ``SignerConfig/externalWallet(_:onSign:)``.
     case externalWallet(String, onSign: @Sendable (String) async throws -> String)
 
     @MainActor
