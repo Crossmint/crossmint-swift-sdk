@@ -310,20 +310,17 @@ struct RecoverySignerListCreationTests {
         ExternalWalletRecoveryCase(
             chain: "base-sepolia",
             fixture: "WalletEVMKeypair",
-            address: "0x1234567890123456789012345678901234567890",
-            makeProvider: { EVMSigners.externalWallet($0, onSign: { _ in "" }) }
+            address: "0x1234567890123456789012345678901234567890"
         ),
         ExternalWalletRecoveryCase(
             chain: "solana",
             fixture: "WalletSolanaKeypair",
-            address: "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc",
-            makeProvider: { SolanaSigners.externalWallet($0, onSign: { _ in "" }) }
+            address: "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
         ),
         ExternalWalletRecoveryCase(
             chain: "stellar",
             fixture: "WalletStellarRecoveryMethods",
-            address: "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37",
-            makeProvider: { StellarSigners.externalWallet($0, onSign: { _ in "" }) }
+            address: "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"
         )
     ])
     func sendsAnExternalWalletRecoverySigner(_ recovery: ExternalWalletRecoveryCase) async throws {
@@ -331,7 +328,7 @@ struct RecoverySignerListCreationTests {
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain(recovery.chain),
-            recoveryMethods: [await recovery.makeProvider(recovery.address).signer],
+            recoveryMethods: [ExternalWalletSigner(address: recovery.address, onSign: { _ in "" })],
             options: nil
         )
 
@@ -344,7 +341,6 @@ struct ExternalWalletRecoveryCase: Sendable, CustomTestStringConvertible {
     let chain: String
     let fixture: String
     let address: String
-    let makeProvider: @Sendable (String) -> any SignerProvider
 
     var testDescription: String { chain }
 }
