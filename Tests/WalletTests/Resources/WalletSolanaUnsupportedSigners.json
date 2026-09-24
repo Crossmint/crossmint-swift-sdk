@@ -3,9 +3,8 @@
   "chainType": "solana",
   "config": {
     "adminSigner": {
-      "type": "email",
-      "email": "alice@example.com",
-      "locator": "email:alice@example.com"
+      "type": "totp",
+      "locator": "totp:x"
     },
     "recoveryMethods": [
       {
