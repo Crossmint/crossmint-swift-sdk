@@ -20,7 +20,9 @@ public enum SignerConfig: Sendable {
     /// than to the signer, so ``Wallet/addSigner(_:)`` ignores it — the registration endpoint has
     /// no channel field. The signer service delivers by SMS when no channel is given.
     case phone(String, channel: OTPDeliveryChannel? = nil)
-    /// An external wallet signer identified by its blockchain address.
+    /// A signer that uses an external wallet. The value is the address of the wallet.
+    ///
+    /// To sign with the external wallet, pass an ``ExternalWalletSigner`` to `useSigner(_:)`.
     case externalWallet(String)
     /// The API key signer (server-side / custodial).
     case apiKey
