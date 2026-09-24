@@ -17,6 +17,9 @@ public enum WalletError: CrossmintError {
     case invalidChain(chain: Chain)
     case invalidToken(token: CryptoCurrency)
     case signerNotRegistered(String)
+    /// ``Wallet/useSigner(_:)`` received a signer that needs a signing callback, but the callback is `nil`.
+    /// The value is the signer locator.
+    case signerCallbackMissing(String)
     /// The wallet's underlying provider does not support device signers,
     /// surfaced from the backend's stable `DEVICE_SIGNER_NOT_SUPPORTED`
     /// error code. ``Wallet/recover()`` catches it and falls back to the
@@ -68,6 +71,7 @@ public enum WalletError: CrossmintError {
         case .invalidChain: "INVALID_CHAIN"
         case .invalidToken: "INVALID_TOKEN"
         case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
+        case .signerCallbackMissing: "SIGNER_CALLBACK_MISSING"
         case .deviceSignerNotSupported: "DEVICE_SIGNER_NOT_SUPPORTED"
         case .recoveryConfigRejected(let code, _): code.rawValue
         }
@@ -99,6 +103,8 @@ public enum WalletError: CrossmintError {
             "Invalid token: \(token.name)"
         case .signerNotRegistered(let locator):
             "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
+        case .signerCallbackMissing(let locator):
+            "Signer \"\(locator)\" requires an onSign callback."
         case .deviceSignerNotSupported(let message), .recoveryConfigRejected(_, let message):
             message
         }
@@ -112,6 +118,8 @@ public enum WalletError: CrossmintError {
             "Verify your signer configuration matches the wallet's registered signer."
         case .signerNotRegistered:
             "Call addSigner before attempting operations that require this signer."
+        case .signerCallbackMissing:
+            "Pass an onSign callback that signs with the external wallet: .externalWallet(address, onSign:)."
         case .invalidChain:
             "Check the list of supported chains for this environment."
         case .walletLocatorError:

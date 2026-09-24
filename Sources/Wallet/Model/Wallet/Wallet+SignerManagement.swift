@@ -118,6 +118,7 @@ extension Wallet {
     ///
     /// - Parameter config: The signer to activate.
     /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet,
+    ///   ``WalletError/signerCallbackMissing(_:)`` when selecting `.externalWallet` without `onSign`,
     ///   or ``WalletError/deviceSignerNotSupported(_:)`` when selecting `.device` on a wallet whose
     ///   provider rejected device signers.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
@@ -128,8 +129,8 @@ extension Wallet {
             try await activateEmailSigner(email: email)
         case .phone(let phone, let channel):
             try await activatePhoneSigner(phone: phone, channel: channel)
-        case .externalWallet(let address):
-            try await activateExternalWalletSigner(address: address)
+        case .externalWallet(let address, let onSign):
+            try await activateExternalWalletSigner(address: address, onSign: onSign)
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:
@@ -312,10 +313,17 @@ extension Wallet {
         selectedSigner = newSigner
     }
 
-    private func activateExternalWalletSigner(address: String) async throws(WalletError) {
+    private func activateExternalWalletSigner(
+        address: String,
+        onSign: (@Sendable (String) async throws -> String)?
+    ) async throws(WalletError) {
         let locator = SignerLocator.externalWallet(address: address)
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        throw .walletGeneric("External wallet signers must approve transactions outside of the SDK.")
+        guard let onSign else { throw .signerCallbackMissing(locator.value) }
+        let recoveryMatch = config.recoveryMethods.contains { (try? SignerLocator(from: $0.locator)) == locator }
+        if !recoveryMatch {
+            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
+        }
+        selectedSigner = ExternalWalletSigner(address: address, onSign: onSign)
     }
 
     private func activateApiKeySigner() async throws(WalletError) {
