@@ -300,6 +300,64 @@ struct RecoverySignerListCreationTests {
         }
         #expect(walletService.createWalletCallCount == 0)
     }
+
+    private func sentRecoveryConfig() throws -> SentRecoveryConfig {
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        return try JSONDecoder().decode(SentRecoveryConfig.self, from: JSONEncoder().encode(config))
+    }
+
+    @Test func sendsAnEVMExternalWalletRecoverySigner() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletEVMKeypair")
+        let address = "0x1234567890123456789012345678901234567890"
+
+        let wallet = try await makeWallets().createWallet(
+            chain: EVMChain.baseSepolia,
+            recoveryMethods: [.externalWallet(address, onSign: { _ in "0xsignature" })]
+        )
+
+        #expect(try sentRecoveryConfig().methods == [.init(type: "external-wallet", address: address)])
+        #expect(wallet.signer is ExternalWalletSigner)
+    }
+
+    @Test func sendsASolanaExternalWalletRecoverySigner() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletSolanaKeypair")
+        let address = "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+
+        let wallet = try await makeWallets().createWallet(
+            chain: SolanaChain.solana,
+            recoveryMethods: [.externalWallet(address, onSign: { _ in "signature" })]
+        )
+
+        #expect(try sentRecoveryConfig().methods == [.init(type: "external-wallet", address: address)])
+        #expect(wallet.signer is ExternalWalletSigner)
+    }
+
+    @Test func sendsAStellarExternalWalletInTheRecoveryList() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletStellarRecoveryMethods")
+        let address = "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"
+
+        _ = try await makeWallets().createWallet(
+            chain: StellarChain.stellar,
+            recoveryMethods: [.email("alice@example.com"), .externalWallet(address, onSign: { _ in "signature" })]
+        )
+
+        #expect(try sentRecoveryConfig().methods == [
+            .init(type: "email", address: nil),
+            .init(type: "external-wallet", address: address)
+        ])
+    }
+}
+
+private struct SentRecoveryConfig: Decodable {
+    struct Method: Decodable, Equatable {
+        let type: String
+        let address: String?
+    }
+
+    let adminSigner: Method?
+    let recoveryMethods: [Method]?
+
+    var methods: [Method] { (adminSigner.map { [$0] } ?? []) + (recoveryMethods ?? []) }
 }
 
 @Suite("Wallet Loading", .tags(.unit))
