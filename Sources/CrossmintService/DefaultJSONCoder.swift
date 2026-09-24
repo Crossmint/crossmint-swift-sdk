@@ -63,6 +63,11 @@ public struct DefaultJSONCoder: JSONCoder {
     ) throws(CrossmintServiceError) -> T where T: Decodable {
         do {
             return try decoder.decode(T.self, from: data)
+        } catch DecodingError.dataCorrupted(let context) {
+            guard let underlyingError = context.underlyingError else {
+                throw .invalidData(context.debugDescription)
+            }
+            throw .invalidData("\(context.debugDescription) (\(underlyingError.localizedDescription))")
         } catch {
             throw .invalidData("\(error.localizedDescription)(\(error)")
         }

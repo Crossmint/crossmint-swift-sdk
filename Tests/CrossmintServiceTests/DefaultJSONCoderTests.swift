@@ -356,6 +356,24 @@ struct DefaultJSONCoderTest {
         }
     }
 
+    @Test("Decoding surfaces the corrupted data description without the raw error dump")
+    func decodingSurfacesTheCorruptedDataDescription() {
+        struct RejectingDecodable: Decodable {
+            init(from decoder: Decoder) throws {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(codingPath: [], debugDescription: "Unsupported value \"x\"")
+                )
+            }
+        }
+
+        #expect {
+            try DefaultJSONCoder().decode(RejectingDecodable.self, from: Data("{}".utf8))
+        } throws: { error in
+            guard case .invalidData(let message) = error as? CrossmintServiceError else { return false }
+            return message == "Unsupported value \"x\""
+        }
+    }
+
     private var calendar: Calendar {
         var calendar = Calendar.current
         // swiftlint:disable:next force_unwrapping
