@@ -114,10 +114,12 @@ struct TEETestFixture {
         let statusRequest = webProxy.lastSentMessage(ofType: GetStatusRequest.self)
         #expect(statusRequest != nil)
         #expect(statusRequest?.data.authData.jwt == CrossmintTEETestHelpers.createTestJWT())
+        #expect(statusRequest?.data.data?.authId == identity.authId)
 
         let signRequest = webProxy.lastSentMessage(ofType: NonCustodialSignRequest.self)
         #expect(signRequest != nil)
         #expect(signRequest?.data.data.bytes == expectedTransaction)
+        #expect(signRequest?.data.data.authId == identity.authId)
     }
 
     func verifyOnboardingRequests(authId: String, channel: OTPDeliveryChannel?, otp: String) {
