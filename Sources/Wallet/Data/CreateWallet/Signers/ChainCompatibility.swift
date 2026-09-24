@@ -10,6 +10,9 @@ public enum EVMSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
+    /// An external wallet signer identified by its blockchain address. `onSign` signs each approval
+    /// payload. ``SignerConfig/externalWallet(_:onSign:)`` describes the payload and the signature.
+    case externalWallet(String, onSign: @Sendable (String) async throws -> String)
     case passkey(name: String, host: String)
 
     @MainActor
@@ -17,6 +20,8 @@ public enum EVMSigners: Sendable, SignerProvider {
         switch self {
         case .apiKey:
             ApiKeySigner(adminSigner: ApiKeySignerData())
+        case let .externalWallet(address, onSign):
+            ExternalWalletSigner(address: address, onSign: onSign)
         case let .email(email):
             EVMEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .phone(phone, channel):
@@ -31,12 +36,17 @@ public enum SolanaSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
+    /// An external wallet signer identified by its blockchain address. `onSign` signs each approval
+    /// payload. ``SignerConfig/externalWallet(_:onSign:)`` describes the payload and the signature.
+    case externalWallet(String, onSign: @Sendable (String) async throws -> String)
 
     @MainActor
     public var signer: any Signer {
         switch self {
         case .apiKey:
             ApiKeySigner(adminSigner: ApiKeySignerData())
+        case let .externalWallet(address, onSign):
+            ExternalWalletSigner(address: address, onSign: onSign)
         case let .email(email):
             SolanaEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .phone(phone, channel):
@@ -49,12 +59,17 @@ public enum StellarSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
+    /// An external wallet signer identified by its blockchain address. `onSign` signs each approval
+    /// payload. ``SignerConfig/externalWallet(_:onSign:)`` describes the payload and the signature.
+    case externalWallet(String, onSign: @Sendable (String) async throws -> String)
 
     @MainActor
     public var signer: any Signer {
         switch self {
         case .apiKey:
             ApiKeySigner(adminSigner: ApiKeySignerData())
+        case let .externalWallet(address, onSign):
+            ExternalWalletSigner(address: address, onSign: onSign)
         case let .email(email):
             StellarEmailSigner(email: email, crossmintTEE: CrossmintTEE.shared)
         case let .phone(phone, channel):
