@@ -110,20 +110,22 @@ extension Wallet {
         _needsRecovery = false
     }
 
-    /// Sets the active signer used for subsequent wallet operations.
+    /// Sets the signer for the send and sign operations of this wallet.
     ///
-    /// After calling this method, send and sign operations will use the specified signer
-    /// instead of the default admin signer. The signer must already be registered on this
-    /// wallet — use ``addSigner(_:)`` to register a new one first.
+    /// The signer replaces the admin signer.
+    /// The signer must be registered on this wallet.
+    /// To register a new signer, call ``addSigner(_:)`` first.
     ///
-    /// A signer that is one of ``recoveryMethods`` is selected without a network call.
-    /// Any other signer is checked against the wallet's current signers through the API.
+    /// If the signer is one of the ``recoveryMethods``, this method does not make a network request.
+    /// For all other signers, this method gets the wallet signers from the API.
     ///
-    /// - Parameter config: The signer to activate.
-    /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet,
-    ///   the request's ``WalletError`` if the registration check fails,
-    ///   or ``WalletError/deviceSignerNotSupported(_:)`` when selecting `.device` on a wallet whose
-    ///   provider rejected device signers.
+    /// - Parameter config: The signer to use.
+    /// - Throws:
+    ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
+    ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
+    ///     The active signer does not change. You can try again.
+    ///   - ``WalletError/deviceSignerNotSupported(_:)`` if you select `.device`
+    ///     and the wallet provider does not accept device signers.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
         switch config {
         case .device:
