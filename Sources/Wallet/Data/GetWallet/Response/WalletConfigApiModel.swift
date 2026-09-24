@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
+import Logger
 
 struct WalletSignerConfigApiModel: Decodable, Sendable {
     let locator: SignerLocator
@@ -19,17 +20,20 @@ public struct WalletConfigApiModel: Decodable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        adminSigner = try Self.decodeSigner(from: container.superDecoder(forKey: .adminSigner))
-        if container.contains(.recoveryMethods) {
-            var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
-            var signers: [AdminSignerApiModel] = []
-            while !list.isAtEnd {
-                signers.append(try Self.decodeSigner(from: list.superDecoder()))
-            }
-            recoveryMethods = signers
-        } else {
-            recoveryMethods = nil
+        let recoveryMethods = try Self.decodeRecoveryMethods(from: container)
+        self.recoveryMethods = recoveryMethods
+
+        let adminSignerDecoder = try container.superDecoder(forKey: .adminSigner)
+        do {
+            adminSigner = try Self.decodeSigner(from: adminSignerDecoder)
+        } catch {
+            guard let fallback = recoveryMethods?.first else { throw error }
+            Logger.smartWallet.warning(LogEvents.walletConfigAdminSignerFallback, attributes: [
+                "error": "\(error)"
+            ])
+            adminSigner = fallback
         }
+
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
 
@@ -37,9 +41,37 @@ public struct WalletConfigApiModel: Decodable {
         case type
     }
 
+    private static func decodeRecoveryMethods(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) throws -> [AdminSignerApiModel]? {
+        guard container.contains(.recoveryMethods) else { return nil }
+        var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
+        var methods: [AdminSignerApiModel] = []
+        while !list.isAtEnd {
+            let entryDecoder = try list.superDecoder()
+            let typeContainer = try entryDecoder.container(keyedBy: AdminSignerCodingKeys.self)
+            let rawType = try typeContainer.decode(String.self, forKey: .type)
+            guard AdminSignerDataType(rawValue: rawType) != nil else {
+                Logger.smartWallet.warning(LogEvents.walletConfigRecoverySignerSkipped, attributes: [
+                    "type": rawType
+                ])
+                continue
+            }
+            methods.append(try decodeSigner(from: entryDecoder))
+        }
+        return methods
+    }
+
     private static func decodeSigner(from decoder: Decoder) throws -> AdminSignerApiModel {
         let typeContainer = try decoder.container(keyedBy: AdminSignerCodingKeys.self)
-        let type = try typeContainer.decode(AdminSignerDataType.self, forKey: .type)
+        let rawType = try typeContainer.decode(String.self, forKey: .type)
+        guard let type = AdminSignerDataType(rawValue: rawType) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .type,
+                in: typeContainer,
+                debugDescription: "Unsupported recovery signer type \"\(rawType)\""
+            )
+        }
 
         switch type {
         case .passkey:
