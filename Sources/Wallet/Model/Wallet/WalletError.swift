@@ -17,8 +17,8 @@ public enum WalletError: CrossmintError {
     case invalidChain(chain: Chain)
     case invalidToken(token: CryptoCurrency)
     case signerNotRegistered(String)
-    /// ``Wallet/useSigner(_:)`` received a signer that needs a signing callback, but the callback is `nil`.
-    /// The value is the signer locator.
+    /// ``Wallet/useSigner(_:)`` got an external wallet signer without an `onSign` callback.
+    /// The value is the locator of the signer.
     case signerCallbackMissing(String)
     /// The wallet's underlying provider does not support device signers,
     /// surfaced from the backend's stable `DEVICE_SIGNER_NOT_SUPPORTED`
@@ -104,7 +104,7 @@ public enum WalletError: CrossmintError {
         case .signerNotRegistered(let locator):
             "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
         case .signerCallbackMissing(let locator):
-            "Signer \"\(locator)\" requires an onSign callback."
+            "Signer \"\(locator)\" has no onSign callback."
         case .deviceSignerNotSupported(let message), .recoveryConfigRejected(_, let message):
             message
         }
@@ -119,7 +119,7 @@ public enum WalletError: CrossmintError {
         case .signerNotRegistered:
             "Call addSigner before attempting operations that require this signer."
         case .signerCallbackMissing:
-            "Pass an onSign callback that signs with the external wallet: .externalWallet(address, onSign:)."
+            "Add an onSign callback that signs with the external wallet. Use .externalWallet(address, onSign:)."
         case .invalidChain:
             "Check the list of supported chains for this environment."
         case .walletLocatorError:

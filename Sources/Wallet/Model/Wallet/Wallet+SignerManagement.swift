@@ -110,17 +110,17 @@ extension Wallet {
         _needsRecovery = false
     }
 
-    /// Sets the active signer used for subsequent wallet operations.
+    /// Sets the signer that the wallet uses for the next operations.
     ///
-    /// After calling this method, send and sign operations will use the specified signer
-    /// instead of the default admin signer. The signer must already be registered on this
-    /// wallet — use ``addSigner(_:)`` to register a new one first.
+    /// After this call, send and sign operations use this signer, not the default admin signer.
+    /// The signer must be on this wallet. To add a new signer, call ``addSigner(_:)`` first.
     ///
-    /// - Parameter config: The signer to activate.
-    /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet,
-    ///   ``WalletError/signerCallbackMissing(_:)`` when selecting `.externalWallet` without `onSign`,
-    ///   or ``WalletError/deviceSignerNotSupported(_:)`` when selecting `.device` on a wallet whose
-    ///   provider rejected device signers.
+    /// - Parameter config: The signer to use.
+    /// - Throws:
+    ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not on this wallet.
+    ///   - ``WalletError/signerCallbackMissing(_:)`` if `config` is `.externalWallet` and `onSign` is `nil`.
+    ///   - ``WalletError/deviceSignerNotSupported(_:)`` if `config` is `.device`
+    ///     and the wallet does not support device signers.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
         switch config {
         case .device:
