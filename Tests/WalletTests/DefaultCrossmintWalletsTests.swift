@@ -306,46 +306,47 @@ struct RecoverySignerListCreationTests {
         return try JSONDecoder().decode(SentRecoveryConfig.self, from: JSONEncoder().encode(config))
     }
 
-    @Test func sendsAnEVMExternalWalletRecoverySigner() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletEVMKeypair")
-        let address = "0x1234567890123456789012345678901234567890"
+    @Test(arguments: [
+        ExternalWalletRecoveryCase(
+            chain: "base-sepolia",
+            fixture: "WalletEVMKeypair",
+            address: "0x1234567890123456789012345678901234567890",
+            makeProvider: { EVMSigners.externalWallet($0, onSign: { _ in "" }) }
+        ),
+        ExternalWalletRecoveryCase(
+            chain: "solana",
+            fixture: "WalletSolanaKeypair",
+            address: "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc",
+            makeProvider: { SolanaSigners.externalWallet($0, onSign: { _ in "" }) }
+        ),
+        ExternalWalletRecoveryCase(
+            chain: "stellar",
+            fixture: "WalletStellarRecoveryMethods",
+            address: "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37",
+            makeProvider: { StellarSigners.externalWallet($0, onSign: { _ in "" }) }
+        )
+    ])
+    func sendsAnExternalWalletRecoverySigner(_ recovery: ExternalWalletRecoveryCase) async throws {
+        walletService.createWalletFixture = try loadFixture(recovery.fixture)
 
         let wallet = try await makeWallets().createWallet(
-            chain: EVMChain.baseSepolia,
-            recoveryMethods: [.externalWallet(address, onSign: { _ in "0xsignature" })]
+            chain: Chain(recovery.chain),
+            recoveryMethods: [await recovery.makeProvider(recovery.address).signer],
+            options: nil
         )
 
-        #expect(try sentRecoveryConfig().methods == [.init(type: "external-wallet", address: address)])
+        #expect(try sentRecoveryConfig().methods == [.init(type: "external-wallet", address: recovery.address)])
         #expect(wallet.signer is ExternalWalletSigner)
     }
+}
 
-    @Test func sendsASolanaExternalWalletRecoverySigner() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletSolanaKeypair")
-        let address = "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+struct ExternalWalletRecoveryCase: Sendable, CustomTestStringConvertible {
+    let chain: String
+    let fixture: String
+    let address: String
+    let makeProvider: @Sendable (String) -> any SignerProvider
 
-        let wallet = try await makeWallets().createWallet(
-            chain: SolanaChain.solana,
-            recoveryMethods: [.externalWallet(address, onSign: { _ in "signature" })]
-        )
-
-        #expect(try sentRecoveryConfig().methods == [.init(type: "external-wallet", address: address)])
-        #expect(wallet.signer is ExternalWalletSigner)
-    }
-
-    @Test func sendsAStellarExternalWalletInTheRecoveryList() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletStellarRecoveryMethods")
-        let address = "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"
-
-        _ = try await makeWallets().createWallet(
-            chain: StellarChain.stellar,
-            recoveryMethods: [.email("alice@example.com"), .externalWallet(address, onSign: { _ in "signature" })]
-        )
-
-        #expect(try sentRecoveryConfig().methods == [
-            .init(type: "email", address: nil),
-            .init(type: "external-wallet", address: address)
-        ])
-    }
+    var testDescription: String { chain }
 }
 
 private struct SentRecoveryConfig: Decodable {
