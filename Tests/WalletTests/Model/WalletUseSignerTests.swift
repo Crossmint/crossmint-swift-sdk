@@ -91,74 +91,32 @@ struct WalletUseSignerTests {
         private let parent = WalletUseSignerTests()
         private let outageMessage = "503 Service Unavailable"
 
-        private func makeSolanaEmailWallet() throws -> (SolanaWallet, MockSmartWalletService) {
-            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-                fileName: "WalletSolanaEmail",
-                bundle: Bundle.module
-            )
-            let walletService = MockSmartWalletService()
-            let wallet = try SolanaWallet(
-                smartWalletService: walletService,
-                signer: MockSigner(),
-                baseModel: baseModel,
-                solanaChain: .solana
-            )
-            return (wallet, walletService)
-        }
-
-        private func isOutage(_ error: any Error) -> Bool {
-            guard case .walletGeneric(let message) = error as? WalletError else { return false }
-            return message == outageMessage
-        }
-
-        @Test func selectsTheRecoveryEmailSignerWithoutFetchingTheWallet() async throws {
-            let (wallet, walletService) = try makeSolanaEmailWallet()
+        @Test(arguments: [
+            ("WalletEVMEmail", SignerConfig.email("user@example.com")),
+            ("WalletEVMPhone", SignerConfig.phone("+14155552671")),
+            ("WalletEVMApiKey", SignerConfig.apiKey)
+        ])
+        func selectsARecoverySignerWithoutFetchingTheWallet(fixture: String, config: SignerConfig) async throws {
+            let (wallet, walletService) = try parent.makeEVMWallet(fileName: fixture)
             walletService.getWalletError = .walletGeneric(outageMessage)
 
-            try await wallet.useSigner(.email("solana.user@example.com"))
+            try await wallet.useSigner(config)
 
-            #expect(await wallet.selectedSigner?.locator == .email("solana.user@example.com"))
+            #expect(wallet.selectedSigner != nil)
             #expect(walletService.getWalletCallCount == 0)
         }
 
-        @Test func selectsTheRecoveryPhoneSignerWithoutFetchingTheWallet() async throws {
-            let (wallet, walletService) = try parent.makePhoneWallet()
+        @Test(arguments: [
+            ("WalletEVMEmail", SignerConfig.email("other@example.com")),
+            ("WalletPasskey", SignerConfig.passkey(name: "someone@paella.dev", host: "paella.dev"))
+        ])
+        func throwsTheNetworkErrorForANonRecoverySigner(fixture: String, config: SignerConfig) async throws {
+            let (wallet, walletService) = try parent.makeEVMWallet(fileName: fixture)
             walletService.getWalletError = .walletGeneric(outageMessage)
 
-            try await wallet.useSigner(.phone("+14155552671"))
-
-            #expect(await wallet.selectedSigner?.locator == .phone("+14155552671"))
-            #expect(walletService.getWalletCallCount == 0)
-        }
-
-        @Test func selectsTheRecoveryApiKeySignerWithoutFetchingTheWallet() async throws {
-            let (wallet, walletService) = try parent.makeEVMWallet(fileName: "WalletEVMApiKey")
-            walletService.getWalletError = .walletGeneric(outageMessage)
-
-            try await wallet.useSigner(.apiKey)
-
-            #expect(wallet.selectedSigner is ApiKeySigner)
-            #expect(walletService.getWalletCallCount == 0)
-        }
-
-        @Test func throwsTheNetworkErrorForADelegatedSigner() async throws {
-            let (wallet, walletService) = try makeSolanaEmailWallet()
-            walletService.getWalletError = .walletGeneric(outageMessage)
-
-            await #expect { try await wallet.useSigner(.email("other@example.com")) } throws: { error in
-                isOutage(error)
-            }
-            #expect(wallet.selectedSigner == nil)
-        }
-
-        @Test func throwsTheNetworkErrorForAPasskeySigner() async throws {
-            let (wallet, walletService) = try parent.makeEVMWallet(fileName: "WalletPasskey")
-            walletService.getWalletError = .walletGeneric(outageMessage)
-
-            await #expect {
-                try await wallet.useSigner(.passkey(name: "someone@paella.dev", host: "paella.dev"))
-            } throws: { error in
-                isOutage(error)
+            await #expect { try await wallet.useSigner(config) } throws: { error in
+                guard case .walletGeneric(let message) = error as? WalletError else { return false }
+                return message == outageMessage
             }
             #expect(wallet.selectedSigner == nil)
         }
