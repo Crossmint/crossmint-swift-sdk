@@ -46,7 +46,7 @@ final class AppState {
     var walletNotFound: Bool { notFoundChains.contains(selectedChain) }
     var isLoadingWallet: Bool { loadingChains.contains(selectedChain) }
     var recoveryLocators: [String] {
-        if let wallet { return wallet.recoveryMethods.map(\.locator) }
+        if let wallet { return wallet.recoveryMethods.map(\.signer.locator) }
         return currentEmail.map { ["email:\($0)"] } ?? []
     }
 
