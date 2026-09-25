@@ -195,13 +195,13 @@ final class AppState {
 
     func addRecoveryMethod(_ config: SignerConfig) async throws {
         guard let wallet else { return }
-        _ = try await wallet.addRecoveryMethod(config)
+        try await wallet.addRecoveryMethod(config)
         await loadSigners()
     }
 
     func removeRecoveryMethod(locator: String) async throws {
         guard let wallet else { return }
-        _ = try await wallet.removeRecoveryMethod(locator: SignerLocator(from: locator))
+        try await wallet.removeRecoveryMethod(locator: SignerLocator(from: locator))
         if approvingRecovery[selectedChain] == locator {
             approvingRecovery[selectedChain] = nil
         }

@@ -25,6 +25,7 @@ extension Wallet {
     /// ```swift
     /// let transaction = try await wallet.addRecoveryMethod(.email("backup@example.com"))
     /// ```
+    @discardableResult
     public func addRecoveryMethod(_ method: SignerConfig) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
@@ -69,6 +70,7 @@ extension Wallet {
     /// ```swift
     /// let transaction = try await wallet.removeRecoveryMethod(locator: .email("old@example.com"))
     /// ```
+    @discardableResult
     public func removeRecoveryMethod(locator: SignerLocator) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodStart, attributes: [
             "locator": locator.value
