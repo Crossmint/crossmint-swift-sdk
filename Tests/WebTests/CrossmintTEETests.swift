@@ -110,14 +110,24 @@ struct TEETestFixture {
         #expect(sentHandshakeComplete?.data.requestVerificationId == verificationId)
     }
 
-    func verifySignRequest(expectedTransaction: String) {
+    func verifySignRequest(expectedTransaction: String) throws {
         let statusRequest = webProxy.lastSentMessage(ofType: GetStatusRequest.self)
         #expect(statusRequest != nil)
         #expect(statusRequest?.data.authData.jwt == CrossmintTEETestHelpers.createTestJWT())
+        #expect(try statusRequest.flatMap { try wireAuthId($0) } == identity.authId)
 
         let signRequest = webProxy.lastSentMessage(ofType: NonCustodialSignRequest.self)
         #expect(signRequest != nil)
         #expect(signRequest?.data.data.bytes == expectedTransaction)
+        #expect(try signRequest.flatMap { try wireAuthId($0) } == identity.authId)
+    }
+
+    /// The frame reads the recovery method from `data.data.authId` on the wire, so assert on the encoded JSON.
+    private func wireAuthId(_ message: some Encodable) throws -> String? {
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(message)) as? [String: Any]
+        let data = json?["data"] as? [String: Any]
+        let payload = data?["data"] as? [String: Any]
+        return payload?["authId"] as? String
     }
 
     func verifyOnboardingRequests(authId: String, channel: OTPDeliveryChannel?, otp: String) {
@@ -196,9 +206,15 @@ struct CrossmintTEETests {
     @Suite("Signing")
     @MainActor
     struct SigningTests {
-        @Test("Signs transaction when device is ready")
-        func testSignTransactionWhenDeviceReady() async throws {
-            let fixture = TEETestFixture()
+        @Test(
+            "Signs transaction when device is ready",
+            arguments: [
+                SignerIdentity.email("test@example.com"),
+                SignerIdentity.phone("+15555550123", channel: .sms)
+            ]
+        )
+        func testSignTransactionWhenDeviceReady(identity: SignerIdentity) async throws {
+            let fixture = TEETestFixture(identity: identity)
             await fixture.setupAuthentication()
             try await fixture.setupHandshake()
 
@@ -213,7 +229,7 @@ struct CrossmintTEETests {
             )
 
             #expect(signature == "0xsignature123")
-            fixture.verifySignRequest(expectedTransaction: transaction)
+            try fixture.verifySignRequest(expectedTransaction: transaction)
         }
 
         @Test("Signing fails without handshake")
@@ -376,6 +392,7 @@ struct CrossmintTEETests {
             #expect(fixture.tee.isOTPRequired == false)
 
             fixture.verifyOnboardingRequests(authId: "email:test@example.com", channel: nil, otp: "123456")
+            try fixture.verifySignRequest(expectedTransaction: CrossmintTEETestHelpers.createTestTransaction())
         }
 
         @Test("OTP cancellation handled correctly")
