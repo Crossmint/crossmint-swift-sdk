@@ -14,8 +14,7 @@ import Testing
 @Suite("Recovery", .tags(.unit))
 @MainActor
 struct CrossmintTEERecoveryTests {
-    @Test("Recovers and re-handshakes after web content process termination")
-    func testRecoversAfterWebContentProcessTermination() async throws {
+    @Test func rehandshakesAfterWebContentProcessTermination() async throws {
         let fixture = TEETestFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake(verificationId: "test123")
@@ -33,17 +32,12 @@ struct CrossmintTEERecoveryTests {
         fixture.configureSignResponse(signature: "0xrecovered")
 
         let transaction = CrossmintTEETestHelpers.createTestTransaction()
-        let signature = try await fixture.signTransaction(
-            transaction: transaction,
-            keyType: "keyType",
-            encoding: "encoding"
-        )
+        let signature = try await fixture.signTransaction(transaction: transaction)
 
         #expect(signature == "0xrecovered")
     }
 
-    @Test("resetState cancels an in-flight recovery and frees it to start again")
-    func testResetStateCancelsInFlightRecovery() async throws {
+    @Test func resetCancelsInFlightRecoveryAndAllowsANewOne() async throws {
         let fixture = TEETestFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake(verificationId: "test123")
