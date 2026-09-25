@@ -132,28 +132,25 @@ struct WalletRecoveryMethodChangesTests {
             return (wallet, walletService)
         }
 
-        private func isNotSupportedOnChain(_ error: any Error) -> Bool {
-            guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
-            return code == .notSupportedOnChain
-        }
-
         @Test func rejectsAnAdditionBeforeCallingCrossmint() async throws {
             let (wallet, walletService) = try makeEVMWallet()
 
-            await #expect {
+            let error = await #expect(throws: WalletError.self) {
                 try await wallet.addRecoveryMethod(.email("backup@example.com"))
-            } throws: { isNotSupportedOnChain($0) }
+            }
 
+            #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
             #expect(walletService.addRecoveryMethodCallCount == 0)
         }
 
         @Test func rejectsARemovalBeforeCallingCrossmint() async throws {
             let (wallet, walletService) = try makeEVMWallet()
 
-            await #expect {
+            let error = await #expect(throws: WalletError.self) {
                 try await wallet.removeRecoveryMethod(locator: .email("backup@example.com"))
-            } throws: { isNotSupportedOnChain($0) }
+            }
 
+            #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
             #expect(walletService.removeRecoveryMethodCallCount == 0)
         }
     }

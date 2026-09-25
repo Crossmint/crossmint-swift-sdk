@@ -52,10 +52,7 @@ struct WalletErrorTests {
         )
         #expect(error.code == "INVALID_RECOVERY_CONFIG")
         #expect(error.message == "At least one recovery method is required")
-        #expect(
-            error.recoverySuggestion
-                == "Pass one recovery method. Implementations that accept a list take one or more."
-        )
+        #expect(error.recoverySuggestion == "Check the recovery methods that you pass.")
     }
 
     @Test("WalletError.recoveryConfigRejected has no suggestion for codes the caller cannot act on")

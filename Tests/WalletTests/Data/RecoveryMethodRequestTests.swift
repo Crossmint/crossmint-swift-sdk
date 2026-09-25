@@ -97,15 +97,15 @@ struct RecoveryMethodRequestTests {
         )
         let service = DefaultWalletService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
 
-        await #expect {
+        let error = await #expect(throws: WalletError.self) {
             _ = try await service.removeRecoveryMethod(
                 .phone("+14155552671"),
                 chainType: .solana,
                 approver: .email("alice@example.com")
             )
-        } throws: { error in
-            guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-            return code == .lastSigner && message == "Cannot remove the last recovery signer"
         }
+
+        #expect(error?.code == "LAST_RECOVERY_SIGNER")
+        #expect(error?.message == "Cannot remove the last recovery signer")
     }
 }

@@ -124,12 +124,11 @@ struct WalletAddSignerTests {
                 defaultSigner: MockSigner(email: "operator@example.com")
             )
 
-            await #expect {
+            let error = await #expect(throws: WalletError.self) {
                 try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
-            } throws: { error in
-                guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
-                return code == .signerRequired
             }
+
+            #expect(error?.code == "SIGNER_REQUIRED")
             #expect(walletService.addSignerCallCount == 0)
         }
 
@@ -148,12 +147,11 @@ struct WalletAddSignerTests {
             let walletService = MockSmartWalletService()
             let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
 
-            await #expect {
+            let error = await #expect(throws: WalletError.self) {
                 try await wallet.useRecoveryMethod(.email("stranger@example.com"))
-            } throws: { error in
-                guard case .signerNotRegistered(let locator) = error as? WalletError else { return false }
-                return locator == "email:stranger@example.com"
             }
+
+            #expect(error?.code == "INVALID_RECOVERY_CONFIG")
         }
 
         @Test func refusesASelectedSignerThatIsNotARecoverySigner() async throws {
