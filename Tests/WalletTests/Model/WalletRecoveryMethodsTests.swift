@@ -84,6 +84,9 @@ struct WalletRecoveryMethodsTests {
     @Suite("installation state")
     struct InstallationStateTests {
         private let parent = WalletRecoveryMethodsTests()
+        private let SOLANA_EXTERNAL_WALLET = SignerLocator.externalWallet(
+            address: "GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
+        )
 
         private func decodeFixture(
             _ fileName: String,
@@ -99,18 +102,16 @@ struct WalletRecoveryMethodsTests {
         @Test func reportsTheStateOfEachRecoveryMethod() throws {
             let (wallet, _) = try parent.makeSolanaWallet(fileName: "WalletSolanaRecoveryMethods")
 
-            #expect(wallet.recoveryMethodStatuses == [
-                "email:alice@example.com": .active,
-                "phone:+14155552671": .pending,
-                "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7": .failed
-            ])
+            #expect(wallet.recoveryMethodStatus(for: .email("alice@example.com")) == .active)
+            #expect(wallet.recoveryMethodStatus(for: .phone("+14155552671")) == .pending)
+            #expect(wallet.recoveryMethodStatus(for: SOLANA_EXTERNAL_WALLET) == .failed)
+            #expect(wallet.recoveryMethodStatus(for: .email("bob@example.com")) == nil)
         }
 
         @Test func reportsAnUnrecognizedStateAsUnknown() throws {
             let config = try decodeFixture("WalletSolanaRecoveryMethods", replacing: "\"failed\"", with: "\"paused\"")
 
-            let locator = "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
-            #expect(config.recoveryMethodStatuses[locator] == .unknown)
+            #expect(config.recoveryMethodStatus(for: SOLANA_EXTERNAL_WALLET) == .unknown)
         }
 
         @Test func reportsNoStateWhenTheApiOmitsIt() throws {
@@ -123,7 +124,7 @@ struct WalletRecoveryMethodsTests {
             let config = try decodeFixture("WalletEVMEmail", replacing: "\"adminSigner\"", with: evmRecoveryList)
 
             #expect(config.recoveryMethods.map(\.locator) == ["email:user@example.com"])
-            #expect(config.recoveryMethodStatuses.isEmpty)
+            #expect(config.recoveryMethodStatus(for: .email("user@example.com")) == nil)
         }
     }
 }
