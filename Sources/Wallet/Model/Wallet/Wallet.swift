@@ -8,12 +8,13 @@ open class Wallet: @unchecked Sendable {
         blockchainAddress.description
     }
 
-    /// Every recovery signer of this wallet. The list reflects the wallet at load time.
+    /// Every recovery method of this wallet, with its install status. The list reflects the wallet at load time.
     ///
-    /// Each one can authorize on its own. Select the one this device holds with
-    /// ``useSigner(_:)``. EVM wallets always have exactly one.
-    public var recoveryMethods: [any AdminSignerData] {
-        config.recoveryMethods
+    /// Each active one can authorize on its own. Select the one this device holds with
+    /// ``useSigner(_:)``. EVM wallets always have exactly one. Before you use a recovery method,
+    /// make sure that its ``RecoveryMethod/status`` is ``SignerStatus/active``.
+    public var recoveryMethods: [RecoveryMethod] {
+        config.recoveryMethodsWithStatus
     }
 
     /// Fetches the current list of signers from the API.
