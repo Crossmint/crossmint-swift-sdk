@@ -97,6 +97,19 @@ struct WalletExternalWalletSignerTests {
         #expect(wallet.selectedSigner == nil)
     }
 
+    @Test func throwsTheNetworkErrorWhenTheWalletCannotBeFetched() async throws {
+        let wallet = try makeDelegatedWallet()
+        walletService.getWalletError = .walletGeneric("503 Service Unavailable")
+
+        await #expect {
+            try await wallet.useSigner(ExternalWalletSigner(address: DELEGATED_ADDRESS, onSign: { _ in "0xsignature" }))
+        } throws: { error in
+            guard case .walletGeneric(let message) = error as? WalletError else { return false }
+            return message == "503 Service Unavailable"
+        }
+        #expect(wallet.selectedSigner == nil)
+    }
+
     @Test func signsThePendingApprovalWithTheOnSignCallback() async throws {
         let wallet = try makeRecoveryWallet()
         let recorder = SignPayloadRecorder()

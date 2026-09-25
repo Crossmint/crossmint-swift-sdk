@@ -154,13 +154,13 @@ extension Wallet {
     /// with ``addSigner(_:)``.
     ///
     /// - Parameter signer: The external wallet signer to use.
-    /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the external wallet is not on this wallet.
+    /// - Throws:
+    ///   - ``WalletError/signerNotRegistered(_:)`` if the external wallet is not on this wallet.
+    ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
+    ///     The active signer does not change. You can try again.
     public func useSigner(_ signer: ExternalWalletSigner) async throws(WalletError) {
         let locator = SignerLocator.externalWallet(address: signer.adminSigner.address)
-        let recoveryMatch = config.recoveryMethods.contains { (try? SignerLocator(from: $0.locator)) == locator }
-        if !recoveryMatch {
-            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        }
+        try await requireRegisteredSigner(locator)
         selectedSigner = signer
     }
 
