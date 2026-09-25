@@ -300,6 +300,61 @@ struct RecoverySignerListCreationTests {
         }
         #expect(walletService.createWalletCallCount == 0)
     }
+
+    private func sentRecoveryConfig() throws -> SentRecoveryConfig {
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        return try JSONDecoder().decode(SentRecoveryConfig.self, from: JSONEncoder().encode(config))
+    }
+
+    @Test(arguments: [
+        ExternalWalletRecoveryCase(
+            chain: "base-sepolia",
+            fixture: "WalletEVMKeypair",
+            address: "0x1234567890123456789012345678901234567890"
+        ),
+        ExternalWalletRecoveryCase(
+            chain: "solana",
+            fixture: "WalletSolanaKeypair",
+            address: "EX2jMfAdfUKSqh7415jsTzGE1KMepXPeqM4vXyCpVXGc"
+        ),
+        ExternalWalletRecoveryCase(
+            chain: "stellar",
+            fixture: "WalletStellarExternalWallet",
+            address: "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"
+        )
+    ])
+    func sendsAnExternalWalletRecoverySigner(_ recovery: ExternalWalletRecoveryCase) async throws {
+        walletService.createWalletFixture = try loadFixture(recovery.fixture)
+
+        let wallet = try await makeWallets().createWallet(
+            chain: Chain(recovery.chain),
+            recoveryMethods: [ExternalWalletSigner(address: recovery.address, onSign: { _ in "" })],
+            options: nil
+        )
+
+        #expect(try sentRecoveryConfig().methods == [.init(type: "external-wallet", address: recovery.address)])
+        #expect(wallet.signer is ExternalWalletSigner)
+    }
+}
+
+struct ExternalWalletRecoveryCase: Sendable, CustomTestStringConvertible {
+    let chain: String
+    let fixture: String
+    let address: String
+
+    var testDescription: String { chain }
+}
+
+private struct SentRecoveryConfig: Decodable {
+    struct Method: Decodable, Equatable {
+        let type: String
+        let address: String?
+    }
+
+    let adminSigner: Method?
+    let recoveryMethods: [Method]?
+
+    var methods: [Method] { (adminSigner.map { [$0] } ?? []) + (recoveryMethods ?? []) }
 }
 
 @Suite("Wallet Loading", .tags(.unit))
