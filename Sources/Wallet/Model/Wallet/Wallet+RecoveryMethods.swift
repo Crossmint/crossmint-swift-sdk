@@ -187,7 +187,8 @@ extension Wallet {
             return ApiKeySignerData()
         case .device, .passkey:
             throw .walletGeneric(
-                "A recovery method must be an email, phone, external wallet or API key signer."
+                "Device and passkey signers cannot be recovery methods. Use an email, phone, external wallet "
+                    + "or API key signer."
             )
         }
     }
