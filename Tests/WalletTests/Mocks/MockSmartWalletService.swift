@@ -377,6 +377,54 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return removeSignerResult
     }
 
+    // MARK: - addRecoveryMethod / removeRecoveryMethod
+
+    var addRecoveryMethodResult: (any TransactionApiModel)?
+    var addRecoveryMethodError: WalletError?
+    var addRecoveryMethodCallCount = 0
+    var lastAddRecoveryMethod: (any AdminSignerData)?
+    var lastAddRecoveryMethodApprover: SignerLocator?
+
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        addRecoveryMethodCallCount += 1
+        lastAddRecoveryMethod = recoveryMethod
+        lastAddRecoveryMethodApprover = approver
+        if let addRecoveryMethodError {
+            throw addRecoveryMethodError
+        }
+        guard let addRecoveryMethodResult else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        return addRecoveryMethodResult
+    }
+
+    var removeRecoveryMethodResult: (any TransactionApiModel)?
+    var removeRecoveryMethodError: WalletError?
+    var removeRecoveryMethodCallCount = 0
+    var lastRemoveRecoveryMethodLocator: SignerLocator?
+    var lastRemoveRecoveryMethodApprover: SignerLocator?
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        removeRecoveryMethodCallCount += 1
+        lastRemoveRecoveryMethodLocator = locator
+        lastRemoveRecoveryMethodApprover = approver
+        if let removeRecoveryMethodError {
+            throw removeRecoveryMethodError
+        }
+        guard let removeRecoveryMethodResult else {
+            throw WalletError.walletGeneric("not implemented")
+        }
+        return removeRecoveryMethodResult
+    }
+
     // MARK: - Unused stubs
 
     func getBalance(_ params: GetBalanceQueryParams) async throws(WalletError) -> Balances {

@@ -423,6 +423,26 @@ public enum LogEvents {
     /// Remove signer failed
     public static let walletRemoveSignerError = "wallet.removeSigner.error"
 
+    // MARK: - Recovery Method Events
+
+    /// Starting add recovery method
+    public static let walletAddRecoveryMethodStart = "wallet.addRecoveryMethod.start"
+
+    /// Add recovery method succeeded
+    public static let walletAddRecoveryMethodSuccess = "wallet.addRecoveryMethod.success"
+
+    /// Add recovery method failed
+    public static let walletAddRecoveryMethodError = "wallet.addRecoveryMethod.error"
+
+    /// Starting remove recovery method
+    public static let walletRemoveRecoveryMethodStart = "wallet.removeRecoveryMethod.start"
+
+    /// Remove recovery method succeeded
+    public static let walletRemoveRecoveryMethodSuccess = "wallet.removeRecoveryMethod.success"
+
+    /// Remove recovery method failed
+    public static let walletRemoveRecoveryMethodError = "wallet.removeRecoveryMethod.error"
+
     // MARK: - Device Signer Events
 
     /// Device signer key prepared for new wallet creation

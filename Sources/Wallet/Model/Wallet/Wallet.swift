@@ -9,6 +9,8 @@ open class Wallet: @unchecked Sendable {
     }
 
     /// Every recovery signer of this wallet. The list reflects the wallet at load time.
+    /// ``addRecoveryMethod(_:)`` and ``removeRecoveryMethod(locator:)`` update the list after
+    /// a successful change.
     ///
     /// Each one can authorize on its own. Select the one this device holds with
     /// ``useSigner(_:)``. EVM wallets always have exactly one.
@@ -29,7 +31,7 @@ open class Wallet: @unchecked Sendable {
     }
 
     internal let smartWalletService: SmartWalletService
-    internal let config: WalletConfig
+    internal var config: WalletConfig
     internal let blockchainAddress: Address
     internal let signer: (any Signer)?
     internal let chain: Chain
