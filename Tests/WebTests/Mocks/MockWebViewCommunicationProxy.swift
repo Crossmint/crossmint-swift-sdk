@@ -23,7 +23,9 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
 
     var messageResponses: [String: any WebViewMessage] = [:]
     var waitResponses: [String: any WebViewMessage] = [:]
-    var waitDelays: [String: TimeInterval] = [:]
+    private var heldResponseTypes: Set<String> = []
+    private var heldResponseWaiters: [String: [CheckedContinuation<Void, Never>]] = [:]
+    private var responseAwaitedObservers: [String: [CheckedContinuation<Void, Never>]] = [:]
 
     func loadURL(_ url: URL) async throws {
         if shouldThrowOnLoad {
@@ -61,8 +63,11 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
     ) async throws -> T {
         let typeName = String(describing: type)
 
-        if let delay = waitDelays[typeName] {
-            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        if heldResponseTypes.contains(typeName) {
+            await withCheckedContinuation { continuation in
+                heldResponseWaiters[typeName, default: []].append(continuation)
+                responseAwaitedObservers.removeValue(forKey: typeName)?.forEach { $0.resume() }
+            }
         }
 
         if let response = waitResponses[typeName] as? T {
@@ -79,10 +84,23 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
         waitResponses[typeName] = response
     }
 
-    func configureResponseWithDelay<T: WebViewMessage>(for messageType: T.Type, response: T, delay: TimeInterval) {
+    func holdResponse<T: WebViewMessage>(for messageType: T.Type, response: T) {
         configureResponse(for: messageType, response: response)
+        heldResponseTypes.insert(String(describing: messageType))
+    }
+
+    func waitUntilResponseIsAwaited<T: WebViewMessage>(for messageType: T.Type) async {
         let typeName = String(describing: messageType)
-        waitDelays[typeName] = delay
+        guard heldResponseWaiters[typeName, default: []].isEmpty else { return }
+        await withCheckedContinuation { continuation in
+            responseAwaitedObservers[typeName, default: []].append(continuation)
+        }
+    }
+
+    func releaseResponse<T: WebViewMessage>(for messageType: T.Type) {
+        let typeName = String(describing: messageType)
+        heldResponseTypes.remove(typeName)
+        heldResponseWaiters.removeValue(forKey: typeName)?.forEach { $0.resume() }
     }
 
     func configureSendResponse<T: WebViewMessage>(for messageType: T.Type, response: any WebViewMessage) {
@@ -101,7 +119,6 @@ final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
     func clearResponse<T: WebViewMessage>(for messageType: T.Type) {
         let typeName = String(describing: messageType)
         waitResponses.removeValue(forKey: typeName)
-        waitDelays.removeValue(forKey: typeName)
     }
 
     // MARK: - WKScriptMessageHandler
