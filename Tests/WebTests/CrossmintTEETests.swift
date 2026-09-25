@@ -198,9 +198,15 @@ struct CrossmintTEETests {
     @Suite("Signing")
     @MainActor
     struct SigningTests {
-        @Test("Signs transaction when device is ready")
-        func testSignTransactionWhenDeviceReady() async throws {
-            let fixture = TEETestFixture()
+        @Test(
+            "Signs transaction when device is ready",
+            arguments: [
+                SignerIdentity.email("test@example.com"),
+                SignerIdentity.phone("+15555550123", channel: .sms),
+            ]
+        )
+        func testSignTransactionWhenDeviceReady(identity: SignerIdentity) async throws {
+            let fixture = TEETestFixture(identity: identity)
             await fixture.setupAuthentication()
             try await fixture.setupHandshake()
 
@@ -378,6 +384,7 @@ struct CrossmintTEETests {
             #expect(fixture.tee.isOTPRequired == false)
 
             fixture.verifyOnboardingRequests(authId: "email:test@example.com", channel: nil, otp: "123456")
+            fixture.verifySignRequest(expectedTransaction: CrossmintTEETestHelpers.createTestTransaction())
         }
 
         @Test("OTP cancellation handled correctly")
