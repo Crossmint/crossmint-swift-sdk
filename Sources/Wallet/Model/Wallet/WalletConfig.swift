@@ -18,4 +18,8 @@ public struct WalletConfig {
         }
         return nil
     }
+
+    func containsRecoveryMethod(_ locator: SignerLocator) -> Bool {
+        recoveryMethods.contains { (try? SignerLocator(from: $0.locator)) == locator }
+    }
 }
