@@ -11,17 +11,36 @@
       {
         "type": "email",
         "email": "alice@example.com",
-        "locator": "email:alice@example.com"
+        "locator": "email:alice@example.com",
+        "status": "active"
       },
       {
         "type": "phone",
         "phone": "+14155552671",
-        "locator": "phone:+14155552671"
+        "locator": "phone:+14155552671",
+        "status": "pending",
+        "transaction": {
+          "chainType": "solana",
+          "walletType": "smart",
+          "id": "8b1f4c2e-6d3a-4f5b-9c7e-2a1d0e9f8b7c",
+          "status": "pending",
+          "onChain": {
+            "transaction": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjge",
+            "lastValidBlockHeight": 389278945
+          },
+          "approvals": {
+            "pending": [],
+            "submitted": [],
+            "required": 1
+          },
+          "createdAt": "2026-09-01T10:00:00.000Z"
+        }
       },
       {
         "type": "external-wallet",
         "address": "GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7",
-        "locator": "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
+        "locator": "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7",
+        "status": "failed"
       }
     ]
   },
