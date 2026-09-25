@@ -166,6 +166,59 @@ struct DefaultWalletService: WalletService {
         return result
     }
 
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        let body = AddRecoveryMethodBody(
+            recoveryMethods: AdminSignerRequestApiModel(recoveryMethod),
+            approver: approver.value
+        )
+        let bodyData = try jsonCoder.encodeRequest(body, errorType: WalletError.self)
+        let data = try await crossmintService.executeRequestForRawData(
+            .addRecoveryMethod(chainType: chainType, body: bodyData),
+            errorType: WalletError.self
+        ) { networkError in
+            walletError(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
+        }
+        return try decodeRecoveryMethodTransaction(from: data, mapping: chainType.mappingType)
+    }
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        let endpoint = Endpoint.removeRecoveryMethod(
+            chainType: chainType,
+            encodedLocator: encodedSignerLocator(locator.value),
+            approver: approver
+        )
+        let data = try await crossmintService.executeRequestForRawData(
+            endpoint,
+            errorType: WalletError.self
+        ) { networkError in
+            walletError(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
+        }
+        do {
+            return try decodeTransaction(from: data, mapping: chainType.mappingType)
+        } catch {
+            throw .walletGeneric(error.message)
+        }
+    }
+
+    private func decodeRecoveryMethodTransaction<T: WalletTypeTransactionMapping>(
+        from data: Data,
+        mapping: T.Type
+    ) throws(WalletError) -> any TransactionApiModel {
+        do {
+            return try jsonCoder.decode(AddRecoveryMethodResponse<T.APIModel>.self, from: data).tx
+        } catch {
+            throw .walletGeneric("Failed to decode recovery method response: \(error)")
+        }
+    }
+
     private func decodeTransaction<T: WalletTypeTransactionMapping>(
         from data: Data,
         mapping: T.Type

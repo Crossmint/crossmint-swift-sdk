@@ -62,6 +62,18 @@ public protocol WalletService: Sendable {
         _ signerLocator: String,
         chainType: ChainType
     ) async throws(WalletError) -> AddDelegatedSignerResponse?
+
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel
 }
 
 public extension WalletService {
@@ -102,5 +114,21 @@ public extension WalletService {
         approver: SignerLocator?
     ) async throws(TransactionError) -> any TransactionApiModel {
         try await removeSigner(signerLocator, chainType: chainType, chainName: chainName)
+    }
+
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        throw .walletGeneric("This WalletService implementation does not implement addRecoveryMethod")
+    }
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        throw .walletGeneric("This WalletService implementation does not implement removeRecoveryMethod")
     }
 }

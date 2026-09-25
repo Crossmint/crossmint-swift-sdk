@@ -50,6 +50,8 @@ public enum WalletError: CrossmintError {
         /// The request named both a single recovery signer and a recovery list. The SDK does not
         /// send this combination, so contact Crossmint support if you receive this code.
         case adminSignerConflict = "RECOVERY_ADMIN_SIGNER_CONFLICT"
+        /// The wallet has no other recovery method, so you cannot remove this one.
+        case lastSigner = "LAST_RECOVERY_SIGNER"
     }
 
     public var code: String {
@@ -148,6 +150,8 @@ extension WalletError.RecoveryConfigCode {
             "Call useSigner to select which recovery signer authorizes this operation."
         case .notSupportedOnChain:
             "Pass a single recovery method on this chain."
+        case .lastSigner:
+            "Add another recovery method before you remove this one."
         case .notSupportedOnApiVersion, .adminSignerConflict:
             nil
         }

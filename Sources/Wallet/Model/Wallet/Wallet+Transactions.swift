@@ -139,6 +139,8 @@ extension Wallet {
     /// This method submits a remove-signer transaction on-chain. If the transaction needs approval,
     /// the current signer signs it. The method then polls until the transaction completes.
     ///
+    /// Use ``removeRecoveryMethod(locator:)`` to remove a recovery method.
+    ///
     /// - Parameter locator: The locator that identifies the signer to remove.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
     public func removeSigner(locator: SignerLocator) async throws(TransactionError) -> Transaction {
