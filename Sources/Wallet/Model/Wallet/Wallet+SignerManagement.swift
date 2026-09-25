@@ -116,9 +116,6 @@ extension Wallet {
     /// The signer must be registered on this wallet.
     /// To register a new signer, call ``addSigner(_:)`` first.
     ///
-    /// If the signer is one of the ``recoveryMethods``, this method does not make a network request.
-    /// For all other signers, this method gets the wallet signers from the API.
-    ///
     /// - Parameter config: The signer to use.
     /// - Throws:
     ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
