@@ -181,6 +181,7 @@ let package = Package(
                 .process("Resources/WalletEVMPhone.json"),
                 .process("Resources/WalletSolanaRecoveryMethods.json"),
                 .process("Resources/WalletStellarRecoveryMethods.json"),
+                .process("Resources/WalletStellarExternalWallet.json"),
                 .process("Resources/Transfer/ListTransfersResponse.json")
             ],
             plugins: basePlugins

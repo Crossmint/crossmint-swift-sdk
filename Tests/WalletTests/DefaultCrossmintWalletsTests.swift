@@ -319,7 +319,7 @@ struct RecoverySignerListCreationTests {
         ),
         ExternalWalletRecoveryCase(
             chain: "stellar",
-            fixture: "WalletStellarRecoveryMethods",
+            fixture: "WalletStellarExternalWallet",
             address: "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"
         )
     ])

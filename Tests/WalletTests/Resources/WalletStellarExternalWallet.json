@@ -1,0 +1,21 @@
+{
+  "type": "smart",
+  "chainType": "stellar",
+  "config": {
+    "adminSigner": {
+      "type": "external-wallet",
+      "address": "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37",
+      "locator": "external-wallet:GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"
+    },
+    "recoveryMethods": [
+      {
+        "type": "external-wallet",
+        "address": "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37",
+        "locator": "external-wallet:GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"
+      }
+    ]
+  },
+  "address": "CA3SGE76PWYAM4OVKETY47GASUGYDF3Y3QFFSPIWFCNKQLUOO4SOIT2W",
+  "linkedUser": "email:alice@example.com",
+  "createdAt": "2026-09-01T10:00:00.000Z"
+}
