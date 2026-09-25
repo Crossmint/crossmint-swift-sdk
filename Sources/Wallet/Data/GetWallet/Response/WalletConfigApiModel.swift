@@ -5,14 +5,9 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
     let locator: SignerLocator
 }
 
-private struct RecoveryMethodStatusApiModel: Decodable {
-    let status: SignerStatus?
-}
-
 public struct WalletConfigApiModel: Decodable {
     public let adminSigner: AdminSignerApiModel
     let recoveryMethods: [AdminSignerApiModel]?
-    let recoveryMethodStatuses: [String: SignerStatus]
     let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
@@ -28,20 +23,12 @@ public struct WalletConfigApiModel: Decodable {
         if container.contains(.recoveryMethods) {
             var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
             var signers: [AdminSignerApiModel] = []
-            var statuses: [String: SignerStatus] = [:]
             while !list.isAtEnd {
-                let entry = try list.superDecoder()
-                let signer = try Self.decodeSigner(from: entry)
-                signers.append(signer)
-                if let status = try RecoveryMethodStatusApiModel(from: entry).status {
-                    statuses[signer.toDomain.locator] = status
-                }
+                signers.append(try Self.decodeSigner(from: list.superDecoder()))
             }
             recoveryMethods = signers
-            recoveryMethodStatuses = statuses
         } else {
             recoveryMethods = nil
-            recoveryMethodStatuses = [:]
         }
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
     }
@@ -74,10 +61,6 @@ public struct WalletConfigApiModel: Decodable {
         guard let recoveryMethods, let first = recoveryMethods.first else {
             return WalletConfig(recovery: adminSigner.toDomain)
         }
-        return WalletConfig(
-            recovery: first.toDomain,
-            others: recoveryMethods.dropFirst().map(\.toDomain),
-            statuses: recoveryMethodStatuses
-        )
+        return WalletConfig(recovery: first.toDomain, others: recoveryMethods.dropFirst().map(\.toDomain))
     }
 }
