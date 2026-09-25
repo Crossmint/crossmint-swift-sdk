@@ -58,6 +58,28 @@ struct WalletErrorTests {
         )
     }
 
+    @Test("WalletError.recoveryConfigRejected surfaces the signer-not-allowed code")
+    func recoveryConfigRejectedSignerNotAllowed() {
+        let error = WalletError.recoveryConfigRejected(
+            code: .signerNotAllowed,
+            message: "Invalid recovery signer type: passkey."
+        )
+        #expect(error.code == "RECOVERY_SIGNER_NOT_ALLOWED")
+        #expect(error.message == "Invalid recovery signer type: passkey.")
+        #expect(error.recoverySuggestion == "Use a recovery signer type that this wallet accepts.")
+    }
+
+    @Test("WalletError.recoveryConfigRejected surfaces the last-recovery-signer code")
+    func recoveryConfigRejectedLastRecoverySigner() {
+        let error = WalletError.recoveryConfigRejected(
+            code: .lastRecoverySigner,
+            message: "Cannot remove the wallet's last recovery signer"
+        )
+        #expect(error.code == "LAST_RECOVERY_SIGNER")
+        #expect(error.message == "Cannot remove the wallet's last recovery signer")
+        #expect(error.recoverySuggestion == "Add another recovery signer before you remove this one.")
+    }
+
     @Test("WalletError.recoveryConfigRejected has no suggestion for codes the caller cannot act on")
     func recoveryConfigRejectedWithoutSuggestion() {
         let error = WalletError.recoveryConfigRejected(
