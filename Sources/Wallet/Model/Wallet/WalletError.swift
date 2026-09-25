@@ -41,7 +41,7 @@ public enum WalletError: CrossmintError {
         /// signer passed to ``Wallet/addSigner(_:)``. Use a different signer.
         case delegatedSignerConflict = "DELEGATED_SIGNER_CONFLICT"
         /// The wallet has several recovery signers, and the operation did not name one. Call
-        /// ``Wallet/useSigner(_:)`` first.
+        /// ``Wallet/useRecoveryMethod(_:)`` first.
         case signerRequired = "SIGNER_REQUIRED"
         /// The chain accepts a single recovery signer only.
         case notSupportedOnChain = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
@@ -145,7 +145,7 @@ extension WalletError.RecoveryConfigCode {
         case .signerConflict, .delegatedSignerConflict:
             "Use a signer that does not already hold another role on this wallet."
         case .signerRequired:
-            "Call useSigner to select which recovery signer authorizes this operation."
+            "Call useRecoveryMethod to select which recovery method authorizes this operation."
         case .notSupportedOnChain:
             "Pass a single recovery method on this chain."
         case .notSupportedOnApiVersion, .adminSignerConflict:

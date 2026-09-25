@@ -116,6 +116,8 @@ extension Wallet {
     /// instead of the default admin signer. The signer must already be registered on this
     /// wallet — use ``addSigner(_:)`` to register a new one first.
     ///
+    /// To select the recovery method that approves signer changes, use ``useRecoveryMethod(_:)``.
+    ///
     /// - Parameter config: The signer to activate.
     /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet,
     ///   or ``WalletError/deviceSignerNotSupported(_:)`` when selecting `.device` on a wallet whose
@@ -182,25 +184,31 @@ extension Wallet {
     }
 
     internal func authorizingRecovery() async throws(WalletError) -> RecoveryApprover {
+        if let selectedRecoveryMethod {
+            return selectedRecoveryMethod
+        }
         guard config.recoveryMethods.count > 1 else {
             return RecoveryApprover(signer: try await recoverySigner(), locator: nil)
         }
         let recoveryLocators = config.recoveryMethods.compactMap { try? SignerLocator(from: $0.locator) }
-        guard let selectedSigner else {
-            let signer = try await recoverySigner()
-            let locator = try SignerLocator(from: await signer.adminSigner.locator)
-            return RecoveryApprover(signer: signer, locator: locator)
+        let activeSigner: (any ApprovalSigner)?
+        if let selectedSigner {
+            activeSigner = selectedSigner
+        } else {
+            activeSigner = await updateSignerIfRequired()
         }
-        guard let selected = await selectedSigner.locator,
-              recoveryLocators.contains(selected),
-              let signer = selectedSigner as? any Signer else {
+        guard let activeSigner,
+              let activeLocator = await activeSigner.locator,
+              recoveryLocators.contains(activeLocator),
+              let signer = activeSigner as? any Signer else {
             let choices = recoveryLocators.map(\.value).joined(separator: ", ")
             throw .recoveryConfigRejected(
                 code: .signerRequired,
-                message: "Only a recovery signer can add or remove signers. Call useSigner with one of: \(choices)"
+                message: "This wallet has several recovery methods, and the active signer is not one of them. "
+                    + "Call useRecoveryMethod with one of: \(choices)"
             )
         }
-        return RecoveryApprover(signer: signer, locator: selected)
+        return RecoveryApprover(signer: signer, locator: activeLocator)
     }
 
     internal func updateSignerIfRequired() async -> (any Signer)? {
@@ -220,6 +228,9 @@ extension Wallet {
 
     internal func approvalSigner(for rawLocator: String) async throws(SignerError) -> any ApprovalSigner {
         let locator = SignerLocator(orUnknown: rawLocator)
+        if let selectedRecoveryMethod, selectedRecoveryMethod.locator == locator {
+            return selectedRecoveryMethod.signer
+        }
         if let selectedSigner, await selectedSigner.locator == locator {
             return selectedSigner
         }

@@ -116,8 +116,6 @@ public extension WalletService {
         try await removeSigner(signerLocator, chainType: chainType, chainName: chainName)
     }
 
-    /// Conformers written before this entry point existed get this default.
-    /// It throws ``WalletError/walletGeneric(_:)``.
     func addRecoveryMethod(
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
@@ -126,8 +124,6 @@ public extension WalletService {
         throw .walletGeneric("This WalletService implementation does not implement addRecoveryMethod")
     }
 
-    /// Conformers written before this entry point existed get this default.
-    /// It throws ``WalletError/walletGeneric(_:)``.
     func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,

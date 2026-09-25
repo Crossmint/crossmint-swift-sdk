@@ -55,17 +55,20 @@ struct WalletRecoveryMethodChangesTests {
         #expect(recoveryLocators(wallet) == ["email:solana.user@example.com", "phone:+14155552671"])
     }
 
-    @Test func namesTheRecoverySignerSelectedWithUseSignerAsTheApprover() async throws {
+    @Test func clearsTheSelectedRecoveryMethodWhenItIsRemoved() async throws {
         let (wallet, walletService) = try makeSolanaWallet(
             fileName: "WalletSolanaRecoveryMethods",
             signer: MockSigner(email: "alice@example.com")
         )
-        walletService.removeRecoveryMethodError = .walletGeneric("stop after the request")
-        try await wallet.useSigner(.phone("+14155552671"))
+        walletService.removeRecoveryMethodResult = try solanaTransaction("RemoveSignerTransactionSuccess")
+        try await wallet.useRecoveryMethod(.phone("+14155552671"))
+        _ = try await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
 
-        _ = try? await wallet.removeRecoveryMethod(locator: .email("alice@example.com"))
+        _ = try await wallet.removeRecoveryMethod(
+            locator: .externalWallet(address: "GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7")
+        )
 
-        #expect(walletService.lastRemoveRecoveryMethodApprover == .phone("+14155552671"))
+        #expect(walletService.lastRemoveRecoveryMethodApprover == .email("alice@example.com"))
     }
 
     @Test func forgetsTheRemovedMethod() async throws {
