@@ -16,6 +16,16 @@ open class Wallet: @unchecked Sendable {
         config.recoveryMethods
     }
 
+    /// The installation state of each recovery method, keyed by ``AdminSignerData/locator``.
+    ///
+    /// Solana and Stellar wallets report a state for each recovery method.
+    /// A recovery method can approve operations only when its state is ``SignerStatus/active``.
+    /// EVM wallets report no state, so the dictionary is empty on EVM.
+    /// The dictionary shows the wallet at load time.
+    public var recoveryMethodStatuses: [String: SignerStatus] {
+        config.recoveryMethodStatuses
+    }
+
     /// Fetches the current list of signers from the API.
     ///
     /// Each ``WalletSigner`` includes its registration ``WalletSigner/status`` on this
