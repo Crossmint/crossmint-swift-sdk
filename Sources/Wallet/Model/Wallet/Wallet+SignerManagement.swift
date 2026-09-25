@@ -110,18 +110,24 @@ extension Wallet {
         _needsRecovery = false
     }
 
-    /// Sets the signer that the wallet uses for the next operations.
+    /// Sets the signer for the send and sign operations of this wallet.
     ///
-    /// After this call, send and sign operations use this signer, not the default admin signer.
-    /// The signer must be on this wallet. To add a new signer, call ``addSigner(_:)`` first.
+    /// The signer replaces the admin signer.
+    /// The signer must be registered on this wallet.
+    /// To register a new signer, call ``addSigner(_:)`` first.
+    ///
+    /// If the signer is one of the ``recoveryMethods``, this method does not make a network request.
+    /// For all other signers, this method gets the wallet signers from the API.
     ///
     /// - Parameter config: The signer to use.
     /// - Throws:
-    ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not on this wallet.
+    ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
+    ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
+    ///     The active signer does not change. You can try again.
     ///   - ``WalletError/walletGeneric(_:)`` if `config` is `.externalWallet`.
     ///     To sign with an external wallet, pass an ``ExternalWalletSigner`` to `useSigner(_:)`.
-    ///   - ``WalletError/deviceSignerNotSupported(_:)`` if `config` is `.device`
-    ///     and the wallet does not support device signers.
+    ///   - ``WalletError/deviceSignerNotSupported(_:)`` if you select `.device`
+    ///     and the wallet provider does not accept device signers.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
         switch config {
         case .device:
@@ -148,13 +154,13 @@ extension Wallet {
     /// with ``addSigner(_:)``.
     ///
     /// - Parameter signer: The external wallet signer to use.
-    /// - Throws: ``WalletError/signerNotRegistered(_:)`` if the external wallet is not on this wallet.
+    /// - Throws:
+    ///   - ``WalletError/signerNotRegistered(_:)`` if the external wallet is not on this wallet.
+    ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
+    ///     The active signer does not change. You can try again.
     public func useSigner(_ signer: ExternalWalletSigner) async throws(WalletError) {
         let locator = SignerLocator.externalWallet(address: signer.adminSigner.address)
-        let recoveryMatch = config.recoveryMethods.contains { (try? SignerLocator(from: $0.locator)) == locator }
-        if !recoveryMatch {
-            guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
-        }
+        try await requireRegisteredSigner(locator)
         selectedSigner = signer
     }
 
@@ -316,8 +322,7 @@ extension Wallet {
     }
 
     private func activateEmailSigner(email: String) async throws(WalletError) {
-        let locator = SignerLocator.email(email)
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
+        try await requireRegisteredSigner(.email(email))
         guard let newSigner = await SignerFactory.email(email, chainType: chain.chainType) else {
             throw .invalidChain(chain: chain)
         }
@@ -325,8 +330,7 @@ extension Wallet {
     }
 
     private func activatePhoneSigner(phone: String, channel: OTPDeliveryChannel?) async throws(WalletError) {
-        let locator = SignerLocator.phone(phone)
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
+        try await requireRegisteredSigner(.phone(phone))
         guard let newSigner = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType) else {
             throw .invalidChain(chain: chain)
         }
@@ -337,18 +341,11 @@ extension Wallet {
         guard let apiKeyData = config.recoverySigner(ofType: ApiKeySignerData.self) else {
             throw .signerNotRegistered(SignerLocator.apiKey().value)
         }
-        let locator = try SignerLocator(from: apiKeyData.locator)
-        guard await signerIsRegistered(locator) else { throw .signerNotRegistered(locator.value) }
         selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
     }
 
     private func activatePasskeySigner(name: String, host: String) async throws(WalletError) {
-        let walletModel: WalletApiModel
-        do {
-            walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        } catch {
-            throw .walletGeneric("Failed to fetch wallet config")
-        }
+        let walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
 
         let delegatedPasskeyLocator = walletModel.config.signers?
             .map(\.locator)
@@ -370,6 +367,11 @@ extension Wallet {
         let passkeySigner = PasskeySigner(name: name, host: host)
         _ = await passkeySigner.updateAdminSigner(passkeyData)
         selectedSigner = passkeySigner
+    }
+
+    private func requireRegisteredSigner(_ locator: SignerLocator) async throws(WalletError) {
+        if config.containsRecoveryMethod(locator) { return }
+        guard try await fetchSignerRegistration(locator) else { throw .signerNotRegistered(locator.value) }
     }
 
     // MARK: - Device signer registration
