@@ -94,11 +94,11 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
-    /// Returns whether the given locator is registered as a signer on this wallet.
+    /// Returns true if the locator is a signer on this wallet.
     ///
-    /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
-    /// It returns `false` on any network error, and when the locator string does not parse
-    /// as a ``SignerLocator``.
+    /// This method sends a request to the server.
+    /// It returns `false` if the request fails.
+    /// It also returns `false` if the locator string is not valid.
     ///
     /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
     ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
@@ -108,10 +108,10 @@ open class Wallet: @unchecked Sendable {
         return await signerIsRegistered(parsed)
     }
 
-    /// Returns whether the given locator is registered as a signer on this wallet.
+    /// Returns true if the locator is a signer on this wallet.
     ///
-    /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
-    /// It returns `false` on any network error.
+    /// This method sends a request to the server.
+    /// It returns `false` if the request fails.
     public func signerIsRegistered(_ locator: SignerLocator) async -> Bool {
         (try? await fetchSignerRegistration(locator)) ?? false
     }
