@@ -11,14 +11,12 @@
       {
         "type": "email",
         "email": "alice@example.com",
-        "locator": "email:alice@example.com",
-        "status": "active"
+        "locator": "email:alice@example.com"
       },
       {
         "type": "phone",
         "phone": "+14155552671",
-        "locator": "phone:+14155552671",
-        "status": "awaiting-approval"
+        "locator": "phone:+14155552671"
       }
     ]
   },
