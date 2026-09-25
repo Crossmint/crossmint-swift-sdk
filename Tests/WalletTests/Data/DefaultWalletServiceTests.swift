@@ -171,7 +171,12 @@ struct DefaultWalletServiceTests {
         }
     }
 
-    @Test(arguments: ["SOMETHING_ELSE", "INVALID_RECOVERY_CONFIG", "SIGNER_REQUIRED", "RECOVERY_NOT_SUPPORTED_ON_CHAIN"])
+    @Test(arguments: [
+        "SOMETHING_ELSE",
+        "INVALID_RECOVERY_CONFIG",
+        "SIGNER_REQUIRED",
+        "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
+    ])
     func keepsGenericErrorForCodesTheApiDoesNotDefine(apiCode: String) async throws {
         let body = Data(#"{"error": true, "message": "boom", "code": "\#(apiCode)"}"#.utf8)
         let service = try makeService(errorBody: body)
