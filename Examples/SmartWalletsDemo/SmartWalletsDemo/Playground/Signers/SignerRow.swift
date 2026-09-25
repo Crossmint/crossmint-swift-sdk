@@ -7,6 +7,7 @@ import SwiftUI
 
 struct SignerRow: View {
     var index: Int?
+    var idPrefix = "signer"
     let locator: String
     var status: String?
     var isRemoving: Bool = false
@@ -58,7 +59,7 @@ struct SignerRow: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .accessibilityIdentifier(index.map { "signer-\($0)-locator" } ?? "")
+                    .accessibilityIdentifier(index.map { "\(idPrefix)-\($0)-locator" } ?? "")
             }
             Spacer()
             if let status {
@@ -67,19 +68,19 @@ struct SignerRow: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(.quaternary, in: Capsule())
-                    .accessibilityIdentifier(index.map { "signer-\($0)-status" } ?? "")
+                    .accessibilityIdentifier(index.map { "\(idPrefix)-\($0)-status" } ?? "")
             }
             if isRemoving {
                 ProgressView()
             }
         }
         .padding(.vertical, 2)
-        .accessibilityIdentifier(index.map { "signer-\($0)" } ?? "")
+        .accessibilityIdentifier(index.map { "\(idPrefix)-\($0)" } ?? "")
         .swipeActions(edge: .trailing) {
             if canRemove, let onRemove {
                 Button("Remove", role: .destructive, action: onRemove)
                     .disabled(isRemoving)
-                    .accessibilityIdentifier(index.map { "signer-\($0)-remove" } ?? "")
+                    .accessibilityIdentifier(index.map { "\(idPrefix)-\($0)-remove" } ?? "")
             }
         }
     }

@@ -89,7 +89,7 @@ struct AddSignerSheet: View {
     }
 
     private var canAddRecovery: Bool {
-        appState.wallet == nil && appState.selectedChain.supportsRecoveryList
+        appState.selectedChain.supportsRecoveryList
     }
 
     private var canAddSigner: Bool {
@@ -111,9 +111,7 @@ struct AddSignerSheet: View {
     private var modeUnavailableMessage: String? {
         switch mode {
         case .recovery where !canAddRecovery:
-            return appState.wallet == nil
-                ? "\(appState.selectedChain.chainDisplayName) wallets take a single recovery signer."
-                : "Recovery signers are fixed when the wallet is created."
+            return "\(appState.selectedChain.chainDisplayName) wallets take a single recovery signer."
         case .signer where !canAddSigner:
             return "Create the wallet before adding signers."
         default:
@@ -225,8 +223,10 @@ struct AddSignerSheet: View {
 
     private func add() async {
         switch mode {
-        case .recovery:
+        case .recovery where appState.wallet == nil:
             addRecoveryDraft()
+        case .recovery:
+            await addRecoveryMethod()
         case .signer:
             await addSigner()
         }
@@ -247,6 +247,33 @@ struct AddSignerSheet: View {
         }
         appState.pendingRecovery.append(draft)
         dismiss()
+    }
+
+    private func addRecoveryMethod() async {
+        isAdding = true
+        errorMessage = nil
+        let value = inputText.trimmingCharacters(in: .whitespaces)
+        let config: SignerConfig
+        switch selectedType {
+        case .email: config = .email(value)
+        case .phone: config = .phone(value, channel: channel)
+        case .apiKey: config = .apiKey
+        default:
+            isAdding = false
+            return
+        }
+
+        do {
+            try await appState.addRecoveryMethod(config)
+            if selectedType == .phone {
+                appState.rememberChannel(channel, for: "phone:\(value)")
+            }
+            dismiss()
+        } catch {
+            errorMessage = error.userMessage
+        }
+
+        isAdding = false
     }
 
     private func addSigner() async {
