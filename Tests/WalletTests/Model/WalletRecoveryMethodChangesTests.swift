@@ -14,7 +14,8 @@ import TestsUtils
 
 private let ALICE = "email:alice@example.com"
 private let PHONE = "phone:+14155552671"
-private let EXTERNAL_WALLET = "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
+private let EXTERNAL_WALLET_ADDRESS = "GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
+private let EXTERNAL_WALLET = "external-wallet:\(EXTERNAL_WALLET_ADDRESS)"
 
 @Suite("Wallet recovery method changes", .tags(.unit))
 struct WalletRecoveryMethodChangesTests {
@@ -56,6 +57,17 @@ struct WalletRecoveryMethodChangesTests {
         #expect(walletService.signTransactionCallCount == 1)
         #expect(walletService.lastAddRecoveryMethodApprover == .email("solana.user@example.com"))
         #expect(wallet.recoveryMethods.map(\.locator) == ["email:solana.user@example.com", PHONE])
+    }
+
+    @Test func clearsTheSelectedRecoveryMethodWhenItIsRemoved() async throws {
+        let wallet = try makeWallet()
+        walletService.removeRecoveryMethodResult = try solanaTransaction("RemoveSignerTransactionSuccess")
+        try await wallet.useRecoveryMethod(.phone("+14155552671"))
+        try await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
+
+        try await wallet.removeRecoveryMethod(locator: .externalWallet(address: EXTERNAL_WALLET_ADDRESS))
+
+        #expect(walletService.lastRemoveRecoveryMethodApprover == .email("alice@example.com"))
     }
 
     @Test(arguments: [
