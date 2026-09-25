@@ -23,14 +23,11 @@ struct RejectedSignResponse: Sendable, CustomTestStringConvertible {
 @Suite("CrossmintTEE Signing", .tags(.unit))
 @MainActor
 struct CrossmintTEESigningTests {
-    @Test(
-        "Signs transaction when device is ready",
-        arguments: [
-            SignerIdentity.email("test@example.com"),
-            SignerIdentity.phone("+15555550123", channel: .sms)
-        ]
-    )
-    func testSignTransactionWhenDeviceReady(identity: SignerIdentity) async throws {
+    @Test(arguments: [
+        SignerIdentity.email("test@example.com"),
+        SignerIdentity.phone("+15555550123", channel: .sms)
+    ])
+    func signsTransactionWhenDeviceIsReady(identity: SignerIdentity) async throws {
         let fixture = TEETestFixture(identity: identity)
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
@@ -39,45 +36,30 @@ struct CrossmintTEESigningTests {
         fixture.configureSignResponse(signature: "0xsignature123")
 
         let transaction = CrossmintTEETestHelpers.createTestTransaction()
-        let signature = try await fixture.signTransaction(
-            transaction: transaction,
-            keyType: "keyType",
-            encoding: "encoding"
-        )
+        let signature = try await fixture.signTransaction(transaction: transaction)
 
         #expect(signature == "0xsignature123")
         try fixture.verifySignRequest(expectedTransaction: transaction)
     }
 
-    @Test("Signing fails without handshake")
-    func testSigningFailsWithoutHandshake() async throws {
+    @Test func failsToSignWithoutHandshake() async throws {
         let fixture = TEETestFixture()
 
         await #expect(throws: CrossmintTEE.Error.handshakeFailed) {
-            _ = try await fixture.signTransaction(
-                transaction: "test",
-                keyType: "keyType",
-                encoding: "encoding"
-            )
+            _ = try await fixture.signTransaction(transaction: "test")
         }
     }
 
-    @Test("Signing fails without JWT")
-    func testSigningFailsWithoutJWT() async throws {
+    @Test func failsToSignWithoutJWT() async throws {
         let fixture = TEETestFixture()
         try await fixture.setupHandshake()
 
         await #expect(throws: CrossmintTEE.Error.jwtRequired) {
-            _ = try await fixture.signTransaction(
-                transaction: "test",
-                keyType: "keyType",
-                encoding: "encoding"
-            )
+            _ = try await fixture.signTransaction(transaction: "test")
         }
     }
 
-    @Test("Handles server error response")
-    func testHandlesServerErrorResponse() async throws {
+    @Test func surfacesStatusErrorFromFrame() async throws {
         let fixture = TEETestFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
@@ -85,11 +67,7 @@ struct CrossmintTEESigningTests {
         fixture.configureErrorResponse(errorMessage: "Server error occurred")
 
         await #expect(throws: CrossmintTEE.Error.generic("Server error occurred")) {
-            _ = try await fixture.signTransaction(
-                transaction: "test",
-                keyType: "keyType",
-                encoding: "encoding"
-            )
+            _ = try await fixture.signTransaction(transaction: "test")
         }
     }
 
@@ -141,8 +119,7 @@ struct CrossmintTEESigningTests {
         }
     }
 
-    @Test("Returns hex signature verbatim even when its bytes decode as UTF-8")
-    func testHexSignatureIsNotDecodedAsUTF8() async throws {
+    @Test func returnsHexSignatureVerbatimWhenItsBytesDecodeAsUTF8() async throws {
         let fixture = TEETestFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()

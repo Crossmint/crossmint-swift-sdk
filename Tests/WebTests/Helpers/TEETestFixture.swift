@@ -97,54 +97,53 @@ struct TEETestFixture {
         webProxy.configureResponse(for: GetStatusResponse.self, response: statusResponse)
     }
 
-    func waitForOTPRequired() async throws {
-        var attempts = 0
-        while !tee.isOTPRequired {
-            if attempts >= 100 {
-                throw CrossmintTEE.Error.generic("Timed out waiting for the OTP prompt")
-            }
-            await Task.yield()
-            attempts += 1
+    func waitForOTPRequired() async {
+        for await required in tee.$isOTPRequired.values where required {
+            return
         }
     }
 
-    func verifyHandshakeCompleted(verificationId: String) {
-        let sentHandshakeRequest = webProxy.lastSentMessage(ofType: HandshakeRequest.self)
-        #expect(sentHandshakeRequest != nil)
+    func verifyHandshakeCompleted(verificationId: String) throws {
+        try #require(webProxy.lastSentMessage(ofType: HandshakeRequest.self) != nil)
 
-        let sentHandshakeComplete = webProxy.lastSentMessage(ofType: HandshakeComplete.self)
-        #expect(sentHandshakeComplete != nil)
-        #expect(sentHandshakeComplete?.data.requestVerificationId == verificationId)
+        let sentHandshakeComplete = try #require(webProxy.lastSentMessage(ofType: HandshakeComplete.self))
+        #expect(sentHandshakeComplete.data.requestVerificationId == verificationId)
     }
 
     func verifySignRequest(expectedTransaction: String) throws {
-        let statusRequest = webProxy.lastSentMessage(ofType: GetStatusRequest.self)
-        #expect(statusRequest != nil)
-        #expect(statusRequest?.data.authData.jwt == CrossmintTEETestHelpers.createTestJWT())
-        #expect(try statusRequest.flatMap { try wireAuthId($0) } == identity.authId)
+        let statusRequest = try #require(webProxy.lastSentMessage(ofType: GetStatusRequest.self))
+        #expect(statusRequest.data.authData.jwt == CrossmintTEETestHelpers.createTestJWT())
+        #expect(try wireAuthId(statusRequest) == identity.authId)
 
-        let signRequest = webProxy.lastSentMessage(ofType: NonCustodialSignRequest.self)
-        #expect(signRequest != nil)
-        #expect(signRequest?.data.data.bytes == expectedTransaction)
-        #expect(try signRequest.flatMap { try wireAuthId($0) } == identity.authId)
+        let signRequest = try #require(webProxy.lastSentMessage(ofType: NonCustodialSignRequest.self))
+        #expect(signRequest.data.data.bytes == expectedTransaction)
+        #expect(try wireAuthId(signRequest) == identity.authId)
     }
 
     /// The frame reads the recovery method from `data.data.authId` on the wire, so assert on the encoded JSON.
     private func wireAuthId(_ message: some Encodable) throws -> String? {
-        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(message)) as? [String: Any]
-        let data = json?["data"] as? [String: Any]
-        let payload = data?["data"] as? [String: Any]
-        return payload?["authId"] as? String
+        let encoded = try JSONEncoder().encode(message)
+        return try JSONDecoder().decode(WireMessage.self, from: encoded).data.data.authId
     }
 
-    func verifyOnboardingRequests(authId: String, channel: OTPDeliveryChannel?, otp: String) {
-        let startOnboardingRequest = webProxy.lastSentMessage(ofType: StartOnboardingRequest.self)
-        #expect(startOnboardingRequest != nil)
-        #expect(startOnboardingRequest?.data.data.authId == authId)
-        #expect(startOnboardingRequest?.data.data.channel == channel)
+    func verifyOnboardingRequests(authId: String, channel: OTPDeliveryChannel?, otp: String) throws {
+        let startOnboardingRequest = try #require(webProxy.lastSentMessage(ofType: StartOnboardingRequest.self))
+        #expect(startOnboardingRequest.data.data.authId == authId)
+        #expect(startOnboardingRequest.data.data.channel == channel)
 
-        let completeOnboardingRequest = webProxy.lastSentMessage(ofType: CompleteOnboardingRequest.self)
-        #expect(completeOnboardingRequest != nil)
-        #expect(completeOnboardingRequest?.data.data.onboardingAuthentication.encryptedOtp == otp)
+        let completeOnboardingRequest = try #require(webProxy.lastSentMessage(ofType: CompleteOnboardingRequest.self))
+        #expect(completeOnboardingRequest.data.data.onboardingAuthentication.encryptedOtp == otp)
     }
+}
+
+private struct WireMessage: Decodable {
+    struct Envelope: Decodable {
+        struct Payload: Decodable {
+            let authId: String?
+        }
+
+        let data: Payload
+    }
+
+    let data: Envelope
 }

@@ -14,31 +14,29 @@ import Testing
 @Suite("CrossmintTEE Handshake", .tags(.unit))
 @MainActor
 struct CrossmintTEEHandshakeTests {
-    @Test("Successfully completes handshake on first attempt")
-    func testSuccessfulHandshakeFirstAttempt() async throws {
-        let fixture = TEETestFixture()
+    @Test(arguments: [
+        (true, "https://signers.crossmint.com?deviceStorage=memory"),
+        (false, "https://staging.signers.crossmint.com?deviceStorage=memory")
+    ])
+    func completesHandshakeWithEnvironmentFrame(productionEnvironment: Bool, expectedURL: String) async throws {
+        let fixture = TEETestFixture(isProductionEnvironment: productionEnvironment)
         try await fixture.setupHandshake(verificationId: "test123")
 
-        fixture.verifyHandshakeCompleted(verificationId: "test123")
-
-        #expect(fixture.webProxy.loadedURLs.count == 1)
-        #expect(fixture.webProxy.loadedURLs.first?.absoluteString.contains("signers.crossmint.com") == true)
+        try fixture.verifyHandshakeCompleted(verificationId: "test123")
+        #expect(fixture.webProxy.loadedURLs.map(\.absoluteString) == [expectedURL])
     }
 
-    @Test("Retries handshake on timeout up to 3 times")
-    func testHandshakeRetryOnTimeout() async throws {
+    @Test func retriesHandshakeThreeTimesOnTimeout() async throws {
         let fixture = TEETestFixture()
 
         await #expect(throws: CrossmintTEE.Error.handshakeFailed) {
             try await fixture.tee.load()
         }
 
-        let handshakeRequests = fixture.webProxy.sentMessages(ofType: HandshakeRequest.self)
-        #expect(handshakeRequests.count == 3)
+        #expect(fixture.webProxy.sentMessages(ofType: HandshakeRequest.self).count == 3)
     }
 
-    @Test("Resets state correctly")
-    func testResetState() async throws {
+    @Test func requiresNewHandshakeAfterReset() async throws {
         let fixture = TEETestFixture()
         try await fixture.setupHandshake()
 
@@ -48,20 +46,13 @@ struct CrossmintTEEHandshakeTests {
         #expect(fixture.webProxy.resetCount == 1)
 
         await #expect(throws: CrossmintTEE.Error.handshakeFailed) {
-            _ = try await fixture.signTransaction(
-                transaction: "test",
-                keyType: "keyType",
-                encoding: "encoding"
-            )
+            _ = try await fixture.signTransaction(transaction: "test")
         }
     }
 
-    @Test("Load fails when URL is not available")
-    func testLoadFailsWhenURLNotAvailable() async throws {
+    @Test func failsToLoadWhenWebViewIsUnavailable() async throws {
         let fixture = TEETestFixture()
-
         fixture.webProxy.shouldThrowOnLoad = true
-        fixture.webProxy.loadError = WebViewError.webViewNotAvailable
 
         await #expect(throws: CrossmintTEE.Error.urlNotAvailable) {
             try await fixture.tee.load()
