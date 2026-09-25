@@ -37,6 +37,8 @@ final class AppState {
     private(set) var selectedSignerLocator: String?
     private(set) var signers: [WalletSigner] = []
     private(set) var localDeviceLocator: String?
+    private(set) var walletRecoveryLocators: [String] = []
+    private var approvingRecovery: [SupportedChain: String] = [:]
 
     private let sdk: CrossmintSDK = .shared
 
@@ -46,9 +48,10 @@ final class AppState {
     var walletNotFound: Bool { notFoundChains.contains(selectedChain) }
     var isLoadingWallet: Bool { loadingChains.contains(selectedChain) }
     var recoveryLocators: [String] {
-        if let wallet { return wallet.recoveryMethods.map(\.locator) }
+        if wallet != nil { return walletRecoveryLocators }
         return currentEmail.map { ["email:\($0)"] } ?? []
     }
+    var approvingRecoveryLocator: String? { approvingRecovery[selectedChain] }
 
     var formattedBalance: String {
         guard let balance else { return "—" }
@@ -80,6 +83,7 @@ final class AppState {
         do {
             if let found = try await fetchWallet(chain: chain) {
                 walletCache[chain] = found
+                approvingRecovery[chain] = nil
                 // Only update UI state if still on the same chain
                 if chain == selectedChain {
                     await fetchBalance()
@@ -108,6 +112,7 @@ final class AppState {
             let w = try await makeWallet(chain: chain, email: email, extraRecovery: pendingRecovery)
             pendingRecovery = []
             walletCache[chain] = w
+            approvingRecovery[chain] = nil
             notFoundChains.remove(chain)
             await fetchBalance()
             await loadSigners()
@@ -119,6 +124,7 @@ final class AppState {
     }
 
     func loadSigners() async {
+        walletRecoveryLocators = wallet?.recoveryMethods.map(\.locator) ?? []
         signers = (try? await wallet?.signers()) ?? []
         localDeviceLocator = await wallet?.localDeviceSigner()?.value
         guard selectedSignerLocator == nil, let locator = firstSelectableLocator() else { return }
@@ -133,6 +139,7 @@ final class AppState {
         selectedSignerLocator = nil
         signers = []
         localDeviceLocator = nil
+        walletRecoveryLocators = []
         walletErrorMessage = nil
         balance = nil
 
@@ -152,6 +159,7 @@ final class AppState {
         do {
             if let found = try await fetchWallet(chain: chain) {
                 walletCache[chain] = found
+                approvingRecovery[chain] = nil
             }
         } catch {
             // Keep showing existing wallet on failure
@@ -183,6 +191,30 @@ final class AppState {
         } catch {
             return error.userMessage
         }
+    }
+
+    func addRecoveryMethod(_ config: SignerConfig) async throws {
+        guard let wallet else { return }
+        try await wallet.addRecoveryMethod(config)
+        await loadSigners()
+    }
+
+    func removeRecoveryMethod(locator: String) async throws {
+        guard let wallet else { return }
+        try await wallet.removeRecoveryMethod(locator: SignerLocator(from: locator))
+        if approvingRecovery[selectedChain] == locator {
+            approvingRecovery[selectedChain] = nil
+        }
+        await loadSigners()
+    }
+
+    func useRecoveryMethod(locator: String) async throws {
+        guard let wallet else { return }
+        guard let config = signerConfig(for: locator) else {
+            throw WalletError.walletGeneric("This recovery method cannot approve changes from the app")
+        }
+        try await wallet.useRecoveryMethod(config)
+        approvingRecovery[selectedChain] = locator
     }
 
     func fetchBalance() async {

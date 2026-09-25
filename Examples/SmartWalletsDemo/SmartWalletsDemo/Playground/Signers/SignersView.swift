@@ -11,6 +11,7 @@ struct SignersView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAddSigner = false
     @State private var removingSignerLocator: String?
+    @State private var selectingApproverLocator: String?
     @State private var isLoadingSigners = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
@@ -141,14 +142,32 @@ struct SignersView: View {
     @ViewBuilder
     private func recoverySection() -> some View {
         let locators = appState.recoveryLocators
+        let editable = appState.selectedChain.supportsRecoveryList
         if !locators.isEmpty {
-            Section("Recovery") {
-                ForEach(locators, id: \.self) { locator in
+            Section {
+                ForEach(Array(locators.enumerated()), id: \.element) { index, locator in
                     SignerRow(
+                        index: index,
+                        idPrefix: "recovery",
                         locator: locator,
-                        canRemove: false,
-                        onSelect: {}
+                        status: appState.approvingRecoveryLocator == locator ? "Approver" : nil,
+                        isRemoving: removingSignerLocator == locator || selectingApproverLocator == locator,
+                        canRemove: editable,
+                        onSelect: {},
+                        onRemove: { Task { await removeRecoveryMethod(locator: locator) } }
                     )
+                    .contentShape(Rectangle())
+                    .accessibilityAddTraits(editable ? .isButton : [])
+                    .onTapGesture {
+                        guard editable else { return }
+                        Task { await selectApprover(locator: locator) }
+                    }
+                }
+            } header: {
+                Text("Recovery")
+            } footer: {
+                if editable {
+                    Text("Tap a recovery method to approve signer changes with it.")
                 }
             }
         }
@@ -173,6 +192,27 @@ struct SignersView: View {
             show(title: "Error", message: error.userMessage)
             removingSignerLocator = nil
         }
+    }
+
+    private func removeRecoveryMethod(locator: String) async {
+        removingSignerLocator = locator
+        do {
+            try await appState.removeRecoveryMethod(locator: locator)
+            show(title: "Removed", message: "Recovery method removed.")
+        } catch {
+            show(title: "Error", message: error.userMessage)
+        }
+        removingSignerLocator = nil
+    }
+
+    private func selectApprover(locator: String) async {
+        selectingApproverLocator = locator
+        do {
+            try await appState.useRecoveryMethod(locator: locator)
+        } catch {
+            show(title: "Error", message: error.userMessage)
+        }
+        selectingApproverLocator = nil
     }
 
     private func show(title: String, message: String) {
