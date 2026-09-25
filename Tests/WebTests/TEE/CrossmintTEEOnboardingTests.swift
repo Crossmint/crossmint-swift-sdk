@@ -14,9 +14,16 @@ import Testing
 @Suite("CrossmintTEE Onboarding", .tags(.unit))
 @MainActor
 struct CrossmintTEEOnboardingTests {
-    @Test("Completes full onboarding flow for new device")
-    func testFullOnboardingFlowForNewDevice() async throws {
-        let fixture = TEETestFixture()
+    @Test(arguments: [
+        (SignerIdentity.email("test@example.com"), "email:test@example.com", nil),
+        (SignerIdentity.phone("+15551234567", channel: .whatsapp), "phone:+15551234567", OTPDeliveryChannel.whatsapp)
+    ])
+    func onboardsNewDeviceThenSigns(
+        identity: SignerIdentity,
+        expectedAuthId: String,
+        expectedChannel: OTPDeliveryChannel?
+    ) async throws {
+        let fixture = TEETestFixture(identity: identity)
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
 
@@ -40,7 +47,7 @@ struct CrossmintTEEOnboardingTests {
         #expect(signature == "0xsignature456")
         #expect(fixture.tee.isOTPRequired == false)
 
-        fixture.verifyOnboardingRequests(authId: "email:test@example.com", channel: nil, otp: "123456")
+        fixture.verifyOnboardingRequests(authId: expectedAuthId, channel: expectedChannel, otp: "123456")
         try fixture.verifySignRequest(expectedTransaction: CrossmintTEETestHelpers.createTestTransaction())
     }
 
@@ -68,35 +75,6 @@ struct CrossmintTEEOnboardingTests {
         await #expect(throws: CrossmintTEE.Error.userCancelled) {
             _ = try await signTask.value
         }
-
-        #expect(fixture.tee.isOTPRequired == false)
-    }
-
-    @Test("isOTPRequired property updates correctly")
-    func testIsOTPRequiredPropertyUpdates() async throws {
-        let fixture = TEETestFixture()
-        await fixture.setupAuthentication()
-        try await fixture.setupHandshake()
-
-        #expect(fixture.tee.isOTPRequired == false)
-
-        fixture.configureNewDevice()
-        fixture.configureOnboardingFlow()
-        fixture.configureSignResponse(signature: "0xsignature789")
-
-        let signTask = Task {
-            try await fixture.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
-                keyType: "keyType",
-                encoding: "encoding"
-            )
-        }
-
-        try await fixture.waitForOTPRequired()
-
-        fixture.tee.provideOTP("123456")
-
-        _ = try await signTask.value
 
         #expect(fixture.tee.isOTPRequired == false)
     }
@@ -138,5 +116,34 @@ struct CrossmintTEEOnboardingTests {
         #expect(signature == "0xsignature_reonboard")
         #expect(fixture.tee.isOTPRequired == false)
         #expect(fixture.webProxy.completeOnboardingRequestCount == 2)
+    }
+
+    @Test("A request that waits in the queue onboards with its own identity")
+    func keepsTheIdentityOfAQueuedRequest() async throws {
+        let fixture = TEETestFixture(identity: .phone("+15551234567", channel: .whatsapp))
+        await fixture.setupAuthentication()
+
+        // No setupHandshake, so the request is queued until the handshake resolves.
+        let handshakeResponse = CrossmintTEETestHelpers.createHandshakeResponse(verificationId: "test123")
+        fixture.webProxy.configureResponse(for: HandshakeResponse.self, response: handshakeResponse)
+        fixture.configureNewDevice()
+        fixture.configureOnboardingFlow()
+        fixture.configureSignResponse(signature: "0xsignature456")
+
+        let signTask = Task {
+            try await fixture.signTransaction(
+                transaction: CrossmintTEETestHelpers.createTestTransaction()
+            )
+        }
+
+        try await fixture.waitForOTPRequired()
+        fixture.tee.provideOTP("123456")
+        _ = try await signTask.value
+
+        fixture.verifyOnboardingRequests(
+            authId: "phone:+15551234567",
+            channel: .whatsapp,
+            otp: "123456"
+        )
     }
 }

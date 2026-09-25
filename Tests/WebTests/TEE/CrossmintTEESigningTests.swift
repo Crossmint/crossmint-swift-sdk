@@ -11,6 +11,15 @@ import Foundation
 import Testing
 @testable import Web
 
+struct RejectedSignResponse: Sendable, CustomTestStringConvertible {
+    let testDescription: String
+    let signature: String
+    let status: ResponseStatus
+    let errorMessage: String?
+    let encoding: String
+    let expectedError: CrossmintTEE.Error
+}
+
 @Suite("CrossmintTEE Signing", .tags(.unit))
 @MainActor
 struct CrossmintTEESigningTests {
@@ -84,43 +93,50 @@ struct CrossmintTEESigningTests {
         }
     }
 
-    @Test("Handles invalid signature response")
-    func testHandlesInvalidSignatureResponse() async throws {
+    @Test(arguments: [
+        RejectedSignResponse(
+            testDescription: "empty signature",
+            signature: "",
+            status: .success,
+            errorMessage: nil,
+            encoding: "encoding",
+            expectedError: .invalidSignature
+        ),
+        RejectedSignResponse(
+            testDescription: "non-hex signature for a hex request",
+            signature: "not-a-hex-ecdsa-signature",
+            status: .success,
+            errorMessage: nil,
+            encoding: "hex",
+            expectedError: .invalidSignature
+        ),
+        RejectedSignResponse(
+            testDescription: "error status",
+            signature: "",
+            status: .error,
+            errorMessage: "Signing failed in frame",
+            encoding: "encoding",
+            expectedError: .generic("Signing failed in frame")
+        )
+    ])
+    func rejectsInvalidSignResponse(_ response: RejectedSignResponse) async throws {
         let fixture = TEETestFixture()
         await fixture.setupAuthentication()
         try await fixture.setupHandshake()
 
         fixture.configureReadyDevice()
-
         let signResponse = CrossmintTEETestHelpers.createNonCustodialSignResponse(
-            signature: "",
-            status: .success
+            signature: response.signature,
+            status: response.status,
+            errorMessage: response.errorMessage
         )
         fixture.webProxy.configureResponse(for: NonCustodialSignResponse.self, response: signResponse)
 
-        await #expect(throws: CrossmintTEE.Error.invalidSignature) {
-            _ = try await fixture.signTransaction(
-                transaction: "test",
-                keyType: "keyType",
-                encoding: "encoding"
-            )
-        }
-    }
-
-    @Test("Rejects non-hex signature when hex encoding was requested")
-    func testRejectsNonHexSignatureForHexEncoding() async throws {
-        let fixture = TEETestFixture()
-        await fixture.setupAuthentication()
-        try await fixture.setupHandshake()
-
-        fixture.configureReadyDevice()
-        fixture.configureSignResponse(signature: "not-a-hex-ecdsa-signature")
-
-        await #expect(throws: CrossmintTEE.Error.invalidSignature) {
+        await #expect(throws: response.expectedError) {
             _ = try await fixture.signTransaction(
                 transaction: CrossmintTEETestHelpers.createTestTransaction(),
                 keyType: "secp256k1",
-                encoding: "hex"
+                encoding: response.encoding
             )
         }
     }
@@ -143,29 +159,5 @@ struct CrossmintTEESigningTests {
         )
 
         #expect(signature == "0x48656c6c6f")
-    }
-
-    @Test("Throws when the frame reports an error status for the sign request")
-    func testThrowsOnSignErrorStatus() async throws {
-        let fixture = TEETestFixture()
-        await fixture.setupAuthentication()
-        try await fixture.setupHandshake()
-
-        fixture.configureReadyDevice()
-
-        let signResponse = CrossmintTEETestHelpers.createNonCustodialSignResponse(
-            signature: "",
-            status: .error,
-            errorMessage: "Signing failed in frame"
-        )
-        fixture.webProxy.configureResponse(for: NonCustodialSignResponse.self, response: signResponse)
-
-        await #expect(throws: CrossmintTEE.Error.generic("Signing failed in frame")) {
-            _ = try await fixture.signTransaction(
-                transaction: "test",
-                keyType: "keyType",
-                encoding: "encoding"
-            )
-        }
     }
 }
