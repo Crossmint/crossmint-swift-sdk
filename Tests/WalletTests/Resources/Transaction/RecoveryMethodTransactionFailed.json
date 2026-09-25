@@ -1,0 +1,16 @@
+{
+  "id": "recovery-tx-failed",
+  "status": "failed",
+  "chainType": "solana",
+  "walletType": "smart",
+  "params": {
+    "transaction": "AXGuKpKt4zxavCq2dHNexivchTXKoEQMBmqr6ipcF4QPfTXJRJcBLhsCgcLRjBsfV44G4atgoq9NWffk27AvpPf1",
+    "signer": "email:alice@example.com",
+    "feeConfig": { "feePayer": "crossmint", "amount": "15001" }
+  },
+  "onChain": {
+    "transaction": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL",
+    "lastValidBlockHeight": 389278945
+  },
+  "createdAt": "2025-08-21T11:30:55.133Z"
+}
