@@ -58,10 +58,11 @@ struct WalletExternalWalletSignerTests {
         )
     }
 
-    @Test func selectsTheRecoverySigner() async throws {
+    @Test func selectsTheRecoverySignerWithoutFetchingTheWallet() async throws {
         let wallet = try makeRecoveryWallet()
+        walletService.getWalletError = .walletGeneric("503 Service Unavailable")
 
-        try await wallet.useSigner(ExternalWalletSigner(address: RECOVERY_ADDRESS, onSign: { _ in "signature" }))
+        try await wallet.useSigner(.externalWallet(RECOVERY_ADDRESS, onSign: { _ in "signature" }))
 
         #expect(await wallet.selectedSigner?.locator == .externalWallet(address: RECOVERY_ADDRESS))
     }
@@ -69,17 +70,17 @@ struct WalletExternalWalletSignerTests {
     @Test func selectsARegisteredDelegatedSigner() async throws {
         let wallet = try makeDelegatedWallet()
 
-        try await wallet.useSigner(ExternalWalletSigner(address: DELEGATED_ADDRESS, onSign: { _ in "0xsignature" }))
+        try await wallet.useSigner(.externalWallet(DELEGATED_ADDRESS, onSign: { _ in "0xsignature" }))
 
         #expect(await wallet.selectedSigner?.locator == .externalWallet(address: DELEGATED_ADDRESS))
     }
 
-    @Test func rejectsASignerConfigWithGuidanceToPassAnExternalWalletSigner() async throws {
+    @Test func rejectsAConfigWithoutAnOnSignCallback() async throws {
         let wallet = try makeRecoveryWallet()
 
         await #expect { try await wallet.useSigner(.externalWallet(RECOVERY_ADDRESS)) } throws: { error in
             guard case .walletGeneric(let message) = error as? WalletError else { return false }
-            return message.contains("ExternalWalletSigner")
+            return message.contains("onSign")
         }
         #expect(wallet.selectedSigner == nil)
     }
@@ -89,7 +90,7 @@ struct WalletExternalWalletSignerTests {
         let unknownAddress = "0x0000000000000000000000000000000000000001"
 
         await #expect {
-            try await wallet.useSigner(ExternalWalletSigner(address: unknownAddress, onSign: { _ in "0xsignature" }))
+            try await wallet.useSigner(.externalWallet(unknownAddress, onSign: { _ in "0xsignature" }))
         } throws: { error in
             guard case .signerNotRegistered(let locator) = error as? WalletError else { return false }
             return locator == "external-wallet:\(unknownAddress)"
@@ -102,7 +103,7 @@ struct WalletExternalWalletSignerTests {
         walletService.getWalletError = .walletGeneric("503 Service Unavailable")
 
         await #expect {
-            try await wallet.useSigner(ExternalWalletSigner(address: DELEGATED_ADDRESS, onSign: { _ in "0xsignature" }))
+            try await wallet.useSigner(.externalWallet(DELEGATED_ADDRESS, onSign: { _ in "0xsignature" }))
         } throws: { error in
             guard case .walletGeneric(let message) = error as? WalletError else { return false }
             return message == "503 Service Unavailable"
@@ -114,7 +115,7 @@ struct WalletExternalWalletSignerTests {
         let wallet = try makeRecoveryWallet()
         let recorder = SignPayloadRecorder()
         let payload = "3Bxs4Bc3VYuGVB19"
-        try await wallet.useSigner(ExternalWalletSigner(address: RECOVERY_ADDRESS, onSign: { message in
+        try await wallet.useSigner(.externalWallet(RECOVERY_ADDRESS, onSign: { message in
             await recorder.record(message)
             return "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW"
         }))
