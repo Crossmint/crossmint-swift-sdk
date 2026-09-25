@@ -16,24 +16,14 @@ open class Wallet: @unchecked Sendable {
         config.recoveryMethods
     }
 
-    /// Gets the installation state of a recovery method.
+    /// The installation state of each recovery method, keyed by ``AdminSignerData/locator``.
     ///
-    /// Use the state to show the user which recovery methods are ready.
-    /// The state shows the wallet at load time.
-    ///
-    /// - ``SignerStatus/active``: The recovery method is ready. The user can use it to approve operations.
-    /// - ``SignerStatus/pending``: The installation started. The user cannot use the recovery method yet.
-    /// - ``SignerStatus/awaitingApproval``: The installation must get an approval first.
-    ///   The user cannot use the recovery method yet.
-    /// - ``SignerStatus/failed``: The installation did not complete. The user cannot use the recovery method.
-    /// - ``SignerStatus/unknown``: The SDK does not know the state that the API sent.
-    ///
-    /// - Parameter locator: The locator of one of the ``recoveryMethods``.
-    /// - Returns: The state of the recovery method.
-    ///   The value is `nil` when the locator is not a recovery method of this wallet.
-    ///   The value is also `nil` on EVM wallets, because the API sends no state for them.
-    public func recoveryMethodStatus(for locator: SignerLocator) -> SignerStatus? {
-        config.recoveryMethodStatus(for: locator)
+    /// Solana and Stellar wallets report a state for each recovery method.
+    /// A recovery method can approve operations only when its state is ``SignerStatus/active``.
+    /// EVM wallets report no state, so the dictionary is empty on EVM.
+    /// The dictionary shows the wallet at load time.
+    public var recoveryMethodStatuses: [String: SignerStatus] {
+        config.recoveryMethodStatuses
     }
 
     /// Fetches the current list of signers from the API.

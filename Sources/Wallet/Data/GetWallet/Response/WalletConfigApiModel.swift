@@ -12,7 +12,7 @@ private struct RecoveryMethodStatusApiModel: Decodable {
 public struct WalletConfigApiModel: Decodable {
     public let adminSigner: AdminSignerApiModel
     let recoveryMethods: [AdminSignerApiModel]?
-    let recoveryMethodStatuses: [SignerLocator: SignerStatus]
+    let recoveryMethodStatuses: [String: SignerStatus]
     let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
@@ -28,13 +28,13 @@ public struct WalletConfigApiModel: Decodable {
         if container.contains(.recoveryMethods) {
             var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
             var signers: [AdminSignerApiModel] = []
-            var statuses: [SignerLocator: SignerStatus] = [:]
+            var statuses: [String: SignerStatus] = [:]
             while !list.isAtEnd {
                 let entry = try list.superDecoder()
                 let signer = try Self.decodeSigner(from: entry)
                 signers.append(signer)
                 if let status = try RecoveryMethodStatusApiModel(from: entry).status {
-                    statuses[SignerLocator(orUnknown: signer.toDomain.locator)] = status
+                    statuses[signer.toDomain.locator] = status
                 }
             }
             recoveryMethods = signers
