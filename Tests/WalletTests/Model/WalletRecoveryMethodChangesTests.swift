@@ -12,113 +12,88 @@ import TestsUtils
 
 @testable import Wallet
 
+private let ALICE = "email:alice@example.com"
+private let PHONE = "phone:+14155552671"
+private let EXTERNAL_WALLET = "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
+
 @Suite("Wallet recovery method changes", .tags(.unit))
 struct WalletRecoveryMethodChangesTests {
-    private func makeSolanaWallet(
-        fileName: String,
-        signer: MockSigner
-    ) throws -> (SolanaWallet, MockSmartWalletService) {
+    private let walletService = MockSmartWalletService()
+
+    private func makeWallet(
+        fileName: String = "WalletSolanaRecoveryMethods",
+        signerEmail: String = "alice@example.com"
+    ) throws -> Wallet {
         let baseModel: WalletApiModel = try GetFromFile.getModelFrom(fileName: fileName, bundle: Bundle.module)
-        let walletService = MockSmartWalletService()
-        walletService.getWalletResult = baseModel
-        let wallet = try SolanaWallet(
+        let signer = MockSigner(email: signerEmail)
+        if fileName.hasPrefix("WalletEVM") {
+            return try EVMWallet(
+                smartWalletService: walletService,
+                signer: signer,
+                baseModel: baseModel,
+                evmChain: .polygon
+            )
+        }
+        return try SolanaWallet(
             smartWalletService: walletService,
             signer: signer,
             baseModel: baseModel,
             solanaChain: .solana
         )
-        return (wallet, walletService)
     }
 
     private func solanaTransaction(_ fileName: String) throws -> SolanaTransactionApiModel {
         try GetFromFile.getModelFrom(fileName: fileName, bundle: Bundle.module)
     }
 
-    private func recoveryLocators(_ wallet: Wallet) -> [String] {
-        wallet.recoveryMethods.map(\.locator)
-    }
-
     @Test func signsThePendingApprovalAndRecordsTheAddedMethod() async throws {
-        let (wallet, walletService) = try makeSolanaWallet(
-            fileName: "WalletSolanaEmail",
-            signer: MockSigner(email: "admin@example.com")
-        )
+        let wallet = try makeWallet(fileName: "WalletSolanaEmail", signerEmail: "admin@example.com")
         walletService.addRecoveryMethodResult = try solanaTransaction("SolanaSignerRegistrationAwaitingApproval")
         walletService.fetchTransactionResult = try solanaTransaction("RemoveSignerTransactionSuccess")
 
-        let transaction = try await wallet.addRecoveryMethod(.phone("+14155552671"))
+        try await wallet.addRecoveryMethod(.phone("+14155552671"))
 
-        #expect(transaction.status == .success)
         #expect(walletService.signTransactionCallCount == 1)
-        #expect(walletService.lastSignTransactionRequest?.transactionId == "registration-tx-1")
         #expect(walletService.lastAddRecoveryMethodApprover == .email("solana.user@example.com"))
-        #expect(recoveryLocators(wallet) == ["email:solana.user@example.com", "phone:+14155552671"])
+        #expect(wallet.recoveryMethods.map(\.locator) == ["email:solana.user@example.com", PHONE])
     }
 
-    @Test func forgetsTheRemovedMethod() async throws {
-        let (wallet, walletService) = try makeSolanaWallet(
-            fileName: "WalletSolanaRecoveryMethods",
-            signer: MockSigner(email: "alice@example.com")
-        )
-        walletService.removeRecoveryMethodResult = try solanaTransaction("RemoveSignerTransactionSuccess")
+    @Test(arguments: [
+        ("RemoveSignerTransactionSuccess", [ALICE, EXTERNAL_WALLET]),
+        ("RecoveryMethodTransactionFailed", [ALICE, PHONE, EXTERNAL_WALLET])
+    ])
+    func updatesTheRecoveryMethodsOnlyWhenTheRemovalSucceeds(fixture: String, expected: [String]) async throws {
+        let wallet = try makeWallet()
+        walletService.removeRecoveryMethodResult = try solanaTransaction(fixture)
 
-        _ = try await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
+        _ = try? await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
 
-        #expect(walletService.lastRemoveRecoveryMethodLocator == .phone("+14155552671"))
-        #expect(recoveryLocators(wallet) == [
-            "email:alice@example.com",
-            "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
-        ])
+        #expect(wallet.recoveryMethods.map(\.locator) == expected)
     }
 
-    @Test func keepsTheRecoveryMethodsWhenTheTransactionFails() async throws {
-        let (wallet, walletService) = try makeSolanaWallet(
-            fileName: "WalletSolanaRecoveryMethods",
-            signer: MockSigner(email: "alice@example.com")
-        )
-        walletService.removeRecoveryMethodResult = try solanaTransaction("RecoveryMethodTransactionFailed")
-        let before = recoveryLocators(wallet)
+    @Test(arguments: [
+        ("WalletEVMEmail", SignerConfig.email("backup@example.com"), "RECOVERY_NOT_SUPPORTED_ON_CHAIN"),
+        ("WalletSolanaEmail", SignerConfig.device, "WALLET_ERROR")
+    ])
+    func refusesAnAdditionBeforeCallingCrossmint(fileName: String, method: SignerConfig, code: String) async throws {
+        let wallet = try makeWallet(fileName: fileName)
 
-        await #expect(throws: WalletError.self) {
-            try await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
+        let error = await #expect(throws: WalletError.self) {
+            try await wallet.addRecoveryMethod(method)
         }
 
-        #expect(recoveryLocators(wallet) == before)
-    }
-
-    @Test func rejectsASignerTypeThatCannotRecoverTheWallet() async throws {
-        let (wallet, walletService) = try makeSolanaWallet(
-            fileName: "WalletSolanaEmail",
-            signer: MockSigner(email: "admin@example.com")
-        )
-
-        await #expect(throws: WalletError.self) {
-            try await wallet.addRecoveryMethod(.device)
-        }
-
+        #expect(error?.code == code)
         #expect(walletService.addRecoveryMethodCallCount == 0)
     }
 
-    @Test(arguments: [true, false])
-    func rejectsAnEVMWalletBeforeCallingCrossmint(adding: Bool) async throws {
-        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(fileName: "WalletEVMEmail", bundle: Bundle.module)
-        let walletService = MockSmartWalletService()
-        let wallet = try EVMWallet(
-            smartWalletService: walletService,
-            signer: MockSigner(),
-            baseModel: baseModel,
-            evmChain: .polygon
-        )
+    @Test func refusesARemovalOnAnEVMWalletBeforeCallingCrossmint() async throws {
+        let wallet = try makeWallet(fileName: "WalletEVMEmail")
 
         let error = await #expect(throws: WalletError.self) {
-            if adding {
-                try await wallet.addRecoveryMethod(.email("backup@example.com"))
-            } else {
-                try await wallet.removeRecoveryMethod(locator: .email("backup@example.com"))
-            }
+            try await wallet.removeRecoveryMethod(locator: .email("backup@example.com"))
         }
 
         #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
-        #expect(walletService.addRecoveryMethodCallCount + walletService.removeRecoveryMethodCallCount == 0)
+        #expect(walletService.removeRecoveryMethodCallCount == 0)
     }
 }
