@@ -202,7 +202,7 @@ struct CrossmintTEETests {
             "Signs transaction when device is ready",
             arguments: [
                 SignerIdentity.email("test@example.com"),
-                SignerIdentity.phone("+15555550123", channel: .sms),
+                SignerIdentity.phone("+15555550123", channel: .sms)
             ]
         )
         func testSignTransactionWhenDeviceReady(identity: SignerIdentity) async throws {
