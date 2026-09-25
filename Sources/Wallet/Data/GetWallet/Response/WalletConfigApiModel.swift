@@ -5,9 +5,18 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
     let locator: SignerLocator
 }
 
+struct RecoveryMethodApiModel {
+    let signer: AdminSignerApiModel
+    let status: SignerStatus
+
+    var toDomain: RecoveryMethod {
+        RecoveryMethod(signer: signer.toDomain, status: status)
+    }
+}
+
 public struct WalletConfigApiModel: Decodable {
     public let adminSigner: AdminSignerApiModel
-    let recoveryMethods: [AdminSignerApiModel]?
+    let recoveryMethods: [RecoveryMethodApiModel]?
     let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
@@ -22,11 +31,15 @@ public struct WalletConfigApiModel: Decodable {
         adminSigner = try Self.decodeSigner(from: container.superDecoder(forKey: .adminSigner))
         if container.contains(.recoveryMethods) {
             var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
-            var signers: [AdminSignerApiModel] = []
+            var methods: [RecoveryMethodApiModel] = []
             while !list.isAtEnd {
-                signers.append(try Self.decodeSigner(from: list.superDecoder()))
+                let entry = try list.superDecoder()
+                let status = try entry.container(keyedBy: RecoveryMethodCodingKeys.self)
+                    .decodeIfPresent(SignerStatus.self, forKey: .status)
+                let signer = try Self.decodeSigner(from: entry)
+                methods.append(RecoveryMethodApiModel(signer: signer, status: status ?? .unknown))
             }
-            recoveryMethods = signers
+            recoveryMethods = methods
         } else {
             recoveryMethods = nil
         }
@@ -35,6 +48,10 @@ public struct WalletConfigApiModel: Decodable {
 
     private enum AdminSignerCodingKeys: String, CodingKey {
         case type
+    }
+
+    private enum RecoveryMethodCodingKeys: String, CodingKey {
+        case status
     }
 
     private static func decodeSigner(from decoder: Decoder) throws -> AdminSignerApiModel {
