@@ -115,43 +115,26 @@ struct WalletRecoveryMethodChangesTests {
         #expect(walletService.addRecoveryMethodCallCount == 0)
     }
 
-    @Suite("on an EVM wallet")
-    struct EVMWalletTests {
-        private func makeEVMWallet() throws -> (EVMWallet, MockSmartWalletService) {
-            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-                fileName: "WalletEVMEmail",
-                bundle: Bundle.module
-            )
-            let walletService = MockSmartWalletService()
-            let wallet = try EVMWallet(
-                smartWalletService: walletService,
-                signer: MockSigner(),
-                baseModel: baseModel,
-                evmChain: .polygon
-            )
-            return (wallet, walletService)
-        }
+    @Test(arguments: [true, false])
+    func rejectsAnEVMWalletBeforeCallingCrossmint(adding: Bool) async throws {
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(fileName: "WalletEVMEmail", bundle: Bundle.module)
+        let walletService = MockSmartWalletService()
+        let wallet = try EVMWallet(
+            smartWalletService: walletService,
+            signer: MockSigner(),
+            baseModel: baseModel,
+            evmChain: .polygon
+        )
 
-        @Test func rejectsAnAdditionBeforeCallingCrossmint() async throws {
-            let (wallet, walletService) = try makeEVMWallet()
-
-            let error = await #expect(throws: WalletError.self) {
+        let error = await #expect(throws: WalletError.self) {
+            if adding {
                 try await wallet.addRecoveryMethod(.email("backup@example.com"))
-            }
-
-            #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
-            #expect(walletService.addRecoveryMethodCallCount == 0)
-        }
-
-        @Test func rejectsARemovalBeforeCallingCrossmint() async throws {
-            let (wallet, walletService) = try makeEVMWallet()
-
-            let error = await #expect(throws: WalletError.self) {
+            } else {
                 try await wallet.removeRecoveryMethod(locator: .email("backup@example.com"))
             }
-
-            #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
-            #expect(walletService.removeRecoveryMethodCallCount == 0)
         }
+
+        #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
+        #expect(walletService.addRecoveryMethodCallCount + walletService.removeRecoveryMethodCallCount == 0)
     }
 }

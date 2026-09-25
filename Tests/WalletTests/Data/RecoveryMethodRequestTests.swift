@@ -15,32 +15,24 @@ import Testing
 
 @Suite("Recovery method requests", .tags(.unit))
 struct RecoveryMethodRequestTests {
-    private func makeService(
-        capturingRequestInto capturedRequest: SendableBox<URLRequest?>,
-        responseBody: Data
-    ) throws -> DefaultWalletService {
+    private let capturedRequest = SendableBox<URLRequest?>(nil)
+
+    private func makeService(responding response: Result<String, NetworkError>) throws -> DefaultWalletService {
         let crossmintService = DefaultCrossmintService(
             apiKey: try ApiKey(key: "ck_staging_test123"),
             appIdentifier: "com.crossmint.tests",
-            httpClient: HTTPClient(fetch: { request throws(NetworkError) in
+            httpClient: HTTPClient(fetch: { [capturedRequest] request throws(NetworkError) in
                 capturedRequest.value = request
-                return (responseBody, URLResponse())
+                let fixture = try response.get()
+                let url = Bundle.module.url(forResource: fixture, withExtension: "json")
+                return (url.flatMap { try? Data(contentsOf: $0) } ?? Data(), URLResponse())
             })
         )
         return DefaultWalletService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
     }
 
-    private func fixture(_ name: String) throws -> Data {
-        let url = try #require(Bundle.module.url(forResource: name, withExtension: "json"))
-        return try Data(contentsOf: url)
-    }
-
     @Test func postsTheRecoveryMethodAndTheApprover() async throws {
-        let capturedRequest = SendableBox<URLRequest?>(nil)
-        let service = try makeService(
-            capturingRequestInto: capturedRequest,
-            responseBody: try fixture("AddRecoveryMethodResponse")
-        )
+        let service = try makeService(responding: .success("AddRecoveryMethodResponse"))
 
         let transaction = try await service.addRecoveryMethod(
             PhoneSignerData(phone: "+14155552671"),
@@ -61,11 +53,7 @@ struct RecoveryMethodRequestTests {
     }
 
     @Test func deletesTheEncodedLocatorWithTheApproverQuery() async throws {
-        let capturedRequest = SendableBox<URLRequest?>(nil)
-        let service = try makeService(
-            capturingRequestInto: capturedRequest,
-            responseBody: try fixture("RemoveSignerTransactionSuccess")
-        )
+        let service = try makeService(responding: .success("RemoveSignerTransactionSuccess"))
 
         _ = try await service.removeRecoveryMethod(
             .phone("+14155552671"),
@@ -73,10 +61,9 @@ struct RecoveryMethodRequestTests {
             approver: .email("alice@example.com")
         )
 
-        let request = try #require(capturedRequest.value)
-        let url = try #require(request.url)
+        let url = try #require(capturedRequest.value?.url)
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-        #expect(request.httpMethod == "DELETE")
+        #expect(capturedRequest.value?.httpMethod == "DELETE")
         #expect(components.percentEncodedPath.hasSuffix(
             "/2025-06-09/wallets/me:solana/recovery-methods/phone:%2B14155552671"
         ))
@@ -84,18 +71,8 @@ struct RecoveryMethodRequestTests {
     }
 
     @Test func mapsTheLastRecoverySignerCode() async throws {
-        let body = Data(
-            #"{"error": true, "message": "Cannot remove the last recovery signer", "code": "LAST_RECOVERY_SIGNER"}"#
-                .utf8
-        )
-        let crossmintService = DefaultCrossmintService(
-            apiKey: try ApiKey(key: "ck_staging_test123"),
-            appIdentifier: "com.crossmint.tests",
-            httpClient: HTTPClient(fetch: { _ throws(NetworkError) in
-                throw NetworkError.badRequest(body)
-            })
-        )
-        let service = DefaultWalletService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
+        let body = #"{"message": "Cannot remove the last recovery signer", "code": "LAST_RECOVERY_SIGNER"}"#
+        let service = try makeService(responding: .failure(.badRequest(Data(body.utf8))))
 
         let error = await #expect(throws: WalletError.self) {
             _ = try await service.removeRecoveryMethod(
