@@ -1,10 +1,3 @@
-//
-//  WalletUnsupportedRecoverySignerTests.swift
-//  CrossmintSDK
-//
-//  Created by Tomas Martins on 24/09/26.
-//
-
 import CrossmintCommonTypes
 import CrossmintService
 import Foundation
