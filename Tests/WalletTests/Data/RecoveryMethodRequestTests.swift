@@ -52,25 +52,7 @@ struct RecoveryMethodRequestTests {
         #expect(transaction.toDomain().id == "recovery-tx-1")
     }
 
-    @Test func deletesTheEncodedLocatorWithTheApproverQuery() async throws {
-        let service = try makeService(responding: .success("RemoveSignerTransactionSuccess"))
-
-        _ = try await service.removeRecoveryMethod(
-            .phone("+14155552671"),
-            chainType: .solana,
-            approver: .email("alice@example.com")
-        )
-
-        let url = try #require(capturedRequest.value?.url)
-        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-        #expect(capturedRequest.value?.httpMethod == "DELETE")
-        #expect(components.percentEncodedPath.hasSuffix(
-            "/2025-06-09/wallets/me:solana/recovery-methods/phone:%2B14155552671"
-        ))
-        #expect(components.queryItems == [URLQueryItem(name: "approver", value: "email:alice@example.com")])
-    }
-
-    @Test func mapsTheLastRecoverySignerCode() async throws {
+    @Test func deletesTheEncodedLocatorAndMapsTheLastRecoverySignerCode() async throws {
         let body = #"{"message": "Cannot remove the last recovery signer", "code": "LAST_RECOVERY_SIGNER"}"#
         let service = try makeService(responding: .failure(.badRequest(Data(body.utf8))))
 
@@ -82,6 +64,13 @@ struct RecoveryMethodRequestTests {
             )
         }
 
+        let url = try #require(capturedRequest.value?.url)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        #expect(capturedRequest.value?.httpMethod == "DELETE")
+        #expect(components.percentEncodedPath.hasSuffix(
+            "/2025-06-09/wallets/me:solana/recovery-methods/phone:%2B14155552671"
+        ))
+        #expect(components.queryItems == [URLQueryItem(name: "approver", value: "email:alice@example.com")])
         #expect(error?.code == "LAST_RECOVERY_SIGNER")
         #expect(error?.message == "Cannot remove the last recovery signer")
     }
