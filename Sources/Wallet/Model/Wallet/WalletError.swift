@@ -28,7 +28,8 @@ public enum WalletError: CrossmintError {
     /// The reason the SDK or Crossmint rejected a recovery method list.
     public enum RecoveryConfigCode: String, Sendable {
         /// The list is empty, or the ``CrossmintWallets`` implementation accepts one recovery method only.
-        /// The SDK raises this before it calls Crossmint.
+        /// ``Wallet/useRecoveryMethod(_:)`` also throws this for a signer that is not a recovery method
+        /// of the wallet. The SDK raises this before it calls Crossmint.
         case invalidConfig = "INVALID_RECOVERY_CONFIG"
         /// The list has more recovery signers than the chain allows.
         case signerLimitExceeded = "SIGNER_LIMIT_EXCEEDED"
@@ -41,7 +42,7 @@ public enum WalletError: CrossmintError {
         /// signer passed to ``Wallet/addSigner(_:)``. Use a different signer.
         case delegatedSignerConflict = "DELEGATED_SIGNER_CONFLICT"
         /// The wallet has several recovery signers, and the operation did not name one. Call
-        /// ``Wallet/useSigner(_:)`` first.
+        /// ``Wallet/useRecoveryMethod(_:)`` first.
         case signerRequired = "SIGNER_REQUIRED"
         /// The chain accepts a single recovery signer only.
         case notSupportedOnChain = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
@@ -139,7 +140,7 @@ extension WalletError.RecoveryConfigCode {
     var recoverySuggestion: String? {
         switch self {
         case .invalidConfig:
-            "Pass one recovery method. Implementations that accept a list take one or more."
+            "Check the recovery methods that you pass."
         case .signerLimitExceeded:
             "Pass fewer recovery signers."
         case .duplicateSigner:
@@ -147,7 +148,7 @@ extension WalletError.RecoveryConfigCode {
         case .signerConflict, .delegatedSignerConflict:
             "Use a signer that does not already hold another role on this wallet."
         case .signerRequired:
-            "Call useSigner to select which recovery signer authorizes this operation."
+            "Call useRecoveryMethod to select which recovery method authorizes this operation."
         case .notSupportedOnChain:
             "Pass a single recovery method on this chain."
         case .lastSigner:
