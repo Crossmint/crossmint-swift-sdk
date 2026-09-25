@@ -10,6 +10,7 @@ public struct NonCustodialSignRequest: WebViewMessage {
         public let keyType: String
         public let bytes: String
         public let encoding: String
+        public let authId: String?
     }
 
     public struct RequestData: Codable, Sendable {
@@ -25,7 +26,8 @@ public struct NonCustodialSignRequest: WebViewMessage {
         apiKey: String,
         messageBytes: String,
         keyType: String,
-        encoding: String
+        encoding: String,
+        authId: String? = nil
     ) {
         event = Self.messageType
         data = RequestData(
@@ -33,7 +35,8 @@ public struct NonCustodialSignRequest: WebViewMessage {
             data: SignData(
                 keyType: keyType,
                 bytes: messageBytes,
-                encoding: encoding
+                encoding: encoding,
+                authId: authId
             )
         )
     }

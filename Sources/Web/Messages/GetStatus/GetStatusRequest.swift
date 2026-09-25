@@ -7,14 +7,21 @@ public struct GetStatusRequest: WebViewMessage {
     }
 
     public struct RequestData: Codable, Sendable {
+        public struct Data: Codable, Sendable {
+            public let authId: String
+        }
         public let authData: AuthData
+        public let data: Data?
     }
 
     public let event: String
     public let data: RequestData
 
-    public init(jwt: String, apiKey: String) {
+    public init(jwt: String, apiKey: String, authId: String? = nil) {
         event = Self.messageType
-        data = RequestData(authData: AuthData(jwt: jwt, apiKey: apiKey))
+        data = RequestData(
+            authData: AuthData(jwt: jwt, apiKey: apiKey),
+            data: authId.map { RequestData.Data(authId: $0) }
+        )
     }
 }
