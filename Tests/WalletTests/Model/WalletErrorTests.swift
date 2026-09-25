@@ -35,12 +35,15 @@ struct WalletErrorTests {
     @Test("WalletError.recoveryConfigRejected surfaces the backend code")
     func recoveryConfigRejected() {
         let error = WalletError.recoveryConfigRejected(
-            code: .lastSigner,
-            message: "last recovery signer"
+            code: .signerNotAllowed,
+            message: "recovery signer not allowed"
         )
-        #expect(error.code == "LAST_RECOVERY_SIGNER")
-        #expect(error.message == "last recovery signer")
-        #expect(error.recoverySuggestion == "Add a different recovery signer before you remove this one.")
+        #expect(error.code == "RECOVERY_SIGNER_NOT_ALLOWED")
+        #expect(error.message == "recovery signer not allowed")
+        #expect(
+            error.recoverySuggestion
+                == "Use a signer type that the chain accepts. An API key signer must be the only recovery signer."
+        )
         #expect(error.underlyingError == nil)
     }
 

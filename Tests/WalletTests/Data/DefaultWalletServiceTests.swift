@@ -132,8 +132,7 @@ struct DefaultWalletServiceTests {
         "SIGNER_LIMIT_EXCEEDED",
         "DELEGATED_SIGNER_CONFLICT",
         "RECOVERY_ADMIN_SIGNER_CONFLICT",
-        "RECOVERY_SIGNER_NOT_ALLOWED",
-        "LAST_RECOVERY_SIGNER"
+        "RECOVERY_SIGNER_NOT_ALLOWED"
     ])
     func throwsTypedErrorWhenCreateWalletRejectsTheRecoveryList(apiCode: String) async throws {
         let body = Data(#"{"error": true, "message": "rejected: \#(apiCode)", "code": "\#(apiCode)"}"#.utf8)

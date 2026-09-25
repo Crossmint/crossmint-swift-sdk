@@ -25,7 +25,7 @@ public enum WalletError: CrossmintError {
     /// The SDK or Crossmint rejected the recovery method list. `message` explains the rejection.
     case recoveryConfigRejected(code: RecoveryConfigCode, message: String)
 
-    /// The reason the SDK or Crossmint rejected a recovery method list or a change to it.
+    /// The reason the SDK or Crossmint rejected a recovery method list.
     public enum RecoveryConfigCode: String, Sendable {
         /// The list is empty, or the ``CrossmintWallets`` implementation accepts one recovery method only.
         /// The SDK raises this before it calls Crossmint.
@@ -46,8 +46,6 @@ public enum WalletError: CrossmintError {
         /// Crossmint does not accept the signer as a recovery signer. The chain can refuse the signer
         /// type. An API key recovery signer must also be the only recovery signer of the wallet.
         case signerNotAllowed = "RECOVERY_SIGNER_NOT_ALLOWED"
-        /// The operation removes the last recovery signer of the wallet.
-        case lastSigner = "LAST_RECOVERY_SIGNER"
     }
 
     public var code: String {
@@ -146,8 +144,6 @@ extension WalletError.RecoveryConfigCode {
             "Pass a single recovery method on this chain."
         case .signerNotAllowed:
             "Use a signer type that the chain accepts. An API key signer must be the only recovery signer."
-        case .lastSigner:
-            "Add a different recovery signer before you remove this one."
         case .adminSignerConflict:
             nil
         }
