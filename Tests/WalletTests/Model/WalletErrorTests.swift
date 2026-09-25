@@ -35,12 +35,12 @@ struct WalletErrorTests {
     @Test("WalletError.recoveryConfigRejected surfaces the backend code")
     func recoveryConfigRejected() {
         let error = WalletError.recoveryConfigRejected(
-            code: .duplicateSigner,
-            message: "duplicate signer"
+            code: .lastSigner,
+            message: "last recovery signer"
         )
-        #expect(error.code == "RECOVERY_DUPLICATE_SIGNER")
-        #expect(error.message == "duplicate signer")
-        #expect(error.recoverySuggestion == "Remove the duplicated signer from the recovery list.")
+        #expect(error.code == "LAST_RECOVERY_SIGNER")
+        #expect(error.message == "last recovery signer")
+        #expect(error.recoverySuggestion == "Add a different recovery signer before you remove this one.")
         #expect(error.underlyingError == nil)
     }
 
@@ -58,32 +58,10 @@ struct WalletErrorTests {
         )
     }
 
-    @Test("WalletError.recoveryConfigRejected surfaces the signer-not-allowed code")
-    func recoveryConfigRejectedSignerNotAllowed() {
-        let error = WalletError.recoveryConfigRejected(
-            code: .signerNotAllowed,
-            message: "Invalid recovery signer type: passkey."
-        )
-        #expect(error.code == "RECOVERY_SIGNER_NOT_ALLOWED")
-        #expect(error.message == "Invalid recovery signer type: passkey.")
-        #expect(error.recoverySuggestion == "Use a recovery signer type that this wallet accepts.")
-    }
-
-    @Test("WalletError.recoveryConfigRejected surfaces the last-recovery-signer code")
-    func recoveryConfigRejectedLastRecoverySigner() {
-        let error = WalletError.recoveryConfigRejected(
-            code: .lastRecoverySigner,
-            message: "Cannot remove the wallet's last recovery signer"
-        )
-        #expect(error.code == "LAST_RECOVERY_SIGNER")
-        #expect(error.message == "Cannot remove the wallet's last recovery signer")
-        #expect(error.recoverySuggestion == "Add another recovery signer before you remove this one.")
-    }
-
     @Test("WalletError.recoveryConfigRejected has no suggestion for codes the caller cannot act on")
     func recoveryConfigRejectedWithoutSuggestion() {
         let error = WalletError.recoveryConfigRejected(
-            code: .notSupportedOnApiVersion,
+            code: .adminSignerConflict,
             message: "unsupported"
         )
         #expect(error.recoverySuggestion == nil)

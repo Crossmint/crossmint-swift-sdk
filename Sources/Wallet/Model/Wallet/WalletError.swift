@@ -25,18 +25,13 @@ public enum WalletError: CrossmintError {
     /// The SDK or Crossmint rejected the recovery method list. `message` explains the rejection.
     case recoveryConfigRejected(code: RecoveryConfigCode, message: String)
 
-    /// The reason the SDK or Crossmint rejected a recovery method list.
+    /// The reason the SDK or Crossmint rejected a recovery method list or a change to it.
     public enum RecoveryConfigCode: String, Sendable {
         /// The list is empty, or the ``CrossmintWallets`` implementation accepts one recovery method only.
         /// The SDK raises this before it calls Crossmint.
         case invalidConfig = "INVALID_RECOVERY_CONFIG"
         /// The list has more recovery signers than the chain allows.
         case signerLimitExceeded = "SIGNER_LIMIT_EXCEEDED"
-        /// The same signer appears more than once in the list.
-        case duplicateSigner = "RECOVERY_DUPLICATE_SIGNER"
-        /// The list contains a signer that is already registered on the wallet through
-        /// ``Wallet/addSigner(_:)``. A signer is a recovery signer or a registered signer, not both.
-        case signerConflict = "RECOVERY_SIGNER_CONFLICT"
         /// A signer in the request already holds another role on the wallet, for example a recovery
         /// signer passed to ``Wallet/addSigner(_:)``. Use a different signer.
         case delegatedSignerConflict = "DELEGATED_SIGNER_CONFLICT"
@@ -45,16 +40,14 @@ public enum WalletError: CrossmintError {
         case signerRequired = "SIGNER_REQUIRED"
         /// The chain accepts a single recovery signer only.
         case notSupportedOnChain = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
-        /// This SDK version targets an API version without recovery signer lists. Update the SDK.
-        case notSupportedOnApiVersion = "NOT_SUPPORTED_ON_API_VERSION"
         /// The request named both a single recovery signer and a recovery list. The SDK does not
         /// send this combination, so contact Crossmint support if you receive this code.
         case adminSignerConflict = "RECOVERY_ADMIN_SIGNER_CONFLICT"
-        /// This signer type cannot be a recovery signer for this wallet. Use a supported signer
-        /// type, such as an email address, a phone number, or an external wallet.
+        /// Crossmint does not accept the signer as a recovery signer. The chain can refuse the signer
+        /// type. An API key recovery signer must also be the only recovery signer of the wallet.
         case signerNotAllowed = "RECOVERY_SIGNER_NOT_ALLOWED"
-        /// The operation would remove the wallet's only recovery signer.
-        case lastRecoverySigner = "LAST_RECOVERY_SIGNER"
+        /// The operation removes the last recovery signer of the wallet.
+        case lastSigner = "LAST_RECOVERY_SIGNER"
     }
 
     public var code: String {
@@ -145,19 +138,17 @@ extension WalletError.RecoveryConfigCode {
             "Pass one recovery method. Implementations that accept a list take one or more."
         case .signerLimitExceeded:
             "Pass fewer recovery signers."
-        case .duplicateSigner:
-            "Remove the duplicated signer from the recovery list."
-        case .signerConflict, .delegatedSignerConflict:
+        case .delegatedSignerConflict:
             "Use a signer that does not already hold another role on this wallet."
         case .signerRequired:
             "Call useSigner to select which recovery signer authorizes this operation."
         case .notSupportedOnChain:
             "Pass a single recovery method on this chain."
         case .signerNotAllowed:
-            "Use a recovery signer type that this wallet accepts."
-        case .lastRecoverySigner:
-            "Add another recovery signer before you remove this one."
-        case .notSupportedOnApiVersion, .adminSignerConflict:
+            "Use a signer type that the chain accepts. An API key signer must be the only recovery signer."
+        case .lastSigner:
+            "Add a different recovery signer before you remove this one."
+        case .adminSignerConflict:
             nil
         }
     }

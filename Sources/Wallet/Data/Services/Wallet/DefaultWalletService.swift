@@ -211,13 +211,16 @@ struct DefaultWalletService: WalletService {
         if code == "DEVICE_SIGNER_NOT_SUPPORTED" {
             return .deviceSignerNotSupported(message ?? "Device signers are not supported for this wallet's provider.")
         }
-        if let recoveryCode = WalletError.RecoveryConfigCode(rawValue: code) {
+        guard let recoveryCode = WalletError.RecoveryConfigCode(rawValue: code) else { return nil }
+        switch recoveryCode {
+        case .invalidConfig, .signerRequired, .notSupportedOnChain:
+            return nil
+        case .signerLimitExceeded, .delegatedSignerConflict, .adminSignerConflict, .signerNotAllowed, .lastSigner:
             return .recoveryConfigRejected(
                 code: recoveryCode,
                 message: message ?? "The recovery signer configuration was rejected"
             )
         }
-        return nil
     }
 
     private func signerRegistrationChain(chainType: ChainType, chainName: String) -> String? {
