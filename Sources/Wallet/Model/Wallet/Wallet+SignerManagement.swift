@@ -124,8 +124,8 @@ extension Wallet {
     ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
     ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
     ///     The active signer does not change. You can try again.
-    ///   - ``WalletError/walletGeneric(_:)`` if `config` is `.externalWallet`.
-    ///     To sign with an external wallet, pass an ``ExternalWalletSigner`` to `useSigner(_:)`.
+    ///   - ``WalletError/walletGeneric(_:)`` if `config` is ``SignerConfig/externalWallet(_:onSign:)``
+    ///     and `onSign` is `nil`.
     ///   - ``WalletError/deviceSignerNotSupported(_:)`` if you select `.device`
     ///     and the wallet provider does not accept device signers.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
@@ -136,32 +136,13 @@ extension Wallet {
             try await activateEmailSigner(email: email)
         case .phone(let phone, let channel):
             try await activatePhoneSigner(phone: phone, channel: channel)
-        case .externalWallet:
-            throw .walletGeneric(
-                "To use an external wallet signer, pass an ExternalWalletSigner with an onSign callback to useSigner."
-            )
+        case .externalWallet(let address, let onSign):
+            try await activateExternalWalletSigner(address: address, onSign: onSign)
         case .passkey(let name, let host):
             try await activatePasskeySigner(name: name, host: host)
         case .apiKey:
             try await activateApiKeySigner()
         }
-    }
-
-    /// Sets the external wallet signer that the wallet uses for the next operations.
-    ///
-    /// After this call, send and sign operations call `onSign` of `signer` to get each approval.
-    /// The external wallet must be a recovery signer of this wallet, or a signer that you added
-    /// with ``addSigner(_:)``.
-    ///
-    /// - Parameter signer: The external wallet signer to use.
-    /// - Throws:
-    ///   - ``WalletError/signerNotRegistered(_:)`` if the external wallet is not on this wallet.
-    ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
-    ///     The active signer does not change. You can try again.
-    public func useSigner(_ signer: ExternalWalletSigner) async throws(WalletError) {
-        let locator = SignerLocator.externalWallet(address: signer.adminSigner.address)
-        try await requireRegisteredSigner(locator)
-        selectedSigner = signer
     }
 
     // MARK: - Internal
@@ -335,6 +316,19 @@ extension Wallet {
             throw .invalidChain(chain: chain)
         }
         selectedSigner = newSigner
+    }
+
+    private func activateExternalWalletSigner(
+        address: String,
+        onSign: (@Sendable (String) async throws -> String)?
+    ) async throws(WalletError) {
+        guard let onSign else {
+            throw .walletGeneric(
+                "To sign with an external wallet, pass an onSign callback in SignerConfig.externalWallet."
+            )
+        }
+        try await requireRegisteredSigner(.externalWallet(address: address))
+        selectedSigner = ExternalWalletSigner(address: address, onSign: onSign)
     }
 
     private func activateApiKeySigner() async throws(WalletError) {

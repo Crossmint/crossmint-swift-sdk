@@ -9,21 +9,12 @@ import CrossmintCommonTypes
 
 /// A signer that uses an external wallet, for example a wallet app or a hardware wallet.
 ///
-/// To sign with the external wallet, pass this signer to `useSigner(_:)` on a ``Wallet``.
 /// To use the external wallet as a recovery signer, pass this signer when you create a wallet.
+/// To sign with the external wallet, pass ``SignerConfig/externalWallet(_:onSign:)``
+/// to ``Wallet/useSigner(_:)``.
 ///
-/// The SDK calls `onSign` each time the wallet needs an approval from this signer.
-/// `onSign` receives a message. Sign the message with the external wallet and return the signature.
-/// The format of the message and of the signature changes with the chain of the wallet:
-/// - EVM: The message is a hex string that starts with `0x`. Decode the hex string.
-///   Sign the bytes as an EIP-191 personal message (`personal_sign`).
-///   Return the 65-byte signature as a hex string that starts with `0x`.
-/// - Solana: The message is a base58 string. Decode the string and sign the bytes with Ed25519.
-///   Return the 64-byte signature as a base58 string.
-/// - Stellar: The message is a base64 string. Decode the string and sign the bytes with Ed25519.
-///   Return the 64-byte signature as a base64 string.
-///
-/// If the user does not accept the request to sign, throw ``SignerError/cancelled`` from `onSign`.
+/// For the message that `onSign` receives and the signature that it returns,
+/// see ``SignerConfig/externalWallet(_:onSign:)``.
 public struct ExternalWalletSigner: Signer {
     public typealias AdminType = ExternalWalletSignerData
 
@@ -36,6 +27,7 @@ public struct ExternalWalletSigner: Signer {
     /// - Parameters:
     ///   - address: The address of the external wallet.
     ///   - onSign: Signs a message with the external wallet and returns the signature.
+    ///     See ``SignerConfig/externalWallet(_:onSign:)``.
     public init(address: String, onSign: @escaping @Sendable (String) async throws -> String) {
         self.adminSigner = ExternalWalletSignerData(address: address)
         self.onSign = onSign
