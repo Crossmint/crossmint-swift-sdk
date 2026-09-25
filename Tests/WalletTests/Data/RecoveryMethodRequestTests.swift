@@ -83,9 +83,10 @@ struct RecoveryMethodRequestTests {
         #expect(components.queryItems == [URLQueryItem(name: "approver", value: "email:alice@example.com")])
     }
 
-    @Test func mapsARecoveryErrorCodeToATypedError() async throws {
+    @Test func mapsTheLastRecoverySignerCode() async throws {
         let body = Data(
-            #"{"error": true, "message": "Name the approving recovery signer", "code": "SIGNER_REQUIRED"}"#.utf8
+            #"{"error": true, "message": "Cannot remove the last recovery signer", "code": "LAST_RECOVERY_SIGNER"}"#
+                .utf8
         )
         let crossmintService = DefaultCrossmintService(
             apiKey: try ApiKey(key: "ck_staging_test123"),
@@ -104,7 +105,7 @@ struct RecoveryMethodRequestTests {
             )
         } throws: { error in
             guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-            return code == .signerRequired && message == "Name the approving recovery signer"
+            return code == .lastSigner && message == "Cannot remove the last recovery signer"
         }
     }
 }
