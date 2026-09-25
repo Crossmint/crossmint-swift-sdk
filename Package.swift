@@ -183,6 +183,7 @@ let package = Package(
                 .process("Resources/WalletStellarRecoveryMethods.json"),
                 .process("Resources/WalletSolanaUnsupportedSigners.json"),
                 .process("Resources/WalletSolanaOnlyUnsupportedSigner.json"),
+                .process("Resources/WalletSolanaInvalidAdminSigner.json"),
                 .process("Resources/Transfer/ListTransfersResponse.json")
             ],
             plugins: basePlugins

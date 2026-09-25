@@ -513,7 +513,7 @@ public enum LogEvents {
     /// The SDK ignores this signer.
     public static let walletConfigRecoverySignerSkipped = "walletConfig.recoverySigner.skipped"
 
-    /// This SDK version cannot read the admin signer of the wallet.
+    /// The admin signer of the wallet has a type that this SDK version does not support.
     /// The SDK uses the first supported recovery signer instead.
     public static let walletConfigAdminSignerFallback = "walletConfig.adminSigner.fallback"
 

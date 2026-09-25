@@ -55,4 +55,18 @@ struct WalletUnsupportedRecoverySignerTests {
             return message.contains("totp")
         }
     }
+
+    @Test func rejectsAnAdminSignerWithASupportedTypeAndInvalidData() throws {
+        let url = try #require(
+            Bundle.module.url(forResource: "WalletSolanaInvalidAdminSigner", withExtension: "json")
+        )
+        let data = try Data(contentsOf: url)
+
+        #expect {
+            try DefaultJSONCoder().decode(WalletApiModel.self, from: data)
+        } throws: { error in
+            guard case .invalidData(let message) = error as? CrossmintServiceError else { return false }
+            return message.contains("adminSigner")
+        }
+    }
 }

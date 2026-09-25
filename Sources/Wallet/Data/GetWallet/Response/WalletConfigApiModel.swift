@@ -24,14 +24,14 @@ public struct WalletConfigApiModel: Decodable {
         self.recoveryMethods = recoveryMethods
 
         let adminSignerDecoder = try container.superDecoder(forKey: .adminSigner)
-        do {
-            adminSigner = try Self.decodeSigner(from: adminSignerDecoder)
-        } catch {
-            guard let fallback = recoveryMethods?.first else { throw error }
+        let adminSignerType = try Self.rawSignerType(from: adminSignerDecoder)
+        if AdminSignerDataType(rawValue: adminSignerType) == nil, let fallback = recoveryMethods?.first {
             Logger.smartWallet.warning(LogEvents.walletConfigAdminSignerFallback, attributes: [
-                "error": "\(error)"
+                "type": adminSignerType
             ])
             adminSigner = fallback
+        } else {
+            adminSigner = try Self.decodeSigner(from: adminSignerDecoder)
         }
 
         signers = try container.decodeIfPresent([WalletSignerConfigApiModel].self, forKey: .signers)
@@ -49,8 +49,7 @@ public struct WalletConfigApiModel: Decodable {
         var methods: [AdminSignerApiModel] = []
         while !list.isAtEnd {
             let entryDecoder = try list.superDecoder()
-            let typeContainer = try entryDecoder.container(keyedBy: AdminSignerCodingKeys.self)
-            let rawType = try typeContainer.decode(String.self, forKey: .type)
+            let rawType = try rawSignerType(from: entryDecoder)
             guard AdminSignerDataType(rawValue: rawType) != nil else {
                 Logger.smartWallet.warning(LogEvents.walletConfigRecoverySignerSkipped, attributes: [
                     "type": rawType
@@ -62,9 +61,14 @@ public struct WalletConfigApiModel: Decodable {
         return methods
     }
 
+    private static func rawSignerType(from decoder: Decoder) throws -> String {
+        let typeContainer = try decoder.container(keyedBy: AdminSignerCodingKeys.self)
+        return try typeContainer.decode(String.self, forKey: .type)
+    }
+
     private static func decodeSigner(from decoder: Decoder) throws -> AdminSignerApiModel {
         let typeContainer = try decoder.container(keyedBy: AdminSignerCodingKeys.self)
-        let rawType = try typeContainer.decode(String.self, forKey: .type)
+        let rawType = try rawSignerType(from: decoder)
         guard let type = AdminSignerDataType(rawValue: rawType) else {
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
