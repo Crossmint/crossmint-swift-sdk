@@ -94,11 +94,11 @@ open class Wallet: @unchecked Sendable {
         }
     }
 
-    /// Returns whether the given locator is registered as a signer on this wallet.
+    /// Returns true if the locator is a signer on this wallet.
     ///
-    /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
-    /// It returns `false` on any network error, and when the locator string does not parse
-    /// as a ``SignerLocator``.
+    /// This method sends a request to the server.
+    /// It returns `false` if the request fails.
+    /// It also returns `false` if the locator string is not valid.
     ///
     /// - Parameter locator: A signer locator string, for example `"email:user@example.com"`,
     ///   `"phone:+15551234567"`, `"device:<pubkey>"`, `"api-key"`, or `"passkey:<id>"`.
@@ -108,24 +108,21 @@ open class Wallet: @unchecked Sendable {
         return await signerIsRegistered(parsed)
     }
 
-    /// Returns whether the given locator is registered as a signer on this wallet.
+    /// Returns true if the locator is a signer on this wallet.
     ///
-    /// This method makes a fresh API call. It checks the delegated signers first, then the admin signer.
-    /// It returns `false` on any network error.
+    /// This method sends a request to the server.
+    /// It returns `false` if the request fails.
     public func signerIsRegistered(_ locator: SignerLocator) async -> Bool {
-        let walletModel: WalletApiModel
-        do {
-            walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        } catch {
-            return false
-        }
+        (try? await fetchSignerRegistration(locator)) ?? false
+    }
+
+    internal func fetchSignerRegistration(_ locator: SignerLocator) async throws(WalletError) -> Bool {
+        let walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
         let delegatedMatch = walletModel.config.signers?
             .map(\.locator)
             .contains(locator) ?? false
         if delegatedMatch { return true }
-        return walletModel.config.toDomain.recoveryMethods.contains {
-            (try? SignerLocator(from: $0.locator)) == locator
-        }
+        return walletModel.config.toDomain.containsRecoveryMethod(locator)
     }
 
     /// Returns the locator of the device signer whose private key is on this device.

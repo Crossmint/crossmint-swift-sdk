@@ -148,7 +148,7 @@ public final class CrossmintTEE: ObservableObject {
             throw .jwtRequired
         }
 
-        let response = try await self.tryGetStatus(jwt: jwt, maxAttempts: 3)
+        let response = try await self.tryGetStatus(jwt: jwt, identity: identity, maxAttempts: 3)
         switch response.status {
         case .success:
             guard let signerStatus = response.signerStatus else {
@@ -173,7 +173,8 @@ public final class CrossmintTEE: ObservableObject {
                         apiKey: apiKey,
                         messageBytes: transaction,
                         keyType: keyType,
-                        encoding: encoding)
+                        encoding: encoding,
+                        authId: identity.authId)
                 )
             }
         case .error:
@@ -226,7 +227,8 @@ public final class CrossmintTEE: ObservableObject {
                     apiKey: apiKey,
                     messageBytes: transaction,
                     keyType: keyType,
-                    encoding: encoding)
+                    encoding: encoding,
+                    authId: identity.authId)
             )
         }
     }
@@ -368,10 +370,14 @@ public final class CrossmintTEE: ObservableObject {
         throw Error.handshakeFailed
     }
 
-    private func tryGetStatus(jwt: String, maxAttempts: Int) async throws(Error) -> GetStatusResponse {
+    private func tryGetStatus(
+        jwt: String,
+        identity: SignerIdentity,
+        maxAttempts: Int
+    ) async throws(Error) -> GetStatusResponse {
         for attempt in 1...maxAttempts {
             do {
-                let response = try await getStatusResponse(jwt: jwt)
+                let response = try await getStatusResponse(jwt: jwt, identity: identity)
                 return response
             } catch Error.generic(let message) where message.contains("Failed to get status response") {
                 if attempt < maxAttempts {
@@ -442,11 +448,14 @@ public final class CrossmintTEE: ObservableObject {
         return String((0..<length).compactMap { _ in characters.randomElement() })
     }
 
-    private func getStatusResponse(jwt: String) async throws(Error) -> GetStatusResponse {
+    private func getStatusResponse(
+        jwt: String,
+        identity: SignerIdentity
+    ) async throws(Error) -> GetStatusResponse {
         Logger.tee.debug(LogEvents.getStatusStart)
 
         do {
-            try await webProxy.sendMessage(GetStatusRequest(jwt: jwt, apiKey: apiKey))
+            try await webProxy.sendMessage(GetStatusRequest(jwt: jwt, apiKey: apiKey, authId: identity.authId))
 
             let getStatusResponse = try await webProxy.waitForMessage(
                 ofType: GetStatusResponse.self,
