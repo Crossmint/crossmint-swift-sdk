@@ -128,17 +128,14 @@ struct DefaultWalletServiceTests {
         }
     }
 
-    @Test
-    func throwsTypedErrorWhenCreateWalletRejectsTheRecoveryList() async throws {
-        let body = Data(
-            """
-            {
-                "error": true,
-                "message": "duplicate signer email:alice@example.com",
-                "code": "RECOVERY_DUPLICATE_SIGNER"
-            }
-            """.utf8
-        )
+    @Test(arguments: [
+        "SIGNER_LIMIT_EXCEEDED",
+        "DELEGATED_SIGNER_CONFLICT",
+        "RECOVERY_ADMIN_SIGNER_CONFLICT",
+        "RECOVERY_SIGNER_NOT_ALLOWED"
+    ])
+    func throwsTypedErrorWhenCreateWalletRejectsTheRecoveryList(apiCode: String) async throws {
+        let body = Data(#"{"error": true, "message": "rejected: \#(apiCode)", "code": "\#(apiCode)"}"#.utf8)
         let service = try makeService(errorBody: body)
         let params = CreateWalletParams(
             chainType: .solana,
@@ -150,8 +147,7 @@ struct DefaultWalletServiceTests {
             _ = try await service.createWallet(params)
         } throws: { error in
             guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-            return code == .duplicateSigner
-                && message == "duplicate signer email:alice@example.com"
+            return code.rawValue == apiCode && message == "rejected: \(apiCode)"
         }
     }
 
@@ -174,15 +170,20 @@ struct DefaultWalletServiceTests {
         }
     }
 
-    @Test
-    func keepsGenericErrorForOtherCodes() async throws {
-        let body = Data(#"{"error": true, "message": "boom", "code": "SOMETHING_ELSE"}"#.utf8)
+    @Test(arguments: [
+        "SOMETHING_ELSE",
+        "INVALID_RECOVERY_CONFIG",
+        "SIGNER_REQUIRED",
+        "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
+    ])
+    func keepsGenericErrorForCodesTheApiDoesNotDefine(apiCode: String) async throws {
+        let body = Data(#"{"error": true, "message": "boom", "code": "\#(apiCode)"}"#.utf8)
         let service = try makeService(errorBody: body)
 
         await #expect {
             _ = try await service.addSigner(entry, chainType: .solana, chainName: "solana", deployImmediately: nil)
         } throws: { error in
-            if case .deviceSignerNotSupported = error as? WalletError { return false }
+            guard case .walletGeneric = error as? WalletError else { return false }
             return true
         }
     }

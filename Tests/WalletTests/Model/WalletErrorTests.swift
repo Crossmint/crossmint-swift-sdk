@@ -35,12 +35,15 @@ struct WalletErrorTests {
     @Test("WalletError.recoveryConfigRejected surfaces the backend code")
     func recoveryConfigRejected() {
         let error = WalletError.recoveryConfigRejected(
-            code: .duplicateSigner,
-            message: "duplicate signer"
+            code: .signerNotAllowed,
+            message: "recovery signer not allowed"
         )
-        #expect(error.code == "RECOVERY_DUPLICATE_SIGNER")
-        #expect(error.message == "duplicate signer")
-        #expect(error.recoverySuggestion == "Remove the duplicated signer from the recovery list.")
+        #expect(error.code == "RECOVERY_SIGNER_NOT_ALLOWED")
+        #expect(error.message == "recovery signer not allowed")
+        #expect(
+            error.recoverySuggestion
+                == "Use a signer type that the chain accepts. An API key signer must be the only recovery signer."
+        )
         #expect(error.underlyingError == nil)
     }
 
@@ -61,7 +64,7 @@ struct WalletErrorTests {
     @Test("WalletError.recoveryConfigRejected has no suggestion for codes the caller cannot act on")
     func recoveryConfigRejectedWithoutSuggestion() {
         let error = WalletError.recoveryConfigRejected(
-            code: .notSupportedOnApiVersion,
+            code: .adminSignerConflict,
             message: "unsupported"
         )
         #expect(error.recoverySuggestion == nil)
