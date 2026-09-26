@@ -1,0 +1,30 @@
+{
+  "type": "smart",
+  "chainType": "solana",
+  "config": {
+    "adminSigner": {
+      "type": "totp",
+      "locator": "totp:x"
+    },
+    "recoveryMethods": [
+      {
+        "type": "email",
+        "email": "alice@example.com",
+        "locator": "email:alice@example.com"
+      },
+      {
+        "type": "totp",
+        "locator": "totp:x"
+      },
+      {
+        "type": "phone",
+        "phone": "+14155552671",
+        "locator": "phone:+14155552671"
+      }
+    ],
+    "delegatedSigners": []
+  },
+  "address": "7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",
+  "linkedUser": "email:alice@example.com",
+  "createdAt": "2026-09-01T10:00:00.000Z"
+}

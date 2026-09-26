@@ -507,6 +507,16 @@ public enum LogEvents {
     /// A signer locator from the API has a prefix this SDK version does not recognize
     public static let signerLocatorUnknown = "signerLocator.parse.unknown"
 
+    // MARK: - WalletConfig Events
+
+    /// The wallet has a recovery signer type that this SDK version does not support.
+    /// The SDK ignores this signer.
+    public static let walletConfigRecoverySignerSkipped = "walletConfig.recoverySigner.skipped"
+
+    /// The admin signer of the wallet has a type that this SDK version does not support.
+    /// The SDK uses the first supported recovery signer instead.
+    public static let walletConfigAdminSignerFallback = "walletConfig.adminSigner.fallback"
+
     // MARK: - WalletFactory Error Events
 
     public static let walletFactoryInvalidChain = "walletFactory.invalidChain"
