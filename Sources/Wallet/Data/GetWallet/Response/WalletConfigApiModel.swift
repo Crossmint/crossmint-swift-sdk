@@ -6,9 +6,18 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
     let locator: SignerLocator
 }
 
+struct RecoveryMethodApiModel {
+    let signer: AdminSignerApiModel
+    let status: SignerStatus
+
+    var toDomain: RecoveryMethod {
+        RecoveryMethod(signer: signer.toDomain, status: status)
+    }
+}
+
 public struct WalletConfigApiModel: Decodable {
     public let adminSigner: AdminSignerApiModel
-    let recoveryMethods: [AdminSignerApiModel]?
+    let recoveryMethods: [RecoveryMethodApiModel]?
     let signers: [WalletSignerConfigApiModel]?
 
     enum CodingKeys: String, CodingKey {
@@ -29,7 +38,7 @@ public struct WalletConfigApiModel: Decodable {
             Logger.smartWallet.warning(LogEvents.walletConfigAdminSignerFallback, attributes: [
                 "type": adminSignerType
             ])
-            adminSigner = fallback
+            adminSigner = fallback.signer
         } else {
             adminSigner = try Self.decodeSigner(from: adminSignerDecoder)
         }
@@ -41,22 +50,29 @@ public struct WalletConfigApiModel: Decodable {
         case type
     }
 
+    private enum RecoveryMethodCodingKeys: String, CodingKey {
+        case status
+    }
+
     private static func decodeRecoveryMethods(
         from container: KeyedDecodingContainer<CodingKeys>
-    ) throws -> [AdminSignerApiModel]? {
+    ) throws -> [RecoveryMethodApiModel]? {
         guard container.contains(.recoveryMethods) else { return nil }
         var list = try container.nestedUnkeyedContainer(forKey: .recoveryMethods)
-        var methods: [AdminSignerApiModel] = []
+        var methods: [RecoveryMethodApiModel] = []
         while !list.isAtEnd {
-            let entryDecoder = try list.superDecoder()
-            let rawType = try rawSignerType(from: entryDecoder)
+            let entry = try list.superDecoder()
+            let rawType = try rawSignerType(from: entry)
             guard AdminSignerDataType(rawValue: rawType) != nil else {
                 Logger.smartWallet.warning(LogEvents.walletConfigRecoverySignerSkipped, attributes: [
                     "type": rawType
                 ])
                 continue
             }
-            methods.append(try decodeSigner(from: entryDecoder))
+            let status = try entry.container(keyedBy: RecoveryMethodCodingKeys.self)
+                .decodeIfPresent(SignerStatus.self, forKey: .status)
+            let signer = try decodeSigner(from: entry)
+            methods.append(RecoveryMethodApiModel(signer: signer, status: status ?? .unknown))
         }
         return methods
     }

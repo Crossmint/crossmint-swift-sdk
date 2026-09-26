@@ -117,13 +117,55 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.recoveryMethods?.map(\.type) == [.email, .phone, .externalWallet])
+        #expect(wallet.config.recoveryMethods?.map(\.signer.type) == [.email, .phone, .externalWallet])
         #expect(wallet.config.adminSigner.type == .email)
         #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == [
             "email:alice@example.com",
             "phone:+14155552671",
             "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
         ])
+    }
+
+    @Test(
+        "Will keep the status of each recovery method"
+    )
+    func willKeepRecoveryMethodStatus() async throws {
+        let json = """
+        {
+          "type": "smart",
+          "chainType": "solana",
+          "config": {
+            "adminSigner": { "type": "email", "email": "alice@example.com", "locator": "email:alice@example.com" },
+            "recoveryMethods": [
+              {
+                "type": "email",
+                "email": "alice@example.com",
+                "locator": "email:alice@example.com",
+                "status": "active"
+              },
+              {
+                "type": "phone",
+                "phone": "+14155552671",
+                "locator": "phone:+14155552671",
+                "status": "pending",
+                "transaction": { "id": "tx-1", "status": "pending", "chainType": "solana", "walletType": "smart" }
+              },
+              {
+                "type": "external-wallet",
+                "address": "GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7",
+                "locator": "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7",
+                "status": "later-value"
+              }
+            ]
+          },
+          "address": "7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",
+          "createdAt": "2026-09-01T10:00:00.000Z"
+        }
+        """
+
+        let wallet = try DefaultJSONCoder().decode(WalletApiModel.self, from: Data(json.utf8))
+
+        #expect(wallet.config.toDomain.recoveryMethodsWithStatus.map(\.status) == [.active, .pending, .unknown])
     }
 
     @Test(
