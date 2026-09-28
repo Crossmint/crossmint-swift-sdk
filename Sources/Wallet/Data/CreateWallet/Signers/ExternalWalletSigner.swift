@@ -9,7 +9,8 @@ import CrossmintCommonTypes
 
 /// A signer that uses an external wallet, for example a wallet app or a hardware wallet.
 ///
-/// To use the external wallet as a recovery signer, pass this signer when you create a wallet.
+/// To use the external wallet as a recovery signer, pass this signer in `recoveryMethods`
+/// to ``CrossmintWallets/createWallet(chain:recoveryMethods:options:)``.
 /// To sign with the external wallet, pass ``SignerConfig/externalWallet(_:onSign:)``
 /// to ``Wallet/useSigner(_:)``.
 ///
