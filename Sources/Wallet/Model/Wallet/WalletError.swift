@@ -32,11 +32,6 @@ public enum WalletError: CrossmintError {
         case invalidConfig = "INVALID_RECOVERY_CONFIG"
         /// The list has more recovery signers than the chain allows.
         case signerLimitExceeded = "SIGNER_LIMIT_EXCEEDED"
-        /// The same signer appears more than once in the list.
-        case duplicateSigner = "RECOVERY_DUPLICATE_SIGNER"
-        /// The list contains a signer that is already registered on the wallet through
-        /// ``Wallet/addSigner(_:)``. A signer is a recovery signer or a registered signer, not both.
-        case signerConflict = "RECOVERY_SIGNER_CONFLICT"
         /// A signer in the request already holds another role on the wallet, for example a recovery
         /// signer passed to ``Wallet/addSigner(_:)``. Use a different signer.
         case delegatedSignerConflict = "DELEGATED_SIGNER_CONFLICT"
@@ -45,11 +40,12 @@ public enum WalletError: CrossmintError {
         case signerRequired = "SIGNER_REQUIRED"
         /// The chain accepts a single recovery signer only.
         case notSupportedOnChain = "RECOVERY_NOT_SUPPORTED_ON_CHAIN"
-        /// This SDK version targets an API version without recovery signer lists. Update the SDK.
-        case notSupportedOnApiVersion = "NOT_SUPPORTED_ON_API_VERSION"
         /// The request named both a single recovery signer and a recovery list. The SDK does not
         /// send this combination, so contact Crossmint support if you receive this code.
         case adminSignerConflict = "RECOVERY_ADMIN_SIGNER_CONFLICT"
+        /// Crossmint does not accept the signer as a recovery signer. The chain can refuse the signer
+        /// type. An API key recovery signer must also be the only recovery signer of the wallet.
+        case signerNotAllowed = "RECOVERY_SIGNER_NOT_ALLOWED"
         /// The wallet has no other recovery method, so you cannot remove this one.
         case lastSigner = "LAST_RECOVERY_SIGNER"
     }
@@ -142,17 +138,17 @@ extension WalletError.RecoveryConfigCode {
             "Pass one recovery method. Implementations that accept a list take one or more."
         case .signerLimitExceeded:
             "Pass fewer recovery signers."
-        case .duplicateSigner:
-            "Remove the duplicated signer from the recovery list."
-        case .signerConflict, .delegatedSignerConflict:
+        case .delegatedSignerConflict:
             "Use a signer that does not already hold another role on this wallet."
         case .signerRequired:
             "Call useSigner to select which recovery signer authorizes this operation."
         case .notSupportedOnChain:
             "Pass a single recovery method on this chain."
+        case .signerNotAllowed:
+            "Use a signer type that the chain accepts. An API key signer must be the only recovery signer."
         case .lastSigner:
             "Add another recovery method before you remove this one."
-        case .notSupportedOnApiVersion, .adminSignerConflict:
+        case .adminSignerConflict:
             nil
         }
     }

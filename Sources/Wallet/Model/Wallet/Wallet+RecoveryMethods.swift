@@ -16,7 +16,7 @@ extension Wallet {
     /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
     /// If the wallet has more than one, select the approving one with ``useSigner(_:)``.
     ///
-    /// - Parameter method: An email, phone, external wallet or API key signer.
+    /// - Parameter method: An email, phone or external wallet signer.
     /// - Returns: The completed ``Transaction``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
     ///   ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
@@ -117,13 +117,8 @@ extension Wallet {
             return PhoneSignerData(phone: phone)
         case .externalWallet(let address):
             return ExternalWalletSignerData(address: address)
-        case .apiKey:
-            return ApiKeySignerData()
-        case .device, .passkey:
-            throw .walletGeneric(
-                "Device and passkey signers cannot be recovery methods. Use an email, phone, external wallet "
-                    + "or API key signer."
-            )
+        case .apiKey, .device, .passkey:
+            throw .walletGeneric("A recovery method you add must be an email, phone or external wallet signer.")
         }
     }
 
@@ -153,14 +148,12 @@ extension Wallet {
     private func recordAddedRecoveryMethod(_ recoveryMethod: any AdminSignerData) {
         let known = config.recoveryMethods.contains { $0.locator == recoveryMethod.locator }
         guard !known else { return }
-        config = WalletConfig(
-            recovery: config.recovery,
-            others: Array(config.recoveryMethods.dropFirst()) + [recoveryMethod]
-        )
+        let methods = config.recoveryMethodsWithStatus + [RecoveryMethod(signer: recoveryMethod, status: .active)]
+        config = WalletConfig(recovery: methods[0], others: Array(methods.dropFirst()))
     }
 
     private func recordRemovedRecoveryMethod(_ locator: SignerLocator) {
-        let remaining = config.recoveryMethods.filter { $0.locator != locator.value }
+        let remaining = config.recoveryMethodsWithStatus.filter { $0.signer.locator != locator.value }
         guard let first = remaining.first else { return }
         config = WalletConfig(recovery: first, others: Array(remaining.dropFirst()))
     }
