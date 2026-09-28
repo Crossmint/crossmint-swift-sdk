@@ -201,11 +201,10 @@ extension Wallet {
               let activeLocator = await activeSigner.locator,
               recoveryLocators.contains(activeLocator),
               let signer = activeSigner as? any Signer else {
-            let choices = recoveryLocators.map(\.value).joined(separator: ", ")
             throw .recoveryConfigRejected(
                 code: .signerRequired,
                 message: "This wallet has several recovery methods, and the active signer is not one of them. "
-                    + "Call useRecoveryMethod with one of: \(choices)"
+                    + "Call useRecoveryMethod with one of the wallet's recovery methods."
             )
         }
         return RecoveryApprover(signer: signer, locator: activeLocator)
@@ -228,11 +227,11 @@ extension Wallet {
 
     internal func approvalSigner(for rawLocator: String) async throws(SignerError) -> any ApprovalSigner {
         let locator = SignerLocator(orUnknown: rawLocator)
-        if let selectedRecoveryMethod, selectedRecoveryMethod.locator == locator {
-            return selectedRecoveryMethod.signer
-        }
         if let selectedSigner, await selectedSigner.locator == locator {
             return selectedSigner
+        }
+        if let selectedRecoveryMethod, selectedRecoveryMethod.locator == locator {
+            return selectedRecoveryMethod.signer
         }
         if locator.isDevice {
             guard let deviceSigner else { throw .device(.keyNotFound) }

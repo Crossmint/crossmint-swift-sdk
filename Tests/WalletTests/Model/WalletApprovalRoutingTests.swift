@@ -107,6 +107,18 @@ struct WalletApprovalRoutingTests {
         #expect(adminSigner.initializeCallCount == 0)
     }
 
+    @Test func prefersTheSelectedSignerOverARecoveryMethodWithTheSameLocator() async throws {
+        let wallet = try makeWallet()
+        let selected = MockSigner()
+        selected.approvalsResult = [.keypair(signer: ADMIN_LOCATOR, signature: "selected-signature")]
+        wallet.selectedSigner = selected
+        wallet.selectedRecoveryMethod = RecoveryApprover(signer: MockSigner(), locator: .email("mock@example.com"))
+
+        let request = try await wallet.makeSignRequest(for: ADMIN_LOCATOR, message: "approval-message")
+
+        #expect(try #require(request.approvals.first?.keypair).1 == "selected-signature")
+    }
+
     @Test func ignoresASelectedDeviceSignerForAnAdminApproval() async throws {
         let wallet = try makeWallet()
         _ = try await storage.generateKey(address: wallet.address)

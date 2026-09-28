@@ -143,6 +143,26 @@ struct WalletAddSignerTests {
             #expect(walletService.lastAddSignerApprover == .phone("+14155552671"))
         }
 
+        @Test func selectsAnApiKeyRecoveryMethodByItsStoredLocator() async throws {
+            let walletService = MockSmartWalletService()
+            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+                fileName: "WalletSolanaFireblocks",
+                bundle: Bundle.module
+            )
+            let wallet = try SolanaWallet(
+                smartWalletService: walletService,
+                signer: MockSigner(),
+                baseModel: baseModel,
+                solanaChain: .solana
+            )
+            try await wallet.useRecoveryMethod(.apiKey)
+
+            try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
+
+            let approver = SignerLocator.apiKey(address: "DHQgLgfheQbTMnMc6GrnqGxQ4sL9zAazyWWE9GJ1LUWq")
+            #expect(walletService.lastAddSignerApprover == approver)
+        }
+
         @Test func refusesARecoveryMethodTheWalletDoesNotHave() async throws {
             let walletService = MockSmartWalletService()
             let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
@@ -172,12 +192,12 @@ struct WalletAddSignerTests {
             _ = try await storage.generateKey(address: wallet.address)
             try await wallet.useSigner(.device)
 
-            await #expect {
+            let error = await #expect(throws: WalletError.self) {
                 try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
-            } throws: { error in
-                guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-                return code == .signerRequired && message.contains("phone:+14155552671")
             }
+
+            #expect(error?.code == "SIGNER_REQUIRED")
+            #expect(error?.message.contains("+14155552671") == false)
             #expect(walletService.addSignerCallCount == 0)
         }
 

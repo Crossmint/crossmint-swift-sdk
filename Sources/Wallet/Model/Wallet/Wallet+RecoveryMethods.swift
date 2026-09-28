@@ -138,15 +138,17 @@ extension Wallet {
     }
 
     private func recoveryMethodLocator(of method: SignerConfig) throws(WalletError) -> SignerLocator {
-        let knownLocators = config.recoveryMethods.map(\.locator)
-        guard let locator = method.locator, knownLocators.contains(locator.value) else {
+        let candidate: String? = switch method {
+        case .apiKey: config.recoverySigner(ofType: ApiKeySignerData.self)?.locator
+        default: method.locator?.value
+        }
+        guard let candidate, config.recoveryMethods.contains(where: { $0.locator == candidate }) else {
             throw .recoveryConfigRejected(
                 code: .invalidConfig,
-                message: "This signer is not a recovery method of the wallet. "
-                    + "Recovery methods: \(knownLocators.joined(separator: ", "))"
+                message: "This signer is not a recovery method of the wallet."
             )
         }
-        return locator
+        return try SignerLocator(from: candidate)
     }
 
     private func recoveryMethodSigner(for method: SignerConfig) async throws(WalletError) -> any Signer {
