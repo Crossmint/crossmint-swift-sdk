@@ -183,7 +183,7 @@ extension Wallet {
             return EmailSignerData(email: email)
         case .phone(let phone, _):
             return PhoneSignerData(phone: phone)
-        case .externalWallet(let address):
+        case .externalWallet(let address, _):
             return ExternalWalletSignerData(address: address)
         case .apiKey, .device, .passkey:
             throw .walletGeneric("A recovery method you add must be an email, phone or external wallet signer.")
