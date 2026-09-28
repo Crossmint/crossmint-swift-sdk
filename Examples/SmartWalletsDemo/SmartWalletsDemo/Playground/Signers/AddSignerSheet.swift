@@ -99,7 +99,7 @@ struct AddSignerSheet: View {
     private var availableTypes: [SignerTypeOption] {
         switch mode {
         case .recovery:
-            return [.email, .phone, .apiKey]
+            return appState.wallet == nil ? [.email, .phone, .apiKey] : [.email, .phone, .externalWallet]
         case .signer:
             return [.device, .passkey, .externalWallet, .phone].filter { type in
                 if appState.selectedChain != .evm && type == .passkey { return false }
@@ -257,7 +257,7 @@ struct AddSignerSheet: View {
         switch selectedType {
         case .email: config = .email(value)
         case .phone: config = .phone(value, channel: channel)
-        case .apiKey: config = .apiKey
+        case .externalWallet: config = .externalWallet(value)
         default:
             isAdding = false
             return
