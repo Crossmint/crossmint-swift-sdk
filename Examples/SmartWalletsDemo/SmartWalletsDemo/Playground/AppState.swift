@@ -201,9 +201,10 @@ final class AppState {
 
     func removeRecoveryMethod(locator: String) async throws {
         guard let wallet else { return }
+        let chain = selectedChain
         try await wallet.removeRecoveryMethod(locator: SignerLocator(from: locator))
-        if approvingRecovery[selectedChain] == locator {
-            approvingRecovery[selectedChain] = nil
+        if approvingRecovery[chain] == locator {
+            approvingRecovery[chain] = nil
         }
         await loadSigners()
     }
@@ -213,8 +214,9 @@ final class AppState {
         guard let config = signerConfig(for: locator) else {
             throw WalletError.walletGeneric("This recovery method cannot approve changes from the app")
         }
+        let chain = selectedChain
         try await wallet.useRecoveryMethod(config)
-        approvingRecovery[selectedChain] = locator
+        approvingRecovery[chain] = locator
     }
 
     func fetchBalance() async {
@@ -246,6 +248,7 @@ final class AppState {
                         walletCache[chain] = found
                         if chain == selectedChain {
                             await fetchBalance()
+                            await loadSigners()
                         }
                     } else {
                         notFoundChains.insert(chain)
