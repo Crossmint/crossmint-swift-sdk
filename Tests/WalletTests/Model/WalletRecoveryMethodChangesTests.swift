@@ -56,7 +56,8 @@ struct WalletRecoveryMethodChangesTests {
 
         #expect(walletService.signTransactionCallCount == 1)
         #expect(walletService.lastAddRecoveryMethodApprover == .email("solana.user@example.com"))
-        #expect(wallet.recoveryMethods.map(\.locator) == ["email:solana.user@example.com", PHONE])
+        #expect(wallet.recoveryMethods.map(\.signer.locator) == ["email:solana.user@example.com", PHONE])
+        #expect(wallet.recoveryMethods.last?.status == .active)
     }
 
     @Test func clearsTheSelectedRecoveryMethodWhenItIsRemoved() async throws {
@@ -80,12 +81,13 @@ struct WalletRecoveryMethodChangesTests {
 
         _ = try? await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
 
-        #expect(wallet.recoveryMethods.map(\.locator) == expected)
+        #expect(wallet.recoveryMethods.map(\.signer.locator) == expected)
     }
 
     @Test(arguments: [
         ("WalletEVMEmail", SignerConfig.email("backup@example.com"), "RECOVERY_NOT_SUPPORTED_ON_CHAIN"),
-        ("WalletSolanaEmail", SignerConfig.device, "WALLET_ERROR")
+        ("WalletSolanaEmail", SignerConfig.device, "WALLET_ERROR"),
+        ("WalletSolanaEmail", SignerConfig.apiKey, "WALLET_ERROR")
     ])
     func refusesAnAdditionBeforeCallingCrossmint(fileName: String, method: SignerConfig, code: String) async throws {
         let wallet = try makeWallet(fileName: fileName)

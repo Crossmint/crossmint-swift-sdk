@@ -124,7 +124,7 @@ final class AppState {
     }
 
     func loadSigners() async {
-        walletRecoveryLocators = wallet?.recoveryMethods.map(\.locator) ?? []
+        walletRecoveryLocators = wallet?.recoveryMethods.map(\.signer.locator) ?? []
         signers = (try? await wallet?.signers()) ?? []
         localDeviceLocator = await wallet?.localDeviceSigner()?.value
         guard selectedSignerLocator == nil, let locator = firstSelectableLocator() else { return }
