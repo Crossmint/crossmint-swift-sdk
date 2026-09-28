@@ -52,6 +52,18 @@ struct RecoveryMethodRequestTests {
         #expect(transaction.toDomain().id == "recovery-tx-1")
     }
 
+    @Test func decodesTheTransactionOfASuccessfulRemoval() async throws {
+        let service = try makeService(responding: .success("RemoveSignerTransactionSuccess"))
+
+        let transaction = try await service.removeRecoveryMethod(
+            .phone("+14155552671"),
+            chainType: .solana,
+            approver: .email("alice@example.com")
+        )
+
+        #expect(transaction.toDomain().status == .success)
+    }
+
     @Test func deletesTheEncodedLocatorAndMapsTheLastRecoverySignerCode() async throws {
         let body = #"{"message": "Cannot remove the last recovery signer", "code": "LAST_RECOVERY_SIGNER"}"#
         let service = try makeService(responding: .failure(.badRequest(Data(body.utf8))))
