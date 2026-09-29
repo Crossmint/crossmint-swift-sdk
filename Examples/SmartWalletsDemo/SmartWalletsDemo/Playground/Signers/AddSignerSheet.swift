@@ -88,10 +88,6 @@ struct AddSignerSheet: View {
         }
     }
 
-    private var canAddRecovery: Bool {
-        appState.selectedChain.supportsRecoveryList
-    }
-
     private var canAddSigner: Bool {
         appState.wallet != nil
     }
@@ -110,8 +106,6 @@ struct AddSignerSheet: View {
 
     private var modeUnavailableMessage: String? {
         switch mode {
-        case .recovery where !canAddRecovery:
-            return "\(appState.selectedChain.chainDisplayName) wallets take a single recovery signer."
         case .signer where !canAddSigner:
             return "Create the wallet before adding signers."
         default:

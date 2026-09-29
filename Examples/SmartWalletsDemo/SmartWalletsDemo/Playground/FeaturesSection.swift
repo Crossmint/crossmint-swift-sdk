@@ -15,7 +15,7 @@ struct FeaturesSection: View {
     @Binding var presentedSheet: SheetType?
 
     private var canSetUpRecovery: Bool {
-        appState.walletNotFound && appState.selectedChain.supportsRecoveryList
+        appState.walletNotFound
     }
 
     var body: some View {
