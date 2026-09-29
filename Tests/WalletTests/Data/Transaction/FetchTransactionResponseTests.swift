@@ -13,6 +13,6 @@ struct FetchTransactionResponseTest {
         )
 
         #expect(response.status == .failed)
-        #expect(response.error != nil)
+        #expect(response.toDomain().error?.revert?.reason == "This contract call reverted with no data")
     }
 }

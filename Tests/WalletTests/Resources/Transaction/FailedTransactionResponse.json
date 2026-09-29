@@ -58,8 +58,7 @@
     "message": "Execution reverted, see 'revert' for details",
     "revert": {
       "type": "contract_call",
-      "reason": "This contract call reverted with no data",
-      "simulationLink": "https://www.tdly.co/shared/simulation/aceddfad-fecb-4f91-bed8-5844ce1c6a76"
+      "reason": "This contract call reverted with no data"
     }
   }
 }
