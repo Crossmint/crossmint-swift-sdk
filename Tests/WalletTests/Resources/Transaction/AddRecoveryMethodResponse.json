@@ -1,0 +1,19 @@
+{
+  "recoveryMethods": { "type": "phone", "phone": "+14155552671", "locator": "phone:+14155552671" },
+  "tx": {
+    "id": "recovery-tx-1",
+    "status": "awaiting-approval",
+    "chainType": "solana",
+    "walletType": "smart",
+    "params": {
+      "transaction": "AXGuKpKt4zxavCq2dHNexivchTXKoEQMBmqr6ipcF4QPfTXJRJcBLhsCgcLRjBsfV44G4atgoq9NWffk27AvpPf1",
+      "signer": "email:solana.user@example.com",
+      "feeConfig": { "feePayer": "crossmint", "amount": "15001" }
+    },
+    "onChain": {
+      "transaction": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL",
+      "lastValidBlockHeight": 389278945
+    },
+    "createdAt": "2025-08-21T11:30:55.133Z"
+  }
+}

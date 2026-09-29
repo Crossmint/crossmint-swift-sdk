@@ -46,6 +46,8 @@ public enum WalletError: CrossmintError {
         /// Crossmint does not accept the signer as a recovery signer. The chain can refuse the signer
         /// type. An API key recovery signer must also be the only recovery signer of the wallet.
         case signerNotAllowed = "RECOVERY_SIGNER_NOT_ALLOWED"
+        /// The wallet has no other recovery method, so you cannot remove this one.
+        case lastSigner = "LAST_RECOVERY_SIGNER"
     }
 
     public var code: String {
@@ -144,6 +146,8 @@ extension WalletError.RecoveryConfigCode {
             "Pass a single recovery method on this chain."
         case .signerNotAllowed:
             "Use a signer type that the chain accepts. An API key signer must be the only recovery signer."
+        case .lastSigner:
+            "Add another recovery method before you remove this one."
         case .adminSignerConflict:
             nil
         }
