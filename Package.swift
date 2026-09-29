@@ -176,6 +176,8 @@ let package = Package(
                 .process("Resources/WalletEVMApiKey.json"),
                 .process("Resources/WalletEVMApiKeyWithDelegatedSigners.json"),
                 .process("Resources/WalletEVMEmail.json"),
+                .process("Resources/WalletEVMRecoveryMethods.json"),
+                .process("Resources/WalletEVMRecoveryMethodsOnOtherChain.json"),
                 .process("Resources/WalletSolanaEmail.json"),
                 .process("Resources/WalletSolanaSigners.json"),
                 .process("Resources/WalletSolanaUnknownSigner.json"),

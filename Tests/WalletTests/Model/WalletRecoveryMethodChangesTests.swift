@@ -98,4 +98,44 @@ struct WalletRecoveryMethodChangesTests {
         #expect(error?.code == code)
         #expect(walletService.addRecoveryMethodCallCount == 0)
     }
+
+    @Suite("on EVM")
+    struct EVMTests {
+        private let walletService = MockSmartWalletService()
+
+        private func makeWallet() throws -> EVMWallet {
+            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+                fileName: "WalletEVMEmail",
+                bundle: Bundle.module
+            )
+            walletService.addRecoveryMethodResult = try completedTransaction()
+            walletService.removeRecoveryMethodResult = try completedTransaction()
+            return try EVMWallet(
+                smartWalletService: walletService,
+                signer: MockSigner(email: "user@example.com"),
+                baseModel: baseModel,
+                evmChain: .baseSepolia
+            )
+        }
+
+        private func completedTransaction() throws -> EVMTransactionApiModel {
+            try GetFromFile.getModelFrom(fileName: "GetTransactionResponse", bundle: Bundle.module)
+        }
+
+        @Test func addsARecoveryMethod() async throws {
+            let wallet = try makeWallet()
+
+            try await wallet.addRecoveryMethod(.phone("+14155552671"))
+
+            #expect(wallet.recoveryMethods.map(\.signer.locator) == ["email:user@example.com", PHONE])
+        }
+
+        @Test func removesARecoveryMethod() async throws {
+            let wallet = try makeWallet()
+
+            try await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
+
+            #expect(walletService.removeRecoveryMethodCallCount == 1)
+        }
+    }
 }

@@ -107,9 +107,9 @@ struct RecoveryMethodRequestTests {
     }
 
     @Test func namesTheChainWhenRemovingOnEVM() async throws {
-        let service = try makeService(responding: .success("RemoveSignerTransactionSuccess"))
+        let service = try makeService(responding: .success("GetTransactionResponse"))
 
-        _ = try? await service.removeRecoveryMethod(
+        _ = try await service.removeRecoveryMethod(
             .phone("+14155552671"),
             chainType: .evm,
             chainName: "base-sepolia",
