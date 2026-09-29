@@ -441,6 +441,15 @@ public enum LogEvents {
     /// Remove recovery method failed
     public static let walletRemoveRecoveryMethodError = "wallet.removeRecoveryMethod.error"
 
+    /// Starting use recovery method
+    public static let walletUseRecoveryMethodStart = "wallet.useRecoveryMethod.start"
+
+    /// Use recovery method succeeded
+    public static let walletUseRecoveryMethodSuccess = "wallet.useRecoveryMethod.success"
+
+    /// Use recovery method failed
+    public static let walletUseRecoveryMethodError = "wallet.useRecoveryMethod.error"
+
     // MARK: - Device Signer Events
 
     /// Device signer key prepared for new wallet creation

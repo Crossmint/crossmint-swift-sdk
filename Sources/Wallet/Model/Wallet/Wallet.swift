@@ -11,9 +11,10 @@ open class Wallet: @unchecked Sendable {
     /// Every recovery method of this wallet, with its install status. The list reflects the wallet at load time.
     /// ``addRecoveryMethod(_:)`` and ``removeRecoveryMethod(locator:)`` update it after a successful change.
     ///
-    /// Each active one can authorize on its own. Select the one this device holds with
-    /// ``useSigner(_:)``. EVM wallets always have exactly one. Before you use a recovery method,
-    /// make sure that its ``RecoveryMethod/status`` is ``SignerStatus/active``.
+    /// Each active one can approve changes on its own. To select the one that approves signer and
+    /// recovery method changes, use ``useRecoveryMethod(_:)``. EVM wallets always have exactly one.
+    /// Before you use a recovery method, make sure that its ``RecoveryMethod/status`` is
+    /// ``SignerStatus/active``.
     public var recoveryMethods: [RecoveryMethod] {
         config.recoveryMethodsWithStatus
     }
@@ -40,6 +41,7 @@ open class Wallet: @unchecked Sendable {
     var signerRegistrationService: SignerRegistrationService
     let signerListService: SignerListService
     var selectedSigner: (any ApprovalSigner)?
+    var selectedRecoveryMethod: RecoveryApprover?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false

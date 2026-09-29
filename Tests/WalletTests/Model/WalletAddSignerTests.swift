@@ -31,7 +31,10 @@ private func makeSolanaWallet(walletService: MockSmartWalletService) throws -> S
     )
 }
 
-private func makeMultiRecoverySolanaWallet(walletService: MockSmartWalletService) throws -> SolanaWallet {
+private func makeMultiRecoverySolanaWallet(
+    walletService: MockSmartWalletService,
+    defaultSigner: MockSigner = MockSigner(email: "alice@example.com")
+) throws -> SolanaWallet {
     let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
         fileName: "WalletSolanaRecoveryMethods",
         bundle: Bundle.module
@@ -39,7 +42,7 @@ private func makeMultiRecoverySolanaWallet(walletService: MockSmartWalletService
     walletService.getWalletResult = baseModel
     return try SolanaWallet(
         smartWalletService: walletService,
-        signer: MockSigner(email: "alice@example.com"),
+        signer: defaultSigner,
         baseModel: baseModel,
         solanaChain: .solana
     )
@@ -105,13 +108,70 @@ struct WalletAddSignerTests {
             #expect(walletService.lastAddSignerApprover == .phone("+14155552671"))
         }
 
-        @Test func namesTheFirstRecoverySignerWhenNothingIsSelected() async throws {
+        @Test func namesTheDefaultSignerWhenItIsARecoverySigner() async throws {
             let walletService = MockSmartWalletService()
             let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
 
             try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
 
             #expect(walletService.lastAddSignerApprover == .email("alice@example.com"))
+        }
+
+        @Test func refusesADefaultSignerThatIsNotARecoverySigner() async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeMultiRecoverySolanaWallet(
+                walletService: walletService,
+                defaultSigner: MockSigner(email: "operator@example.com")
+            )
+
+            let error = await #expect(throws: WalletError.self) {
+                try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
+            }
+
+            #expect(error?.code == "SIGNER_REQUIRED")
+            #expect(walletService.addSignerCallCount == 0)
+        }
+
+        @Test func namesTheRecoveryMethodSelectedWithUseRecoveryMethodOverTheActiveSigner() async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
+            try await wallet.useSigner(.email("alice@example.com"))
+            try await wallet.useRecoveryMethod(.phone("+14155552671"))
+
+            try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
+
+            #expect(walletService.lastAddSignerApprover == .phone("+14155552671"))
+        }
+
+        @Test func selectsAnApiKeyRecoveryMethodByItsStoredLocator() async throws {
+            let walletService = MockSmartWalletService()
+            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+                fileName: "WalletSolanaFireblocks",
+                bundle: Bundle.module
+            )
+            let wallet = try SolanaWallet(
+                smartWalletService: walletService,
+                signer: MockSigner(),
+                baseModel: baseModel,
+                solanaChain: .solana
+            )
+            try await wallet.useRecoveryMethod(.apiKey)
+
+            try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
+
+            let approver = SignerLocator.apiKey(address: "DHQgLgfheQbTMnMc6GrnqGxQ4sL9zAazyWWE9GJ1LUWq")
+            #expect(walletService.lastAddSignerApprover == approver)
+        }
+
+        @Test func refusesARecoveryMethodTheWalletDoesNotHave() async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
+
+            let error = await #expect(throws: WalletError.self) {
+                try await wallet.useRecoveryMethod(.email("stranger@example.com"))
+            }
+
+            #expect(error?.code == "INVALID_RECOVERY_CONFIG")
         }
 
         @Test func refusesASelectedSignerThatIsNotARecoverySigner() async throws {
@@ -132,12 +192,12 @@ struct WalletAddSignerTests {
             _ = try await storage.generateKey(address: wallet.address)
             try await wallet.useSigner(.device)
 
-            await #expect {
+            let error = await #expect(throws: WalletError.self) {
                 try await wallet.addSigner(.externalWallet("GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"))
-            } throws: { error in
-                guard case .recoveryConfigRejected(let code, let message) = error as? WalletError else { return false }
-                return code == .signerRequired && message.contains("phone:+14155552671")
             }
+
+            #expect(error?.code == "SIGNER_REQUIRED")
+            #expect(error?.message.contains("+14155552671") == false)
             #expect(walletService.addSignerCallCount == 0)
         }
 

@@ -14,7 +14,7 @@ extension Wallet {
     /// Adds a recovery method to the wallet.
     ///
     /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
-    /// If the wallet has more than one, select the approving one with ``useSigner(_:)``.
+    /// To select it, see ``useRecoveryMethod(_:)``.
     ///
     /// - Parameter method: An email, phone or external wallet signer.
     /// - Returns: The completed ``Transaction``.
@@ -55,7 +55,8 @@ extension Wallet {
     /// Removes a recovery method from the wallet.
     ///
     /// Solana and Stellar wallets only. A different recovery method of the wallet approves the change.
-    /// If the wallet has more than one, select the approving one with ``useSigner(_:)``.
+    /// To select it, see ``useRecoveryMethod(_:)``. If you selected the removed recovery method, the SDK
+    /// clears the selection.
     ///
     /// To remove a signer that you added with ``addSigner(_:)``, use ``removeSigner(locator:)``.
     ///
@@ -97,6 +98,73 @@ extension Wallet {
             ])
             throw error
         }
+    }
+
+    /// Selects the recovery method that approves changes to signers and recovery methods.
+    ///
+    /// The signer for transactions and messages does not change. To change it, use ``useSigner(_:)``.
+    ///
+    /// If you do not select a recovery method, the SDK uses one of these:
+    /// 1. The only recovery method of the wallet.
+    /// 2. The active signer, if it is a recovery method.
+    ///
+    /// If neither applies, the change fails with ``WalletError/RecoveryConfigCode/signerRequired``.
+    ///
+    /// - Parameter method: An email, phone or API key recovery method of the wallet.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
+    ///   ``WalletError/RecoveryConfigCode/invalidConfig`` if `method` is not in ``recoveryMethods``,
+    ///   or ``WalletError/walletGeneric(_:)`` for a different signer type.
+    ///
+    /// ## Example
+    /// ```swift
+    /// try await wallet.useRecoveryMethod(.phone("+14155552671"))
+    /// let transaction = try await wallet.removeRecoveryMethod(locator: .email("old@example.com"))
+    /// ```
+    public func useRecoveryMethod(_ method: SignerConfig) async throws(WalletError) {
+        Logger.smartWallet.info(LogEvents.walletUseRecoveryMethodStart)
+        do {
+            let locator = try recoveryMethodLocator(of: method)
+            let signer = try await recoveryMethodSigner(for: method)
+            selectedRecoveryMethod = RecoveryApprover(signer: signer, locator: locator)
+            Logger.smartWallet.info(LogEvents.walletUseRecoveryMethodSuccess, attributes: [
+                "locator": locator.value
+            ])
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletUseRecoveryMethodError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
+    }
+
+    private func recoveryMethodLocator(of method: SignerConfig) throws(WalletError) -> SignerLocator {
+        let candidate: String? = switch method {
+        case .apiKey: config.recoverySigner(ofType: ApiKeySignerData.self)?.locator
+        default: method.locator?.value
+        }
+        guard let candidate, config.recoveryMethods.contains(where: { $0.locator == candidate }) else {
+            throw .recoveryConfigRejected(
+                code: .invalidConfig,
+                message: "This signer is not a recovery method of the wallet."
+            )
+        }
+        return try SignerLocator(from: candidate)
+    }
+
+    private func recoveryMethodSigner(for method: SignerConfig) async throws(WalletError) -> any Signer {
+        let signer: (any Signer)?
+        switch method {
+        case .email(let email):
+            signer = await SignerFactory.email(email, chainType: chain.chainType)
+        case .phone(let phone, let channel):
+            signer = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType)
+        case .apiKey:
+            signer = config.recoverySigner(ofType: ApiKeySignerData.self).map { ApiKeySigner(adminSigner: $0) }
+        case .externalWallet, .device, .passkey:
+            throw .walletGeneric("Only an email, phone or API key recovery method can approve changes from the SDK.")
+        }
+        guard let signer else { throw .invalidChain(chain: chain) }
+        return signer
     }
 
     private func assertRecoveryMethodChangesSupported() throws(WalletError) {
@@ -153,6 +221,9 @@ extension Wallet {
     }
 
     private func recordRemovedRecoveryMethod(_ locator: SignerLocator) {
+        if selectedRecoveryMethod?.locator == locator {
+            selectedRecoveryMethod = nil
+        }
         let remaining = config.recoveryMethodsWithStatus.filter { $0.signer.locator != locator.value }
         guard let first = remaining.first else { return }
         config = WalletConfig(recovery: first, others: Array(remaining.dropFirst()))
