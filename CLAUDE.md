@@ -18,7 +18,7 @@ make test
 make ci-test
 
 # Run specific test target
-xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=latest" test
+xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 18 Pro,OS=latest" test
 ```
 
 ### Linting
@@ -150,7 +150,7 @@ Services make exactly one API call per method — no coordination, no polling. M
 ## Development Workflow
 
 1. All code must pass SwiftLint checks before merging (`make lint`).
-2. Tests run on iPhone 17 Pro simulator by default.
+2. Tests run on iPhone 18 Pro simulator by default.
 3. The SDK uses Swift Package Manager for dependency management.
 4. SwiftLint is integrated as a build tool plugin.
 5. Set these environment variables when running the demo app:

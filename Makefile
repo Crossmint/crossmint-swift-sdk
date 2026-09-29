@@ -8,7 +8,7 @@ all: build
 # ==========================================
 
 # Simulator destination for builds and tests
-SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5
+SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0
 
 # Scheme names
 SDK_SCHEME := CrossmintClientSDK
@@ -167,7 +167,7 @@ run-evm-demo:
 	@echo "Building and running $(EVM_DEMO_SCHEME)..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -skipPackagePluginValidation build)
 	@echo "Launching $(EVM_DEMO_SCHEME) in simulator..."
-	$(XCRUN) simctl boot "iPhone 17 Pro" 2>/dev/null || true
+	$(XCRUN) simctl boot "iPhone 18 Pro" 2>/dev/null || true
 	open -a Simulator
-	$(XCRUN) simctl install "iPhone 17 Pro" "$$($(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | awk '{print $$3}')/$(EVM_DEMO_SCHEME).app"
-	$(XCRUN) simctl launch "iPhone 17 Pro" $(EVM_BUNDLE_ID)
+	$(XCRUN) simctl install "iPhone 18 Pro" "$$($(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | awk '{print $$3}')/$(EVM_DEMO_SCHEME).app"
+	$(XCRUN) simctl launch "iPhone 18 Pro" $(EVM_BUNDLE_ID)
