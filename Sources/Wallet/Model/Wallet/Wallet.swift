@@ -12,9 +12,11 @@ open class Wallet: @unchecked Sendable {
     /// ``addRecoveryMethod(_:)`` and ``removeRecoveryMethod(locator:)`` update it after a successful change.
     ///
     /// Each active one can approve changes on its own. To select the one that approves signer and
-    /// recovery method changes, use ``useRecoveryMethod(_:)``. EVM wallets always have exactly one.
-    /// Before you use a recovery method, make sure that its ``RecoveryMethod/status`` is
-    /// ``SignerStatus/active``.
+    /// recovery method changes, use ``useRecoveryMethod(_:)``. Before you use a recovery method, make
+    /// sure that its ``RecoveryMethod/status`` is ``SignerStatus/active``.
+    ///
+    /// On EVM, the list contains only the recovery methods on the chain of this wallet. Each status
+    /// applies to that chain.
     public var recoveryMethods: [RecoveryMethod] {
         config.recoveryMethodsWithStatus
     }
