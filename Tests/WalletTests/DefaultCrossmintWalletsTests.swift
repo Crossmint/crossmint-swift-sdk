@@ -285,20 +285,18 @@ struct RecoverySignerListCreationTests {
         #expect(config.recoveryMethods?.count == 1)
     }
 
-    @Test func rejectsMoreThanOneSignerOnEVMBeforeCallingTheApi() async throws {
-        let wallets = makeWallets()
+    @Test func sendsSeveralSignersOnEVMUnderRecoveryMethods() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletEVMEmail")
 
-        await #expect {
-            _ = try await wallets.createWallet(
-                chain: Chain("base-sepolia"),
-                recoveryMethods: [MockSigner(email: "alice@example.com"), MockSigner(email: "bob@example.com")],
-                options: nil
-            )
-        } throws: { error in
-            guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
-            return code == .notSupportedOnChain
-        }
-        #expect(walletService.createWalletCallCount == 0)
+        _ = try await makeWallets().createWallet(
+            chain: Chain("base-sepolia"),
+            recoveryMethods: [MockSigner(email: "alice@example.com"), MockSigner(email: "bob@example.com")],
+            options: nil
+        )
+
+        let config = try #require(walletService.lastCreateWalletParams?.config)
+        #expect(config.adminSigner == nil)
+        #expect(config.recoveryMethods?.count == 2)
     }
 
     private func sentRecoveryConfig() throws -> SentRecoveryConfig {
