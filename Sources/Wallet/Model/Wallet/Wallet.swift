@@ -70,7 +70,7 @@ open class Wallet: @unchecked Sendable {
         self.owner = baseModel.owner
         self.blockchainAddress = address
         self.createdAt = baseModel.createdAt
-        self.config = baseModel.config.toDomain
+        self.config = baseModel.config.toDomain(on: chain)
         self.signer = signer
         self.chain = chain
         self.onTransactionStart = onTransactionStart
@@ -126,7 +126,7 @@ open class Wallet: @unchecked Sendable {
             .map(\.locator)
             .contains(locator) ?? false
         if delegatedMatch { return true }
-        return walletModel.config.toDomain.containsRecoveryMethod(locator)
+        return walletModel.config.toDomain(on: chain).containsRecoveryMethod(locator)
     }
 
     /// Returns the locator of the device signer whose private key is on this device.

@@ -119,7 +119,7 @@ struct WalletApiModelTest {
 
         #expect(wallet.config.recoveryMethods?.map(\.signer.type) == [.email, .phone, .externalWallet])
         #expect(wallet.config.adminSigner.type == .email)
-        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == [
+        #expect(wallet.config.toDomain(on: .solana).recoveryMethods.map(\.locator) == [
             "email:alice@example.com",
             "phone:+14155552671",
             "external-wallet:GbA2NZfpAnRVM2G2BG29qooqsYbdV5c2WVFymJ8MMir7"
@@ -165,7 +165,8 @@ struct WalletApiModelTest {
 
         let wallet = try DefaultJSONCoder().decode(WalletApiModel.self, from: Data(json.utf8))
 
-        #expect(wallet.config.toDomain.recoveryMethodsWithStatus.map(\.status) == [.active, .pending, .unknown])
+        let statuses = wallet.config.toDomain(on: .solana).recoveryMethodsWithStatus.map(\.status)
+        #expect(statuses == [.active, .pending, .unknown])
     }
 
     @Test(
@@ -178,7 +179,7 @@ struct WalletApiModelTest {
         )
 
         #expect(wallet.config.recoveryMethods == nil)
-        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
+        #expect(wallet.config.toDomain(on: .baseSepolia).recoveryMethods.map(\.locator) == ["email:user@example.com"])
     }
 
     @Test(
@@ -192,6 +193,86 @@ struct WalletApiModelTest {
         let wallet = try DefaultJSONCoder().decode(WalletApiModel.self, from: Data(json.utf8))
 
         #expect(wallet.config.recoveryMethods?.isEmpty == true)
-        #expect(wallet.config.toDomain.recoveryMethods.map(\.locator) == ["email:user@example.com"])
+        #expect(wallet.config.toDomain(on: .baseSepolia).recoveryMethods.map(\.locator) == ["email:user@example.com"])
+    }
+
+    @Suite("when the wallet is on EVM")
+    struct EVMRecoveryMethodTests {
+        @Test func treatsRecoveryMethodWithoutChainsAsActive() throws {
+            let config = try decode("""
+            {
+              "adminSigner": { "type": "email", "email": "a@example.com", "locator": "email:a@example.com" },
+              "recoveryMethods": [
+                { "type": "email", "email": "a@example.com", "locator": "email:a@example.com" }
+              ]
+            }
+            """)
+
+            #expect(config.toDomain(on: .baseSepolia).recoveryMethodsWithStatus.map(\.status) == [.active])
+        }
+
+        @Test func readsStatusOfTheWalletChain() throws {
+            let config = try decode("""
+            {
+              "adminSigner": { "type": "email", "email": "a@example.com", "locator": "email:a@example.com" },
+              "recoveryMethods": [
+                { "type": "email", "email": "a@example.com", "locator": "email:a@example.com" },
+                {
+                  "type": "phone",
+                  "phone": "+14155552671",
+                  "locator": "phone:+14155552671",
+                  "chains": {
+                    "base-sepolia": { "status": "awaiting-approval" },
+                    "polygon-amoy": { "status": "active" }
+                  }
+                }
+              ]
+            }
+            """)
+
+            let methods = config.toDomain(on: .baseSepolia).recoveryMethodsWithStatus
+            #expect(methods.map(\.status) == [.active, .awaitingApproval])
+        }
+
+        @Test func leavesOutRecoveryMethodNotOnTheWalletChain() throws {
+            let config = try decode("""
+            {
+              "adminSigner": { "type": "email", "email": "a@example.com", "locator": "email:a@example.com" },
+              "recoveryMethods": [
+                { "type": "email", "email": "a@example.com", "locator": "email:a@example.com" },
+                {
+                  "type": "phone",
+                  "phone": "+14155552671",
+                  "locator": "phone:+14155552671",
+                  "chains": { "polygon-amoy": { "status": "active" } }
+                }
+              ]
+            }
+            """)
+
+            #expect(config.toDomain(on: .baseSepolia).recoveryMethods.map(\.locator) == ["email:a@example.com"])
+        }
+
+        @Test func fallsBackToAdminSignerWhenNoRecoveryMethodIsOnTheWalletChain() throws {
+            let config = try decode("""
+            {
+              "adminSigner": { "type": "email", "email": "a@example.com", "locator": "email:a@example.com" },
+              "recoveryMethods": [
+                {
+                  "type": "phone",
+                  "phone": "+14155552671",
+                  "locator": "phone:+14155552671",
+                  "chains": { "polygon-amoy": { "status": "active" } }
+                }
+              ]
+            }
+            """)
+
+            #expect(config.toDomain(on: .baseSepolia).recoveryMethods.map(\.locator) == ["email:a@example.com"])
+        }
+
+        private func decode(_ json: String) throws -> WalletConfigApiModel {
+            try DefaultJSONCoder().decode(WalletConfigApiModel.self, from: Data(json.utf8))
+        }
     }
 }
