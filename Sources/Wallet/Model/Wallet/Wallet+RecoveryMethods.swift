@@ -13,13 +13,10 @@ extension Wallet {
 
     /// Adds a recovery method to the wallet.
     ///
-    /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
-    /// To select it, see ``useRecoveryMethod(_:)``.
+    /// A recovery method of the wallet approves the change. To select it, see ``useRecoveryMethod(_:)``.
     ///
     /// - Parameter method: An email, phone or external wallet signer.
     /// - Returns: The completed ``Transaction``.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
-    ///   ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
     ///
     /// ## Example
     /// ```swift
@@ -29,13 +26,13 @@ extension Wallet {
     public func addRecoveryMethod(_ method: SignerConfig) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
-            try assertRecoveryMethodChangesSupported()
             let recoveryMethod = try recoveryMethodData(for: method)
             let approver = try await recoveryMethodApprover()
             onTransactionStart?()
             let created = try await smartWalletService.addRecoveryMethod(
                 recoveryMethod,
                 chainType: chain.chainType,
+                chainName: chain.name,
                 approver: approver
             )
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
@@ -54,17 +51,15 @@ extension Wallet {
 
     /// Removes a recovery method from the wallet.
     ///
-    /// Solana and Stellar wallets only. A different recovery method of the wallet approves the change.
-    /// To select it, see ``useRecoveryMethod(_:)``. If you selected the removed recovery method, the SDK
-    /// clears the selection.
+    /// A different recovery method of the wallet approves the change. To select it, see
+    /// ``useRecoveryMethod(_:)``. If you selected the removed recovery method, the SDK clears the selection.
     ///
     /// To remove a signer that you added with ``addSigner(_:)``, use ``removeSigner(locator:)``.
     ///
     /// - Parameter locator: The recovery method to remove.
     /// - Returns: The completed ``Transaction``.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
-    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
-    ///   - ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
+    ///   ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
     ///
     /// ## Example
     /// ```swift
@@ -76,12 +71,12 @@ extension Wallet {
             "locator": locator.value
         ])
         do {
-            try assertRecoveryMethodChangesSupported()
             let approver = try await recoveryMethodApprover()
             onTransactionStart?()
             let created = try await smartWalletService.removeRecoveryMethod(
                 locator,
                 chainType: chain.chainType,
+                chainName: chain.name,
                 approver: approver
             )
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
@@ -165,16 +160,6 @@ extension Wallet {
         }
         guard let signer else { throw .invalidChain(chain: chain) }
         return signer
-    }
-
-    private func assertRecoveryMethodChangesSupported() throws(WalletError) {
-        guard chain.chainType == .solana || chain.chainType == .stellar else {
-            throw .recoveryConfigRejected(
-                code: .notSupportedOnChain,
-                message: "Adding and removing recovery methods is not supported on \(chain.name) yet. "
-                    + "It is available on Solana and Stellar."
-            )
-        }
     }
 
     private func recoveryMethodData(for signer: SignerConfig) throws(WalletError) -> any AdminSignerData {

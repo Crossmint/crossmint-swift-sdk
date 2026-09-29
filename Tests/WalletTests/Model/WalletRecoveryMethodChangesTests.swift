@@ -85,7 +85,6 @@ struct WalletRecoveryMethodChangesTests {
     }
 
     @Test(arguments: [
-        ("WalletEVMEmail", SignerConfig.email("backup@example.com"), "RECOVERY_NOT_SUPPORTED_ON_CHAIN"),
         ("WalletSolanaEmail", SignerConfig.device, "WALLET_ERROR"),
         ("WalletSolanaEmail", SignerConfig.apiKey, "WALLET_ERROR")
     ])
@@ -98,16 +97,5 @@ struct WalletRecoveryMethodChangesTests {
 
         #expect(error?.code == code)
         #expect(walletService.addRecoveryMethodCallCount == 0)
-    }
-
-    @Test func refusesARemovalOnAnEVMWalletBeforeCallingCrossmint() async throws {
-        let wallet = try makeWallet(fileName: "WalletEVMEmail")
-
-        let error = await #expect(throws: WalletError.self) {
-            try await wallet.removeRecoveryMethod(locator: .email("backup@example.com"))
-        }
-
-        #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
-        #expect(walletService.removeRecoveryMethodCallCount == 0)
     }
 }

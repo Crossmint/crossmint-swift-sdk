@@ -171,6 +171,7 @@ let package = Package(
                 .process("Resources/Transaction/RemoveSignerTransactionSuccess.json"),
                 .process("Resources/Transaction/RecoveryMethodTransactionFailed.json"),
                 .process("Resources/Transaction/AddRecoveryMethodResponse.json"),
+                .process("Resources/Transaction/EVMAddRecoveryMethodResponse.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
                 .process("Resources/WalletEVMApiKey.json"),
                 .process("Resources/WalletEVMApiKeyWithDelegatedSigners.json"),

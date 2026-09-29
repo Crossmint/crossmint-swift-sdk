@@ -147,17 +147,29 @@ public final class DefaultSmartWalletService: SmartWalletService {
     public func addRecoveryMethod(
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
+        chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
-        try await walletService.addRecoveryMethod(recoveryMethod, chainType: chainType, approver: approver)
+        try await walletService.addRecoveryMethod(
+            recoveryMethod,
+            chainType: chainType,
+            chainName: chainName,
+            approver: approver
+        )
     }
 
     public func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
+        chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
-        try await walletService.removeRecoveryMethod(locator, chainType: chainType, approver: approver)
+        try await walletService.removeRecoveryMethod(
+            locator,
+            chainType: chainType,
+            chainName: chainName,
+            approver: approver
+        )
     }
 
     // MARK: - TransactionService

@@ -169,11 +169,13 @@ struct DefaultWalletService: WalletService {
     func addRecoveryMethod(
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
+        chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
         let body = AddRecoveryMethodBody(
             recoveryMethods: AdminSignerRequestApiModel(recoveryMethod),
-            approver: approver.value
+            approver: approver.value,
+            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
         )
         let bodyData = try jsonCoder.encodeRequest(body, errorType: WalletError.self)
         let data = try await crossmintService.executeRequestForRawData(
@@ -188,12 +190,14 @@ struct DefaultWalletService: WalletService {
     func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
+        chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
         let endpoint = Endpoint.removeRecoveryMethod(
             chainType: chainType,
             encodedLocator: encodedSignerLocator(locator.value),
-            approver: approver
+            approver: approver,
+            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
         )
         let data = try await crossmintService.executeRequestForRawData(
             endpoint,

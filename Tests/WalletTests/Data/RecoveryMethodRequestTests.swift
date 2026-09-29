@@ -37,6 +37,7 @@ struct RecoveryMethodRequestTests {
         let transaction = try await service.addRecoveryMethod(
             PhoneSignerData(phone: "+14155552671"),
             chainType: .solana,
+            chainName: "solana",
             approver: .email("alice@example.com")
         )
 
@@ -58,6 +59,7 @@ struct RecoveryMethodRequestTests {
         let transaction = try await service.removeRecoveryMethod(
             .phone("+14155552671"),
             chainType: .solana,
+            chainName: "solana",
             approver: .email("alice@example.com")
         )
 
@@ -72,6 +74,7 @@ struct RecoveryMethodRequestTests {
             _ = try await service.removeRecoveryMethod(
                 .phone("+14155552671"),
                 chainType: .solana,
+                chainName: "solana",
                 approver: .email("alice@example.com")
             )
         }
@@ -85,5 +88,39 @@ struct RecoveryMethodRequestTests {
         #expect(components.queryItems == [URLQueryItem(name: "approver", value: "email:alice@example.com")])
         #expect(error?.code == "LAST_RECOVERY_SIGNER")
         #expect(error?.message == "Cannot remove the last recovery signer")
+    }
+
+    @Test func namesTheChainWhenAddingOnEVM() async throws {
+        let service = try makeService(responding: .success("EVMAddRecoveryMethodResponse"))
+
+        let transaction = try await service.addRecoveryMethod(
+            PhoneSignerData(phone: "+14155552671"),
+            chainType: .evm,
+            chainName: "base-sepolia",
+            approver: .email("alice@example.com")
+        )
+
+        let body = try #require(capturedRequest.value?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["chain"] as? String == "base-sepolia")
+        #expect(transaction.toDomain().id == "evm-recovery-tx-1")
+    }
+
+    @Test func namesTheChainWhenRemovingOnEVM() async throws {
+        let service = try makeService(responding: .success("RemoveSignerTransactionSuccess"))
+
+        _ = try? await service.removeRecoveryMethod(
+            .phone("+14155552671"),
+            chainType: .evm,
+            chainName: "base-sepolia",
+            approver: .email("alice@example.com")
+        )
+
+        let url = try #require(capturedRequest.value?.url)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        #expect(components.queryItems == [
+            URLQueryItem(name: "approver", value: "email:alice@example.com"),
+            URLQueryItem(name: "chain", value: "base-sepolia")
+        ])
     }
 }
