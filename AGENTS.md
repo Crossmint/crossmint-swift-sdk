@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents (Claude Code, Devin, Cursor, and
 
 ## Best practices
 
-At session start, run `./scripts/fetch-best-practices.sh core.md mobile.md`, then follow the fetched best-practices doc. When reviewing PRs in this repo, check changes against the fetched best-practices doc and cite the specific rule when flagging.
+At session start, run `./scripts/fetch-best-practices.sh mobile.md`, then follow the fetched best-practices doc. When reviewing PRs in this repo, check changes against the fetched best-practices doc and cite the specific rule when flagging.
 
 ## Build and Development Commands
 
@@ -156,7 +156,7 @@ Services make exactly one API call per method — no coordination, no polling. M
 - The E2E-first testing policy in the fetched best-practices doc applies to new code; existing test suites stay.
 - Unit tests: `make test` (xcodebuild, iPhone 17 Pro simulator), `make ci-test` (adds lint), or `xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=latest" test` for one scheme. Naming and structure follow `docs/conventions/tests.md`.
 - E2E: comment `/e2e` (optionally `/e2e ios` or `/e2e android`) on a PR to dispatch the shared mobile suite in `Crossmint/crossmint-mobile-e2e-tests`.
-- Default E2E artifact: the emulator/simulator test report plus a screen recording, or a minimal sample-app run with logged output.
+- PR evidence to link in the PR description: the emulator/simulator test report plus a screen recording, or a minimal sample-app run with logged output.
 
 ## Development Workflow
 
