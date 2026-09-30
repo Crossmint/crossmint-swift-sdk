@@ -163,6 +163,9 @@ let package = Package(
                 .process("Resources/Transaction/FailedTransactionResponse.json"),
                 .process("Resources/Transaction/CreateSolanaTransactionResponse.json"),
                 .process("Resources/Transaction/CreateStellarTransactionResponse.json"),
+                .process("Resources/Transaction/StellarPasskeyApprovalPending.json"),
+                .process("Resources/Transaction/StellarTransactionSuccess.json"),
+                .process("Resources/Transaction/SolanaPasskeyApprovalPending.json"),
                 .process("Resources/Transaction/SolanaSignerRegistrationAwaitingApproval.json"),
                 .process("Resources/Transaction/ListTransactionsResponse.json"),
                 .process("Resources/Transaction/ListSolanaTransactionsResponse.json"),
@@ -184,10 +187,10 @@ let package = Package(
                 .process("Resources/WalletSolanaRecoveryMethods.json"),
                 .process("Resources/WalletStellarRecoveryMethods.json"),
                 .process("Resources/WalletStellarExternalWallet.json"),
+                .process("Resources/WalletStellarPasskey.json"),
                 .process("Resources/WalletSolanaUnsupportedSigners.json"),
                 .process("Resources/WalletSolanaOnlyUnsupportedSigner.json"),
                 .process("Resources/WalletSolanaInvalidAdminSigner.json"),
-                .process("Resources/WalletStellarPasskey.json"),
                 .process("Resources/Transfer/ListTransfersResponse.json")
             ],
             plugins: basePlugins
