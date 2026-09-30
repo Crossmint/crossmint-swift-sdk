@@ -324,6 +324,11 @@ public struct PublicKeyCredentialDescriptor: Decodable, Sendable {
         case type
     }
 
+    package init(id: Base64URLString, transports: [AuthenticatorTransport] = []) {
+        self.id = id
+        self.transports = transports
+    }
+
     // We have to manually decode this
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
