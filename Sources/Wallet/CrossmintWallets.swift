@@ -83,8 +83,8 @@ public protocol CrossmintWallets: Sendable {
     ///   - recoveryMethods: The signers that can each authorize recovery operations for this wallet.
     ///     To use an external wallet as a recovery signer, pass an ``ExternalWalletSigner``.
     ///   - options: Optional configuration, such as enabling a device signer.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is empty, or has
-    ///   more than one signer on a chain that accepts one.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is empty, has
+    ///   more than one signer on a chain that accepts one, or has a passkey on Solana.
     func createWallet(
         chain: Chain,
         recoveryMethods: [any Signer],

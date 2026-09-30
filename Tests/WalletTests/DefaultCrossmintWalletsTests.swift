@@ -301,6 +301,34 @@ struct RecoverySignerListCreationTests {
         #expect(walletService.createWalletCallCount == 0)
     }
 
+    @Test func rejectsAPasskeyRecoveryMethodOnSolanaBeforeCallingTheApi() async throws {
+        let wallets = makeWallets()
+
+        await #expect {
+            _ = try await wallets.createWallet(
+                chain: Chain("solana"),
+                recoveryMethods: [MockSigner(), PasskeySigner(name: "alice", host: "example.com")],
+                options: nil
+            )
+        } throws: { error in
+            guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
+            return code == .signerNotAllowed
+        }
+        #expect(walletService.createWalletCallCount == 0)
+    }
+
+    @Test func sendsAPasskeyRecoveryMethodOnStellar() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletStellarPasskey")
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("stellar"),
+            recoveryMethods: [MockPasskeySigner()],
+            options: nil
+        )
+
+        #expect(try sentRecoveryConfig().methods == [.init(type: "passkey", address: nil)])
+    }
+
     private func sentRecoveryConfig() throws -> SentRecoveryConfig {
         let config = try #require(walletService.lastCreateWalletParams?.config)
         return try JSONDecoder().decode(SentRecoveryConfig.self, from: JSONEncoder().encode(config))
@@ -401,6 +429,7 @@ struct WalletLoadingTests {
     func leavesTheSignerUnsetForAPasskeyRecoveryMethod(fixture: String, chain: String) async throws {
         let wallet = try await loadWallet(fixture: fixture, chain: chain)
 
+        #expect(wallet.recoveryMethods.first?.signer.type == .passkey)
         #expect(wallet.signer == nil)
     }
 
@@ -428,4 +457,3 @@ struct WalletLoadingTests {
         #expect(walletService.addSignerCallCount == 0)
     }
 }
-        #expect(wallet.recoveryMethods.first?.signer.type == .passkey)

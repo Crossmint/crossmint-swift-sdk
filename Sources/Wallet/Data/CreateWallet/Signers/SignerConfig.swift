@@ -4,13 +4,14 @@ import CrossmintCommonTypes
 ///
 /// Pass a `SignerConfig` to ``Wallet/useSigner(_:)`` to set the active signer,
 /// or to ``Wallet/addSigner(_:)`` to register a new signer on the wallet.
-///
-/// - Note: `.passkey` is only supported on EVM chains.
 public enum SignerConfig: Sendable {
     /// The device's Secure Enclave (or software fallback) as the signer.
     /// Created lazily on first transaction if no local key exists.
     case device
-    /// A passkey credential. EVM only.
+    /// A passkey credential.
+    ///
+    /// On EVM and Stellar wallets, a passkey can be a recovery signer or a signer that you add.
+    /// On Solana wallets, a passkey can only be a signer that you add with ``Wallet/addSigner(_:)``.
     case passkey(name: String, host: String)
     /// An email OTP signer.
     case email(String)

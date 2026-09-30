@@ -16,10 +16,12 @@ extension Wallet {
     /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
     /// To select it, see ``useRecoveryMethod(_:)``.
     ///
-    /// - Parameter method: An email, phone or external wallet signer.
+    /// - Parameter method: An email, phone, external wallet or passkey signer. For a passkey, the SDK
+    ///   asks the user to create the passkey. Solana wallets do not accept a passkey recovery method.
     /// - Returns: The completed ``Transaction``.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
-    ///   ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
+    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
+    ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` for a passkey on a Solana wallet.
     ///
     /// ## Example
     /// ```swift
@@ -30,8 +32,8 @@ extension Wallet {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
             try assertRecoveryMethodChangesSupported()
-            let recoveryMethod = try recoveryMethodData(for: method)
             let approver = try await recoveryMethodApprover()
+            let recoveryMethod = try await recoveryMethodData(for: method)
             onTransactionStart?()
             let created = try await smartWalletService.addRecoveryMethod(
                 recoveryMethod,
@@ -177,7 +179,7 @@ extension Wallet {
         }
     }
 
-    private func recoveryMethodData(for signer: SignerConfig) throws(WalletError) -> any AdminSignerData {
+    private func recoveryMethodData(for signer: SignerConfig) async throws(WalletError) -> any AdminSignerData {
         switch signer {
         case .email(let email):
             return EmailSignerData(email: email)
@@ -185,8 +187,15 @@ extension Wallet {
             return PhoneSignerData(phone: phone)
         case .externalWallet(let address, _):
             return ExternalWalletSignerData(address: address)
-        case .apiKey, .device, .passkey:
-            throw .walletGeneric("A recovery method you add must be an email, phone or external wallet signer.")
+        case .passkey(let name, let host):
+            guard chain.chainType != .solana else {
+                throw .passkeyRecoveryNotAllowedOnSolana
+            }
+            return try await signerRegistrationService.createPasskey(name: name, host: host)
+        case .apiKey, .device:
+            throw .walletGeneric(
+                "A recovery method you add must be an email, phone, external wallet or passkey signer."
+            )
         }
     }
 
