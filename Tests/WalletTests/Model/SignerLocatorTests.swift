@@ -111,4 +111,18 @@ struct SignerLocatorTests {
     func isPasskeyMatchesOnlyPasskeyLocators(locatorAndExpected: (SignerLocator, Bool)) {
         #expect(locatorAndExpected.0.isPasskey == locatorAndExpected.1)
     }
+
+    @Test("Normalizes the email in an email locator")
+    func normalizesEmailLocatorValue() {
+        #expect(SignerLocator.email("First.Last@Gmail.com").value == "email:firstlast@gmail.com")
+    }
+
+    @Test("Email locators with different spellings of the same address are equal")
+    func equatesEmailLocatorSpellings() throws {
+        let typed = SignerLocator.email("First.Last@GoogleMail.com")
+        let stored = try SignerLocator(from: "email:firstlast@gmail.com")
+
+        #expect(typed == stored)
+        #expect(Set([typed, stored]).count == 1)
+    }
 }

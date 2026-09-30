@@ -49,4 +49,19 @@ struct EmailValidationTests {
     func trimsSurroundingWhitespace(input: String, expected: String) {
         #expect(normalizeEmail(input) == expected)
     }
+
+    @Test(
+        "Normalizes signer emails the same way the backend does",
+        arguments: [
+            ("User@Example.com", "user@example.com"),
+            ("first.last@example.com", "first.last@example.com"),
+            ("First.Last@Gmail.com", "firstlast@gmail.com"),
+            ("first.last@googlemail.com", "firstlast@gmail.com"),
+            ("first.last+tag@gmail.com", "firstlast+tag@gmail.com"),
+            ("not-an-email", "not-an-email")
+        ]
+    )
+    func normalizesSignerEmails(input: String, expected: String) {
+        #expect(normalizeSignerEmail(input) == expected)
+    }
 }

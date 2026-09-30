@@ -1,3 +1,5 @@
+import Utils
+
 public protocol AdminSignerData: Sendable {
     var type: AdminSignerDataType { get }
     var locatorId: String { get }
@@ -80,7 +82,7 @@ public struct EmailSignerData: AdminSignerData {
     public var locatorId: String { email }
 
     public init(email: String) {
-        self.email = email
+        self.email = normalizeSignerEmail(email)
     }
 }
 

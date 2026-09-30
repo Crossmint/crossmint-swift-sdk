@@ -74,6 +74,14 @@ struct AdminSignerDataTests {
         #expect(signer.locator == "email:\(email)")
     }
 
+    @Test("EmailSignerData stores the normalized email")
+    func testEmailSignerDataNormalizesEmail() {
+        let signer = EmailSignerData(email: "First.Last@GoogleMail.com")
+
+        #expect(signer.email == "firstlast@gmail.com")
+        #expect(signer.locator == "email:firstlast@gmail.com")
+    }
+
     // MARK: - PhoneSignerData
 
     @Test("PhoneSignerData initialization")
