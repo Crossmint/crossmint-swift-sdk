@@ -397,8 +397,9 @@ struct WalletLoadingTests {
         #expect(signer.adminSigner.address == "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb")
     }
 
-    @Test func leavesTheSignerUnsetForAPasskeyRecoveryMethod() async throws {
-        let wallet = try await loadWallet(fixture: "WalletPasskey", chain: "base-sepolia")
+    @Test(arguments: [("WalletPasskey", "base-sepolia"), ("WalletStellarPasskey", "stellar")])
+    func leavesTheSignerUnsetForAPasskeyRecoveryMethod(fixture: String, chain: String) async throws {
+        let wallet = try await loadWallet(fixture: fixture, chain: chain)
 
         #expect(wallet.signer == nil)
     }
@@ -427,3 +428,4 @@ struct WalletLoadingTests {
         #expect(walletService.addSignerCallCount == 0)
     }
 }
+        #expect(wallet.recoveryMethods.first?.signer.type == .passkey)

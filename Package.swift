@@ -187,6 +187,7 @@ let package = Package(
                 .process("Resources/WalletSolanaUnsupportedSigners.json"),
                 .process("Resources/WalletSolanaOnlyUnsupportedSigner.json"),
                 .process("Resources/WalletSolanaInvalidAdminSigner.json"),
+                .process("Resources/WalletStellarPasskey.json"),
                 .process("Resources/Transfer/ListTransfersResponse.json")
             ],
             plugins: basePlugins

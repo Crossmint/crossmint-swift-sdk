@@ -5,7 +5,7 @@ public struct EvmPasskeySignerApiModel: AdminSignerApiModel {
     public let id: String
     public let name: String
     public let publicKey: PublicKey
-    public let validatorContractVersion: String
+    public let validatorContractVersion: String?
     public let locator: String
 
     public struct PublicKey: Codable {
