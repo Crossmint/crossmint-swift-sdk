@@ -163,12 +163,35 @@ struct WalletAddSignerTests {
             #expect(walletService.lastAddSignerApprover == approver)
         }
 
-        @Test func refusesARecoveryMethodTheWalletDoesNotHave() async throws {
+        @Test func selectsThePasskeyRecoveryMethodOfTheWallet() async throws {
+            let walletService = MockSmartWalletService()
+            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+                fileName: "WalletStellarPasskey",
+                bundle: Bundle.module
+            )
+            let wallet = try StellarWallet(
+                smartWalletService: walletService,
+                signer: MockSigner(email: "alice@example.com"),
+                baseModel: baseModel,
+                stellarChain: .stellar
+            )
+            try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+
+            try await wallet.addSigner(.externalWallet("GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"))
+
+            #expect(walletService.lastAddSignerApprover == .passkey(credentialId: "v-Qxh--c2nOkUyBYJHRaXCwSOJw"))
+        }
+
+        @Test(arguments: [
+            SignerConfig.email("stranger@example.com"),
+            SignerConfig.passkey(name: "alice", host: "example.com")
+        ])
+        func refusesARecoveryMethodTheWalletDoesNotHave(method: SignerConfig) async throws {
             let walletService = MockSmartWalletService()
             let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
 
             let error = await #expect(throws: WalletError.self) {
-                try await wallet.useRecoveryMethod(.email("stranger@example.com"))
+                try await wallet.useRecoveryMethod(method)
             }
 
             #expect(error?.code == "INVALID_RECOVERY_CONFIG")
