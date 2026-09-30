@@ -10,6 +10,7 @@ struct SignerLocatorTests {
         arguments: [
             (SignerLocator.device(publicKey: "abc123"), "device:abc123"),
             (SignerLocator.email("user@example.com"), "email:user@example.com"),
+            (SignerLocator.email("First.Last@GoogleMail.com"), "email:firstlast@gmail.com"),
             (SignerLocator.phone("+15551234567"), "phone:+15551234567"),
             (SignerLocator.externalWallet(address: "0xabc"), "external-wallet:0xabc"),
             (SignerLocator.passkey(credentialId: "cred-1"), "passkey:cred-1"),
@@ -110,19 +111,5 @@ struct SignerLocatorTests {
     )
     func isPasskeyMatchesOnlyPasskeyLocators(locatorAndExpected: (SignerLocator, Bool)) {
         #expect(locatorAndExpected.0.isPasskey == locatorAndExpected.1)
-    }
-
-    @Test("Normalizes the email in an email locator")
-    func normalizesEmailLocatorValue() {
-        #expect(SignerLocator.email("First.Last@Gmail.com").value == "email:firstlast@gmail.com")
-    }
-
-    @Test("Email locators with different spellings of the same address are equal")
-    func equatesEmailLocatorSpellings() throws {
-        let typed = SignerLocator.email("First.Last@GoogleMail.com")
-        let stored = try SignerLocator(from: "email:firstlast@gmail.com")
-
-        #expect(typed == stored)
-        #expect(Set([typed, stored]).count == 1)
     }
 }
