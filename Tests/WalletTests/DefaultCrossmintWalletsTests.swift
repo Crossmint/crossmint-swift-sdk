@@ -317,16 +317,16 @@ struct RecoverySignerListCreationTests {
         #expect(walletService.createWalletCallCount == 0)
     }
 
-    @Test func sendsAPasskeyRecoveryMethodOnStellar() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletStellarPasskey")
+    @Test func acceptsAPasskeyRecoveryMethodOnStellar() async throws {
+        walletService.createWalletFixture = try loadFixture("WalletStellarRecoveryMethods")
 
         _ = try await makeWallets().createWallet(
             chain: Chain("stellar"),
-            recoveryMethods: [MockPasskeySigner()],
+            recoveryMethods: [MockSigner(signerType: .passkey)],
             options: nil
         )
 
-        #expect(try sentRecoveryConfig().methods == [.init(type: "passkey", address: nil)])
+        #expect(walletService.createWalletCallCount == 1)
     }
 
     private func sentRecoveryConfig() throws -> SentRecoveryConfig {

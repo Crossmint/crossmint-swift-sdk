@@ -5,92 +5,68 @@
 //  Created by Tomas Martins on 30/09/26.
 //
 
+import CrossmintCommonTypes
 import Foundation
 import Testing
 import TestsUtils
 
 @testable import Wallet
 
-private let CREDENTIAL_ID = "v-Qxh--c2nOkUyBYJHRaXCwSOJw"
-private let APPROVAL_BYTES_HEX = "0x" + String(repeating: "ab", count: 32)
+private let APPROVAL_MESSAGE = "BKztPNRKCOEJ1wqIJ1qgjWehzUT1g1AE/sWjpS4yxn4="
+private let APPROVAL_BYTES_HEX = "0x04aced3cd44a08e109d70a88275aa08d67a1cd44f5835004fec5a3a52e32c67e"
 
 @Suite("Passkey approval", .tags(.unit))
 struct WalletPasskeyApprovalTests {
     private let walletService = MockSmartWalletService()
-    private let passkey = MockPasskeySigner(credentialId: CREDENTIAL_ID)
 
-    private func approve(
-        on wallet: Wallet,
-        pending: any TransactionApiModel,
-        completed: any TransactionApiModel
-    ) async throws {
-        walletService.fetchTransactionResult = pending
-        walletService.transactionAfterSigning = completed
-        wallet.selectedSigner = passkey
-
-        _ = try await wallet.approve(transactionId: "transaction-id")
+    private func makeWallet(on chainType: ChainType) throws -> Wallet {
+        switch chainType {
+        case .stellar:
+            try StellarWallet(
+                smartWalletService: walletService,
+                signer: nil,
+                baseModel: try GetFromFile.getModelFrom(fileName: "WalletStellarRecoveryMethods", bundle: .module),
+                stellarChain: .stellar
+            )
+        case .solana:
+            try SolanaWallet(
+                smartWalletService: walletService,
+                signer: nil,
+                baseModel: try GetFromFile.getModelFrom(fileName: "WalletSolanaEmail", bundle: .module),
+                solanaChain: .solana
+            )
+        default:
+            try EVMWallet(
+                smartWalletService: walletService,
+                signer: nil,
+                baseModel: try GetFromFile.getModelFrom(fileName: "WalletEVMEmail", bundle: .module),
+                evmChain: .baseSepolia
+            )
+        }
     }
 
-    @Test func signsTheStellarApprovalBytesAsTheChallenge() async throws {
-        let wallet = try StellarWallet(
-            smartWalletService: walletService,
-            signer: MockSigner(),
-            baseModel: try GetFromFile.getModelFrom(fileName: "WalletStellarPasskey", bundle: Bundle.module),
-            stellarChain: .stellar
-        )
+    @Test(arguments: [
+        (ChainType.stellar, APPROVAL_BYTES_HEX),
+        (ChainType.solana, APPROVAL_BYTES_HEX),
+        (ChainType.evm, APPROVAL_MESSAGE)
+    ])
+    func signsTheChallengeThatTheWalletChainExpects(chainType: ChainType, challenge: String) async throws {
         let pending: StellarTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "StellarPasskeyApprovalPending",
-            bundle: Bundle.module
-        )
-        let completed: StellarTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "StellarTransactionSuccess",
-            bundle: Bundle.module
-        )
-
-        try await approve(on: wallet, pending: pending, completed: completed)
-
-        #expect(passkey.signLastMessage == APPROVAL_BYTES_HEX)
-    }
-
-    @Test func signsTheSolanaApprovalBytesAsTheChallenge() async throws {
-        let wallet = try SolanaWallet(
-            smartWalletService: walletService,
-            signer: MockSigner(),
-            baseModel: try GetFromFile.getModelFrom(fileName: "WalletSolanaEmail", bundle: Bundle.module),
-            solanaChain: .solana
-        )
-        let pending: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "SolanaPasskeyApprovalPending",
-            bundle: Bundle.module
+            fileName: "CreateStellarTransactionResponse",
+            bundle: .module
         )
         let completed: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
             fileName: "RemoveSignerTransactionSuccess",
-            bundle: Bundle.module
+            bundle: .module
         )
+        walletService.fetchTransactionResult = pending
+        walletService.transactionAfterSigning = completed
+        let wallet = try makeWallet(on: chainType)
+        let passkey = MockSigner(email: "user@example.com", signerType: .passkey)
+        wallet.selectedSigner = passkey
 
-        try await approve(on: wallet, pending: pending, completed: completed)
+        _ = try await wallet.approve(transactionId: pending.id)
 
-        #expect(passkey.signLastMessage == APPROVAL_BYTES_HEX)
-    }
-
-    @Test func signsTheEVMApprovalMessageUnchanged() async throws {
-        let wallet = try EVMWallet(
-            smartWalletService: walletService,
-            signer: MockSigner(),
-            baseModel: try GetFromFile.getModelFrom(fileName: "WalletEVMEmail", bundle: Bundle.module),
-            evmChain: .baseSepolia
-        )
-        let pending: EVMTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "CreateTransactionAwaitingApproval",
-            bundle: Bundle.module
-        )
-        let completed: EVMTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "GetTransactionResponse",
-            bundle: Bundle.module
-        )
-
-        try await approve(on: wallet, pending: pending, completed: completed)
-
-        #expect(passkey.signLastMessage == "0x387a634c711bc1465dbccaf83020bcb9b36a1859436b068ce015b2a20fb36a6e")
+        #expect(passkey.signLastMessage == challenge)
     }
 }
