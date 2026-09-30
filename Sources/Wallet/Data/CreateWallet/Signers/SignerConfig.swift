@@ -8,10 +8,10 @@ public enum SignerConfig: Sendable {
     /// The device's Secure Enclave (or software fallback) as the signer.
     /// Created lazily on first transaction if no local key exists.
     case device
-    /// A passkey credential.
+    /// A passkey signer.
     ///
-    /// On EVM and Stellar wallets, a passkey can be a recovery signer or a signer that you add.
-    /// On Solana wallets, a passkey can only be a signer that you add with ``Wallet/addSigner(_:)``.
+    /// On EVM and Stellar wallets, a passkey can be a recovery signer or an added signer.
+    /// On Solana wallets, a passkey can only be an added signer. To add it, use ``Wallet/addSigner(_:)``.
     case passkey(name: String, host: String)
     /// An email OTP signer.
     case email(String)

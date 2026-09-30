@@ -1,3 +1,10 @@
+//
+//  ApprovalSigner+Chain.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 30/09/26.
+//
+
 import CrossmintCommonTypes
 import Foundation
 import Utils

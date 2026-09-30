@@ -302,7 +302,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     // MARK: - fetchTransaction / signTransaction
 
     var fetchTransactionResult: (any TransactionApiModel)?
-    /// The transaction that fetchTransaction returns once signTransaction is called.
     var transactionAfterSigning: (any TransactionApiModel)?
     var lastFetchTransactionRequest: FetchTransactionRequest?
     var signTransactionCallCount = 0

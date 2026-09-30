@@ -27,10 +27,10 @@ public enum EVMSigners: Sendable, SignerProvider {
     }
 }
 
-/// The recovery signers that a Solana wallet accepts.
+/// The recovery signers for a Solana wallet.
 ///
-/// A passkey cannot be a recovery signer on Solana. To add a passkey to a Solana wallet,
-/// pass ``SignerConfig/passkey(name:host:)`` to ``Wallet/addSigner(_:)``.
+/// A passkey cannot be a recovery signer on Solana.
+/// To add a passkey to a Solana wallet, use ``Wallet/addSigner(_:)`` with ``SignerConfig/passkey(name:host:)``.
 public enum SolanaSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)

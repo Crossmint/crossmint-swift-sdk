@@ -1,3 +1,10 @@
+//
+//  MockPasskeySigner.swift
+//  CrossmintSDK
+//
+//  Created by Tomas Martins on 30/09/26.
+//
+
 import CrossmintCommonTypes
 @testable import Wallet
 

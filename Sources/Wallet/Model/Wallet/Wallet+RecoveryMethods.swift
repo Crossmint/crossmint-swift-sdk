@@ -16,12 +16,14 @@ extension Wallet {
     /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
     /// To select it, see ``useRecoveryMethod(_:)``.
     ///
-    /// - Parameter method: An email, phone, external wallet or passkey signer. For a passkey, the SDK
-    ///   asks the user to create the passkey. Solana wallets do not accept a passkey recovery method.
+    /// - Parameter method: An email, phone, external wallet or passkey signer.
+    ///   For a passkey, the SDK shows the system prompt to create a new passkey.
+    ///   A Solana wallet does not accept a passkey as a recovery method.
     /// - Returns: The completed ``Transaction``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
-    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
-    ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` for a passkey on a Solana wallet.
+    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` if the wallet is an EVM wallet.
+    ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey
+    ///     and the wallet is a Solana wallet.
     ///
     /// ## Example
     /// ```swift
