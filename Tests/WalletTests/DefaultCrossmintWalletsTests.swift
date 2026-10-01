@@ -231,6 +231,25 @@ struct DefaultCrossmintWalletsTests {
         let retried = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
         #expect(retried.map(\.signer) == [.locator(.email("alice@example.com"))])
     }
+
+    @Test(arguments: ["solana", "stellar"])
+    func rejectsAPasskeySignerBeforeCreatingAWalletOnANonEVMChain(chainName: String) async throws {
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
+        let wallets = makeWallets()
+
+        await #expect {
+            _ = try await wallets.createWallet(
+                chain: Chain(chainName),
+                recoveryMethods: [MockSigner()],
+                signers: [.passkey(name: "alice", host: "example.com")],
+                options: nil
+            )
+        } throws: { error in
+            guard case .walletCreationFailed = error as? WalletError else { return false }
+            return true
+        }
+        #expect(walletService.createWalletCallCount == 0)
+    }
 }
 
 @Suite("Wallet Creation with a recovery signer list", .tags(.unit))

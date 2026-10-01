@@ -105,6 +105,7 @@ public protocol CrossmintWallets: Sendable {
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if the recovery list is empty.
     ///   The SDK also throws this error if the list has more than one signer on a chain that accepts one.
     ///   ``WalletError/walletCreationCancelled`` if the user cancels the passkey creation.
+    ///   ``WalletError/walletCreationFailed(_:)`` if `signers` has a passkey and the chain is not an EVM chain.
     func createWallet(
         chain: Chain,
         recoveryMethods: [any Signer],
