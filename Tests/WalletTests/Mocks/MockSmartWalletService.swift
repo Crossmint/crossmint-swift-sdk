@@ -303,6 +303,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     // MARK: - fetchTransaction / signTransaction
 
     var fetchTransactionResult: (any TransactionApiModel)?
+    var fetchTransactionResults: [any TransactionApiModel] = []
     var lastFetchTransactionRequest: FetchTransactionRequest?
     var signTransactionCallCount = 0
     var lastSignTransactionRequest: SignRequest?
@@ -311,6 +312,9 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         _ fetchTransactionRequest: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         lastFetchTransactionRequest = fetchTransactionRequest
+        if !fetchTransactionResults.isEmpty {
+            return fetchTransactionResults.removeFirst()
+        }
         guard let fetchTransactionResult else {
             throw TransactionError.transactionGeneric("not implemented")
         }
