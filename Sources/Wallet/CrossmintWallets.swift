@@ -28,11 +28,18 @@ import CrossmintCommonTypes
 /// )
 /// ```
 public protocol CrossmintWallets: Sendable {
-    /// Returns the wallet for the authenticated user on the given chain, or `nil` if none exists yet.
+    /// Returns the wallet of the authenticated user on the given chain.
+    /// Returns `nil` if the wallet does not exist.
     ///
-    /// The wallet's first recovery signer is the active signer until ``Wallet/useSigner(_:)`` selects
-    /// another one. When that signer is a passkey or an external wallet, call ``Wallet/useSigner(_:)``
-    /// before signing.
+    /// The SDK selects the signer for transactions:
+    /// - If ``Wallet/signers()`` has only one signer, the SDK uses that signer.
+    ///   This applies to email, phone, API key, and passkey signers.
+    /// - If not, the SDK uses the first recovery method of the wallet.
+    ///
+    /// To use a different signer, call ``Wallet/useSigner(_:)``.
+    ///
+    /// To sign with a passkey, set ``WalletOptions/passkeyHost`` in `options`.
+    /// To sign with an external wallet, call ``Wallet/useSigner(_:)`` before you send a transaction.
     ///
     /// - Parameters:
     ///   - chain: The blockchain to look up.
@@ -351,7 +358,7 @@ public struct WalletOptions {
     /// The domain of the passkeys of this wallet, for example `"example.com"`.
     ///
     /// Set this value when the wallet has a passkey recovery method or a passkey signer.
-    /// The SDK then signs with the passkey when it is the first recovery method or the only signer of the wallet.
+    /// The SDK then signs with the passkey when the passkey is the first recovery method or the only signer.
     /// If you do not set this value, call ``Wallet/useSigner(_:)`` with ``SignerConfig/passkey(name:host:)``
     /// before you send a transaction.
     public let passkeyHost: String?
