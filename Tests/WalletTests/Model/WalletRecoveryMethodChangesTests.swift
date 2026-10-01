@@ -71,6 +71,16 @@ struct WalletRecoveryMethodChangesTests {
         #expect(wallet.recoveryMethods.last?.signer.locator == "email:backup@gmail.com")
     }
 
+    @Test func marksARecoveryMethodActiveWhenAddingItAgainSucceeds() async throws {
+        let wallet = try makeWallet(fileName: "WalletSolanaFailedRecoveryMethod")
+        walletService.addRecoveryMethodResult = try solanaTransaction("RemoveSignerTransactionSuccess")
+
+        try await wallet.addRecoveryMethod(.phone("+14155552671"))
+
+        #expect(wallet.recoveryMethods.map(\.signer.locator) == [ALICE, PHONE])
+        #expect(wallet.recoveryMethods.map(\.status) == [.active, .active])
+    }
+
     @Test func clearsTheSelectedRecoveryMethodWhenItIsRemoved() async throws {
         let wallet = try makeWallet()
         walletService.removeRecoveryMethodResult = try solanaTransaction("RemoveSignerTransactionSuccess")

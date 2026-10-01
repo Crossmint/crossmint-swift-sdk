@@ -214,9 +214,12 @@ extension Wallet {
     }
 
     private func recordAddedRecoveryMethod(_ recoveryMethod: any AdminSignerData) {
-        let known = config.recoveryMethods.contains { $0.locator == recoveryMethod.locator }
-        guard !known else { return }
-        let methods = config.recoveryMethodsWithStatus + [RecoveryMethod(signer: recoveryMethod, status: .active)]
+        var methods = config.recoveryMethodsWithStatus
+        if let index = methods.firstIndex(where: { $0.signer.locator == recoveryMethod.locator }) {
+            methods[index] = RecoveryMethod(signer: methods[index].signer, status: .active)
+        } else {
+            methods.append(RecoveryMethod(signer: recoveryMethod, status: .active))
+        }
         config = WalletConfig(recovery: methods[0], others: Array(methods.dropFirst()))
     }
 
