@@ -29,32 +29,11 @@ struct EmailValidationTests {
     }
 
     @Test(
-        "Lowercases email",
+        "Normalizes emails the same way the backend does",
         arguments: [
             ("USER@EXAMPLE.COM", "user@example.com"),
-            ("Test.User@Domain.Org", "test.user@domain.org")
-        ]
-    )
-    func lowercasesEmail(input: String, expected: String) {
-        #expect(normalizeEmail(input) == expected)
-    }
-
-    @Test(
-        "Trims surrounding whitespace",
-        arguments: [
-            ("  user@example.com  ", "user@example.com"),
-            ("\tuser@example.com\n", "user@example.com")
-        ]
-    )
-    func trimsSurroundingWhitespace(input: String, expected: String) {
-        #expect(normalizeEmail(input) == expected)
-    }
-
-    @Test(
-        "Normalizes signer emails the same way the backend does",
-        arguments: [
-            ("User@Example.com", "user@example.com"),
-            ("first.last@example.com", "first.last@example.com"),
+            ("Test.User@Domain.Org", "test.user@domain.org"),
+            ("\tuser@example.com\n", "user@example.com"),
             ("First.Last@Gmail.com", "firstlast@gmail.com"),
             ("first.last@googlemail.com", "firstlast@gmail.com"),
             ("first.last+tag@gmail.com", "firstlast+tag@gmail.com"),
@@ -62,7 +41,7 @@ struct EmailValidationTests {
             ("not-an-email", "not-an-email")
         ]
     )
-    func normalizesSignerEmails(input: String, expected: String) {
-        #expect(normalizeSignerEmail(input) == expected)
+    func normalizesEmails(input: String, expected: String) {
+        #expect(normalizeEmail(input) == expected)
     }
 }

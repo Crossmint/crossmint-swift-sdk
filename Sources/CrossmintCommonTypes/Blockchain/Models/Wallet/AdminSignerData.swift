@@ -82,7 +82,7 @@ public struct EmailSignerData: AdminSignerData {
     public var locatorId: String { email }
 
     public init(email: String) {
-        self.email = normalizeSignerEmail(email)
+        self.email = normalizeEmail(email)
     }
 }
 

@@ -34,7 +34,7 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         case let .device(publicKey):
             "device:\(publicKey)"
         case let .email(email):
-            "email:\(normalizeSignerEmail(email))"
+            "email:\(normalizeEmail(email))"
         case let .phone(phone):
             "phone:\(phone)"
         case let .externalWallet(address):
