@@ -339,10 +339,12 @@ extension Wallet {
     }
 
     private func activateApiKeySigner() async throws(WalletError) {
-        guard let apiKeyData = config.recoverySigner(ofType: ApiKeySignerData.self) else {
-            throw .signerNotRegistered(SignerLocator.apiKey().value)
+        if let apiKeyData = config.recoverySigner(ofType: ApiKeySignerData.self) {
+            selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
+            return
         }
-        selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
+        try await requireRegisteredSigner(.apiKey())
+        selectedSigner = ApiKeySigner(adminSigner: ApiKeySignerData())
     }
 
     private func activatePasskeySigner(name: String, host: String) async throws(WalletError) {

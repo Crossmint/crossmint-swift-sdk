@@ -499,7 +499,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 "count": "\(approvals.pending.count)",
                 "signers": approvals.pending.map(\.signer).joined(separator: ", ")
             ])
-            for pendingApproval in approvals.pending {
+            for pendingApproval in approvals.pending
+            where !SignerLocator(orUnknown: pendingApproval.signer).isApiKey {
                 try await approveTransaction(
                     transactionId: transaction.id,
                     signerLocator: pendingApproval.signer,
