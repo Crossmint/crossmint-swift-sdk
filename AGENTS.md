@@ -148,8 +148,7 @@ Domain errors: `WalletError`, `TransactionError`, `SignatureError`, `AuthError`.
 
 Services make exactly one API call per method — no coordination, no polling. Multi-step flows (getOrCreate, sign + poll) live in the client (`DefaultCrossmintWallets`) or in `Wallet+Transactions.swift` extensions. Never embed flow logic or polling inside a service method.
 
-@docs/conventions/code.md
-@docs/conventions/tests.md
+Before writing code or tests, read [docs/conventions/code.md](docs/conventions/code.md) and [docs/conventions/tests.md](docs/conventions/tests.md); they hold the full code and test conventions.
 
 ## Testing conventions
 
