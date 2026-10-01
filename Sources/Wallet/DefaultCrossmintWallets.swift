@@ -282,7 +282,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
             switch config {
             case .device:
                 continue
-            case .passkey(let name, let host):
+            case .passkey(let name, let host, _):
                 let passkeySigner = PasskeySigner(name: name, host: host)
                 try await initializeSigner(passkeySigner)
                 entries.append(DelegatedSignerEntry(signer: .passkey(await passkeySigner.adminSigner)))
