@@ -29,7 +29,7 @@ struct EmailValidationTests {
     }
 
     @Test(
-        "Normalizes emails the same way the backend does",
+        "Lowercases email",
         arguments: [
             ("USER@EXAMPLE.COM", "user@example.com"),
             ("Test.User@Domain.Org", "test.user@domain.org"),
@@ -41,7 +41,7 @@ struct EmailValidationTests {
             ("not-an-email", "not-an-email")
         ]
     )
-    func normalizesEmails(input: String, expected: String) {
+    func lowercasesEmail(input: String, expected: String) {
         #expect(normalizeEmail(input) == expected)
     }
 }
