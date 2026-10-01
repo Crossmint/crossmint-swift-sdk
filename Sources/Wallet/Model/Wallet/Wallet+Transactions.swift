@@ -391,6 +391,10 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     }
 
     internal func selectedSignerLocatorForTransactions() async throws(TransactionError) -> SignerLocator? {
+        let hasLocalDeviceSigner = await localDeviceSigner() != nil
+        guard selectedSigner != nil || selectedRecoveryMethod != nil || signer != nil || hasLocalDeviceSigner else {
+            throw .transactionCreationFailedNoSigner
+        }
         do {
             return try await selectedSignerLocator()
         } catch {

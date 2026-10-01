@@ -348,13 +348,23 @@ public struct WalletOptions {
     /// Transactions can then be signed without an OTP prompt on that device.
     public let deviceSigner: Bool
 
-    public init(deviceSigner: Bool = false) {
+    /// The domain of the passkeys of this wallet, for example `"example.com"`.
+    ///
+    /// Set this value when the wallet has a passkey recovery method or a passkey signer.
+    /// The SDK then signs with the passkey when it is the first recovery method or the only signer of the wallet.
+    /// If you do not set this value, call ``Wallet/useSigner(_:)`` with ``SignerConfig/passkey(name:host:)``
+    /// before you send a transaction.
+    public let passkeyHost: String?
+
+    public init(deviceSigner: Bool = false, passkeyHost: String? = nil) {
         self.experimentalCallbacks = nil
         self.deviceSigner = deviceSigner
+        self.passkeyHost = passkeyHost
     }
 
-    init(deviceSigner: Bool = false, experimentalCallbacks: ExperimentalCallbacks?) {
+    init(deviceSigner: Bool = false, passkeyHost: String? = nil, experimentalCallbacks: ExperimentalCallbacks?) {
         self.deviceSigner = deviceSigner
+        self.passkeyHost = passkeyHost
         self.experimentalCallbacks = experimentalCallbacks
     }
 }

@@ -369,10 +369,10 @@ struct WalletLoadingTests {
         )
     }
 
-    private func loadWallet(fixture: String, chain: String) async throws -> Wallet {
+    private func loadWallet(fixture: String, chain: String, options: WalletOptions? = nil) async throws -> Wallet {
         let url = try #require(Bundle.module.url(forResource: fixture, withExtension: "json"))
         walletService.getWalletFixture = try Data(contentsOf: url)
-        return try #require(try await makeWallets().getWallet(chain: Chain(chain), options: nil))
+        return try #require(try await makeWallets().getWallet(chain: Chain(chain), options: options))
     }
 
     @Test func buildsAnEmailSignerFromTheApiRecoveryMethod() async throws {
@@ -401,6 +401,61 @@ struct WalletLoadingTests {
         let wallet = try await loadWallet(fixture: "WalletPasskey", chain: "base-sepolia")
 
         #expect(wallet.signer == nil)
+    }
+
+    @Test func sendsWithAPasskeyRecoveryMethodWhenThePasskeyHostIsSet() async throws {
+        let wallet = try await loadWallet(
+            fixture: "WalletPasskey",
+            chain: "base-sepolia",
+            options: WalletOptions(passkeyHost: "example.com")
+        )
+
+        _ = try? await wallet.send("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc", 1)
+
+        #expect(walletService.transferTokenCallCount == 1)
+    }
+
+    @Test func rejectsSendingBeforeCreatingTheTransactionWhenNoSignerIsAvailable() async throws {
+        let wallet = try await loadWallet(fixture: "WalletPasskey", chain: "base-sepolia")
+
+        await #expect {
+            _ = try await wallet.send("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc", 1)
+        } throws: { error in
+            guard case .transactionCreationFailedNoSigner = error as? TransactionError else { return false }
+            return true
+        }
+        #expect(walletService.transferTokenCallCount == 0)
+    }
+
+    @Test(arguments: [
+        (locators: ["email:delegated@example.com"], expectedSigner: "email:delegated@example.com"),
+        (locators: ["passkey:credential-id"], expectedSigner: "passkey:credential-id"),
+        (locators: ["email:first@example.com", "email:second@example.com"], expectedSigner: nil),
+        (locators: ["device:BPublicKey"], expectedSigner: nil),
+        (locators: ["external-wallet:0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"], expectedSigner: nil)
+    ])
+    func sendsWithTheOnlyDelegatedSignerTheSdkCanBuild(locators: [String], expectedSigner: String?) async throws {
+        walletService.getWalletSignerLocators = locators
+        let wallet = try await loadWallet(
+            fixture: "WalletEVMPhone",
+            chain: "base-sepolia",
+            options: WalletOptions(passkeyHost: "example.com")
+        )
+
+        _ = try? await wallet.send("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc", 1)
+
+        let request = try #require(walletService.transferTokenLastRequest)
+        #expect(request.signer == expectedSigner)
+    }
+
+    @Test func sendsWithTheRecoverySignerWhenTheOnlyDelegatedPasskeyHasNoHost() async throws {
+        walletService.getWalletSignerLocators = ["passkey:credential-id"]
+        let wallet = try await loadWallet(fixture: "WalletEVMPhone", chain: "base-sepolia")
+
+        _ = try? await wallet.send("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc", 1)
+
+        let request = try #require(walletService.transferTokenLastRequest)
+        #expect(request.signer == nil)
     }
 
     @Test func leavesTheSignerUnsetForAnExternalWalletRecoveryMethod() async throws {
