@@ -183,15 +183,15 @@ struct DefaultCrossmintWalletsTests {
         ])
     }
 
-    @Test
-    func registersTheDeviceSignerWhenTheSignerListHasDevice() async throws {
+    @Test(arguments: [false, true])
+    func registersOneDeviceSignerWhenTheSignerListHasDevice(deviceSignerOption: Bool) async throws {
         walletService.createWalletFixture = try loadSolanaWalletFixture()
 
         let wallet = try await makeWallets().createWallet(
             chain: Chain("solana"),
             recoveryMethods: [MockSigner()],
             signers: [.device, .email("alice@example.com")],
-            options: nil
+            options: WalletOptions(deviceSigner: deviceSignerOption)
         )
 
         let entries = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
@@ -200,20 +200,6 @@ struct DefaultCrossmintWalletsTests {
         #expect(entries.count == 2)
         #expect(entries.contains { $0.signer == .device(publicKey: deviceKey, name: "Test Device") })
         #expect(entries.contains { $0.signer == .locator(.email("alice@example.com")) })
-    }
-
-    @Test
-    func sendsOneDeviceSignerWhenTheSignerListAndTheOptionBothAskForIt() async throws {
-        walletService.createWalletFixture = try loadSolanaWalletFixture()
-
-        _ = try await makeWallets().createWallet(
-            chain: Chain("solana"),
-            recoveryMethods: [MockSigner()],
-            signers: [.device],
-            options: WalletOptions(deviceSigner: true)
-        )
-
-        #expect(walletService.lastCreateWalletParams?.config.delegatedSigners?.count == 1)
     }
 
     @Test
@@ -236,11 +222,12 @@ struct DefaultCrossmintWalletsTests {
     func rejectsAPasskeySignerBeforeCreatingAWalletOnANonEVMChain(chainName: String) async throws {
         walletService.createWalletFixture = try loadSolanaWalletFixture()
         let wallets = makeWallets()
+        let recovery = MockSigner()
 
         await #expect {
             _ = try await wallets.createWallet(
                 chain: Chain(chainName),
-                recoveryMethods: [MockSigner()],
+                recoveryMethods: [recovery],
                 signers: [.passkey(name: "alice", host: "example.com")],
                 options: nil
             )
@@ -248,6 +235,7 @@ struct DefaultCrossmintWalletsTests {
             guard case .walletCreationFailed = error as? WalletError else { return false }
             return true
         }
+        #expect(recovery.initializeCallCount == 0)
         #expect(walletService.createWalletCallCount == 0)
     }
 }
