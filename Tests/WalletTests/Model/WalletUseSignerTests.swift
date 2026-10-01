@@ -86,6 +86,59 @@ struct WalletUseSignerTests {
         return (wallet, walletService)
     }
 
+    @Suite("with a passkey")
+    struct PasskeyTests {
+        private let parent = WalletUseSignerTests()
+        private let recoveryPasskeyId = "i16I1qQWzGH-Ctu2rBaCqY-e"
+
+        @Test func selectsTheOnlyDelegatedPasskeyWhenNoIdIsGiven() async throws {
+            let (wallet, _) = try parent.makeEVMWallet(fileName: "WalletPasskeyWithDelegatedPasskey")
+
+            try await wallet.useSigner(.passkey(name: "someone@paella.dev", host: "paella.dev"))
+
+            #expect(await wallet.selectedSigner?.locator == .passkey(credentialId: "laptop-cred"))
+        }
+
+        @Test func selectsTheRecoveryPasskeyWhenNoPasskeyIsDelegated() async throws {
+            let (wallet, _) = try parent.makeEVMWallet(fileName: "WalletPasskey")
+
+            try await wallet.useSigner(.passkey(name: "someone@paella.dev", host: "paella.dev"))
+
+            #expect(await wallet.selectedSigner?.locator == .passkey(credentialId: recoveryPasskeyId))
+        }
+
+        @Test func rejectsAPasskeyWithoutIdWhenTheWalletHasSeveral() async throws {
+            let (wallet, _) = try parent.makeEVMWallet(fileName: "WalletPasskeyWithTwoDelegatedPasskeys")
+
+            await #expect { try await wallet.useSigner(.passkey(name: "someone@paella.dev", host: "paella.dev")) }
+                throws: { error in
+                    guard case .walletGeneric = error as? WalletError else { return false }
+                    return true
+                }
+            #expect(wallet.selectedSigner == nil)
+        }
+
+        @Test func selectsTheDelegatedPasskeyWithTheGivenId() async throws {
+            let (wallet, _) = try parent.makeEVMWallet(fileName: "WalletPasskeyWithTwoDelegatedPasskeys")
+
+            try await wallet.useSigner(.passkey(name: "someone@paella.dev", host: "paella.dev", id: "phone-cred"))
+
+            #expect(await wallet.selectedSigner?.locator == .passkey(credentialId: "phone-cred"))
+        }
+
+        @Test func rejectsAPasskeyIdThatIsNotRegistered() async throws {
+            let (wallet, _) = try parent.makeEVMWallet(fileName: "WalletPasskeyWithTwoDelegatedPasskeys")
+
+            await #expect {
+                try await wallet.useSigner(.passkey(name: "someone@paella.dev", host: "paella.dev", id: "unknown"))
+            } throws: { error in
+                guard case .signerNotRegistered(let locator) = error as? WalletError else { return false }
+                return locator == "passkey:unknown"
+            }
+            #expect(wallet.selectedSigner == nil)
+        }
+    }
+
     @Suite("when the wallet cannot be fetched")
     struct NetworkOutageTests {
         private let parent = WalletUseSignerTests()
@@ -94,7 +147,11 @@ struct WalletUseSignerTests {
         @Test(arguments: [
             ("WalletEVMEmail", SignerConfig.email("user@example.com")),
             ("WalletEVMPhone", SignerConfig.phone("+14155552671")),
-            ("WalletEVMApiKey", SignerConfig.apiKey)
+            ("WalletEVMApiKey", SignerConfig.apiKey),
+            (
+                "WalletPasskey",
+                SignerConfig.passkey(name: "someone@paella.dev", host: "paella.dev", id: "i16I1qQWzGH-Ctu2rBaCqY-e")
+            )
         ])
         func selectsARecoverySignerWithoutFetchingTheWallet(fixture: String, config: SignerConfig) async throws {
             let (wallet, walletService) = try parent.makeEVMWallet(fileName: fixture)
