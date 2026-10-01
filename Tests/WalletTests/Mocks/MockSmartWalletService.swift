@@ -13,6 +13,7 @@ extension DelegatedSignerEntry.Signer {
         switch self {
         case .locator(let locator): locator.value
         case .device(let publicKey, _): "device:\(try publicKey.uncompressedBase64())"
+        case .passkey(let data): SignerLocator.passkey(credentialId: data.id).value
         }
     }
 }

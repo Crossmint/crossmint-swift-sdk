@@ -159,6 +159,78 @@ struct DefaultCrossmintWalletsTests {
         #expect(keyStorage.keysByAddress.isEmpty)
         #expect(wallet.deviceSignerKeyStorage == nil)
     }
+
+    @Test
+    func sendsEachSignerAsALocator() async throws {
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [MockSigner()],
+            signers: [
+                .phone("+14155552671", channel: .whatsapp),
+                .email("alice@example.com"),
+                .externalWallet("0xABC")
+            ],
+            options: nil
+        )
+
+        let entries = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
+        #expect(entries.map(\.signer) == [
+            .locator(.phone("+14155552671")),
+            .locator(.email("alice@example.com")),
+            .locator(.externalWallet(address: "0xABC"))
+        ])
+    }
+
+    @Test
+    func registersTheDeviceSignerWhenTheSignerListHasDevice() async throws {
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
+
+        let wallet = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [MockSigner()],
+            signers: [.device, .email("alice@example.com")],
+            options: nil
+        )
+
+        let entries = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
+        let publicKeyBase64 = try #require(await keyStorage.getKey(address: wallet.address))
+        let deviceKey = try #require(DevicePublicKey(publicKeyBase64: publicKeyBase64))
+        #expect(entries.count == 2)
+        #expect(entries.contains { $0.signer == .device(publicKey: deviceKey, name: "Test Device") })
+        #expect(entries.contains { $0.signer == .locator(.email("alice@example.com")) })
+    }
+
+    @Test
+    func sendsOneDeviceSignerWhenTheSignerListAndTheOptionBothAskForIt() async throws {
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [MockSigner()],
+            signers: [.device],
+            options: WalletOptions(deviceSigner: true)
+        )
+
+        #expect(walletService.lastCreateWalletParams?.config.delegatedSigners?.count == 1)
+    }
+
+    @Test
+    func keepsTheSignersWhenTheProviderRejectsTheDeviceSigner() async throws {
+        walletService.createWalletFixture = try loadSolanaWalletFixture()
+        walletService.createWalletErrors = [.deviceSignerNotSupported("not supported")]
+
+        _ = try await makeWallets().createWallet(
+            chain: Chain("solana"),
+            recoveryMethods: [MockSigner()],
+            signers: [.email("alice@example.com")],
+            options: WalletOptions(deviceSigner: true)
+        )
+
+        let retried = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
+        #expect(retried.map(\.signer) == [.locator(.email("alice@example.com"))])
+    }
 }
 
 @Suite("Wallet Creation with a recovery signer list", .tags(.unit))
