@@ -90,6 +90,27 @@ public protocol CrossmintWallets: Sendable {
         recoveryMethods: [any Signer],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
+
+    /// Creates a new smart wallet for the authenticated user, with more signers on the wallet.
+    ///
+    /// The SDK adds the signers when it creates the wallet. The recovery method does not approve them.
+    ///
+    /// - Parameters:
+    ///   - chain: The blockchain to deploy to.
+    ///   - recoveryMethods: The signers that can each authorize recovery operations for this wallet.
+    ///   - signers: The signers to add to the wallet. For ``SignerConfig/passkey(name:host:)``, the SDK
+    ///     asks the user to create the passkey first. ``SignerConfig/device`` has the same effect as
+    ///     ``WalletOptions/deviceSigner``.
+    ///   - options: Optional configuration, such as enabling a device signer.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if the recovery list is empty.
+    ///   The SDK also throws this error if the list has more than one signer on a chain that accepts one.
+    ///   ``WalletError/walletCreationCancelled`` if the user cancels the passkey creation.
+    func createWallet(
+        chain: Chain,
+        recoveryMethods: [any Signer],
+        signers: [SignerConfig],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet
 }
 
 extension CrossmintWallets {
@@ -120,6 +141,23 @@ extension CrossmintWallets {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet {
         try await createWallet(chain: chain, recoveryMethods: [recovery], options: options)
+    }
+
+    /// The default for conformers that do not implement this method. If `signers` is empty, it creates
+    /// the wallet without more signers. If not, it throws ``WalletError/walletGeneric(_:)``.
+    public func createWallet(
+        chain: Chain,
+        recoveryMethods: [any Signer],
+        signers: [SignerConfig],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet {
+        guard signers.isEmpty else {
+            throw .walletGeneric(
+                "This CrossmintWallets implementation does not implement "
+                    + "createWallet(chain:recoveryMethods:signers:options:)"
+            )
+        }
+        return try await createWallet(chain: chain, recoveryMethods: recoveryMethods, options: options)
     }
 
     // MARK: - getWallet convenience overloads
@@ -245,16 +283,20 @@ extension CrossmintWallets {
     ///
     /// The wallet's first recovery signer, as the API reports it, is the active signer until
     /// ``Wallet/useSigner(_:)`` selects another one.
+    ///
+    /// The SDK adds the `signers` when it creates the wallet. The recovery method does not approve them.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is empty, or has more than
     ///   one signer on a chain that accepts one.
     public func createWallet<C: ChainWithSigners>(
         chain: C,
         recoveryMethods: [C.SpecificSigner],
+        signers delegatedSigners: [SignerConfig] = [],
         options: WalletOptions? = nil
     ) async throws(WalletError) -> C.WalletType {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
             recoveryMethods: await signers(recoveryMethods),
+            signers: delegatedSigners,
             options: options
         )
         guard let typed = wallet as? C.WalletType else {
