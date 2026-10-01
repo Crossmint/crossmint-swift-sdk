@@ -359,7 +359,7 @@ public struct WalletOptions {
     ///
     /// Set this value when the wallet has a passkey recovery method or a passkey signer.
     /// The SDK then signs with the passkey when the passkey is the first recovery method or the only signer.
-    /// If you do not set this value, call ``Wallet/useSigner(_:)`` with ``SignerConfig/passkey(name:host:)``
+    /// If you do not set this value, call ``Wallet/useSigner(_:)`` with ``SignerConfig/passkey(name:host:id:)``
     /// before you send a transaction.
     public let passkeyHost: String?
 

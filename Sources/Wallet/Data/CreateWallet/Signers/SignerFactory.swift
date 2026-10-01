@@ -9,6 +9,24 @@ import CrossmintCommonTypes
 import Web
 
 enum SignerFactory {
+    struct Defaults {
+        let recovery: (any Signer)?
+        let delegated: (any Signer)?
+    }
+
+    @MainActor
+    static func defaults(
+        recovery recoveryMethod: any AdminSignerData,
+        delegated delegatedLocators: [SignerLocator],
+        chainType: ChainType,
+        passkeyHost: String?
+    ) async -> Defaults {
+        Defaults(
+            recovery: await recovery(recoveryMethod, chainType: chainType, passkeyHost: passkeyHost),
+            delegated: await onlyDelegated(delegatedLocators, chainType: chainType, passkeyHost: passkeyHost)
+        )
+    }
+
     @MainActor
     static func email(_ email: String, chainType: ChainType) -> (any Signer)? {
         switch chainType {
@@ -29,12 +47,12 @@ enum SignerFactory {
         return PhoneSigner(phone: phone, channel: channel, chainType: chainType, crossmintTEE: CrossmintTEE.shared)
     }
 
-    static func passkey(_ data: PasskeySignerData, host: String) async -> any Signer {
+    private static func passkey(_ data: PasskeySignerData, host: String) async -> any Signer {
         await PasskeySigner(name: data.name, host: host).updateAdminSigner(data)
     }
 
     @MainActor
-    static func recovery(
+    private static func recovery(
         _ data: any AdminSignerData,
         chainType: ChainType,
         passkeyHost: String?
@@ -58,13 +76,13 @@ enum SignerFactory {
     }
 
     @MainActor
-    static func onlyDelegated(
+    private static func onlyDelegated(
         _ locators: [SignerLocator],
         chainType: ChainType,
         passkeyHost: String?
     ) async -> (any Signer)? {
         guard locators.count == 1 else { return nil }
-        switch locators[0] {
+        return switch locators[0] {
         case .email(let address):
             email(address, chainType: chainType)
         case .phone(let number):
