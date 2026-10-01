@@ -107,12 +107,15 @@ public final class PasskeySigner: Signer {
             throw .invalidMessage
         }
 
+        let credential = PublicKeyCredentialDescriptor(id: await adminSigner.id, type: .publicKey)
+
         do {
             let passkey = Passkey()
             let response = try await passkey.get(
                 PasskeyCredentialRequestOptions(
                     challenge: preparedChallenge,
                     rpId: host,
+                    allowCredentials: [credential],
                     userVerification: .required
                 ),
                 forcePlatformKey: false,

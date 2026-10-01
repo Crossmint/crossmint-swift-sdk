@@ -152,6 +152,8 @@ let package = Package(
             ],
             resources: [
                 .process("Resources/WalletPasskey.json"),
+                .process("Resources/WalletPasskeyWithDelegatedPasskey.json"),
+                .process("Resources/WalletPasskeyWithTwoDelegatedPasskeys.json"),
                 .process("Resources/Balances/BalancesBreakdown.json"),
                 .process("Resources/Balances/BalancesRepeatedToken.json"),
                 .process("Resources/Balances/BalancesMalformedBreakdown.json"),
