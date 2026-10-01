@@ -58,6 +58,7 @@ struct EmailValidationTests {
             ("First.Last@Gmail.com", "firstlast@gmail.com"),
             ("first.last@googlemail.com", "firstlast@gmail.com"),
             ("first.last+tag@gmail.com", "firstlast+tag@gmail.com"),
+            (" First.Last@GoogleMail.com\n", "firstlast@gmail.com"),
             ("not-an-email", "not-an-email")
         ]
     )

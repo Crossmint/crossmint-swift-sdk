@@ -9,7 +9,7 @@ public func normalizeEmail(_ email: String) -> String {
 }
 
 package func normalizeSignerEmail(_ email: String) -> String {
-    let lowercased = email.lowercased()
+    let lowercased = normalizeEmail(email)
     let parts = lowercased.split(separator: "@", maxSplits: 1, omittingEmptySubsequences: false)
     guard parts.count == 2 else { return lowercased }
 
