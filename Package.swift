@@ -22,6 +22,12 @@ let package = Package(
             targets: [
                 "CrossmintClient"
             ]
+        ),
+        .library(
+            name: "CrossmintDeviceSigner",
+            targets: [
+                "DeviceSigner"
+            ]
         )
     ],
     dependencies: [
