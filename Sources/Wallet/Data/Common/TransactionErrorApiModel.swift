@@ -8,7 +8,7 @@ public struct TransactionErrorApiModel: Decodable {
     public struct Revert: Decodable {
         public let type: String
         public let reason: String
-        public let simulationLink: URL
+        public let simulationLink: URL?
 
         var toDomain: Transaction.Error.Revert {
             Transaction.Error.Revert(
