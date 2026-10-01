@@ -58,12 +58,13 @@ enum SignerFactory {
     }
 
     @MainActor
-    static func delegated(
-        _ locator: SignerLocator,
+    static func onlyDelegated(
+        _ locators: [SignerLocator],
         chainType: ChainType,
         passkeyHost: String?
     ) async -> (any Signer)? {
-        switch locator {
+        guard locators.count == 1 else { return nil }
+        switch locators[0] {
         case .email(let address):
             email(address, chainType: chainType)
         case .phone(let number):

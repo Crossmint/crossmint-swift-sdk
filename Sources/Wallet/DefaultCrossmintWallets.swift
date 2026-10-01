@@ -106,21 +106,16 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             await loadNonCustodialSigner(defaultSigner)
         }
 
-        if let delegatedSigner = await onlyDelegatedSigner(of: walletApiModel, passkeyHost: options?.passkeyHost) {
+        if let delegatedSigner = await SignerFactory.onlyDelegated(
+            walletApiModel.config.signers?.map(\.locator) ?? [],
+            chainType: walletApiModel.chainType,
+            passkeyHost: options?.passkeyHost
+        ) {
             wallet.selectedSigner = delegatedSigner
             await loadNonCustodialSigner(delegatedSigner)
         }
 
         return wallet
-    }
-
-    private func onlyDelegatedSigner(of walletApiModel: WalletApiModel, passkeyHost: String?) async -> (any Signer)? {
-        guard let delegatedSigners = walletApiModel.config.signers, delegatedSigners.count == 1 else { return nil }
-        return await SignerFactory.delegated(
-            delegatedSigners[0].locator,
-            chainType: walletApiModel.chainType,
-            passkeyHost: passkeyHost
-        )
     }
 
     private func createWallet(
