@@ -60,6 +60,17 @@ struct WalletRecoveryMethodChangesTests {
         #expect(wallet.recoveryMethods.last?.status == .active)
     }
 
+    @Test func recordsAnAddedEmailWithTheNormalizedSpelling() async throws {
+        let wallet = try makeWallet(fileName: "WalletSolanaEmail", signerEmail: "admin@example.com")
+        walletService.addRecoveryMethodResult = try solanaTransaction("SolanaSignerRegistrationAwaitingApproval")
+        walletService.fetchTransactionResult = try solanaTransaction("RemoveSignerTransactionSuccess")
+
+        try await wallet.addRecoveryMethod(.email("Back.Up@GoogleMail.com"))
+
+        #expect(walletService.lastAddRecoveryMethod?.locator == "email:backup@gmail.com")
+        #expect(wallet.recoveryMethods.last?.signer.locator == "email:backup@gmail.com")
+    }
+
     @Test func marksARecoveryMethodActiveWhenAddingItAgainSucceeds() async throws {
         let wallet = try makeWallet(fileName: "WalletSolanaFailedRecoveryMethod")
         walletService.addRecoveryMethodResult = try solanaTransaction("RemoveSignerTransactionSuccess")
