@@ -93,13 +93,14 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             await assignPendingDeviceSignerKey(storage: storage, walletApiModel: walletApiModel)
         }
 
-        let defaultSigner: (any Signer)?
-        if let recovery {
-            defaultSigner = recovery.active
-        } else {
-            let recoveryMethod = walletApiModel.config.toDomain.recovery
-            defaultSigner = await SignerFactory.recovery(recoveryMethod, chainType: walletApiModel.chainType)
-        }
+        let delegatedLocators = walletApiModel.config.signers?.map(\.locator) ?? []
+        let defaults = await SignerFactory.defaults(
+            recovery: walletApiModel.config.toDomain.recovery,
+            delegated: deviceSignerStorage == nil ? delegatedLocators : [],
+            chainType: walletApiModel.chainType,
+            passkeyHost: options?.passkeyHost
+        )
+        let defaultSigner = recovery?.active ?? defaults.recovery
         let wallet = try buildWallet(
             from: walletApiModel,
             chain: chain,
@@ -107,9 +108,10 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
             options: options,
             deviceSignerStorage: deviceSignerStorage
         )
+        wallet.selectedSigner = defaults.delegated
 
-        if let defaultSigner {
-            await loadNonCustodialSigner(defaultSigner)
+        for signer in [defaultSigner, defaults.delegated].compactMap({ $0 }) {
+            await loadNonCustodialSigner(signer)
         }
 
         return wallet
