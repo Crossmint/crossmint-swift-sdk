@@ -448,6 +448,20 @@ struct WalletLoadingTests {
         #expect(request.signer == expectedSigner)
     }
 
+    @Test func sendsWithTheDeviceSignerOverTheOnlyDelegatedSignerWhenTheDeviceSignerIsOn() async throws {
+        walletService.getWalletSignerLocators = ["email:delegated@example.com"]
+        let wallet = try await loadWallet(
+            fixture: "WalletEVMPhone",
+            chain: "base-sepolia",
+            options: WalletOptions(deviceSigner: true)
+        )
+
+        _ = try? await wallet.send("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc", 1)
+
+        let request = try #require(walletService.transferTokenLastRequest)
+        #expect(request.signer?.hasPrefix("device:") == true)
+    }
+
     @Test func sendsWithTheRecoverySignerWhenTheOnlyDelegatedPasskeyHasNoHost() async throws {
         walletService.getWalletSignerLocators = ["passkey:credential-id"]
         let wallet = try await loadWallet(fixture: "WalletEVMPhone", chain: "base-sepolia")
