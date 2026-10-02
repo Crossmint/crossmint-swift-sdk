@@ -59,6 +59,20 @@ struct CrossmintWalletsRecoveryOverloadTests {
         #expect(spy.receivedSigners[0] is SolanaEmailSigner)
     }
 
+    @Test func rejectsSignersWhenTheConformerDoesNotImplementTheSignersEntryPoint() async throws {
+        let spy = SpyCrossmintWallets()
+        spy.wallet = try makeSolanaWallet()
+
+        await #expect(throws: WalletError.self) {
+            _ = try await spy.createWallet(
+                chain: SolanaChain.solana,
+                recoveryMethods: [.email("alice@example.com")],
+                signers: [.email("bob@example.com")]
+            )
+        }
+        #expect(spy.receivedChain == nil)
+    }
+
     @Test func throwsFromTheGetWalletDefault() async throws {
         let wallets = SpyCrossmintWallets()
 

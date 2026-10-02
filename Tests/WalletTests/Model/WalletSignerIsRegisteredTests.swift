@@ -28,6 +28,12 @@ struct WalletSignerIsRegisteredTests {
         #expect(await wallet.signerIsRegistered(.email("user@example.com")))
     }
 
+    @Test func matchesDelegatedEmailSignerTypedWithOtherCapitalization() async throws {
+        let wallet = try makeWallet(walletService: MockSmartWalletService())
+
+        #expect(await wallet.signerIsRegistered(.email("User@Example.com")))
+    }
+
     @Test func matchesRecoveryApiKeySigner() async throws {
         let wallet = try makeWallet(walletService: MockSmartWalletService())
 

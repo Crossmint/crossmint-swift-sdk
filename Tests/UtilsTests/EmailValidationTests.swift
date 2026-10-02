@@ -32,21 +32,16 @@ struct EmailValidationTests {
         "Lowercases email",
         arguments: [
             ("USER@EXAMPLE.COM", "user@example.com"),
-            ("Test.User@Domain.Org", "test.user@domain.org")
+            ("Test.User@Domain.Org", "test.user@domain.org"),
+            ("\tuser@example.com\n", "user@example.com"),
+            ("First.Last@Gmail.com", "firstlast@gmail.com"),
+            ("first.last@googlemail.com", "firstlast@gmail.com"),
+            ("first.last+tag@gmail.com", "firstlast+tag@gmail.com"),
+            (" First.Last@GoogleMail.com\n", "firstlast@gmail.com"),
+            ("not-an-email", "not-an-email")
         ]
     )
     func lowercasesEmail(input: String, expected: String) {
-        #expect(normalizeEmail(input) == expected)
-    }
-
-    @Test(
-        "Trims surrounding whitespace",
-        arguments: [
-            ("  user@example.com  ", "user@example.com"),
-            ("\tuser@example.com\n", "user@example.com")
-        ]
-    )
-    func trimsSurroundingWhitespace(input: String, expected: String) {
         #expect(normalizeEmail(input) == expected)
     }
 }
