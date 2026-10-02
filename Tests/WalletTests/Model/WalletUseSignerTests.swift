@@ -68,6 +68,18 @@ struct WalletUseSignerTests {
         #expect(walletService.getWalletCallCount == 1)
     }
 
+    @Test func selectsAnApiKeyThatIsADelegatedSigner() async throws {
+        let (wallet, walletService) = try makeEVMWallet(fileName: "WalletEVMEmail")
+        let url = try #require(Bundle.module.url(forResource: "WalletEVMEmail", withExtension: "json"))
+        walletService.getWalletResult = nil
+        walletService.getWalletFixture = try Data(contentsOf: url)
+        walletService.getWalletSignerLocators = ["api-key"]
+
+        try await wallet.useSigner(.apiKey)
+
+        #expect(await wallet.selectedSigner?.locator == .apiKey())
+    }
+
     @Test func buildsAPhoneLocatorThatIgnoresTheChannel() {
         #expect(SignerConfig.phone("+14155552671", channel: .whatsapp).locator == .phone("+14155552671"))
         #expect(SignerConfig.phone("+14155552671").locator == .phone("+14155552671"))

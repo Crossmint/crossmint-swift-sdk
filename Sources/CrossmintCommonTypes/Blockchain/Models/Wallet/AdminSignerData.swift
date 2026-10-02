@@ -48,8 +48,8 @@ public struct ApiKeySignerData: AdminSignerData {
     }
 }
 
-public struct PasskeySignerData: AdminSignerData {
-    public struct PublicKey: Sendable {
+public struct PasskeySignerData: AdminSignerData, Equatable {
+    public struct PublicKey: Sendable, Equatable {
         public let x: String
         public let y: String
 

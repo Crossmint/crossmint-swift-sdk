@@ -29,6 +29,10 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         if case .passkey = self { true } else { false }
     }
 
+    var isApiKey: Bool {
+        if case .apiKey = self { true } else { false }
+    }
+
     public var value: String {
         switch self {
         case let .device(publicKey):

@@ -271,7 +271,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> any SignatureApiModel {
         let response = try await super.smartWalletService.createSignature(request)
 
-        for pendingApproval in response.approvals.pending {
+        for pendingApproval in response.approvals.pending
+        where !SignerLocator(orUnknown: pendingApproval.signer.locator).isApiKey {
             try await approveSignature(
                 signatureID: response.id,
                 signerLocator: pendingApproval.signer.locator,

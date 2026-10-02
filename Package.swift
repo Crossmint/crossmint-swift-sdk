@@ -167,6 +167,7 @@ let package = Package(
                 .process("Resources/WalletSolanaFireblocks.json"),
                 .process("Resources/WalletSolanaKeypair.json"),
                 .process("Resources/Transaction/CreateTransactionAwaitingApproval.json"),
+                .process("Resources/Transaction/TransactionAwaitingApiKeyApproval.json"),
                 .process("Resources/Transaction/SignTransactionResponse.json"),
                 .process("Resources/Transaction/FailedTransactionResponse.json"),
                 .process("Resources/Transaction/CreateSolanaTransactionResponse.json"),
