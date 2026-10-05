@@ -282,7 +282,7 @@ final class AppState {
         // The channel is per onboarding request and the API never returns it, so a locator
         // alone cannot say how the OTP should be delivered.
         case .phone(let number): .phone(number, channel: phoneChannels[locator.value])
-        case .passkey: .passkey(name: "Crossmint Demo", host: passkeyHost)
+        case .passkey(let id): .passkey(name: "Crossmint Demo", host: passkeyHost, id: id)
         default: nil
         }
     }
