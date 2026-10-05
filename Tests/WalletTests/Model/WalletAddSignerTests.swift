@@ -163,7 +163,11 @@ struct WalletAddSignerTests {
             #expect(walletService.lastAddSignerApprover == approver)
         }
 
-        @Test func selectsThePasskeyRecoveryMethodOfTheWallet() async throws {
+        @Test(arguments: [
+            (nil, "v-Qxh--c2nOkUyBYJHRaXCwSOJw"),
+            ("c2Vjb25kLXBhc3NrZXk", "c2Vjb25kLXBhc3NrZXk")
+        ] as [(String?, String)])
+        func selectsThePasskeyRecoveryMethodOfTheWallet(id: String?, selectedId: String) async throws {
             let walletService = MockSmartWalletService()
             let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
                 fileName: "WalletStellarPasskey",
@@ -175,11 +179,11 @@ struct WalletAddSignerTests {
                 baseModel: baseModel,
                 stellarChain: .stellar
             )
-            try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+            try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com", id: id))
 
             try await wallet.addSigner(.externalWallet("GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"))
 
-            #expect(walletService.lastAddSignerApprover == .passkey(credentialId: "v-Qxh--c2nOkUyBYJHRaXCwSOJw"))
+            #expect(walletService.lastAddSignerApprover == .passkey(credentialId: selectedId))
         }
 
         @Test(arguments: [

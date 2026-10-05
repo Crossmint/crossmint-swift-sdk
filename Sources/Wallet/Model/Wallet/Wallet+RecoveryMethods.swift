@@ -115,7 +115,8 @@ extension Wallet {
     /// If neither applies, the change fails with ``WalletError/RecoveryConfigCode/signerRequired``.
     ///
     /// - Parameter method: An email, phone, API key or passkey recovery method of the wallet.
-    ///   For a passkey, the SDK selects the first passkey in ``recoveryMethods``.
+    ///   For a passkey, the SDK selects the passkey in ``recoveryMethods`` that has the `id` you give.
+    ///   If `id` is `nil`, the SDK selects the first passkey in ``recoveryMethods``.
     ///   The SDK does not create a new passkey.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
     ///   ``WalletError/RecoveryConfigCode/invalidConfig`` if `method` is not in ``recoveryMethods``,
@@ -146,7 +147,7 @@ extension Wallet {
     private func recoveryMethodLocator(of method: SignerConfig) throws(WalletError) -> SignerLocator {
         let candidate: String? = switch method {
         case .apiKey: config.recoverySigner(ofType: ApiKeySignerData.self)?.locator
-        case .passkey: config.recoverySigner(ofType: PasskeySignerData.self)?.locator
+        case .passkey(_, _, let id): recoveryPasskey(id: id)?.locator
         default: method.locator?.value
         }
         guard let candidate, config.recoveryMethods.contains(where: { $0.locator == candidate }) else {
@@ -167,8 +168,8 @@ extension Wallet {
             signer = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType)
         case .apiKey:
             signer = config.recoverySigner(ofType: ApiKeySignerData.self).map { ApiKeySigner(adminSigner: $0) }
-        case .passkey(let name, let host, _):
-            signer = await passkeyRecoverySigner(name: name, host: host)
+        case .passkey(let name, let host, let id):
+            signer = await passkeyRecoverySigner(name: name, host: host, id: id)
         case .externalWallet, .device:
             throw .walletGeneric(
                 "Only an email, phone, API key or passkey recovery method can approve changes from the SDK."
@@ -178,8 +179,14 @@ extension Wallet {
         return signer
     }
 
-    private func passkeyRecoverySigner(name: String, host: String) async -> (any Signer)? {
-        guard let passkey = config.recoverySigner(ofType: PasskeySignerData.self) else { return nil }
+    private func recoveryPasskey(id: String?) -> PasskeySignerData? {
+        config.recoveryMethods
+            .compactMap { $0 as? PasskeySignerData }
+            .first { id == nil || $0.id == id }
+    }
+
+    private func passkeyRecoverySigner(name: String, host: String, id: String?) async -> (any Signer)? {
+        guard let passkey = recoveryPasskey(id: id) else { return nil }
         return await PasskeySigner(name: name, host: host).updateAdminSigner(passkey)
     }
 

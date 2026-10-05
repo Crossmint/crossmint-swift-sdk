@@ -14,8 +14,8 @@ public enum SignerConfig: Sendable {
     /// On Solana wallets, a passkey can only be an added signer. To add it, use ``Wallet/addSigner(_:)``.
     ///
     /// `id` is the credential ID of the passkey that signs.
-    /// Only ``Wallet/useSigner(_:)`` uses `id`.
-    /// ``Wallet/addSigner(_:)`` does not use `id`.
+    /// Only ``Wallet/useSigner(_:)`` and ``Wallet/useRecoveryMethod(_:)`` use `id`.
+    /// ``Wallet/addSigner(_:)`` and ``Wallet/addRecoveryMethod(_:)`` do not use `id`.
     /// A new passkey gets its ID when you create the passkey.
     ///
     /// If `id` is `nil`, ``Wallet/useSigner(_:)`` uses the only passkey signer of the wallet.

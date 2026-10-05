@@ -29,6 +29,17 @@
         "email": "alice@example.com",
         "locator": "email:alice@example.com",
         "status": "active"
+      },
+      {
+        "type": "passkey",
+        "id": "c2Vjb25kLXBhc3NrZXk",
+        "name": "alice-backup",
+        "publicKey": {
+          "x": "63974445517478826529511626494808493056716472585867467274057723945542198688292",
+          "y": "65992374220708497472363050084829585264656015540354474091056129332958175065018"
+        },
+        "locator": "passkey:c2Vjb25kLXBhc3NrZXk",
+        "status": "active"
       }
     ]
   },
