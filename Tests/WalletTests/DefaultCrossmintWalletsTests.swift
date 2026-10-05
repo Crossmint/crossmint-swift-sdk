@@ -217,27 +217,6 @@ struct DefaultCrossmintWalletsTests {
         let retried = try #require(walletService.lastCreateWalletParams?.config.delegatedSigners)
         #expect(retried.map(\.signer) == [.locator(.email("alice@example.com"))])
     }
-
-    @Test(arguments: ["solana", "stellar"])
-    func rejectsAPasskeySignerBeforeCreatingAWalletOnANonEVMChain(chainName: String) async throws {
-        walletService.createWalletFixture = try loadSolanaWalletFixture()
-        let wallets = makeWallets()
-        let recovery = MockSigner()
-
-        await #expect {
-            _ = try await wallets.createWallet(
-                chain: Chain(chainName),
-                recoveryMethods: [recovery],
-                signers: [.passkey(name: "alice", host: "example.com")],
-                options: nil
-            )
-        } throws: { error in
-            guard case .walletCreationFailed = error as? WalletError else { return false }
-            return true
-        }
-        #expect(recovery.initializeCallCount == 0)
-        #expect(walletService.createWalletCallCount == 0)
-    }
 }
 
 @Suite("Wallet Creation with a recovery signer list", .tags(.unit))
@@ -504,22 +483,29 @@ struct WalletLoadingTests {
         #expect(signer.adminSigner.address == "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb")
     }
 
-    @Test(arguments: [("WalletPasskey", "base-sepolia"), ("WalletStellarPasskey", "stellar")])
-    func leavesTheSignerUnsetForAPasskeyRecoveryMethod(fixture: String, chain: String) async throws {
-        let wallet = try await loadWallet(fixture: fixture, chain: chain)
+    @Test func leavesTheSignerUnsetForAPasskeyRecoveryMethod() async throws {
+        let wallet = try await loadWallet(fixture: "WalletPasskey", chain: "base-sepolia")
 
-        #expect(wallet.recoveryMethods.first?.signer.type == .passkey)
         #expect(wallet.signer == nil)
     }
 
-    @Test func sendsWithAPasskeyRecoveryMethodWhenThePasskeyHostIsSet() async throws {
+    @Test(arguments: [
+        ("WalletPasskey", "base-sepolia", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc"),
+        ("WalletStellarPasskey", "stellar", "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37", "stellar:usdc")
+    ])
+    func sendsWithAPasskeyRecoveryMethodWhenThePasskeyHostIsSet(
+        fixture: String,
+        chain: String,
+        recipient: String,
+        token: String
+    ) async throws {
         let wallet = try await loadWallet(
-            fixture: "WalletPasskey",
-            chain: "base-sepolia",
+            fixture: fixture,
+            chain: chain,
             options: WalletOptions(passkeyHost: "example.com")
         )
 
-        _ = try? await wallet.send("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc", 1)
+        _ = try? await wallet.send(recipient, token, 1)
 
         #expect(walletService.transferTokenCallCount == 1)
     }

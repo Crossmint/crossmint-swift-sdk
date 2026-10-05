@@ -125,11 +125,6 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     ) async throws(WalletError) -> Wallet {
         try assertValid(chain)
         let recovery = try recovery.resolved(for: chain)
-        let passkeyListed = signers.contains { if case .passkey = $0 { true } else { false } }
-        if passkeyListed, chain.chainType != .evm {
-            throw .walletCreationFailed("Passkey signers are supported only on EVM chains, not on \(chain.name)")
-        }
-
         let deviceSignerListed = signers.contains { if case .device = $0 { true } else { false } }
         let deviceSignerStorage = options?.deviceSigner == true || deviceSignerListed ? deviceSignerKeyStorage : nil
         let creation = try await createWalletApiModel(
