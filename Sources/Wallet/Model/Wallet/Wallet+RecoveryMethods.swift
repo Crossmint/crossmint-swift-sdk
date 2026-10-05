@@ -168,8 +168,8 @@ extension Wallet {
             signer = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType)
         case .apiKey:
             signer = config.recoverySigner(ofType: ApiKeySignerData.self).map { ApiKeySigner(adminSigner: $0) }
-        case .passkey(let name, let host, let id):
-            signer = await passkeyRecoverySigner(name: name, host: host, id: id)
+        case .passkey(_, let host, let id):
+            signer = await passkeyRecoverySigner(host: host, id: id)
         case .externalWallet, .device:
             throw .walletGeneric(
                 "Only an email, phone, API key or passkey recovery method can approve changes from the SDK."
@@ -185,9 +185,9 @@ extension Wallet {
             .first { id == nil || $0.id == id }
     }
 
-    private func passkeyRecoverySigner(name: String, host: String, id: String?) async -> (any Signer)? {
+    private func passkeyRecoverySigner(host: String, id: String?) async -> (any Signer)? {
         guard let passkey = recoveryPasskey(id: id) else { return nil }
-        return await PasskeySigner(name: name, host: host).updateAdminSigner(passkey)
+        return await SignerFactory.passkey(passkey, host: host)
     }
 
     private func assertRecoveryMethodChangesSupported() throws(WalletError) {
