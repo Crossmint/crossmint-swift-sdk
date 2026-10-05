@@ -390,7 +390,15 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         return await signer?.adminSigner.locator ?? config.recovery.locator
     }
 
+    private var hasSigner: Bool {
+        get async {
+            if selectedSigner != nil || selectedRecoveryMethod != nil || signer != nil { return true }
+            return await localDeviceSigner() != nil
+        }
+    }
+
     internal func selectedSignerLocatorForTransactions() async throws(TransactionError) -> SignerLocator? {
+        guard await hasSigner else { throw .transactionCreationFailedNoSigner }
         do {
             return try await selectedSignerLocator()
         } catch {
