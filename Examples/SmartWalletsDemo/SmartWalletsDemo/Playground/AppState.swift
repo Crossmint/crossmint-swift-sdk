@@ -292,7 +292,7 @@ final class AppState {
     }
 
     private func fetchWallet(chain: SupportedChain) async throws -> Wallet? {
-        let options = WalletOptions(deviceSigner: true)
+        let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.getWallet(chain: EVMChain.baseSepolia, options: options)
@@ -304,7 +304,7 @@ final class AppState {
     }
 
     private func makeWallet(chain: SupportedChain, email: String) async throws -> Wallet {
-        let options = WalletOptions(deviceSigner: true)
+        let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.createWallet(
@@ -335,7 +335,7 @@ final class AppState {
         guard chain.supportsRecoveryList, !extraRecovery.isEmpty else {
             return try await makeWallet(chain: chain, email: email)
         }
-        let options = WalletOptions(deviceSigner: true)
+        let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
         switch chain {
         case .evm:
             return try await makeWallet(chain: chain, email: email)
