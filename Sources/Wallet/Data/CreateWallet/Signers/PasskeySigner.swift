@@ -106,7 +106,8 @@ public final class PasskeySigner: Signer {
         guard let preparedChallenge = message.hexData else {
             throw .invalidMessage
         }
-        let allowedCredentials = await state.adminSigner.map { [PublicKeyCredentialDescriptor(id: $0.id)] }
+
+        let credential = PublicKeyCredentialDescriptor(id: await adminSigner.id, type: .publicKey)
 
         do {
             let passkey = Passkey()
@@ -114,7 +115,7 @@ public final class PasskeySigner: Signer {
                 PasskeyCredentialRequestOptions(
                     challenge: preparedChallenge,
                     rpId: host,
-                    allowCredentials: allowedCredentials,
+                    allowCredentials: [credential],
                     userVerification: .required
                 ),
                 forcePlatformKey: false,

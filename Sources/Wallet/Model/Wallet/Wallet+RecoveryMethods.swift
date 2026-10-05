@@ -167,7 +167,7 @@ extension Wallet {
             signer = await SignerFactory.phone(phone, channel: channel, chainType: chain.chainType)
         case .apiKey:
             signer = config.recoverySigner(ofType: ApiKeySignerData.self).map { ApiKeySigner(adminSigner: $0) }
-        case .passkey(let name, let host):
+        case .passkey(let name, let host, _):
             signer = await passkeyRecoverySigner(name: name, host: host)
         case .externalWallet, .device:
             throw .walletGeneric(
@@ -201,7 +201,7 @@ extension Wallet {
             return PhoneSignerData(phone: phone)
         case .externalWallet(let address, _):
             return ExternalWalletSignerData(address: address)
-        case .passkey(let name, let host):
+        case .passkey(let name, let host, _):
             guard chain.chainType != .solana else {
                 throw .passkeyRecoveryNotAllowedOnSolana
             }
@@ -237,9 +237,12 @@ extension Wallet {
     }
 
     private func recordAddedRecoveryMethod(_ recoveryMethod: any AdminSignerData) {
-        let known = config.recoveryMethods.contains { $0.locator == recoveryMethod.locator }
-        guard !known else { return }
-        let methods = config.recoveryMethodsWithStatus + [RecoveryMethod(signer: recoveryMethod, status: .active)]
+        var methods = config.recoveryMethodsWithStatus
+        if let index = methods.firstIndex(where: { $0.signer.locator == recoveryMethod.locator }) {
+            methods[index] = RecoveryMethod(signer: methods[index].signer, status: .active)
+        } else {
+            methods.append(RecoveryMethod(signer: recoveryMethod, status: .active))
+        }
         config = WalletConfig(recovery: methods[0], others: Array(methods.dropFirst()))
     }
 

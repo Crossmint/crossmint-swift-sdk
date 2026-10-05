@@ -390,7 +390,15 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         return await signer?.adminSigner.locator ?? config.recovery.locator
     }
 
+    private var hasSigner: Bool {
+        get async {
+            if selectedSigner != nil || selectedRecoveryMethod != nil || signer != nil { return true }
+            return await localDeviceSigner() != nil
+        }
+    }
+
     internal func selectedSignerLocatorForTransactions() async throws(TransactionError) -> SignerLocator? {
+        guard await hasSigner else { throw .transactionCreationFailedNoSigner }
         do {
             return try await selectedSignerLocator()
         } catch {
@@ -499,7 +507,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 "count": "\(approvals.pending.count)",
                 "signers": approvals.pending.map(\.signer).joined(separator: ", ")
             ])
-            for pendingApproval in approvals.pending {
+            for pendingApproval in approvals.pending
+            where !SignerLocator(orUnknown: pendingApproval.signer).isApiKey {
                 try await approveTransaction(
                     transactionId: transaction.id,
                     signerLocator: pendingApproval.signer,

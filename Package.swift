@@ -22,6 +22,12 @@ let package = Package(
             targets: [
                 "CrossmintClient"
             ]
+        ),
+        .library(
+            name: "CrossmintDeviceSigner",
+            targets: [
+                "DeviceSigner"
+            ]
         )
     ],
     dependencies: [
@@ -152,6 +158,8 @@ let package = Package(
             ],
             resources: [
                 .process("Resources/WalletPasskey.json"),
+                .process("Resources/WalletPasskeyWithDelegatedPasskey.json"),
+                .process("Resources/WalletPasskeyWithTwoDelegatedPasskeys.json"),
                 .process("Resources/Balances/BalancesBreakdown.json"),
                 .process("Resources/Balances/BalancesRepeatedToken.json"),
                 .process("Resources/Balances/BalancesMalformedBreakdown.json"),
@@ -159,6 +167,7 @@ let package = Package(
                 .process("Resources/WalletSolanaFireblocks.json"),
                 .process("Resources/WalletSolanaKeypair.json"),
                 .process("Resources/Transaction/CreateTransactionAwaitingApproval.json"),
+                .process("Resources/Transaction/TransactionAwaitingApiKeyApproval.json"),
                 .process("Resources/Transaction/SignTransactionResponse.json"),
                 .process("Resources/Transaction/FailedTransactionResponse.json"),
                 .process("Resources/Transaction/CreateSolanaTransactionResponse.json"),
@@ -182,6 +191,7 @@ let package = Package(
                 .process("Resources/WalletSolanaEmailWithStaleDeviceSigner.json"),
                 .process("Resources/WalletEVMPhone.json"),
                 .process("Resources/WalletSolanaRecoveryMethods.json"),
+                .process("Resources/WalletSolanaFailedRecoveryMethod.json"),
                 .process("Resources/WalletStellarRecoveryMethods.json"),
                 .process("Resources/WalletStellarExternalWallet.json"),
                 .process("Resources/WalletStellarPasskey.json"),

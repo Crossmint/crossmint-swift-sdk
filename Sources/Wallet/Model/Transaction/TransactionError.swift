@@ -59,7 +59,10 @@ public enum TransactionError: CrossmintError {
 
     public var recoverySuggestion: String? {
         switch self {
-        case .transactionCreationFailedNoSigner, .transactionSigningFailedNoSigner:
+        case .transactionCreationFailedNoSigner:
+            "Call useSigner(_:) before you send a transaction. "
+                + "For a passkey, you can also set passkeyHost in WalletOptions when you get the wallet."
+        case .transactionSigningFailedNoSigner:
             "Ensure a signer is configured before initiating a transaction."
         case .transactionSigningFailedInvalidKey:
             "Verify that the signing key is valid and has not been revoked."

@@ -12,7 +12,15 @@ public enum SignerConfig: Sendable {
     ///
     /// On EVM and Stellar wallets, a passkey can be a recovery signer or an added signer.
     /// On Solana wallets, a passkey can only be an added signer. To add it, use ``Wallet/addSigner(_:)``.
-    case passkey(name: String, host: String)
+    ///
+    /// `id` is the credential ID of the passkey that signs.
+    /// Only ``Wallet/useSigner(_:)`` uses `id`.
+    /// ``Wallet/addSigner(_:)`` does not use `id`.
+    /// A new passkey gets its ID when you create the passkey.
+    ///
+    /// If `id` is `nil`, ``Wallet/useSigner(_:)`` uses the only passkey signer of the wallet.
+    /// If the wallet has more than one passkey signer, you must give `id`.
+    case passkey(name: String, host: String, id: String? = nil)
     /// An email OTP signer.
     case email(String)
     /// A phone OTP signer. The phone number must be in E.164 format (e.g. `"+15551234567"`).

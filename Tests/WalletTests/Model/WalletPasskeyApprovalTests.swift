@@ -59,8 +59,8 @@ struct WalletPasskeyApprovalTests {
             fileName: "RemoveSignerTransactionSuccess",
             bundle: .module
         )
-        walletService.fetchTransactionResult = pending
-        walletService.transactionAfterSigning = completed
+        walletService.fetchTransactionResults = [pending]
+        walletService.fetchTransactionResult = completed
         let wallet = try makeWallet(on: chainType)
         let passkey = MockSigner(email: "user@example.com", signerType: .passkey)
         wallet.selectedSigner = passkey

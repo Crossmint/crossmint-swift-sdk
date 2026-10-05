@@ -13,6 +13,7 @@ extension DelegatedSignerEntry.Signer {
         switch self {
         case .locator(let locator): locator.value
         case .device(let publicKey, _): "device:\(try publicKey.uncompressedBase64())"
+        case .passkey(let data): SignerLocator.passkey(credentialId: data.id).value
         }
     }
 }
@@ -302,7 +303,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     // MARK: - fetchTransaction / signTransaction
 
     var fetchTransactionResult: (any TransactionApiModel)?
-    var transactionAfterSigning: (any TransactionApiModel)?
+    var fetchTransactionResults: [any TransactionApiModel] = []
     var lastFetchTransactionRequest: FetchTransactionRequest?
     var signTransactionCallCount = 0
     var lastSignTransactionRequest: SignRequest?
@@ -311,6 +312,9 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         _ fetchTransactionRequest: FetchTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         lastFetchTransactionRequest = fetchTransactionRequest
+        if !fetchTransactionResults.isEmpty {
+            return fetchTransactionResults.removeFirst()
+        }
         guard let fetchTransactionResult else {
             throw TransactionError.transactionGeneric("not implemented")
         }
@@ -320,9 +324,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     func signTransaction(_ request: SignRequest) async throws(TransactionError) -> any TransactionApiModel {
         signTransactionCallCount += 1
         lastSignTransactionRequest = request
-        if let transactionAfterSigning {
-            fetchTransactionResult = transactionAfterSigning
-        }
         guard let fetchTransactionResult else {
             throw TransactionError.transactionGeneric("not implemented")
         }
@@ -447,9 +448,14 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
+    var transferTokenCallCount = 0
+    var transferTokenLastRequest: TransferTokenRequest?
+
     func transferToken(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
+        transferTokenCallCount += 1
+        transferTokenLastRequest = request
         throw TransactionError.transactionGeneric("not implemented")
     }
 

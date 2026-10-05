@@ -6,6 +6,7 @@
 //
 
 import Logger
+import Utils
 
 /// Identifies a signer registered on a wallet.
 public enum SignerLocator: Codable, Sendable, Hashable {
@@ -28,12 +29,16 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         if case .passkey = self { true } else { false }
     }
 
+    var isApiKey: Bool {
+        if case .apiKey = self { true } else { false }
+    }
+
     public var value: String {
         switch self {
         case let .device(publicKey):
             "device:\(publicKey)"
         case let .email(email):
-            "email:\(email)"
+            "email:\(normalizeEmail(email))"
         case let .phone(phone):
             "phone:\(phone)"
         case let .externalWallet(address):
@@ -47,6 +52,14 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         case let .unknown(raw):
             raw
         }
+    }
+
+    public static func == (lhs: SignerLocator, rhs: SignerLocator) -> Bool {
+        lhs.value == rhs.value
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(value)
     }
 
     public init(from decoder: Decoder) throws {
