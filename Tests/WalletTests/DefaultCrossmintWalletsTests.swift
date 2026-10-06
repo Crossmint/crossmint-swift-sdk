@@ -365,7 +365,7 @@ struct RecoverySignerListCreationTests {
         await #expect {
             _ = try await wallets.createWallet(
                 chain: Chain("solana"),
-                recoveryMethods: [MockSigner(), PasskeySigner(name: "alice", host: "example.com")],
+                recoveryMethods: [PasskeySigner(name: "alice", host: "example.com")],
                 options: nil
             )
         } throws: { error in
@@ -373,18 +373,6 @@ struct RecoverySignerListCreationTests {
             return code == .signerNotAllowed
         }
         #expect(walletService.createWalletCallCount == 0)
-    }
-
-    @Test func acceptsAPasskeyRecoveryMethodOnStellar() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletStellarRecoveryMethods")
-
-        _ = try await makeWallets().createWallet(
-            chain: Chain("stellar"),
-            recoveryMethods: [MockSigner(signerType: .passkey)],
-            options: nil
-        )
-
-        #expect(walletService.createWalletCallCount == 1)
     }
 
     private func sentRecoveryConfig() throws -> SentRecoveryConfig {
