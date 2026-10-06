@@ -58,7 +58,7 @@ struct SignerPicker: View {
 
     private func isSelectable(_ locator: SignerLocator) -> Bool {
         switch locator {
-        case .email, .phone, .apiKey, .device: true
+        case .email, .phone, .apiKey, .device, .passkey: true
         default: false
         }
     }

@@ -4,6 +4,7 @@
 //
 
 import CrossmintClient
+import Foundation
 import Observation
 
 extension Error {
@@ -281,12 +282,17 @@ final class AppState {
         // The channel is per onboarding request and the API never returns it, so a locator
         // alone cannot say how the OTP should be delivered.
         case .phone(let number): .phone(number, channel: phoneChannels[locator.value])
+        case .passkey(let id): .passkey(name: "Crossmint Demo", host: passkeyHost, id: id)
         default: nil
         }
     }
 
+    private var passkeyHost: String {
+        Bundle.main.object(forInfoDictionaryKey: "PasskeyHost") as? String ?? ""
+    }
+
     private func fetchWallet(chain: SupportedChain) async throws -> Wallet? {
-        let options = WalletOptions(deviceSigner: true)
+        let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.getWallet(chain: EVMChain.baseSepolia, options: options)
@@ -298,7 +304,7 @@ final class AppState {
     }
 
     private func makeWallet(chain: SupportedChain, email: String) async throws -> Wallet {
-        let options = WalletOptions(deviceSigner: true)
+        let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
         switch chain {
         case .evm:
             return try await sdk.crossmintWallets.createWallet(
@@ -329,7 +335,7 @@ final class AppState {
         guard chain.supportsRecoveryList, !extraRecovery.isEmpty else {
             return try await makeWallet(chain: chain, email: email)
         }
-        let options = WalletOptions(deviceSigner: true)
+        let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
         switch chain {
         case .evm:
             return try await makeWallet(chain: chain, email: email)
@@ -353,6 +359,7 @@ final class AppState {
         case .email(let email): .email(email)
         case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
         case .apiKey: .apiKey
+        case .passkey: preconditionFailure("A Solana wallet does not accept a passkey recovery method")
         }
     }
 
@@ -361,6 +368,7 @@ final class AppState {
         case .email(let email): .email(email)
         case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
         case .apiKey: .apiKey
+        case .passkey(let name): .passkey(name: name, host: passkeyHost)
         }
     }
 }

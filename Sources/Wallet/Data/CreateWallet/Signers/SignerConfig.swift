@@ -4,21 +4,23 @@ import CrossmintCommonTypes
 ///
 /// Pass a `SignerConfig` to ``Wallet/useSigner(_:)`` to set the active signer,
 /// or to ``Wallet/addSigner(_:)`` to register a new signer on the wallet.
-///
-/// - Note: `.passkey` is only supported on EVM chains.
 public enum SignerConfig: Sendable {
     /// The device's Secure Enclave (or software fallback) as the signer.
     /// Created lazily on first transaction if no local key exists.
     case device
-    /// A passkey credential. EVM only.
+    /// A passkey signer.
+    ///
+    /// On EVM and Stellar wallets, a passkey can be a recovery signer or an added signer.
+    /// On Solana wallets, a passkey can only be an added signer. To add it, use ``Wallet/addSigner(_:)``.
     ///
     /// `id` is the credential ID of the passkey that signs.
-    /// Only ``Wallet/useSigner(_:)`` uses `id`.
-    /// ``Wallet/addSigner(_:)`` does not use `id`.
+    /// Only ``Wallet/useSigner(_:)`` and ``Wallet/useRecoveryMethod(_:)`` use `id`.
+    /// ``Wallet/addSigner(_:)`` and ``Wallet/addRecoveryMethod(_:)`` do not use `id`.
     /// A new passkey gets its ID when you create the passkey.
     ///
     /// If `id` is `nil`, ``Wallet/useSigner(_:)`` uses the only passkey signer of the wallet.
     /// If the wallet has more than one passkey signer, you must give `id`.
+    /// ``Wallet/useRecoveryMethod(_:)`` uses the same rule for passkey recovery methods.
     case passkey(name: String, host: String, id: String? = nil)
     /// An email OTP signer.
     case email(String)

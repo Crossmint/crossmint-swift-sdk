@@ -10,6 +10,7 @@ struct RecoverySignerDraft: Identifiable, Equatable {
         case email(String)
         case phone(String)
         case apiKey
+        case passkey(name: String)
     }
 
     let id = UUID()
@@ -20,6 +21,7 @@ struct RecoverySignerDraft: Identifiable, Equatable {
         case .email(let email): "email:\(email)"
         case .phone(let phone): "phone:\(phone)"
         case .apiKey: "api-key"
+        case .passkey(let name): "passkey:\(name)"
         }
     }
 }

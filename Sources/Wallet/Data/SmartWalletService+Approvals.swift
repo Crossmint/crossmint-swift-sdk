@@ -15,7 +15,7 @@ extension SmartWalletService {
         signer: any ApprovalSigner,
         message: String
     ) async throws {
-        let request = try await makeSignRequest(signer: signer, message: message)
+        let request = try await makeSignRequest(signer: signer, message: message, chainType: chainType)
         _ = try await signTransaction(
             .init(transactionId: transactionId, apiRequest: request, chainType: chainType)
         )
@@ -28,7 +28,7 @@ extension SmartWalletService {
         signer: any ApprovalSigner,
         message: String
     ) async throws {
-        let request = try await makeSignRequest(signer: signer, message: message)
+        let request = try await makeSignRequest(signer: signer, message: message, chainType: chainType)
         try await approveSignature(
             .init(transactionId: signatureId, apiRequest: request, chainType: chainType)
         )
@@ -36,8 +36,9 @@ extension SmartWalletService {
 
     private func makeSignRequest(
         signer: any ApprovalSigner,
-        message: String
+        message: String,
+        chainType: ChainType
     ) async throws(SignerError) -> SignRequestApi {
-        SignRequestApi(approvals: try await signer.approvals(for: message))
+        SignRequestApi(approvals: try await signer.approvals(for: message, on: chainType))
     }
 }
