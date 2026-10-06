@@ -98,6 +98,8 @@ struct AddSignerSheet: View {
 
     private var availableTypes: [SignerTypeOption] {
         switch mode {
+        case .recovery where appState.wallet == nil && appState.selectedChain == .stellar:
+            return [.email, .phone, .apiKey, .passkey]
         case .recovery where appState.wallet == nil:
             return [.email, .phone, .apiKey]
         case .recovery where appState.selectedChain == .stellar:
@@ -244,6 +246,7 @@ struct AddSignerSheet: View {
         case .email: kind = .email(value)
         case .phone: kind = .phone(value)
         case .apiKey: kind = .apiKey
+        case .passkey: kind = .passkey(name: passkeyName(value))
         default: return
         }
         let draft = RecoverySignerDraft(kind: kind)

@@ -359,6 +359,7 @@ final class AppState {
         case .email(let email): .email(email)
         case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
         case .apiKey: .apiKey
+        case .passkey: preconditionFailure("A Solana wallet does not accept a passkey recovery method")
         }
     }
 
@@ -367,6 +368,7 @@ final class AppState {
         case .email(let email): .email(email)
         case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
         case .apiKey: .apiKey
+        case .passkey(let name): .passkey(name: name, host: passkeyHost)
         }
     }
 }
