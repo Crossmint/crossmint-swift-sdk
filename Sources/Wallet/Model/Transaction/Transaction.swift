@@ -121,7 +121,7 @@ public struct Transaction: Sendable, CustomStringConvertible {
         public struct Revert: Sendable {
             public let type: String
             public let reason: String
-            public let simulationLink: URL
+            public let simulationLink: URL?
         }
     }
 

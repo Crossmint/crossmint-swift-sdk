@@ -10,6 +10,7 @@ struct SignerLocatorTests {
         arguments: [
             (SignerLocator.device(publicKey: "abc123"), "device:abc123"),
             (SignerLocator.email("user@example.com"), "email:user@example.com"),
+            (SignerLocator.email("First.Last@GoogleMail.com"), "email:firstlast@gmail.com"),
             (SignerLocator.phone("+15551234567"), "phone:+15551234567"),
             (SignerLocator.externalWallet(address: "0xabc"), "external-wallet:0xabc"),
             (SignerLocator.passkey(credentialId: "cred-1"), "passkey:cred-1"),

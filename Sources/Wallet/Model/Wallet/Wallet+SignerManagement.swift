@@ -125,6 +125,8 @@ extension Wallet {
     ///     The active signer does not change. You can try again.
     ///   - ``WalletError/walletGeneric(_:)`` if `config` is ``SignerConfig/externalWallet(_:onSign:)``
     ///     and `onSign` is `nil`.
+    ///   - ``WalletError/walletGeneric(_:)`` if `config` is ``SignerConfig/passkey(name:host:id:)`` with no `id`
+    ///     and the wallet has more than one passkey signer.
     ///   - ``WalletError/deviceSignerNotSupported(_:)`` if you select `.device`
     ///     and the wallet provider does not accept device signers.
     public func useSigner(_ config: SignerConfig) async throws(WalletError) {
@@ -137,8 +139,8 @@ extension Wallet {
             try await activatePhoneSigner(phone: phone, channel: channel)
         case .externalWallet(let address, let onSign):
             try await activateExternalWalletSigner(address: address, onSign: onSign)
-        case .passkey(let name, let host):
-            try await activatePasskeySigner(name: name, host: host)
+        case .passkey(let name, let host, let id):
+            try await activatePasskeySigner(name: name, host: host, id: id)
         case .apiKey:
             try await activateApiKeySigner()
         }
@@ -169,7 +171,7 @@ extension Wallet {
                     approver: approver,
                     deployImmediately: deployImmediately
                 )
-            case .passkey(let name, let host):
+            case .passkey(let name, let host, _):
                 try await signerRegistrationService.registerPasskey(
                     name: name,
                     host: host,
@@ -339,35 +341,47 @@ extension Wallet {
     }
 
     private func activateApiKeySigner() async throws(WalletError) {
-        guard let apiKeyData = config.recoverySigner(ofType: ApiKeySignerData.self) else {
-            throw .signerNotRegistered(SignerLocator.apiKey().value)
+        if let apiKeyData = config.recoverySigner(ofType: ApiKeySignerData.self) {
+            selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
+            return
         }
-        selectedSigner = ApiKeySigner(adminSigner: apiKeyData)
+        try await requireRegisteredSigner(.apiKey())
+        selectedSigner = ApiKeySigner(adminSigner: ApiKeySignerData())
     }
 
-    private func activatePasskeySigner(name: String, host: String) async throws(WalletError) {
-        let walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-
-        let delegatedPasskeyLocator = walletModel.config.signers?
-            .map(\.locator)
-            .first(where: \.isPasskey)
-
-        let locator: SignerLocator
-        if let delegatedPasskeyLocator {
-            locator = delegatedPasskeyLocator
-        } else if let recoveryPasskey = config.recoverySigner(ofType: PasskeySignerData.self) {
-            locator = try SignerLocator(from: recoveryPasskey.locator)
+    private func activatePasskeySigner(name: String, host: String, id: String?) async throws(WalletError) {
+        let credentialId: String
+        if let id {
+            try await requireRegisteredSigner(.passkey(credentialId: id))
+            credentialId = id
         } else {
-            throw .signerNotRegistered(SignerLocator.passkey(credentialId: name).value)
-        }
-
-        guard case .passkey(let credentialId) = locator else {
-            throw .walletGeneric("Recovery signer is not a passkey")
+            credentialId = try await soleRegisteredPasskeyId()
         }
         let passkeyData = PasskeySignerData(id: credentialId, name: name, publicKey: .init(x: "0", y: "0"))
         let passkeySigner = PasskeySigner(name: name, host: host)
         _ = await passkeySigner.updateAdminSigner(passkeyData)
         selectedSigner = passkeySigner
+    }
+
+    private func soleRegisteredPasskeyId() async throws(WalletError) -> String {
+        let walletModel = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        let delegatedPasskeyIds = (walletModel.config.signers ?? []).compactMap { signer -> String? in
+            guard case .passkey(let credentialId) = signer.locator else { return nil }
+            return credentialId
+        }
+        guard delegatedPasskeyIds.count <= 1 else {
+            throw .walletGeneric(
+                "This wallet has more than one passkey signer. "
+                    + "Pass the credential ID of the passkey to use in SignerConfig.passkey(name:host:id:)."
+            )
+        }
+        if let delegatedPasskeyId = delegatedPasskeyIds.first {
+            return delegatedPasskeyId
+        }
+        guard let recoveryPasskey = config.recoverySigner(ofType: PasskeySignerData.self) else {
+            throw .signerNotRegistered("passkey")
+        }
+        return recoveryPasskey.id
     }
 
     private func requireRegisteredSigner(_ locator: SignerLocator) async throws(WalletError) {

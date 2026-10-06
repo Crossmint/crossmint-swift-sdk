@@ -1,0 +1,35 @@
+{
+  "chainType": "evm",
+  "walletType": "smart",
+  "id": "da17e29a-c0b3-4506-9e87-f5d343ea0d2e",
+  "status": "awaiting-approval",
+  "createdAt": "2025-08-14T09:02:45.691Z",
+  "params": {
+    "calls": [{ "to": "0x036CbD53842c5426634e7929541eC2318f3dCF7e", "value": "0", "data": "0x" }],
+    "chain": "base-sepolia",
+    "signer": { "type": "api-key", "locator": "api-key:0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb" }
+  },
+  "onChain": {
+    "userOperation": {
+      "sender": "0x898fec3aE6eaee6F7d6b4cBA70D1130f244a9aE1",
+      "nonce": "0x0",
+      "callData": "0x",
+      "callGasLimit": "0x0",
+      "verificationGasLimit": "0x0",
+      "preVerificationGas": "0x0",
+      "maxFeePerGas": "0x0",
+      "maxPriorityFeePerGas": "0x0",
+      "signature": "0x"
+    },
+    "userOperationHash": "0x387a634c711bc1465dbccaf83020bcb9b36a1859436b068ce015b2a20fb36a6e"
+  },
+  "approvals": {
+    "pending": [
+      {
+        "signer": { "type": "api-key", "locator": "api-key:0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb" },
+        "message": "0x387a634c711bc1465dbccaf83020bcb9b36a1859436b068ce015b2a20fb36a6e"
+      }
+    ],
+    "submitted": []
+  }
+}

@@ -11,7 +11,15 @@ public enum SignerConfig: Sendable {
     /// Created lazily on first transaction if no local key exists.
     case device
     /// A passkey credential. EVM only.
-    case passkey(name: String, host: String)
+    ///
+    /// `id` is the credential ID of the passkey that signs.
+    /// Only ``Wallet/useSigner(_:)`` uses `id`.
+    /// ``Wallet/addSigner(_:)`` does not use `id`.
+    /// A new passkey gets its ID when you create the passkey.
+    ///
+    /// If `id` is `nil`, ``Wallet/useSigner(_:)`` uses the only passkey signer of the wallet.
+    /// If the wallet has more than one passkey signer, you must give `id`.
+    case passkey(name: String, host: String, id: String? = nil)
     /// An email OTP signer.
     case email(String)
     /// A phone OTP signer. The phone number must be in E.164 format (e.g. `"+15551234567"`).

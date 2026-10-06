@@ -5,12 +5,16 @@ public struct DelegatedSignerEntry: Encodable {
     public enum Signer: Encodable, Equatable {
         case locator(SignerLocator)
         case device(publicKey: DevicePublicKey, name: String)
+        case passkey(PasskeySignerData)
 
         public func encode(to encoder: Encoder) throws {
             switch self {
             case let .locator(locator):
                 var container = encoder.singleValueContainer()
                 try container.encode(locator)
+            case let .passkey(data):
+                var container = encoder.singleValueContainer()
+                try container.encode(AdminSignerRequestApiModel(data))
             case let .device(publicKey, name):
                 var container = encoder.container(keyedBy: DeviceCodingKeys.self)
                 try container.encode("device", forKey: .type)

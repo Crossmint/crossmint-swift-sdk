@@ -1,3 +1,5 @@
+import Utils
+
 public protocol AdminSignerData: Sendable {
     var type: AdminSignerDataType { get }
     var locatorId: String { get }
@@ -46,8 +48,8 @@ public struct ApiKeySignerData: AdminSignerData {
     }
 }
 
-public struct PasskeySignerData: AdminSignerData {
-    public struct PublicKey: Sendable {
+public struct PasskeySignerData: AdminSignerData, Equatable {
+    public struct PublicKey: Sendable, Equatable {
         public let x: String
         public let y: String
 
@@ -80,7 +82,7 @@ public struct EmailSignerData: AdminSignerData {
     public var locatorId: String { email }
 
     public init(email: String) {
-        self.email = email
+        self.email = normalizeEmail(email)
     }
 }
 
