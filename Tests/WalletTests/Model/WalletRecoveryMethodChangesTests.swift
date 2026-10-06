@@ -108,8 +108,7 @@ struct WalletRecoveryMethodChangesTests {
     @Test(arguments: [
         ("WalletEVMEmail", SignerConfig.email("backup@example.com"), "RECOVERY_NOT_SUPPORTED_ON_CHAIN"),
         ("WalletSolanaEmail", SignerConfig.device, "WALLET_ERROR"),
-        ("WalletSolanaEmail", SignerConfig.apiKey, "WALLET_ERROR"),
-        ("WalletSolanaEmail", SignerConfig.passkey(name: "alice", host: "example.com"), "RECOVERY_SIGNER_NOT_ALLOWED")
+        ("WalletSolanaEmail", SignerConfig.apiKey, "WALLET_ERROR")
     ])
     func refusesAnAdditionBeforeCallingCrossmint(fileName: String, method: SignerConfig, code: String) async throws {
         let wallet = try makeWallet(fileName: fileName)
@@ -119,6 +118,17 @@ struct WalletRecoveryMethodChangesTests {
         }
 
         #expect(error?.code == code)
+        #expect(walletService.addRecoveryMethodCallCount == 0)
+    }
+
+    @Test func refusesAPasskeyOnSolanaEvenWhenNoRecoveryMethodCanApprove() async throws {
+        let wallet = try makeWallet(signerEmail: "operator@example.com")
+
+        let error = await #expect(throws: WalletError.self) {
+            try await wallet.addRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+        }
+
+        #expect(error?.code == "RECOVERY_SIGNER_NOT_ALLOWED")
         #expect(walletService.addRecoveryMethodCallCount == 0)
     }
 

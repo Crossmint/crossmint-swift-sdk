@@ -34,6 +34,7 @@ extension Wallet {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
             try assertRecoveryMethodChangesSupported()
+            try assertChainAccepts(method)
             let approver = try await recoveryMethodApprover()
             let recoveryMethod = try await recoveryMethodData(for: method)
             onTransactionStart?()
@@ -200,6 +201,11 @@ extension Wallet {
         }
     }
 
+    private func assertChainAccepts(_ method: SignerConfig) throws(WalletError) {
+        guard case .passkey = method, chain.chainType == .solana else { return }
+        throw .passkeyRecoveryNotAllowedOnSolana
+    }
+
     private func recoveryMethodData(for signer: SignerConfig) async throws(WalletError) -> any AdminSignerData {
         switch signer {
         case .email(let email):
@@ -209,9 +215,6 @@ extension Wallet {
         case .externalWallet(let address, _):
             return ExternalWalletSignerData(address: address)
         case .passkey(let name, let host, _):
-            guard chain.chainType != .solana else {
-                throw .passkeyRecoveryNotAllowedOnSolana
-            }
             return try await signerRegistrationService.createPasskey(name: name, host: host)
         case .apiKey, .device:
             throw .walletGeneric(
