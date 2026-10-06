@@ -152,7 +152,7 @@ def render_content(content: list, indent: int = 0, base_heading_level: int = 2, 
         elif item_type == "heading":
             level = item.get("level", 2)
             adjusted_level = base_heading_level + (level - 2)
-            text = render_inline_content(item.get("inlineContent", []), references)
+            text = render_inline_content(item.get("inlineContent", []), references) or escape_mdx_text(item.get("text", ""))
             if text.strip():
                 result.append(f"\n{'#' * adjusted_level} {text}\n")
 
@@ -176,7 +176,9 @@ def render_content(content: list, indent: int = 0, base_heading_level: int = 2, 
             inner = render_content(item.get("content", []), 0, base_heading_level, references)
             # Use Mintlify callout format
             callout_type = "info" if style == "important" else style
-            result.append(f"\n> **{callout_type.capitalize()}**: {inner.strip()}\n")
+            label = item.get("name") or callout_type.capitalize()
+            quoted = inner.strip().replace("\n", "\n> ")
+            result.append(f"\n> **{label}**: {quoted}\n")
 
         elif item_type == "termList":
             for term_item in item.get("items", []):
@@ -257,7 +259,7 @@ def render_child_symbol(data: dict, heading_level: int = 3) -> str:
     # Discussion/Content
     for section in data.get("primaryContentSections", []):
         if section.get("kind") == "content":
-            content = render_content(section.get("content", []), references=references)
+            content = render_content(section.get("content", []), base_heading_level=heading_level + 1, references=references)
             if content.strip():
                 md.append(f"\n{content}")
 
