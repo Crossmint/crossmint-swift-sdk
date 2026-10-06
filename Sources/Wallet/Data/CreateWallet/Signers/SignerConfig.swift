@@ -20,6 +20,7 @@ public enum SignerConfig: Sendable {
     ///
     /// If `id` is `nil`, ``Wallet/useSigner(_:)`` uses the only passkey signer of the wallet.
     /// If the wallet has more than one passkey signer, you must give `id`.
+    /// ``Wallet/useRecoveryMethod(_:)`` uses the same rule for passkey recovery methods.
     case passkey(name: String, host: String, id: String? = nil)
     /// An email OTP signer.
     case email(String)

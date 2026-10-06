@@ -48,6 +48,19 @@ private func makeMultiRecoverySolanaWallet(
     )
 }
 
+private func makeTwoPasskeyStellarWallet(walletService: MockSmartWalletService) throws -> StellarWallet {
+    let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+        fileName: "WalletStellarPasskey",
+        bundle: Bundle.module
+    )
+    return try StellarWallet(
+        smartWalletService: walletService,
+        signer: MockSigner(email: "alice@example.com"),
+        baseModel: baseModel,
+        stellarChain: .stellar
+    )
+}
+
 @Suite("Wallet addSigner", .tags(.unit))
 struct WalletAddSignerTests {
 
@@ -163,27 +176,45 @@ struct WalletAddSignerTests {
             #expect(walletService.lastAddSignerApprover == approver)
         }
 
-        @Test(arguments: [
-            (nil, "v-Qxh--c2nOkUyBYJHRaXCwSOJw"),
-            ("c2Vjb25kLXBhc3NrZXk", "c2Vjb25kLXBhc3NrZXk")
-        ] as [(String?, String)])
-        func selectsThePasskeyRecoveryMethodOfTheWallet(id: String?, selectedId: String) async throws {
+        @Test func selectsThePasskeyRecoveryMethodWithTheGivenId() async throws {
             let walletService = MockSmartWalletService()
-            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-                fileName: "WalletStellarPasskey",
-                bundle: Bundle.module
-            )
-            let wallet = try StellarWallet(
-                smartWalletService: walletService,
-                signer: MockSigner(email: "alice@example.com"),
-                baseModel: baseModel,
-                stellarChain: .stellar
-            )
-            try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com", id: id))
+            let wallet = try makeTwoPasskeyStellarWallet(walletService: walletService)
+            try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com", id: "c2Vjb25kLXBhc3NrZXk"))
 
             try await wallet.addSigner(.externalWallet("GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37"))
 
-            #expect(walletService.lastAddSignerApprover == .passkey(credentialId: selectedId))
+            #expect(walletService.lastAddSignerApprover == .passkey(credentialId: "c2Vjb25kLXBhc3NrZXk"))
+        }
+
+        @Test func selectsTheOnlyPasskeyRecoveryMethodWithoutAnId() async throws {
+            let walletService = MockSmartWalletService()
+            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+                fileName: "WalletPasskey",
+                bundle: Bundle.module
+            )
+            let wallet = try EVMWallet(
+                smartWalletService: walletService,
+                signer: MockSigner(email: "alice@example.com"),
+                baseModel: baseModel,
+                evmChain: .baseSepolia
+            )
+            try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+
+            try await wallet.addSigner(.externalWallet("0x1234567890123456789012345678901234567890"))
+
+            #expect(walletService.lastAddSignerApprover == .passkey(credentialId: "i16I1qQWzGH-Ctu2rBaCqY-e"))
+        }
+
+        @Test func refusesAPasskeyWithoutAnIdWhenTheWalletHasSeveral() async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeTwoPasskeyStellarWallet(walletService: walletService)
+
+            let error = await #expect(throws: WalletError.self) {
+                try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+            }
+
+            #expect(error?.code == "INVALID_RECOVERY_CONFIG")
+            #expect(wallet.selectedRecoveryMethod == nil)
         }
 
         @Test(arguments: [
