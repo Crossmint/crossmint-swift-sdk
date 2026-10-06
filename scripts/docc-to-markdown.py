@@ -8,6 +8,7 @@ Usage:
 Example:
     python3 docc-to-markdown.py ./Wallet.doccarchive ./CrossmintAuth.doccarchive --output docs/api
     python3 docc-to-markdown.py ./Wallet.doccarchive --output docs/api --validate
+    python3 docc-to-markdown.py ./CrossmintClient.doccarchive --sources ./Wallet.doccarchive --output docs/api
 """
 
 from __future__ import annotations
@@ -86,6 +87,9 @@ def extract_property_type(declaration: str) -> str:
 
 
 PROPERTY_SECTIONS = {"Instance Properties", "Type Properties"}
+
+# primaryContentSections kinds that DocC builds from a symbol's doc comment.
+DOC_SECTION_KINDS = {"content", "parameters"}
 
 
 def find_mintlify_root(path: Path) -> Path | None:
@@ -198,12 +202,60 @@ def load_json_file(json_path: Path) -> dict | None:
         return None
 
 
-def load_child_symbol(identifier: str, parent_dir: Path) -> dict | None:
+def index_symbol_sources(archives: list[Path]) -> dict[str, Path]:
+    """Map each symbol's precise identifier to its DocC JSON in the given archives."""
+    sources: dict[str, Path] = {}
+    for archive in archives:
+        for json_file in sorted((archive / "data" / "documentation").rglob("*.json")):
+            data = load_json_file(json_file)
+            external_id = data.get("metadata", {}).get("externalID") if data else None
+            if external_id:
+                sources.setdefault(external_id, json_file)
+    return sources
+
+
+def has_doc_content(data: dict) -> bool:
+    """Check whether a symbol carries any text from its doc comment."""
+    if data.get("abstract"):
+        return True
+    return any(section.get("kind") in DOC_SECTION_KINDS for section in data.get("primaryContentSections", []))
+
+
+def fill_doc_content(data: dict, sources: dict[str, Path]) -> dict:
+    """Copy doc comment text from the symbol's defining module.
+
+    An umbrella module that re-exports another module (CrossmintClient re-exports
+    Wallet) gets the re-exported symbols without their doc comments, so the text
+    only exists in the defining module's archive.
+    """
+    if has_doc_content(data):
+        return data
+    source_json = sources.get(data.get("metadata", {}).get("externalID", ""))
+    source = load_json_file(source_json) if source_json else None
+    if not source or not has_doc_content(source):
+        return data
+    doc_sections = [
+        section for section in source.get("primaryContentSections", [])
+        if section.get("kind") in DOC_SECTION_KINDS
+    ]
+    data["abstract"] = source.get("abstract", [])
+    data["primaryContentSections"] = data.get("primaryContentSections", []) + doc_sections
+    data["references"] = {**source.get("references", {}), **data.get("references", {})}
+    return data
+
+
+def load_symbol(json_path: Path, sources: dict[str, Path]) -> dict | None:
+    """Load a symbol's DocC JSON, filling in doc comment text from its defining module."""
+    data = load_json_file(json_path)
+    return fill_doc_content(data, sources) if data else None
+
+
+def load_child_symbol(identifier: str, parent_dir: Path, sources: dict[str, Path]) -> dict | None:
     """Load the DocC JSON for a child symbol referenced by a topic section."""
     symbol = identifier.split("/")[-1] if "/" in identifier else identifier
     child_json = parent_dir / f"{symbol.lower()}.json"
     if child_json.exists():
-        return load_json_file(child_json)
+        return load_symbol(child_json, sources)
     return None
 
 
@@ -273,7 +325,7 @@ def render_child_symbol(data: dict, heading_level: int = 3) -> str:
     return "".join(md)
 
 
-def json_to_mdx(json_path: Path, data: dict) -> str | None:
+def json_to_mdx(json_path: Path, data: dict, sources: dict[str, Path]) -> str | None:
     """Convert a loaded DocC JSON document to MDX, including child symbols inline."""
     metadata = data.get("metadata", {})
     title = metadata.get("title", "")
@@ -349,7 +401,7 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
         if section_title in PROPERTY_SECTIONS:
             rows = []
             for identifier in identifiers:
-                child_data = load_child_symbol(identifier, parent_dir)
+                child_data = load_child_symbol(identifier, parent_dir, sources)
                 if child_data:
                     name = child_data.get("metadata", {}).get("title", "")
                     prop_type = extract_property_type(get_declaration(child_data))
@@ -370,7 +422,7 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
         if section_title == "Enumeration Cases":
             rows = []
             for identifier in identifiers:
-                child_data = load_child_symbol(identifier, parent_dir)
+                child_data = load_child_symbol(identifier, parent_dir, sources)
                 if child_data:
                     name = child_data.get("metadata", {}).get("title", "")
                     desc = render_inline_content(child_data.get("abstract", []), child_data.get("references", {}))
@@ -396,7 +448,7 @@ def json_to_mdx(json_path: Path, data: dict) -> str | None:
             child_json = parent_dir / f"{symbol_lower}.json"
 
             if child_json.exists():
-                child_data = load_json_file(child_json)
+                child_data = load_symbol(child_json, sources)
                 if child_data:
                     child_md = render_child_symbol(child_data, heading_level=3)
                     if child_md:
@@ -432,7 +484,8 @@ def generate_mdx_files(
     archive_path: Path,
     output_dir: Path,
     modules: list[str] | None = None,
-    written: dict[Path, Path] | None = None
+    written: dict[Path, Path] | None = None,
+    sources: dict[str, Path] | None = None
 ) -> int:
     """Generate MDX files for top-level symbols with children inline."""
     data_path = archive_path / "data" / "documentation"
@@ -445,6 +498,8 @@ def generate_mdx_files(
     count = 0
     if written is None:
         written = {}
+    if sources is None:
+        sources = {}
 
     # Sorted so collisions resolve the same way regardless of filesystem order.
     for json_file in sorted(data_path.rglob("*.json")):
@@ -463,12 +518,12 @@ def generate_mdx_files(
         if not is_top_level_symbol(json_file, data_path):
             continue
 
-        data = load_json_file(json_file)
+        data = load_symbol(json_file, sources)
         if not data:
             continue
 
         # Convert to MDX with children inline
-        mdx_content = json_to_mdx(json_file, data)
+        mdx_content = json_to_mdx(json_file, data, sources)
         if not mdx_content:
             continue
 
@@ -517,6 +572,13 @@ def main():
         help="Only generate docs for specified modules (e.g., crossmintclient wallet)"
     )
     parser.add_argument(
+        "--sources", "-s",
+        type=Path,
+        nargs="+",
+        default=[],
+        help="Archives of re-exported modules to take missing doc comment text from"
+    )
+    parser.add_argument(
         "--validate",
         action="store_true",
         help="Run 'mint validate' and 'mint broken-links' after generation"
@@ -524,11 +586,15 @@ def main():
 
     args = parser.parse_args()
 
-    missing = [archive for archive in args.archives if not archive.exists()]
+    missing = [archive for archive in args.archives + args.sources if not archive.exists()]
     if missing:
         for archive in missing:
             print(f"Error: Archive not found: {archive}", file=sys.stderr)
         sys.exit(1)
+
+    rendered = {archive.resolve() for archive in args.archives}
+    source_archives = [archive for archive in args.sources if archive.resolve() not in rendered]
+    sources = index_symbol_sources(source_archives)
 
     count = 0
     written: dict[Path, Path] = {}
@@ -537,7 +603,8 @@ def main():
             archive,
             args.output,
             modules=args.modules,
-            written=written
+            written=written,
+            sources=sources
         )
     print(f"Generated {count} .mdx files in {args.output}")
 
