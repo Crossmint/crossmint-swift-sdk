@@ -79,8 +79,7 @@ let package = Package(
             plugins: basePlugins
         ),
         .target(
-            name: "DeviceSigner",
-            plugins: basePlugins
+            name: "DeviceSigner"
         ),
         .target(
             name: "Wallet",
