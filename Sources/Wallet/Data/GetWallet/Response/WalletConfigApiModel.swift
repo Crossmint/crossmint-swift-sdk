@@ -4,6 +4,7 @@ import Logger
 
 struct WalletSignerConfigApiModel: Decodable, Sendable {
     let locator: SignerLocator
+    let name: String?
 }
 
 struct RecoveryMethodApiModel {

@@ -9,6 +9,8 @@ private let DEVICE_PUBLIC_KEY = "8Ht1jWbGgXcDqFv3nRkPzYw5mT2uLsEaK9oC4dNbV6xJ"
 private let DEVICE_LOCATOR = "device:\(DEVICE_PUBLIC_KEY)"
 private let EMAIL = "delegate@example.com"
 private let EMAIL_LOCATOR = "email:\(EMAIL)"
+private let PASSKEY_CREDENTIAL_ID = "fL0ld8ktQm3vRzKrHiWXE"
+private let PASSKEY_NAME = "My Yubikey"
 private let UNKNOWN_LOCATOR = "carrier-pigeon:0xabc"
 
 private func makeSolanaWallet(
@@ -29,9 +31,12 @@ private func makeSolanaWallet(
     )
 }
 
-private func makeEVMWallet(walletService: MockSmartWalletService) throws -> EVMWallet {
+private func makeEVMWallet(
+    walletService: MockSmartWalletService,
+    fixture: String = "WalletEVMSigners"
+) throws -> EVMWallet {
     let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-        fileName: "WalletEVMSigners",
+        fileName: fixture,
         bundle: Bundle.module
     )
     walletService.getWalletResult = baseModel
@@ -68,8 +73,8 @@ struct WalletSignersTests {
         let signers = try await wallet.signers()
 
         #expect(signers == [
-            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .active),
-            WalletSigner(locator: .email(EMAIL), status: .pending)
+            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .active, name: nil),
+            WalletSigner(locator: .email(EMAIL), status: .pending, name: nil)
         ])
     }
 
@@ -95,8 +100,8 @@ struct WalletSignersTests {
         let signers = try await wallet.signers()
 
         #expect(signers == [
-            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .unknown),
-            WalletSigner(locator: .email(EMAIL), status: .active)
+            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .unknown, name: nil),
+            WalletSigner(locator: .email(EMAIL), status: .active, name: nil)
         ])
     }
 
@@ -111,8 +116,8 @@ struct WalletSignersTests {
         let signers = try await wallet.signers()
 
         #expect(signers == [
-            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .unknown),
-            WalletSigner(locator: .email(EMAIL), status: .active)
+            WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .unknown, name: nil),
+            WalletSigner(locator: .email(EMAIL), status: .active, name: nil)
         ])
     }
 
@@ -125,7 +130,7 @@ struct WalletSignersTests {
 
         let signers = try await wallet.signers()
 
-        #expect(signers == [WalletSigner(locator: .unknown(UNKNOWN_LOCATOR), status: .active)])
+        #expect(signers == [WalletSigner(locator: .unknown(UNKNOWN_LOCATOR), status: .active, name: nil)])
         #expect(walletService.getSignerLocators == [UNKNOWN_LOCATOR])
     }
 
@@ -151,6 +156,10 @@ struct WalletSignersTests {
 
     @Suite("when the wallet is on an EVM chain")
     struct EVMTests {
+        enum StateLookup: CaseIterable, Sendable {
+            case found, notFound, failed
+        }
+
         @Test func omitsSignersWithoutRegistrationForTheWalletChain() async throws {
             let walletService = MockSmartWalletService()
             walletService.getSignerResponses = [
@@ -167,7 +176,9 @@ struct WalletSignersTests {
 
             let signers = try await wallet.signers()
 
-            #expect(signers == [WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .active)])
+            #expect(signers == [
+                WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .active, name: nil)
+            ])
         }
 
         @Test func mapsTheStatusFromTheEntryMatchingTheWalletChain() async throws {
@@ -187,9 +198,31 @@ struct WalletSignersTests {
             let signers = try await wallet.signers()
 
             #expect(signers == [
-                WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .awaitingApproval),
-                WalletSigner(locator: .email(EMAIL), status: .active)
+                WalletSigner(locator: .device(publicKey: DEVICE_PUBLIC_KEY), status: .awaitingApproval, name: nil),
+                WalletSigner(locator: .email(EMAIL), status: .active, name: nil)
             ])
+        }
+
+        @Test(arguments: StateLookup.allCases)
+        func returnsTheSignerNameOnlyWhenTheServerSendsOne(lookup: StateLookup) async throws {
+            let walletService = MockSmartWalletService()
+            switch lookup {
+            case .found:
+                walletService.getSignerResult = AddDelegatedSignerResponse(
+                    chains: ["base-sepolia": ChainRegistrationEntry(id: "1", status: .active, approvals: nil)],
+                    transaction: nil
+                )
+            case .notFound:
+                walletService.getSignerResult = nil
+            case .failed:
+                walletService.getSignerError = .walletGeneric("state lookup exploded")
+            }
+            let wallet = try makeEVMWallet(walletService: walletService, fixture: "WalletEVMNamedSigners")
+
+            let signers = try await wallet.signers()
+
+            #expect(signers.map(\.name) == [PASSKEY_NAME, nil])
+            #expect(signers.map(\.locator) == [.passkey(credentialId: PASSKEY_CREDENTIAL_ID), .email(EMAIL)])
         }
     }
 }
