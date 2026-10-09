@@ -76,7 +76,7 @@ public final class PasskeySigner: Signer {
         let preparedChallenge = defaultCreationChallenge.hexData!.base64EncodedString()
         self.credentialOptions = PasskeyCredentialCreationOptions(
             rp: .init(name: host),
-            user: .init(name: name),
+            user: .init(name: name, displayName: name, id: UUID().uuidString),
             challenge: preparedChallenge,
             pubKeyCredParams: [
                 .init(type: "public-key", alg: -7),
