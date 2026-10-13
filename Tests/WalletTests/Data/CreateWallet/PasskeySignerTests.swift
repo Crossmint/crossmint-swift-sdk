@@ -1,5 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
+@testable import Passkeys
 import Testing
 @testable import Wallet
 
@@ -48,5 +49,17 @@ struct PasskeySignerTests {
         )
 
         #expect(approvals.count == 1)
+    }
+
+    @Test(.tags(.unit))
+    func signersWithSameNameGetDifferentUserIds() {
+        let first = PasskeySigner(name: "alice", host: "example.com").credentialOptions.user
+        let second = PasskeySigner(name: "alice", host: "example.com").credentialOptions.user
+
+        #expect(first.id != second.id)
+        #expect(first.name == "alice")
+        #expect(first.displayName == "alice")
+        #expect(second.name == "alice")
+        #expect(second.displayName == "alice")
     }
 }

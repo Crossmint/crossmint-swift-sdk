@@ -132,6 +132,13 @@ public enum WalletError: CrossmintError {
     }
 }
 
+extension WalletError {
+    static let passkeyRecoveryNotAllowedOnSolana = WalletError.recoveryConfigRejected(
+        code: .signerNotAllowed,
+        message: "A passkey cannot be a recovery method on Solana. Add it with addSigner(_:) instead."
+    )
+}
+
 extension WalletError.RecoveryConfigCode {
     var recoverySuggestion: String? {
         switch self {

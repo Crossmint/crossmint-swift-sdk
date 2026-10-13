@@ -60,7 +60,7 @@ public final class PasskeySigner: Signer {
     private let defaultCreationChallenge: String = "0xf631058a3ba1116acce12396fad0a125b5041c43f8e15723709f81aa8d5f4ccf"
 
     private let state = PasskeySignerState()
-    private let credentialOptions: PasskeyCredentialCreationOptions
+    let credentialOptions: PasskeyCredentialCreationOptions
 
     private let name: String
     private let host: String
@@ -76,7 +76,7 @@ public final class PasskeySigner: Signer {
         let preparedChallenge = defaultCreationChallenge.hexData!.base64EncodedString()
         self.credentialOptions = PasskeyCredentialCreationOptions(
             rp: .init(name: host),
-            user: .init(name: name),
+            user: .init(name: name, displayName: name, id: UUID().uuidString),
             challenge: preparedChallenge,
             pubKeyCredParams: [
                 .init(type: "public-key", alg: -7),

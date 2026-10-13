@@ -121,6 +121,17 @@ struct WalletRecoveryMethodChangesTests {
         #expect(walletService.addRecoveryMethodCallCount == 0)
     }
 
+    @Test func refusesAPasskeyOnSolanaEvenWhenNoRecoveryMethodCanApprove() async throws {
+        let wallet = try makeWallet(signerEmail: "operator@example.com")
+
+        let error = await #expect(throws: WalletError.self) {
+            try await wallet.addRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+        }
+
+        #expect(error?.code == "RECOVERY_SIGNER_NOT_ALLOWED")
+        #expect(walletService.addRecoveryMethodCallCount == 0)
+    }
+
     @Test func refusesARemovalOnAnEVMWalletBeforeCallingCrossmint() async throws {
         let wallet = try makeWallet(fileName: "WalletEVMEmail")
 

@@ -156,7 +156,7 @@ docs:
 	@archive="$(DOCC_BUILD_DIR)/Build/Products/Debug-iphonesimulator/CrossmintClient.doccarchive"; \
 	if [ ! -d "$$archive" ]; then echo "Error: $$archive not found"; exit 1; fi; \
 	echo "Generating MDX files from $$archive..."; \
-	python3 scripts/docc-to-markdown.py "$$archive" --output $(DOCS_OUTPUT)
+	python3 scripts/docc-to-markdown.py "$$archive" --sources "$$(dirname "$$archive")"/*.doccarchive --output $(DOCS_OUTPUT)
 
 # ==========================================
 # Demo run targets

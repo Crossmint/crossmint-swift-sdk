@@ -47,7 +47,7 @@ enum SignerFactory {
         return PhoneSigner(phone: phone, channel: channel, chainType: chainType, crossmintTEE: CrossmintTEE.shared)
     }
 
-    private static func passkey(_ data: PasskeySignerData, host: String) async -> any Signer {
+    static func passkey(_ data: PasskeySignerData, host: String) async -> any Signer {
         await PasskeySigner(name: data.name, host: host).updateAdminSigner(data)
     }
 

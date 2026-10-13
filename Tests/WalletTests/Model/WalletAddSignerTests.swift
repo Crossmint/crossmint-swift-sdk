@@ -163,12 +163,42 @@ struct WalletAddSignerTests {
             #expect(walletService.lastAddSignerApprover == approver)
         }
 
-        @Test func refusesARecoveryMethodTheWalletDoesNotHave() async throws {
+        @Test(arguments: [
+            ("WalletStellarPasskey", "c2Vjb25kLXBhc3NrZXk", "c2Vjb25kLXBhc3NrZXk"),
+            ("WalletPasskey", String?.none, "i16I1qQWzGH-Ctu2rBaCqY-e")
+        ])
+        func selectsThePasskeyRecoveryMethod(fixture: String, id: String?, selectedId: String) async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeWallet(fixture: fixture, walletService: walletService)
+            try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com", id: id))
+
+            try await wallet.addSigner(.externalWallet("0x1234567890123456789012345678901234567890"))
+
+            #expect(walletService.lastAddSignerApprover == .passkey(credentialId: selectedId))
+        }
+
+        @Test func refusesAPasskeyWithoutAnIdWhenTheWalletHasSeveral() async throws {
+            let walletService = MockSmartWalletService()
+            let wallet = try makeWallet(fixture: "WalletStellarPasskey", walletService: walletService)
+
+            let error = await #expect(throws: WalletError.self) {
+                try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+            }
+
+            #expect(error?.code == "INVALID_RECOVERY_CONFIG")
+            #expect(wallet.selectedRecoveryMethod == nil)
+        }
+
+        @Test(arguments: [
+            SignerConfig.email("stranger@example.com"),
+            SignerConfig.passkey(name: "alice", host: "example.com")
+        ])
+        func refusesARecoveryMethodTheWalletDoesNotHave(method: SignerConfig) async throws {
             let walletService = MockSmartWalletService()
             let wallet = try makeMultiRecoverySolanaWallet(walletService: walletService)
 
             let error = await #expect(throws: WalletError.self) {
-                try await wallet.useRecoveryMethod(.email("stranger@example.com"))
+                try await wallet.useRecoveryMethod(method)
             }
 
             #expect(error?.code == "INVALID_RECOVERY_CONFIG")

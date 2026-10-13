@@ -49,6 +49,9 @@ enum RecoveryInput {
     }
 
     func resolved(for chain: Chain) throws(WalletError) -> RecoveryInput {
+        if chain.chainType == .solana, signers.contains(where: { $0.signerType == .passkey }) {
+            throw .passkeyRecoveryNotAllowedOnSolana
+        }
         guard case .list(let signers) = self else { return self }
         guard let first = signers.first else {
             throw .recoveryConfigRejected(
