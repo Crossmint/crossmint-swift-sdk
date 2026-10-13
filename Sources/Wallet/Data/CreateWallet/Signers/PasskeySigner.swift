@@ -60,7 +60,7 @@ public final class PasskeySigner: Signer {
     private let defaultCreationChallenge: String = "0xf631058a3ba1116acce12396fad0a125b5041c43f8e15723709f81aa8d5f4ccf"
 
     private let state = PasskeySignerState()
-    private let credentialOptions: PasskeyCredentialCreationOptions
+    let credentialOptions: PasskeyCredentialCreationOptions
 
     private let name: String
     private let host: String
