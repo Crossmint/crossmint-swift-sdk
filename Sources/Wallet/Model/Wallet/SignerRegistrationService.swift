@@ -35,6 +35,18 @@ final class SignerRegistrationService: Sendable {
         approver: RecoveryApprover,
         deployImmediately: Bool = true
     ) async throws(WalletError) {
+        let passkeyData = try await createPasskey(name: name, host: host)
+        let registration = try await smartWalletService.registerTypedSigner(
+            passkeyData,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approver: approver.locator
+        )
+        try await approveIfNeeded(registration: registration, signer: approver.signer)
+    }
+
+    func createPasskey(name: String, host: String) async throws(WalletError) -> PasskeySignerData {
         let passkeySigner = PasskeySigner(name: name, host: host)
         do {
             try await passkeySigner.initialize(smartWalletService)
@@ -44,16 +56,7 @@ final class SignerRegistrationService: Sendable {
             }
             throw WalletError.walletGeneric("Passkey registration failed: \(error)")
         }
-
-        let passkeyData = await passkeySigner.adminSigner
-        let registration = try await smartWalletService.registerTypedSigner(
-            passkeyData,
-            chainType: chainType,
-            chainName: chainName,
-            deployImmediately: deployImmediately,
-            approver: approver.locator
-        )
-        try await approveIfNeeded(registration: registration, signer: approver.signer)
+        return await passkeySigner.adminSigner
     }
 
     func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {

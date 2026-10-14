@@ -79,8 +79,7 @@ let package = Package(
             plugins: basePlugins
         ),
         .target(
-            name: "DeviceSigner",
-            plugins: basePlugins
+            name: "DeviceSigner"
         ),
         .target(
             name: "Wallet",
@@ -197,6 +196,7 @@ let package = Package(
                 .process("Resources/WalletSolanaFailedRecoveryMethod.json"),
                 .process("Resources/WalletStellarRecoveryMethods.json"),
                 .process("Resources/WalletStellarExternalWallet.json"),
+                .process("Resources/WalletStellarPasskey.json"),
                 .process("Resources/WalletSolanaUnsupportedSigners.json"),
                 .process("Resources/WalletSolanaOnlyUnsupportedSigner.json"),
                 .process("Resources/WalletSolanaInvalidAdminSigner.json"),

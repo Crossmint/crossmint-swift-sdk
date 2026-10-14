@@ -94,13 +94,16 @@ struct AddSignerSheet: View {
 
     private var availableTypes: [SignerTypeOption] {
         switch mode {
+        case .recovery where appState.wallet == nil && appState.selectedChain == .stellar:
+            return [.email, .phone, .apiKey, .passkey]
+        case .recovery where appState.wallet == nil:
+            return [.email, .phone, .apiKey]
+        case .recovery where appState.selectedChain == .stellar:
+            return [.email, .phone, .externalWallet, .passkey]
         case .recovery:
-            return appState.wallet == nil ? [.email, .phone, .apiKey] : [.email, .phone, .externalWallet]
+            return [.email, .phone, .externalWallet]
         case .signer:
-            return [.device, .passkey, .externalWallet, .phone].filter { type in
-                if appState.selectedChain != .evm && type == .passkey { return false }
-                return true
-            }
+            return [.device, .passkey, .externalWallet, .phone]
         }
     }
 
@@ -215,6 +218,10 @@ struct AddSignerSheet: View {
         Bundle.main.object(forInfoDictionaryKey: "PasskeyHost") as? String ?? ""
     }
 
+    private func passkeyName(_ value: String) -> String {
+        value.isEmpty ? "Crossmint Demo" : value
+    }
+
     private func add() async {
         switch mode {
         case .recovery where appState.wallet == nil:
@@ -233,6 +240,7 @@ struct AddSignerSheet: View {
         case .email: kind = .email(value)
         case .phone: kind = .phone(value)
         case .apiKey: kind = .apiKey
+        case .passkey: kind = .passkey(name: passkeyName(value))
         default: return
         }
         let draft = RecoverySignerDraft(kind: kind)
@@ -252,6 +260,7 @@ struct AddSignerSheet: View {
         case .email: config = .email(value)
         case .phone: config = .phone(value, channel: channel)
         case .externalWallet: config = .externalWallet(value)
+        case .passkey: config = .passkey(name: passkeyName(value), host: passkeyHost)
         default:
             isAdding = false
             return
@@ -281,8 +290,7 @@ struct AddSignerSheet: View {
             case .device:
                 try await wallet.addSigner(.device)
             case .passkey:
-                let passkeyName = value.isEmpty ? "Crossmint Demo" : value
-                try await wallet.addSigner(.passkey(name: passkeyName, host: passkeyHost))
+                try await wallet.addSigner(.passkey(name: passkeyName(value), host: passkeyHost))
             case .externalWallet:
                 try await wallet.addSigner(.externalWallet(value))
             case .phone:
