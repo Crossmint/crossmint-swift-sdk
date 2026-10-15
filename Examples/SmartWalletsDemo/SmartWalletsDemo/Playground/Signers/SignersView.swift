@@ -118,6 +118,7 @@ struct SignersView: View {
                     SignerRow(
                         index: index,
                         locator: item.locator.value,
+                        name: item.name,
                         status: item.status.rawValue,
                         isRemoving: removingSignerLocator == item.locator.value,
                         canRemove: true,
@@ -150,6 +151,7 @@ struct SignersView: View {
                         index: index,
                         idPrefix: "recovery",
                         locator: locator,
+                        name: appState.recoveryName(for: locator),
                         status: appState.approvingRecoveryLocator == locator ? "Approver" : nil,
                         isRemoving: removingSignerLocator == locator || selectingApproverLocator == locator,
                         canRemove: editable,

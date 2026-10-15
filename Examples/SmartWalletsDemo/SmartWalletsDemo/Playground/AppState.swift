@@ -54,6 +54,11 @@ final class AppState {
     }
     var approvingRecoveryLocator: String? { approvingRecovery[selectedChain] }
 
+    func recoveryName(for locator: String) -> String? {
+        let signer = wallet?.recoveryMethods.first { $0.signer.locator == locator }?.signer
+        return (signer as? PasskeySignerData)?.name
+    }
+
     var formattedBalance: String {
         guard let balance else { return "—" }
         var parts: [String] = []

@@ -9,6 +9,7 @@ struct SignerRow: View {
     var index: Int?
     var idPrefix = "signer"
     let locator: String
+    var name: String?
     var status: String?
     var isRemoving: Bool = false
     var canRemove: Bool = true
@@ -45,20 +46,35 @@ struct SignerRow: View {
         return String(locator[locator.index(after: separator)...])
     }
 
-    private var signerInfo: (type: String, icon: String) {
-        (Self.typeLabel(for: locator), Self.icon(for: locator))
+    static func shortValue(for locator: String) -> String {
+        let value = value(for: locator)
+        let keepsFullValue = locator.hasPrefix("email:") || locator.hasPrefix("phone:")
+        guard !keepsFullValue, value.count > 18 else { return value }
+        return "\(value.prefix(8))…\(value.suffix(7))"
+    }
+
+    static func title(for locator: String, name: String?) -> String {
+        name ?? typeLabel(for: locator)
+    }
+
+    static func subtitle(for locator: String, name: String?) -> String {
+        let value = shortValue(for: locator)
+        guard name != nil else { return value }
+        let type = typeLabel(for: locator)
+        return value.isEmpty ? type : "\(type) · \(value)"
     }
 
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Label(signerInfo.type, systemImage: signerInfo.icon)
+                Label(Self.title(for: locator, name: name), systemImage: Self.icon(for: locator))
                     .font(.headline)
-                Text(locator)
+                Text(Self.subtitle(for: locator, name: name))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .accessibilityLabel(locator)
                     .accessibilityIdentifier(index.map { "\(idPrefix)-\($0)-locator" } ?? "")
             }
             Spacer()
