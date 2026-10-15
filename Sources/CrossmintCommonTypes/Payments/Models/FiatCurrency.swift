@@ -70,11 +70,6 @@ public enum FiatCurrency: Codable, Sendable, Hashable, Comparable, RangeExpressi
         }
     }
 
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        self.init(name: try container.decode(String.self))
-    }
-
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(name)
