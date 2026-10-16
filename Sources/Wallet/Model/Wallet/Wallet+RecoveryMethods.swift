@@ -116,6 +116,7 @@ extension Wallet {
     /// If neither applies, the change fails with ``WalletError/RecoveryConfigCode/signerRequired``.
     ///
     /// - Parameter method: An email, phone, API key or passkey recovery method of the wallet.
+    ///   It can also be a member of a quorum recovery method. Then the member approves for the quorum.
     ///   For a passkey, the SDK selects the passkey in ``recoveryMethods`` that has the `id` you give.
     ///   If `id` is `nil`, the wallet must have only one passkey recovery method.
     ///   The SDK does not create a new passkey.
@@ -152,13 +153,15 @@ extension Wallet {
         case .passkey(_, _, let id): try recoveryPasskey(id: id)?.locator
         default: method.locator?.value
         }
-        guard let candidate, config.recoveryMethods.contains(where: { $0.locator == candidate }) else {
+        guard let candidate,
+              let candidateLocator = try? SignerLocator(from: candidate),
+              let recoveryLocator = config.recoveryLocator(actingFor: candidateLocator) else {
             throw .recoveryConfigRejected(
                 code: .invalidConfig,
                 message: "This signer is not a recovery method of the wallet."
             )
         }
-        return try SignerLocator(from: candidate)
+        return recoveryLocator
     }
 
     private func recoveryMethodSigner(for method: SignerConfig) async throws(WalletError) -> any Signer {

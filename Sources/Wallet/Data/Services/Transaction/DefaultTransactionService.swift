@@ -73,11 +73,24 @@ struct DefaultTransactionService: TransactionService {
         let data = try await crossmintService.executeRequestForRawData(
             endpoint,
             errorType: TransactionError.self
-        )
+        ) { networkError in
+            transactionError(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
+        }
         do {
             return try jsonCoder.decode(T.APIModel.self, from: data)
         } catch {
             throw TransactionError.transactionGeneric("Failed to decode transaction response: \(error)")
+        }
+    }
+
+    private func transactionError(code: String?, message: String?) -> TransactionError? {
+        switch code {
+        case "TRANSACTION_EXPIRED":
+            .transactionExpired(message ?? "The transaction expired")
+        case "SIGNER_IS_QUORUM_MEMBER":
+            .signerIsQuorumMember(message ?? "The signer is a quorum member")
+        default:
+            nil
         }
     }
 

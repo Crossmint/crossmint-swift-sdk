@@ -189,6 +189,11 @@ public struct Transaction: Sendable, CustomStringConvertible {
         "id: \(id), status: \(status), onChain: \(onChain), params: \(params), walletType: \(walletType), createdAt: \(createdAt), approvals: \(String(describing: approvals)), error: \(String(describing: error))"
     }
 
+    var awaitsQuorumMembers: Bool {
+        guard status == .awaitingApproval, let approvals else { return false }
+        return approvals.quorums.contains { $0.remaining > 0 }
+    }
+
     internal func toCompleted() -> TransactionCompleted? {
         guard status == .success,
               let txId = onChain.txId,

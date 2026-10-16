@@ -12,6 +12,10 @@ extension Wallet {
     /// shows ``TransactionStatus/awaitingApproval``. The SDK signs the approval message and
     /// polls until the transaction reaches a terminal state.
     ///
+    /// If a quorum must approve the transaction, the SDK signs as each member that this device holds.
+    /// When only other members must still approve, the SDK returns the transaction with the status
+    /// ``TransactionStatus/awaitingApproval``. ``Transaction/Approvals/quorums`` shows the progress.
+    ///
     /// - Parameter id: The transaction ID returned by the Crossmint API.
     public func approve(transactionId id: String) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletApproveStart, attributes: [
@@ -237,6 +241,9 @@ extension Wallet {
     ///
     /// - Returns: A ``TransactionSummary`` with the on-chain hash and explorer link once confirmed.
     ///
+    /// - Throws: ``TransactionError/awaitingQuorumApproval(transactionId:)`` if a quorum must approve
+    ///   the transfer and other members must still approve it after this device signs.
+    ///
     /// ## Example
     /// ```swift
     /// let summary = try await wallet.send(
@@ -258,12 +265,16 @@ extension Wallet {
             "amount": "\(amount)"
         ])
 
-        guard let transaction = try await transferTokenAndPollWhilePending(
+        let polledTransaction = try await transferTokenAndPollWhilePending(
             tokenLocator: tokenLocator,
             recipient: walletLocator,
             amount: String(amount),
             idempotencyKey: idempotencyKey
-        )?.toCompleted() else {
+        )
+        if let polledTransaction, polledTransaction.awaitsQuorumMembers {
+            throw .awaitingQuorumApproval(transactionId: polledTransaction.id)
+        }
+        guard let transaction = polledTransaction?.toCompleted() else {
             Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
                 "error": "Unknown error"
             ])
@@ -384,7 +395,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
     internal func transactionSignerLocator() async throws(TransactionError) -> String? {
         if let selected = try await selectedSignerLocatorForTransactions() {
-            return selected.value
+            let actingLocator = config.recoveryLocator(actingFor: selected) ?? selected
+            return actingLocator.value
         }
         guard config.recoveryMethods.count > 1 else { return nil }
         return await signer?.adminSigner.locator ?? config.recovery.locator
@@ -515,9 +527,33 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                     message: pendingApproval.message
                 )
             }
-            return transaction
+        }
+        if let transaction, let approvals = transaction.approvals {
+            for quorum in approvals.quorums {
+                try await approveAsQuorumMembers(quorum, transactionId: transaction.id)
+            }
         }
         return transaction
+    }
+
+    private func approveAsQuorumMembers(
+        _ quorum: Transaction.Approvals.QuorumProgress,
+        transactionId: String
+    ) async throws(TransactionError) {
+        for member in quorum.pending {
+            guard (try? await approvalSigner(for: member.signer)) != nil else {
+                Logger.smartWallet.info(LogEvents.walletApproveQuorumMemberSkipped, attributes: [
+                    "quorum": quorum.signer.value,
+                    "member": member.signer
+                ])
+                continue
+            }
+            try await approveTransaction(
+                transactionId: transactionId,
+                signerLocator: member.signer,
+                message: member.message
+            )
+        }
     }
 
     private func pollTransactionWhilePending(
@@ -536,6 +572,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             updatedTransaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: updatedTransaction.id, chainType: chain.chainType)
             ).toDomain()
+            if updatedTransaction.awaitsQuorumMembers { break }
         }
 
         return updatedTransaction

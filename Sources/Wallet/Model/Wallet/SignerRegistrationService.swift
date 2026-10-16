@@ -127,14 +127,20 @@ final class SignerRegistrationService: Sendable {
     ) async throws(WalletError) {
         do {
             let transaction = try await smartWalletService.transaction(withId: transactionId, chainType: chainType)
-            guard let pending = transaction.approvals?.pending, !pending.isEmpty else { return }
+            let signerLocator = await signer.locator
+            let pending = transaction.approvals?.pending ?? []
+            let memberPending = (transaction.approvals?.quorums ?? [])
+                .flatMap(\.pending)
+                .filter { SignerLocator(orUnknown: $0.signer) == signerLocator }
+            let messages = (pending + memberPending).map(\.message)
+            guard !messages.isEmpty else { return }
             try await signer.initialize(smartWalletService)
-            for approval in pending {
+            for message in messages {
                 try await smartWalletService.signTransaction(
                     transactionId: transactionId,
                     chainType: chainType,
                     signer: signer,
-                    message: approval.message
+                    message: message
                 )
             }
         } catch {

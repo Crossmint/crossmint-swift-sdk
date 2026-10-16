@@ -450,13 +450,17 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     var transferTokenCallCount = 0
     var transferTokenLastRequest: TransferTokenRequest?
+    var transferTokenResult: (any TransactionApiModel)?
 
     func transferToken(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         transferTokenCallCount += 1
         transferTokenLastRequest = request
-        throw TransactionError.transactionGeneric("not implemented")
+        guard let transferTokenResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return transferTokenResult
     }
 
     func createSignature(

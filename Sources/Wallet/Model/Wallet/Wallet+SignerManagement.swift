@@ -197,7 +197,6 @@ extension Wallet {
         guard config.recoveryMethods.count > 1 else {
             return RecoveryApprover(signer: try await recoverySigner(), locator: nil)
         }
-        let recoveryLocators = config.recoveryMethods.compactMap { try? SignerLocator(from: $0.locator) }
         let activeSigner: (any ApprovalSigner)?
         if let selectedSigner {
             activeSigner = selectedSigner
@@ -206,7 +205,7 @@ extension Wallet {
         }
         guard let activeSigner,
               let activeLocator = await activeSigner.locator,
-              recoveryLocators.contains(activeLocator),
+              let recoveryLocator = config.recoveryLocator(actingFor: activeLocator),
               let signer = activeSigner as? any Signer else {
             throw .recoveryConfigRejected(
                 code: .signerRequired,
@@ -214,7 +213,7 @@ extension Wallet {
                     + "Call useRecoveryMethod with one of the wallet's recovery methods."
             )
         }
-        return RecoveryApprover(signer: signer, locator: activeLocator)
+        return RecoveryApprover(signer: signer, locator: recoveryLocator)
     }
 
     internal func updateSignerIfRequired() async -> (any Signer)? {
@@ -237,7 +236,7 @@ extension Wallet {
         if let selectedSigner, await selectedSigner.locator == locator {
             return selectedSigner
         }
-        if let selectedRecoveryMethod, selectedRecoveryMethod.locator == locator {
+        if let selectedRecoveryMethod, await selectedRecoveryMethod.signer.locator == locator {
             return selectedRecoveryMethod.signer
         }
         if locator.isDevice {
@@ -385,7 +384,7 @@ extension Wallet {
     }
 
     private func requireRegisteredSigner(_ locator: SignerLocator) async throws(WalletError) {
-        if config.containsRecoveryMethod(locator) { return }
+        if config.recoveryLocator(actingFor: locator) != nil { return }
         guard try await fetchSignerRegistration(locator) else { throw .signerNotRegistered(locator.value) }
     }
 
