@@ -109,8 +109,38 @@ public struct Transaction: Sendable, CustomStringConvertible {
             let message: String
         }
 
+        /// The approval progress of a quorum signer.
+        public struct QuorumProgress: Sendable {
+            /// The locator of the quorum.
+            public let signer: SignerLocator
+            /// The number of members that must approve.
+            public let threshold: Int
+            /// The number of member approvals that the quorum still needs. The value is `0` when the quorum approved.
+            public let remaining: Int
+            let pending: [Approvals.Pending]
+            let submitted: [Approvals.Submitted]
+
+            /// The members that did not approve yet.
+            public var pendingMembers: [SignerLocator] {
+                pending.map { SignerLocator(orUnknown: $0.signer) }
+            }
+
+            /// The members that approved.
+            public var submittedMembers: [SignerLocator] {
+                submitted.map { SignerLocator(orUnknown: $0.signer) }
+            }
+        }
+
         let pending: [Approvals.Pending]
         let submitted: [Approvals.Submitted]
+        /// The approval progress of each quorum signer of the transaction.
+        public let quorums: [QuorumProgress]
+
+        init(pending: [Pending], submitted: [Submitted], quorums: [QuorumProgress] = []) {
+            self.pending = pending
+            self.submitted = submitted
+            self.quorums = quorums
+        }
     }
 
     public struct Error: Sendable {
