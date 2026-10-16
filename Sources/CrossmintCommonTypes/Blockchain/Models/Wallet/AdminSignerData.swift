@@ -113,7 +113,6 @@ public struct ServerSignerData: AdminSignerData {
 public struct QuorumSignerData: AdminSignerData {
     /// The identifier that Crossmint gives the quorum when it is added to the wallet.
     public let id: String
-    /// The number of members that must approve.
     public let threshold: Int
     public let members: [any AdminSignerData]
 
