@@ -24,7 +24,6 @@ import CrossmintCommonTypes
 /// )
 /// ```
 public struct QuorumConfig: Sendable {
-    /// The number of members that must approve.
     public let threshold: Int
     /// The signers that make up the quorum. A quorum needs at least two members.
     /// An API key or device signer cannot be a member.
