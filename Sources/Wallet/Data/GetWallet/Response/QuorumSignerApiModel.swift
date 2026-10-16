@@ -8,13 +8,13 @@
 import CrossmintCommonTypes
 import Logger
 
-public struct QuorumSignerApiModel: AdminSignerApiModel {
-    public let type: AdminSignerDataType
-    public let locator: String
-    public let threshold: Int
+struct QuorumSignerApiModel: AdminSignerApiModel {
+    let type: AdminSignerDataType
+    let locator: String
+    let threshold: Int
     let members: [any AdminSignerApiModel]
 
-    public var toDomain: any AdminSignerData {
+    var toDomain: any AdminSignerData {
         QuorumSignerData(
             id: String(locator.dropFirst("quorum:".count)),
             threshold: threshold,
@@ -26,7 +26,7 @@ public struct QuorumSignerApiModel: AdminSignerApiModel {
         case type, locator, threshold, members
     }
 
-    public init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         type = try container.decode(AdminSignerDataType.self, forKey: .type)
         locator = try container.decode(String.self, forKey: .locator)
@@ -49,7 +49,7 @@ public struct QuorumSignerApiModel: AdminSignerApiModel {
         self.members = members
     }
 
-    public func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(type, forKey: .type)
         try container.encode(locator, forKey: .locator)
