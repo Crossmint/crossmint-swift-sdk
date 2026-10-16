@@ -1,0 +1,31 @@
+{
+  "type": "smart",
+  "chainType": "stellar",
+  "config": {
+    "adminSigner": {
+      "type": "email",
+      "email": "carol@example.com",
+      "locator": "email:carol@example.com"
+    },
+    "recoveryMethods": [
+      {
+        "type": "email",
+        "email": "carol@example.com",
+        "locator": "email:carol@example.com"
+      },
+      {
+        "type": "quorum",
+        "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+        "threshold": 2,
+        "members": [
+          { "type": "email", "email": "alice@example.com", "locator": "email:alice@example.com" },
+          { "type": "email", "email": "bob@example.com", "locator": "email:bob@example.com" }
+        ]
+      }
+    ],
+    "delegatedSigners": []
+  },
+  "address": "CA3SGE76PWYAM4OVKETY47GASUGYDF3Y3QFFSPIWFCNKQLUOO4SOIT2W",
+  "linkedUser": "email:carol@example.com",
+  "createdAt": "2026-10-16T10:00:00.000Z"
+}

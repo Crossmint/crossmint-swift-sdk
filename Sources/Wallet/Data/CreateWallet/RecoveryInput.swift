@@ -10,6 +10,7 @@ import CrossmintCommonTypes
 enum RecoveryInput {
     case single(any Signer)
     case list([any Signer])
+    case quorum(QuorumConfig)
 
     private var chainTypesAcceptingSeveralMethods: Set<ChainType> { [.solana, .stellar] }
 
@@ -17,6 +18,7 @@ enum RecoveryInput {
         switch self {
         case .single(let signer): [signer]
         case .list(let signers): signers
+        case .quorum(let quorum): quorum.members
         }
     }
 
@@ -24,6 +26,7 @@ enum RecoveryInput {
         switch self {
         case .single(let signer): signer
         case .list(let signers): signers[0]
+        case .quorum(let quorum): quorum.members[0]
         }
     }
 
@@ -45,12 +48,20 @@ enum RecoveryInput {
                 methods.append(await signer.adminSigner)
             }
             return .init(recoveryMethods: methods, delegatedSigners: delegatedSigners)
+        case .quorum(let quorum):
+            return .init(recoveryMethods: [await quorum.input()], delegatedSigners: delegatedSigners)
         }
     }
 
     func resolved(for chain: Chain) throws(WalletError) -> RecoveryInput {
         if chain.chainType == .solana, signers.contains(where: { $0.signerType == .passkey }) {
             throw .passkeyRecoveryNotAllowedOnSolana
+        }
+        if case .quorum(let quorum) = self, quorum.members.isEmpty {
+            throw .recoveryConfigRejected(
+                code: .invalidConfig,
+                message: "The quorum has no members"
+            )
         }
         guard case .list(let signers) = self else { return self }
         guard let first = signers.first else {

@@ -19,7 +19,8 @@ extension Wallet {
     /// - Parameter method: An email, phone, external wallet or passkey signer.
     ///   For a passkey, the SDK shows the system prompt to create a new passkey.
     ///   A Solana wallet does not accept a passkey as a recovery method.
-    /// - Returns: The completed ``Transaction``.
+    /// - Returns: The completed ``Transaction``. If a quorum approves the change and other members must still
+    ///   approve it, the transaction has the status ``TransactionStatus/awaitingApproval``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
     ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` if the wallet is an EVM wallet.
     ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey
@@ -44,7 +45,55 @@ extension Wallet {
                 approver: approver
             )
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
-            recordAddedRecoveryMethod(recoveryMethod)
+            if transaction.status == .success {
+                recordAddedRecoveryMethod(recoveryMethod)
+            }
+            Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodSuccess, attributes: [
+                "transactionId": transaction.id
+            ])
+            return transaction
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletAddRecoveryMethodError, attributes: [
+                "error": "\(error)"
+            ])
+            throw error
+        }
+    }
+
+    /// Adds a quorum as a recovery method of the wallet.
+    ///
+    /// Stellar wallets only. A recovery method of the wallet approves the change, the same as in
+    /// ``addRecoveryMethod(_:)``. You cannot change the members or the threshold of a quorum later.
+    /// To change them, add a new quorum and then remove the old one with ``removeRecoveryMethod(locator:)``.
+    ///
+    /// - Parameter quorum: The threshold and the members of the quorum.
+    /// - Returns: The completed ``Transaction``. If a quorum approves the change and other members must still
+    ///   approve it, the transaction has the status ``TransactionStatus/awaitingApproval``.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if Crossmint does not accept the quorum.
+    ///   For example ``WalletError/RecoveryConfigCode/quorumTooFewMembers``.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let quorum = QuorumConfig(threshold: 2, members: [alice, bob, carol])
+    /// let transaction = try await wallet.addRecoveryMethod(quorum: quorum)
+    /// ```
+    @discardableResult
+    public func addRecoveryMethod(quorum: QuorumConfig) async throws(WalletError) -> Transaction {
+        Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
+        do {
+            try assertRecoveryMethodChangesSupported()
+            let approver = try await recoveryMethodApprover()
+            try await initializeMembers(of: quorum)
+            onTransactionStart?()
+            let created = try await smartWalletService.addRecoveryMethod(
+                await quorum.input(),
+                chainType: chain.chainType,
+                approver: approver
+            )
+            let transaction = try await approveRecoveryMethodChange(created.toDomain())
+            if transaction.status == .success {
+                try await reloadRecoveryMethods()
+            }
             Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodSuccess, attributes: [
                 "transactionId": transaction.id
             ])
@@ -65,8 +114,9 @@ extension Wallet {
     ///
     /// To remove a signer that you added with ``addSigner(_:)``, use ``removeSigner(locator:)``.
     ///
-    /// - Parameter locator: The recovery method to remove.
-    /// - Returns: The completed ``Transaction``.
+    /// - Parameter locator: The recovery method to remove. To remove a quorum, use ``SignerLocator/quorum(id:)``.
+    /// - Returns: The completed ``Transaction``. If a quorum approves the change and other members must still
+    ///   approve it, the transaction has the status ``TransactionStatus/awaitingApproval``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
     ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
     ///   - ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
@@ -90,7 +140,9 @@ extension Wallet {
                 approver: approver
             )
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
-            recordRemovedRecoveryMethod(locator)
+            if transaction.status == .success {
+                recordRemovedRecoveryMethod(locator)
+            }
             Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodSuccess, attributes: [
                 "locator": locator.value,
                 "transactionId": transaction.id
@@ -253,10 +305,25 @@ extension Wallet {
             }
             throw .walletGeneric(error.message)
         }
-        guard let completed, completed.status == .success else {
+        guard let completed, completed.status == .success || completed.awaitsQuorumMembers else {
             throw .walletGeneric("The recovery method transaction \(transaction.id) did not succeed.")
         }
         return completed
+    }
+
+    private func initializeMembers(of quorum: QuorumConfig) async throws(WalletError) {
+        for member in quorum.members {
+            do {
+                try await member.initialize(smartWalletService)
+            } catch {
+                throw .walletGeneric("Could not prepare a member of the quorum: \(error)")
+            }
+        }
+    }
+
+    private func reloadRecoveryMethods() async throws(WalletError) {
+        let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        config = model.config.toDomain
     }
 
     private func recordAddedRecoveryMethod(_ recoveryMethod: any AdminSignerData) {

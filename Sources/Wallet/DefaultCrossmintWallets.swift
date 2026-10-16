@@ -63,6 +63,15 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         try await createWallet(chain: chain, recovery: .list(recoveryMethods), signers: signers, options: options)
     }
 
+    public func createWallet(
+        chain: Chain,
+        quorum: QuorumConfig,
+        signers: [SignerConfig],
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> Wallet {
+        try await createWallet(chain: chain, recovery: .quorum(quorum), signers: signers, options: options)
+    }
+
     private func getWallet(
         chain: Chain,
         recovery: RecoveryInput?,

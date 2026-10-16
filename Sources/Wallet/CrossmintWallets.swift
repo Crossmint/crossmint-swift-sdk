@@ -120,6 +120,26 @@ public protocol CrossmintWallets: Sendable {
         signers: [SignerConfig],
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
+
+    /// Creates a new smart wallet whose recovery method is a quorum.
+    ///
+    /// The quorum approves only when `threshold` of its members approve. Stellar wallets only.
+    /// The first member of the quorum is the active signer until ``Wallet/useSigner(_:)`` selects another member.
+    ///
+    /// - Parameters:
+    ///   - chain: The blockchain to deploy to.
+    ///   - quorum: The threshold and the members of the quorum.
+    ///   - signers: The signers to add to the wallet. The quorum does not approve them.
+    ///   - options: Optional configuration, such as enabling a device signer.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if Crossmint does not accept the quorum.
+    ///   For example ``WalletError/RecoveryConfigCode/quorumTooFewMembers`` or
+    ///   ``WalletError/RecoveryConfigCode/quorumUnsupported``.
+    func createWallet(
+        chain: Chain,
+        quorum: QuorumConfig,
+        signers: [SignerConfig],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet
 }
 
 extension CrossmintWallets {
@@ -167,6 +187,17 @@ extension CrossmintWallets {
             )
         }
         return try await createWallet(chain: chain, recoveryMethods: recoveryMethods, options: options)
+    }
+
+    public func createWallet(
+        chain: Chain,
+        quorum: QuorumConfig,
+        signers: [SignerConfig],
+        options: WalletOptions?
+    ) async throws(WalletError) -> Wallet {
+        throw .walletGeneric(
+            "This CrossmintWallets implementation does not implement createWallet(chain:quorum:signers:options:)"
+        )
     }
 
     // MARK: - getWallet convenience overloads
@@ -305,6 +336,30 @@ extension CrossmintWallets {
         let wallet = try await createWallet(
             chain: Chain(chain.name),
             recoveryMethods: await signers(recoveryMethods),
+            signers: delegatedSigners,
+            options: options
+        )
+        guard let typed = wallet as? C.WalletType else {
+            throw WalletError.walletInvalidType("Unexpected wallet type for chain \(chain.name)")
+        }
+        return typed
+    }
+
+    /// Creates a wallet whose recovery method is a quorum. Stellar wallets only.
+    ///
+    /// The first member of the quorum is the active signer until ``Wallet/useSigner(_:)`` selects another member.
+    ///
+    /// The SDK adds the `signers` when it creates the wallet. The quorum does not approve them.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if Crossmint does not accept the quorum.
+    public func createWallet<C: ChainWithSigners>(
+        chain: C,
+        quorum: QuorumConfig,
+        signers delegatedSigners: [SignerConfig] = [],
+        options: WalletOptions? = nil
+    ) async throws(WalletError) -> C.WalletType {
+        let wallet = try await createWallet(
+            chain: Chain(chain.name),
+            quorum: quorum,
             signers: delegatedSigners,
             options: options
         )
