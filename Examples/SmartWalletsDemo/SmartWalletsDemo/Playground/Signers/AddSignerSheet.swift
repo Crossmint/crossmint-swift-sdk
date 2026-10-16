@@ -14,6 +14,7 @@ struct AddSignerSheet: View {
     @State private var selectedType: SignerTypeOption = .device
     @State private var inputText = ""
     @State private var channel: OTPDeliveryChannel = .sms
+    @State private var quorumThreshold = 2
     @State private var isAdding = false
     @State private var errorMessage: String?
 
@@ -31,6 +32,7 @@ struct AddSignerSheet: View {
         case email = "Email"
         case phone = "Phone"
         case apiKey = "API Key"
+        case quorum = "Quorum"
 
         var id: String { rawValue }
 
@@ -42,6 +44,7 @@ struct AddSignerSheet: View {
             case .email: return "envelope"
             case .phone: return "phone"
             case .apiKey: return "key"
+            case .quorum: return "person.3"
             }
         }
 
@@ -54,7 +57,7 @@ struct AddSignerSheet: View {
 
         var inputRequired: Bool {
             switch self {
-            case .externalWallet, .email, .phone: return true
+            case .externalWallet, .email, .phone, .quorum: return true
             default: return false
             }
         }
@@ -65,6 +68,7 @@ struct AddSignerSheet: View {
             case .externalWallet: return "Address"
             case .email: return "Email"
             case .phone: return "Phone number"
+            case .quorum: return "Members"
             default: return ""
             }
         }
@@ -75,6 +79,7 @@ struct AddSignerSheet: View {
             case .externalWallet: return "0x..."
             case .email: return "user@example.com"
             case .phone: return "+15551234567"
+            case .quorum: return "alice@example.com, +15551234567"
             default: return ""
             }
         }
@@ -103,7 +108,7 @@ struct AddSignerSheet: View {
         case .recovery where appState.wallet == nil:
             return [.email, .phone, .apiKey]
         case .recovery where appState.selectedChain == .stellar:
-            return [.email, .phone, .externalWallet, .passkey]
+            return [.email, .phone, .externalWallet, .passkey, .quorum]
         case .recovery:
             return [.email, .phone, .externalWallet]
         case .signer:
@@ -164,6 +169,24 @@ struct AddSignerSheet: View {
                     }
                 }
 
+                if selectedType == .quorum {
+                    Section {
+                        if !quorumMembers.isEmpty {
+                            Stepper(
+                                "\(effectiveQuorumThreshold) of \(quorumMembers.count) must approve",
+                                value: Binding(
+                                    get: { effectiveQuorumThreshold },
+                                    set: { quorumThreshold = $0 }
+                                ),
+                                in: 1...quorumMembers.count
+                            )
+                            .accessibilityIdentifier("add-quorum-threshold")
+                        }
+                    } footer: {
+                        Text("Separate the members with commas. A phone number starts with +.")
+                    }
+                }
+
                 if selectedType == .phone {
                     Section("OTP delivery") {
                         Picker("Channel", selection: $channel) {
@@ -220,6 +243,17 @@ struct AddSignerSheet: View {
         .otpSheet()
     }
 
+    private var quorumMembers: [String] {
+        inputText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    private var effectiveQuorumThreshold: Int {
+        min(quorumThreshold, max(quorumMembers.count, 1))
+    }
+
     private var passkeyHost: String {
         Bundle.main.object(forInfoDictionaryKey: "PasskeyHost") as? String ?? ""
     }
@@ -232,6 +266,8 @@ struct AddSignerSheet: View {
         switch mode {
         case .recovery where appState.wallet == nil:
             addRecoveryDraft()
+        case .recovery where selectedType == .quorum:
+            await addRecoveryQuorum()
         case .recovery:
             await addRecoveryMethod()
         case .signer:
@@ -285,6 +321,25 @@ struct AddSignerSheet: View {
         isAdding = false
     }
 
+    private func addRecoveryQuorum() async {
+        isAdding = true
+        errorMessage = nil
+        do {
+            let transaction = try await appState.addRecoveryQuorum(
+                threshold: effectiveQuorumThreshold,
+                members: quorumMembers
+            )
+            if let transaction, transaction.status == .awaitingApproval {
+                errorMessage = "Other quorum members must approve transaction \(transaction.id)."
+            } else {
+                dismiss()
+            }
+        } catch {
+            errorMessage = error.userMessage
+        }
+        isAdding = false
+    }
+
     private func addSigner() async {
         guard let wallet = appState.wallet else { return }
         isAdding = true
@@ -304,7 +359,7 @@ struct AddSignerSheet: View {
                 // here and supplied again when the signer is selected for signing.
                 try await wallet.addSigner(.phone(value))
                 appState.rememberChannel(channel, for: "phone:\(value)")
-            case .email, .apiKey:
+            case .email, .apiKey, .quorum:
                 return
             }
             dismiss()

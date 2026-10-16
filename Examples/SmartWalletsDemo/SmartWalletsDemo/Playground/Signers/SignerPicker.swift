@@ -19,7 +19,7 @@ struct SignerPicker: View {
 
     private var options: [Option] {
         var result: [Option] = []
-        for recovery in appState.recoveryLocators where isSelectable(recovery) {
+        for recovery in appState.selectableRecoveryLocators where isSelectable(recovery) {
             result.append(Option(locator: recovery, name: appState.recoveryName(for: recovery), isRecovery: true))
         }
         for signer in appState.signers {
@@ -40,14 +40,28 @@ struct SignerPicker: View {
             )) {
                 ForEach(opts) { opt in
                     Button { } label: {
-                        Text(SignerRow.title(for: opt.locator, name: opt.name))
-                        let subtitle = SignerRow.subtitle(for: opt.locator, name: opt.name)
-                        Text(opt.isRecovery ? "\(subtitle) (Recovery)" : subtitle)
+                        Text(title(for: opt))
+                        Text(subtitle(for: opt))
                     }
                     .tag(opt.id)
                 }
             }
         }
+    }
+
+    private func title(for option: Option) -> String {
+        guard option.isRecovery, option.name == nil else {
+            return SignerRow.title(for: option.locator, name: option.name)
+        }
+        return SignerRow.shortValue(for: option.locator)
+    }
+
+    private func subtitle(for option: Option) -> String {
+        guard option.isRecovery else { return SignerRow.subtitle(for: option.locator, name: option.name) }
+        guard option.name == nil else {
+            return "\(SignerRow.subtitle(for: option.locator, name: option.name)) (Recovery)"
+        }
+        return "\(SignerRow.typeLabel(for: option.locator)) (Recovery)"
     }
 
     private func isSelectable(_ locator: String) -> Bool {

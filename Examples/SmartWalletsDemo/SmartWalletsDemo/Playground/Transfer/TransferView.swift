@@ -17,6 +17,7 @@ struct TransferView: View {
     @State private var selectedTokenIndex = 0
     @State private var isSending = false
     @State private var transactionId: String?
+    @State private var awaitingQuorum: WalletTransaction?
     @State private var errorMessage: String?
     @State private var txCopied = false
     @FocusState private var isAnyFieldFocused: Bool
@@ -96,6 +97,18 @@ struct TransferView: View {
                     }
                 }
 
+                if let awaitingQuorum {
+                    Section {
+                        Label("Waiting for other quorum members", systemImage: "person.3")
+                            .fontWeight(.medium)
+                            .accessibilityIdentifier("transfer-awaiting-quorum-label")
+                        QuorumProgressRows(transaction: awaitingQuorum)
+                        CopyButton(value: awaitingQuorum.id, lineLimit: 2)
+                    } footer: {
+                        Text("Select another member, then approve this transaction ID in Approve Transaction.")
+                    }
+                }
+
                 if let error = errorMessage {
                     Section {
                         Label(error, systemImage: "exclamationmark.triangle")
@@ -140,6 +153,7 @@ struct TransferView: View {
         isSending = true
         errorMessage = nil
         transactionId = nil
+        awaitingQuorum = nil
         let locator = tokens[selectedTokenIndex].locator
         let trimmedAddress = recipientAddress.trimmingCharacters(in: .whitespaces)
         do {
@@ -149,7 +163,11 @@ struct TransferView: View {
             amount = ""
             await onComplete?()
         } catch {
-            errorMessage = error.userMessage
+            if case .awaitingQuorumApproval(let id) = error {
+                awaitingQuorum = await appState.transaction(id: id)
+            } else {
+                errorMessage = error.userMessage
+            }
         }
         isSending = false
     }

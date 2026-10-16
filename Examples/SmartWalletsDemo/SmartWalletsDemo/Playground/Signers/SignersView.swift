@@ -71,6 +71,10 @@ struct SignersView: View {
             Text("Recovery")
         }
 
+        if appState.selectedChain == .stellar {
+            quorumDraftSection()
+        }
+
         Section {
             Button {
                 showAddSigner = true
@@ -99,6 +103,31 @@ struct SignersView: View {
                     .foregroundStyle(.red)
                     .font(.footnote)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func quorumDraftSection() -> some View {
+        let memberCount = appState.pendingRecovery.count + 1
+        Section {
+            Toggle("Quorum", isOn: Binding(
+                get: { appState.pendingQuorumThreshold != nil },
+                set: { appState.pendingQuorumThreshold = $0 ? min(2, memberCount) : nil }
+            ))
+            .accessibilityIdentifier("recovery-quorum-toggle")
+            if let threshold = appState.pendingQuorumThreshold.map({ min($0, memberCount) }) {
+                Stepper(
+                    "\(threshold) of \(memberCount) must approve",
+                    value: Binding(
+                        get: { threshold },
+                        set: { appState.pendingQuorumThreshold = $0 }
+                    ),
+                    in: 1...memberCount
+                )
+                .accessibilityIdentifier("recovery-quorum-threshold")
+            }
+        } footer: {
+            Text("The recovery methods above become the members of one quorum.")
         }
     }
 
@@ -147,31 +176,57 @@ struct SignersView: View {
         if !locators.isEmpty {
             Section {
                 ForEach(Array(locators.enumerated()), id: \.element) { index, locator in
-                    SignerRow(
-                        index: index,
-                        idPrefix: "recovery",
-                        locator: locator,
-                        name: appState.recoveryName(for: locator),
-                        status: appState.approvingRecoveryLocator == locator ? "Approver" : nil,
-                        isRemoving: removingSignerLocator == locator || selectingApproverLocator == locator,
-                        canRemove: editable,
-                        onSelect: {},
-                        onRemove: { Task { await removeRecoveryMethod(locator: locator) } }
-                    )
-                    .contentShape(Rectangle())
-                    .accessibilityAddTraits(editable ? .isButton : [])
-                    .onTapGesture {
-                        guard editable else { return }
-                        Task { await selectApprover(locator: locator) }
+                    recoveryRow(index: index, locator: locator, editable: editable)
+                    if let quorum = appState.quorum(for: locator) {
+                        ForEach(quorum.members.map(\.locator), id: \.self) { member in
+                            quorumMemberRow(locator: member)
+                        }
                     }
                 }
             } header: {
                 Text("Recovery")
             } footer: {
                 if editable {
-                    Text("Tap a recovery method to approve signer changes with it.")
+                    Text("Tap a recovery method or a quorum member to approve signer changes with it.")
                 }
             }
+        }
+    }
+
+    private func quorumMemberRow(locator: String) -> some View {
+        SignerRow(
+            idPrefix: "quorum-member",
+            locator: locator,
+            status: appState.approvingRecoveryLocator == locator ? "Approver" : "Member",
+            isRemoving: selectingApproverLocator == locator,
+            canRemove: false,
+            onSelect: {}
+        )
+        .padding(.leading, 24)
+        .contentShape(Rectangle())
+        .accessibilityAddTraits(.isButton)
+        .onTapGesture {
+            Task { await selectApprover(locator: locator) }
+        }
+    }
+
+    private func recoveryRow(index: Int, locator: String, editable: Bool) -> some View {
+        SignerRow(
+            index: index,
+            idPrefix: "recovery",
+            locator: locator,
+            name: appState.recoveryName(for: locator),
+            status: appState.approvingRecoveryLocator == locator ? "Approver" : nil,
+            isRemoving: removingSignerLocator == locator || selectingApproverLocator == locator,
+            canRemove: editable,
+            onSelect: {},
+            onRemove: { Task { await removeRecoveryMethod(locator: locator) } }
+        )
+        .contentShape(Rectangle())
+        .accessibilityAddTraits(editable ? .isButton : [])
+        .onTapGesture {
+            guard editable, appState.quorum(for: locator) == nil else { return }
+            Task { await selectApprover(locator: locator) }
         }
     }
 
@@ -199,8 +254,12 @@ struct SignersView: View {
     private func removeRecoveryMethod(locator: String) async {
         removingSignerLocator = locator
         do {
-            try await appState.removeRecoveryMethod(locator: locator)
-            show(title: "Removed", message: "Recovery method removed.")
+            let transaction = try await appState.removeRecoveryMethod(locator: locator)
+            if let transaction, transaction.status == .awaitingApproval {
+                show(title: "Waiting", message: "Other quorum members must approve transaction \(transaction.id).")
+            } else {
+                show(title: "Removed", message: "Recovery method removed.")
+            }
         } catch {
             show(title: "Error", message: error.userMessage)
         }
