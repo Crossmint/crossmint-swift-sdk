@@ -13,22 +13,20 @@ struct SignerPicker: View {
         var id: String { locator }
 
         let locator: String
-        let typeLabel: String
+        let name: String?
         let isRecovery: Bool
     }
 
     private var options: [Option] {
         var result: [Option] = []
         for recovery in appState.recoveryLocators where isSelectable(recovery) {
-            result.append(Option(locator: recovery, typeLabel: SignerRow.typeLabel(for: recovery), isRecovery: true))
+            result.append(Option(locator: recovery, name: appState.recoveryName(for: recovery), isRecovery: true))
         }
         for signer in appState.signers {
             let locator = signer.locator
             guard isSelectable(locator) else { continue }
             if locator.isDevice, locator.value != appState.localDeviceLocator { continue }
-            result.append(
-                Option(locator: locator.value, typeLabel: SignerRow.typeLabel(for: locator.value), isRecovery: false)
-            )
+            result.append(Option(locator: locator.value, name: signer.name, isRecovery: false))
         }
         return result
     }
@@ -42,8 +40,9 @@ struct SignerPicker: View {
             )) {
                 ForEach(opts) { opt in
                     Button { } label: {
-                        Text(SignerRow.value(for: opt.id))
-                        Text(opt.typeLabel + (opt.isRecovery ? " (Recovery)" : ""))
+                        Text(SignerRow.title(for: opt.locator, name: opt.name))
+                        let subtitle = SignerRow.subtitle(for: opt.locator, name: opt.name)
+                        Text(opt.isRecovery ? "\(subtitle) (Recovery)" : subtitle)
                     }
                     .tag(opt.id)
                 }
