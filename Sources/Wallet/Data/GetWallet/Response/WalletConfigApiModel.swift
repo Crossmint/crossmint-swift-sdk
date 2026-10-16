@@ -78,12 +78,12 @@ public struct WalletConfigApiModel: Decodable {
         return methods
     }
 
-    private static func rawSignerType(from decoder: Decoder) throws -> String {
+    static func rawSignerType(from decoder: Decoder) throws -> String {
         let typeContainer = try decoder.container(keyedBy: AdminSignerCodingKeys.self)
         return try typeContainer.decode(String.self, forKey: .type)
     }
 
-    private static func decodeSigner(from decoder: Decoder) throws -> AdminSignerApiModel {
+    static func decodeSigner(from decoder: Decoder) throws -> AdminSignerApiModel {
         let typeContainer = try decoder.container(keyedBy: AdminSignerCodingKeys.self)
         let rawType = try rawSignerType(from: decoder)
         guard let type = AdminSignerDataType(rawValue: rawType) else {
@@ -107,6 +107,8 @@ public struct WalletConfigApiModel: Decodable {
             return try ExternalWalletSignerApiModel(from: decoder)
         case .server:
             return try ServerSignerApiModel(from: decoder)
+        case .quorum:
+            return try QuorumSignerApiModel(from: decoder)
         }
     }
 

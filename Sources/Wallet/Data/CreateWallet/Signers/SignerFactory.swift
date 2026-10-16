@@ -98,7 +98,7 @@ enum SignerFactory {
             } else {
                 nil
             }
-        case .device, .externalWallet, .server, .unknown:
+        case .device, .externalWallet, .server, .quorum, .unknown:
             nil
         }
     }
