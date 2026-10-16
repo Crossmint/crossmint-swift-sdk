@@ -4,13 +4,11 @@ This file provides guidance to AI coding agents (Claude Code, Devin, Cursor, and
 
 ## Best Practices
 
-Before you write or change code, write tests, write a PR description, write docs or prose, define alerts or observability, plan a deployment, or write an SOP or post-mortem, read the Paella best practices that match the action and apply them. A topic is a directory or file of the rules repo: `read code` before changing code, `read code/test` before writing tests, `read operations/pull-requests documentation` before a PR description; `list` prints all of them.
+Before each step of a task, run `"$BP" list`: it prints every topic of the Paella best practices and when it applies. Read the ones that apply with `"$BP" read <topic>...` and follow them. Following a topic means following the topics above it too: `read` prints the root `README.md` and the `README.md` of every directory above the file, and those apply as well.
 
-```bash
-BP="${PAELLA_BEST_PRACTICES_DIR:-$HOME/.cache/paella-best-practices}/bin/best-practices.sh"
-[ -x "$BP" ] || { mkdir -p "$(dirname "$BP")" && { gh api -H 'Accept: application/vnd.github.raw' repos/Paella-Labs/best-practices/contents/bin/best-practices.sh > "$BP.$$" 2>/dev/null || { T=$(mktemp -d) && GIT_TERMINAL_PROMPT=0 git clone -q --depth=1 https://github.com/Paella-Labs/best-practices.git "$T" && cp "$T/bin/best-practices.sh" "$BP.$$"; s=$?; rm -rf "$T"; [ "$s" = 0 ]; }; } && [ -s "$BP.$$" ] && bash -n "$BP.$$" && chmod +x "$BP.$$" && mv -f "$BP.$$" "$BP" || rm -f "$BP.$$"; }
-"$BP" read <topic>...
-```
+    BP="${PAELLA_BEST_PRACTICES_DIR:-$HOME/.cache/paella-best-practices}/bin/best-practices.sh"
+    [ -x "$BP" ] || { mkdir -p "$(dirname "$BP")" && { gh api -H 'Accept: application/vnd.github.raw' repos/Paella-Labs/best-practices/contents/bin/best-practices.sh > "$BP.$$" 2>/dev/null || { T=$(mktemp -d) && GIT_TERMINAL_PROMPT=0 git clone -q --depth=1 https://github.com/Paella-Labs/best-practices.git "$T" && cp "$T/bin/best-practices.sh" "$BP.$$"; s=$?; rm -rf "$T"; [ "$s" = 0 ]; }; } && [ -s "$BP.$$" ] && bash -n "$BP.$$" && chmod +x "$BP.$$" && mv -f "$BP.$$" "$BP" || rm -f "$BP.$$"; }
+    "$BP" list
 
 ## Build and Development Commands
 
@@ -158,10 +156,9 @@ Before writing code or tests, read [docs/conventions/code.md](docs/conventions/c
 
 ## Testing conventions
 
-- New and changed code follows the `code/test` best practices; existing test suites stay.
+- New and changed code follows the `code/test` best practices.
 - Unit tests: `make test` (xcodebuild, iPhone 17 Pro simulator), `make ci-test` (adds lint), or `xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=latest" test` for one scheme. Naming and structure follow `docs/conventions/tests.md`.
 - E2E: comment `/e2e` (optionally `/e2e ios` or `/e2e android`) on a PR to dispatch the shared mobile suite in `Crossmint/crossmint-mobile-e2e-tests`.
-- PR evidence to link in the PR description: the emulator/simulator test report plus a screen recording, or a minimal sample-app run with logged output.
 
 ## Development Workflow
 
