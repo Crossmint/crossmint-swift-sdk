@@ -13,6 +13,7 @@ public enum AdminSignerDataType: String, Sendable, Codable {
     case externalWallet = "external-wallet"
     case phone
     case server
+    case quorum
 }
 
 public extension AdminSignerData {
@@ -105,5 +106,23 @@ public struct ServerSignerData: AdminSignerData {
 
     public init(address: String) {
         self.address = address
+    }
+}
+
+/// A signer that approves only when `threshold` of its `members` approve.
+public struct QuorumSignerData: AdminSignerData {
+    /// The identifier that Crossmint gives the quorum when it is added to the wallet.
+    public let id: String
+    /// The number of members that must approve.
+    public let threshold: Int
+    public let members: [any AdminSignerData]
+
+    public var type: AdminSignerDataType { .quorum }
+    public var locatorId: String { id }
+
+    public init(id: String, threshold: Int, members: [any AdminSignerData]) {
+        self.id = id
+        self.threshold = threshold
+        self.members = members
     }
 }
