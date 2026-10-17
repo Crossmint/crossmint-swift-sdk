@@ -170,6 +170,7 @@ extension Wallet {
             guard let result = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
+            await forgetLocalDeviceKey(removedLocator: locator)
             Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
                 "locator": locator
             ])
@@ -181,6 +182,17 @@ extension Wallet {
             ])
             throw error as? TransactionError ?? .transactionGeneric("Unknown error")
         }
+    }
+
+    private func forgetLocalDeviceKey(removedLocator: String) async {
+        guard let storage = deviceSignerKeyStorage,
+              case .device(let publicKey)? = try? SignerLocator(from: removedLocator),
+              await storage.getKey(address: address) == publicKey else { return }
+        try? await storage.deleteKey(address: address)
+        if selectedSigner is DeviceSigner {
+            selectedSigner = nil
+        }
+        _deviceSignerApproved = false
     }
 
     @available(*, deprecated, renamed: "send(_:_:_:)", message: "Use the new send method. This one will be removed.")

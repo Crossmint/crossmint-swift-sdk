@@ -222,7 +222,8 @@ let package = Package(
         .testTarget(
             name: "DeviceSignerTests",
             dependencies: [
-                "DeviceSigner"
+                "DeviceSigner",
+                "TestsUtils"
             ],
             plugins: basePlugins
         ),
@@ -237,6 +238,7 @@ let package = Package(
             name: "TestsUtils",
             dependencies: [
                 "CrossmintService",
+                "DeviceSigner",
                 "Http"
             ]
         )
