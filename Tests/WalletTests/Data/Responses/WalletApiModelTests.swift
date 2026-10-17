@@ -168,7 +168,7 @@ struct WalletApiModelTest {
         #expect(wallet.config.toDomain.recoveryMethodsWithStatus.map(\.status) == [.active, .pending, .unknown])
     }
 
-    @Test func willDecodeAFailedRecoveryMethodStatus() async throws {
+    @Test func decodesAFailedRecoveryMethodStatus() async throws {
         let wallet: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletSolanaFailedRecoveryMethod",
             bundle: Bundle.module

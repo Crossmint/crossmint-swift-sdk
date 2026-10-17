@@ -1,15 +1,9 @@
 import CrossmintCommonTypes
 import Foundation
-import SecureStorage
 import Testing
 import TestsUtils
 
 @testable import Wallet
-
-private final class StubSecureWalletStorage: SecureWalletStorage, @unchecked Sendable {
-    func savePrivateKey(_ privateKey: String, forEmail email: String) {}
-    func getPrivateKey(forEmail email: String) -> String? { nil }
-}
 
 @Suite("Wallet chain validation", .tags(.unit))
 struct DefaultCrossmintWalletsChainValidationTests {
@@ -18,7 +12,7 @@ struct DefaultCrossmintWalletsChainValidationTests {
     private func makeWallets() -> DefaultCrossmintWallets {
         DefaultCrossmintWallets(
             service: walletService,
-            secureWalletStorage: StubSecureWalletStorage(),
+            secureWalletStorage: MockSecureWalletStorage(),
             deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
         )
     }
