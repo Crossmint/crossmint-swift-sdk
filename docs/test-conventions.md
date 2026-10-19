@@ -29,7 +29,7 @@ Tests/
       <FixtureName>.json            ← JSON fixtures for decode tests
 ```
 
-Tests against the real API live in the `IntegrationTests` target; everything under the other test targets runs offline.
+Tests against the real API will live in an `IntegrationTests` target (QA-109); until it exists there is no real-API test in this repo, and everything under the existing test targets runs offline.
 
 **Key paths:**
 
@@ -39,7 +39,7 @@ Tests against the real API live in the `IntegrationTests` target; everything und
 | Mock | `Tests/<Module>Tests/Mocks/Mock<Protocol>.swift` |
 | Helper | `Tests/<Module>Tests/Helpers/<Feature>Helpers.swift` |
 | JSON fixture | `Tests/<Module>Tests/Resources/<Fixture>.json` |
-| Staging tests | `Tests/CrossmintClientTests/StagingIntegrationTests.swift` |
+| Network stub | `Sources/TestsUtils/HTTPFixtureRouter.swift` |
 
 ---
 
@@ -338,7 +338,7 @@ func parsesKnownEnvironmentPrefix(prefix: ApiKeyEnvironmentPrefix) throws {
 
 ## 11. Network
 
-Unit tests never reach the network. Build services with `HTTPFixtureRouter().client` from `TestsUtils` and stub each route the test needs; an unstubbed request fails naming its method and URL. `NetworkKillSwitch` (installed by every router) fails anything that still reaches `URLSession.shared`. Tests against the real API live in the `IntegrationTests` target, not behind a tag.
+Unit tests never reach the network. Build services with `HTTPFixtureRouter().client` from `TestsUtils` and stub each route the test needs; an unstubbed request fails naming its method and URL. `NetworkKillSwitch` (installed by every router) fails anything that still reaches `URLSession.shared`. Tests against the real API will live in an `IntegrationTests` target (QA-109), not behind a tag.
 
 ---
 

@@ -1,6 +1,7 @@
 import CrossmintCommonTypes
 import CrossmintService
 import Foundation
+import TestsUtils
 @testable import Wallet
 
 struct CorruptedFixtureError: Error, CustomStringConvertible {
@@ -39,6 +40,10 @@ extension DevicePublicKey {
 }
 
 final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
+    init() {
+        NetworkKillSwitch.install()
+    }
+
     var isProductionEnvironment: Bool { false }
 
     // MARK: - getWallet

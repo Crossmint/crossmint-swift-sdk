@@ -7,6 +7,8 @@ import TestsUtils
 struct NetworkKillSwitchTests {
     @Test func failsALiveRequestAndNamesIt() async throws {
         NetworkKillSwitch.install()
+        NetworkKillSwitch.expectBlockedRequest = true
+        defer { NetworkKillSwitch.expectBlockedRequest = false }
         let request = URLRequest(url: try #require(URL(string: "https://staging.crossmint.com/api/ping")))
 
         await #expect {

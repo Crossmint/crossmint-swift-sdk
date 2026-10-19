@@ -1,16 +1,18 @@
+import CrossmintService
 import Foundation
 import Http
+import Testing
 
-public struct UnstubbedRequest: LocalizedError, Sendable {
-    public let method: String
-    public let url: String
+package struct UnstubbedRequest: CrossmintError {
+    package let method: String
+    package let url: String
 
-    public var errorDescription: String? {
-        "No fixture for \(method) \(url). Stub it with HTTPFixtureRouter.respond(to:path:status:body:)."
-    }
+    package var code: String { "UNSTUBBED_REQUEST" }
+    package var message: String { "No fixture for \(method) \(url)." }
+    package var recoverySuggestion: String? { "Stub it with HTTPFixtureRouter.respond(to:path:status:body:)." }
 }
 
-public final class HTTPFixtureRouter: @unchecked Sendable {
+package final class HTTPFixtureRouter: @unchecked Sendable {
     private struct Rule {
         let method: String?
         let path: String?
@@ -28,27 +30,27 @@ public final class HTTPFixtureRouter: @unchecked Sendable {
     private var rules: [Rule] = []
     private var recorded: [URLRequest] = []
 
-    public init() {
+    package init() {
         NetworkKillSwitch.install()
     }
 
-    public var requests: [URLRequest] {
+    package var requests: [URLRequest] {
         lock.withLock { recorded }
     }
 
-    public var lastRequest: URLRequest? {
+    package var lastRequest: URLRequest? {
         requests.last
     }
 
-    public func respond(to method: String? = nil, path: String? = nil, status: Int = 200, body: Data = Data()) {
+    package func respond(to method: String? = nil, path: String? = nil, status: Int = 200, body: Data = Data()) {
         lock.withLock { rules.append(Rule(method: method, path: path, status: status, body: body)) }
     }
 
-    public func respond(to method: String? = nil, path: String? = nil, status: Int = 200, json: String) {
+    package func respond(to method: String? = nil, path: String? = nil, status: Int = 200, json: String) {
         respond(to: method, path: path, status: status, body: Data(json.utf8))
     }
 
-    public var client: HTTPClient {
+    package var client: HTTPClient {
         HTTPClient { [self] request throws(NetworkError) in
             lock.withLock { recorded.append(request) }
             let method = request.httpMethod ?? "GET"
@@ -67,25 +69,38 @@ public final class HTTPFixtureRouter: @unchecked Sendable {
     }
 }
 
-/// Fails any request that reaches `URLSession.shared` in a test process, naming the request.
-public class NetworkKillSwitch: URLProtocol {
+/// Fails any request that reaches `URLSession.shared` in a test process. It also records a test issue,
+/// so a caller that swallows the error still shows up, except for SDK telemetry and for the guard's own
+/// test (`expectBlockedRequest`).
+package class NetworkKillSwitch: URLProtocol {
     private static let installation: Void = { URLProtocol.registerClass(NetworkKillSwitch.self) }()
+    private static let telemetryHost = "telemetry.crossmint.com"
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var expectingBlockedRequest = false
 
-    public static func install() {
+    package static func install() {
         _ = installation
     }
 
-    override public class func canInit(with request: URLRequest) -> Bool { true }
-    override public class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    package static var expectBlockedRequest: Bool {
+        get { lock.withLock { expectingBlockedRequest } }
+        set { lock.withLock { expectingBlockedRequest = newValue } }
+    }
 
-    override public func startLoading() {
+    override package class func canInit(with request: URLRequest) -> Bool { true }
+    override package class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override package func startLoading() {
         let unstubbed = UnstubbedRequest(method: request.httpMethod ?? "GET", url: request.url?.absoluteString ?? "")
+        if !Self.expectBlockedRequest, request.url?.host != Self.telemetryHost {
+            Issue.record("A test reached the network: \(unstubbed.message)")
+        }
         client?.urlProtocol(self, didFailWithError: NSError(
             domain: "NetworkKillSwitch",
             code: 1,
-            userInfo: [NSLocalizedDescriptionKey: unstubbed.errorDescription ?? ""]
+            userInfo: [NSLocalizedDescriptionKey: unstubbed.description]
         ))
     }
 
-    override public func stopLoading() {}
+    override package func stopLoading() {}
 }
