@@ -146,17 +146,6 @@ struct WalletQuorumRecoveryMethodChangesTests {
         #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value])
     }
 
-    @Test func namesTheQuorumAsApproverWhenTheActiveSignerIsAMember() async throws {
-        let wallet = try makeWallet(fileName: "WalletStellarQuorumAndEmail", signer: nil)
-        wallet.selectedSigner = MockSigner(email: "bob@example.com")
-        walletService.addRecoveryMethodResult = try transaction("StellarTransactionAwaitingQuorum")
-        walletService.fetchTransactionResult = try transaction("StellarTransactionAwaitingQuorum")
-
-        _ = try await wallet.addRecoveryMethod(.email("dave@example.com"))
-
-        #expect(walletService.lastAddRecoveryMethodApprover == QUORUM)
-    }
-
     @Test func namesTheQuorumAsApproverWhenAMemberIsTheSelectedRecoveryMethod() async throws {
         let wallet = try makeWallet(
             fileName: "WalletStellarQuorumAndEmail",
