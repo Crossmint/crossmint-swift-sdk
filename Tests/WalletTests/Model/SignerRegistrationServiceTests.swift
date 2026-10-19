@@ -198,52 +198,6 @@ struct SignerRegistrationTransactionApprovalTests {
     }
 
     @Test
-    func approvesTheRegistrationAsTheQuorumMemberThatTheSignerIs() async throws {
-        let walletService = MockSmartWalletService()
-        let registrationTransaction: StellarTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "StellarTransactionAwaitingQuorum",
-            bundle: Bundle.module
-        )
-        walletService.fetchTransactionResult = registrationTransaction
-        let member = MockSigner(email: "bob@example.com")
-        let service = makeSolanaService(walletService: walletService)
-
-        let registration = AddDelegatedSignerResponse(
-            chains: nil,
-            transaction: RegistrationTransaction(id: "registration-tx-1")
-        )
-        try await service.approveIfNeeded(registration: registration, signer: member)
-
-        #expect(member.signedMessages == ["bob-message"])
-        #expect(walletService.signTransactionCallCount == 1)
-    }
-
-    @Test
-    func throwsAwaitingQuorumApprovalWhenOtherMembersMustApproveTheRegistration() async throws {
-        let walletService = MockSmartWalletService()
-        let registrationTransaction: StellarTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "StellarTransactionAwaitingQuorum",
-            bundle: Bundle.module
-        )
-        walletService.fetchTransactionResult = registrationTransaction
-        let outsider = MockSigner(email: "carol@example.com")
-        let service = makeSolanaService(walletService: walletService)
-
-        let registration = AddDelegatedSignerResponse(
-            chains: nil,
-            transaction: RegistrationTransaction(id: "registration-tx-1")
-        )
-
-        await #expect {
-            try await service.approveIfNeeded(registration: registration, signer: outsider)
-        } throws: { error in
-            guard case .awaitingQuorumApproval(let transactionId) = error as? WalletError else { return false }
-            return transactionId == "registration-tx-1"
-        }
-        #expect(walletService.signTransactionCallCount == 0)
-    }
-
-    @Test
     func throwsWalletErrorWhenTheTransactionFetchFails() async throws {
         let walletService = MockSmartWalletService()
         let signer = MockSigner()

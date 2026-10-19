@@ -144,29 +144,6 @@ struct WalletQuorumApprovalTests {
         }
     }
 
-    @Test func namesTheQuorumAsApproverWhenAPasskeyMemberIsTheSelectedRecoveryMethod() async throws {
-        let walletService = MockSmartWalletService()
-        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
-            fileName: "WalletStellarQuorumWithPasskey",
-            bundle: Bundle.module
-        )
-        let wallet = try StellarWallet(
-            smartWalletService: walletService,
-            signer: nil,
-            baseModel: baseModel,
-            stellarChain: .stellar
-        )
-        walletService.removeRecoveryMethodResult = try awaitingQuorum()
-        walletService.fetchTransactionResult = try awaitingQuorum()
-
-        try await wallet.useRecoveryMethod(
-            .passkey(name: "alice", host: "example.com", id: "v-Qxh--c2nOkUyBYJHRaXCwSOJw")
-        )
-        _ = try? await wallet.removeRecoveryMethod(locator: .email("carol@example.com"))
-
-        #expect(walletService.lastRemoveRecoveryMethodApprover == QUORUM)
-    }
-
     @Test func acceptsAQuorumMemberAsTheActiveSigner() async throws {
         let wallet = try makeWallet(walletService: MockSmartWalletService())
 
