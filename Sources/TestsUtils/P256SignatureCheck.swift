@@ -1,8 +1,8 @@
 import CryptoKit
 import Foundation
 
-public enum P256SignatureCheck {
-    public static func verifies(r: String, s: String, publicKeyBase64: String, messageBase64: String) -> Bool {
+package enum P256SignatureCheck {
+    package static func verifies(r: String, s: String, publicKeyBase64: String, messageBase64: String) -> Bool {
         guard let publicKeyData = Data(base64Encoded: publicKeyBase64),
               let publicKey = try? P256.Signing.PublicKey(x963Representation: publicKeyData),
               let message = Data(base64Encoded: messageBase64),
