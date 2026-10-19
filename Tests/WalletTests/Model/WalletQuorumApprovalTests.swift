@@ -188,6 +188,21 @@ struct WalletQuorumApprovalTests {
         #expect(walletService.lastRemoveRecoveryMethodApprover == QUORUM)
     }
 
+    @Test func sendsAsTheMemberWhenTheMemberIsAlsoASigner() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeWallet(walletService: walletService)
+        walletService.getWalletResult = nil
+        walletService.getWalletFixture = try #require(
+            try Data(contentsOf: #require(Bundle.module.url(forResource: "WalletStellarQuorum", withExtension: "json")))
+        )
+        walletService.getWalletSignerLocators = ["email:alice@example.com"]
+        wallet.selectedSigner = MockSigner(email: "alice@example.com")
+
+        _ = try? await wallet.send("CANKOZR2XAFXTUT7JX6ZPKKDNOQQ2XS5RGVC6ZU57VLDNDYRJPXUK2SJ", "stellar:usdc", 1)
+
+        #expect(walletService.transferTokenLastRequest?.signer == "email:alice@example.com")
+    }
+
     @Test func acceptsAQuorumMemberAsTheActiveSigner() async throws {
         let wallet = try makeWallet(walletService: MockSmartWalletService())
 
