@@ -53,7 +53,7 @@ public enum WalletError: CrossmintError {
         case quorumUnsupported = "QUORUM_SIGNER_UNSUPPORTED"
         /// The quorum has fewer than two members.
         case quorumTooFewMembers = "QUORUM_TOO_FEW_MEMBERS"
-        /// The quorum has too many members.
+        /// The quorum has fewer than two members or more than ten members.
         case quorumSizeInvalid = "QUORUM_SIZE_INVALID"
         /// The threshold of the quorum is larger than the number of members.
         case quorumThresholdExceedsMembers = "QUORUM_THRESHOLD_EXCEEDS_MEMBERS"
@@ -61,7 +61,7 @@ public enum WalletError: CrossmintError {
         case quorumMemberDuplicated = "QUORUM_MEMBER_DUPLICATED"
         /// A member of the quorum has a signer type that cannot be a quorum member, for example an API key.
         case quorumMemberTypeNotAllowed = "QUORUM_MEMBER_TYPE_NOT_ALLOWED"
-        /// The wallet type does not accept this signer type as a quorum member.
+        /// The chain does not accept the signer type of a member as a quorum member.
         case quorumMemberTypeUnsupported = "QUORUM_MEMBER_TYPE_UNSUPPORTED"
     }
 
