@@ -60,6 +60,12 @@ struct CryptoWalletSession {
         return "0x" + keccak256(prefixed).map { String(format: "%02x", $0) }.joined()
     }
 
+    /// The keypair as the signer an app would select: a fetched wallet carries no external-wallet signer.
+    var signerConfig: SignerConfig {
+        let keypair = keypair
+        return .externalWallet(address) { message in try await keypair.sign(message: message) }
+    }
+
     func wallets() -> DefaultCrossmintWallets {
         DefaultCrossmintWallets(
             service: DefaultSmartWalletService(crossmintService: service, authManager: authManager),

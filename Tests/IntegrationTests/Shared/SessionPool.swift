@@ -16,11 +16,13 @@ actor SessionPool {
 
     /// The user's EVM wallet, created on first use with the user's keypair as recovery.
     func evmWallet(of session: CryptoWalletSession) async throws -> Wallet {
-        try await wallet(of: session, chain: IntegrationEnvironment.EVM_CHAIN) {
+        let wallet = try await wallet(of: session, chain: IntegrationEnvironment.EVM_CHAIN) {
             try await session.wallets().createWallet(
                 chain: IntegrationEnvironment.EVM_CHAIN, recovery: session.keypair, options: nil
             )
         }
+        try await wallet.useSigner(session.signerConfig)
+        return wallet
     }
 
     /// The user's Solana wallet, created on first use with an ed25519 external wallet as recovery.
@@ -32,6 +34,7 @@ actor SessionPool {
                 chain: IntegrationEnvironment.SOLANA_CHAIN, recovery: recovery, options: nil
             )
         }
+        try await wallet.useSigner(recovery.config)
         return (wallet, recovery)
     }
 
