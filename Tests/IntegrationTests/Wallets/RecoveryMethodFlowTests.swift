@@ -4,27 +4,28 @@ import Testing
 
 @Suite("Integration: recovery methods")
 struct RecoveryMethodFlowTests {
-    @Test func addsReadsBackAndRemovesARecoveryMethod() async throws {
+    @Test func addsReadsBackAndRemovesARecoveryMethodOnSolana() async throws {
         let session = try await CryptoWalletSession.start()
         let wallets = session.wallets()
+        let primary = SolanaKeypairSigner()
+        let second = SolanaKeypairSigner()
         let wallet = try await wallets.createWallet(
-            chain: IntegrationEnvironment.chain, recovery: session.keypair, options: nil
+            chain: IntegrationEnvironment.SOLANA_CHAIN, recovery: primary, options: nil
         )
-        let second = try EVMKeyPairSigner()
-        try await second.initialize(nil)
-        let secondAddress = await second.evmAddress.address
 
-        _ = try await wallet.addRecoveryMethod(.externalWallet(secondAddress))
+        _ = try await wallet.addRecoveryMethod(second.config)
         let withSecond = try #require(
-            try await wallets.getWallet(chain: IntegrationEnvironment.chain, options: nil)
+            try await wallets.getWallet(chain: IntegrationEnvironment.SOLANA_CHAIN, options: nil)
         )
-        _ = try await wallet.removeRecoveryMethod(locator: .externalWallet(address: secondAddress))
+        _ = try await wallet.removeRecoveryMethod(locator: .externalWallet(address: second.address))
         let withoutSecond = try #require(
-            try await wallets.getWallet(chain: IntegrationEnvironment.chain, options: nil)
+            try await wallets.getWallet(chain: IntegrationEnvironment.SOLANA_CHAIN, options: nil)
         )
 
-        let locators = withSecond.config.recoveryMethods.map(\.locator)
-        #expect(locators.contains("external-wallet:\(secondAddress)"))
-        #expect(!withoutSecond.config.recoveryMethods.map(\.locator).contains("external-wallet:\(secondAddress)"))
+        let secondLocator = second.adminSigner.locator
+        let added = withSecond.config.recoveryMethodsWithStatus.first { $0.signer.locator == secondLocator }
+        #expect(added != nil)
+        #expect(added?.status == .active)
+        #expect(!withoutSecond.config.recoveryMethods.map(\.locator).contains(second.adminSigner.locator))
     }
 }

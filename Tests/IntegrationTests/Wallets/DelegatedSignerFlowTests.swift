@@ -8,7 +8,7 @@ struct DelegatedSignerFlowTests {
         let session = try await CryptoWalletSession.start()
         let recipient = try await CryptoWalletSession.start()
         let wallet = try await session.wallets().createWallet(
-            chain: IntegrationEnvironment.chain, recovery: session.keypair, options: nil
+            chain: IntegrationEnvironment.EVM_CHAIN, recovery: session.keypair, options: nil
         )
         let delegate = try EVMKeyPairSigner()
         try await delegate.initialize(nil)
@@ -20,7 +20,7 @@ struct DelegatedSignerFlowTests {
         try await wallet.addSigner(delegateConfig)
         try await wallet.fund(token: .usdxm, amount: 5)
         try await wallet.useSigner(delegateConfig)
-        let transfer = try await wallet.send(recipient.address, IntegrationEnvironment.tokenLocator, 1)
+        let transfer = try await wallet.send(recipient.address, IntegrationEnvironment.EVM_USDXM, 1)
         let registered = try await wallet.signers().map(\.locator)
         _ = try await wallet.removeSigner(locator: .externalWallet(address: delegateAddress))
         let remaining = try await wallet.signers().map(\.locator)

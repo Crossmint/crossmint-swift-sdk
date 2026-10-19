@@ -9,12 +9,12 @@ struct WalletCreationFlowTests {
         let wallets = session.wallets()
 
         let created = try await wallets.createWallet(
-            chain: IntegrationEnvironment.chain,
+            chain: IntegrationEnvironment.EVM_CHAIN,
             recovery: session.keypair,
             options: nil
         )
         let fetched = try #require(
-            try await wallets.getWallet(chain: IntegrationEnvironment.chain, options: nil)
+            try await wallets.getWallet(chain: IntegrationEnvironment.EVM_CHAIN, options: nil)
         )
 
         #expect(created.address.hasPrefix("0x"))
@@ -25,7 +25,7 @@ struct WalletCreationFlowTests {
     @Test func reportsNoWalletForAUserWhoNeverCreatedOne() async throws {
         let session = try await CryptoWalletSession.start()
 
-        let wallet = try await session.wallets().getWallet(chain: IntegrationEnvironment.chain, options: nil)
+        let wallet = try await session.wallets().getWallet(chain: IntegrationEnvironment.EVM_CHAIN, options: nil)
 
         #expect(wallet == nil)
     }

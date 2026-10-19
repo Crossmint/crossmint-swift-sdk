@@ -14,27 +14,31 @@ struct IntegrationSetupError: CrossmintError {
 }
 
 enum IntegrationEnvironment {
-    static let appIdentifier = "com.crossmint.integration-tests"
-    static let chain = Chain("base-sepolia")
-    static let tokenLocator = "base-sepolia:usdxm"
+    static let APP_IDENTIFIER = "com.crossmint.integration-tests"
+    static let KEY_VARIABLE = "PREVIEW_CK_KEY"
+    static let EVM_CHAIN = Chain("base-sepolia")
+    static let SOLANA_CHAIN = Chain("solana")
+    static let EVM_USDXM = "base-sepolia:usdxm"
 
-    static func clientApiKey() throws -> ApiKey {
-        guard let raw = ProcessInfo.processInfo.environment["PREVIEW_CK_KEY"], !raw.isEmpty else {
+    static func clientApiKey(
+        from environment: [String: String] = ProcessInfo.processInfo.environment
+    ) throws -> ApiKey {
+        guard let raw = environment[KEY_VARIABLE], !raw.isEmpty else {
             throw IntegrationSetupError(
-                message: "PREVIEW_CK_KEY is not set. The integration suite needs a real client key; it does not skip."
+                message: "\(KEY_VARIABLE) is not set. The integration suite needs a real client key; it does not skip."
             )
         }
         let apiKey = try ApiKey(key: raw)
         guard apiKey.type == .client else {
             throw IntegrationSetupError(
-                message: "PREVIEW_CK_KEY must be a client key (ck_); the SDK addresses wallets as `me`."
+                message: "\(KEY_VARIABLE) must be a client key (ck_); the SDK addresses wallets as `me`."
             )
         }
         return apiKey
     }
 
     static func service() throws -> DefaultCrossmintService {
-        DefaultCrossmintService(apiKey: try clientApiKey(), appIdentifier: appIdentifier)
+        DefaultCrossmintService(apiKey: try clientApiKey(), appIdentifier: APP_IDENTIFIER)
     }
 }
 

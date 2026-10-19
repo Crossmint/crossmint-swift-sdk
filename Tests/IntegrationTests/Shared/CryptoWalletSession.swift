@@ -2,7 +2,6 @@ import CrossmintAuth
 import CrossmintService
 import DeviceSigner
 import Foundation
-import Http
 import SwiftKeccak
 @testable import Wallet
 
@@ -32,22 +31,13 @@ struct CryptoWalletSession {
         let address = await keypair.evmAddress.address
 
         let challenge: ChallengeResponse = try await service.executeRequest(
-            Endpoint(
-                path: "/2024-09-26/session/sdk/auth/crypto_wallets/authenticate/start",
-                method: .post,
-                body: try JSONEncoder().encode(["walletAddress": address, "walletType": "ethereum"])
-            ),
+            try CryptoWalletAuthEndpoints.start(walletAddress: address),
             errorType: AuthError.self
         )
         let signature = try await keypair.sign(message: Self.personalSignDigest(of: challenge.challenge))
         let authenticated: AuthenticateResponse = try await service.executeRequest(
-            Endpoint(
-                path: "/2024-09-26/session/sdk/auth/crypto_wallets/authenticate",
-                method: .post,
-                queryItems: [URLQueryItem(name: "signinAuthenticationMethod", value: "evm")],
-                body: try JSONEncoder().encode([
-                    "walletAddress": address, "message": challenge.challenge, "signature": signature
-                ])
+            try CryptoWalletAuthEndpoints.authenticate(
+                walletAddress: address, challenge: challenge.challenge, signature: signature
             ),
             errorType: AuthError.self
         )
