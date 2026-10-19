@@ -26,6 +26,20 @@ struct IntegrationEnvironmentTests {
         }
     }
 
+    @Test func routesADevelopmentKeyToPreview() throws {
+        let apiKey = try ApiKey(key: "ck_development_abc")
+        #expect(IntegrationEnvironment.baseURL(for: apiKey, environment: [:])?.host == "preview.crossmint.com")
+        #expect(IntegrationEnvironment.baseURL(for: try ApiKey(key: "ck_staging_abc"), environment: [:]) == nil)
+    }
+
+    @Test func honoursAConfiguredBaseURL() throws {
+        let url = IntegrationEnvironment.baseURL(
+            for: try ApiKey(key: "ck_staging_abc"),
+            environment: ["PREVIEW_BASE_URL": "https://example.test/api"]
+        )
+        #expect(url?.host == "example.test")
+    }
+
     @Test func acceptsAClientKey() throws {
         let apiKey = try IntegrationEnvironment.clientApiKey(from: ["PREVIEW_CK_KEY": "ck_staging_abc"])
         #expect(apiKey.type == .client)

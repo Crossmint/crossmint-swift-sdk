@@ -1,6 +1,6 @@
 import CrossmintAuth
 import CrossmintCommonTypes
-import CrossmintService
+@testable import CrossmintService
 import Foundation
 import SecureStorage
 
@@ -37,8 +37,27 @@ enum IntegrationEnvironment {
         return apiKey
     }
 
+    static let PREVIEW_BASE_URL_VARIABLE = "PREVIEW_BASE_URL"
+    static let PREVIEW_BASE_URL = "https://preview.crossmint.com/api"
+
+    /// A `development` key belongs to preview, which the SDK cannot derive from the key alone.
+    static func baseURL(
+        for apiKey: ApiKey,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> URL? {
+        if let configured = environment[PREVIEW_BASE_URL_VARIABLE], let url = URL(string: configured) {
+            return url
+        }
+        return apiKey.environment == .development ? URL(string: PREVIEW_BASE_URL) : nil
+    }
+
     static func service() throws -> DefaultCrossmintService {
-        DefaultCrossmintService(apiKey: try clientApiKey(), appIdentifier: APP_IDENTIFIER)
+        let apiKey = try clientApiKey()
+        return DefaultCrossmintService(
+            apiKey: apiKey,
+            appIdentifier: APP_IDENTIFIER,
+            requestBuilder: DefaultRequestBuilder(baseURL: baseURL(for: apiKey))
+        )
     }
 }
 
