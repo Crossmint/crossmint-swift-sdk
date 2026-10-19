@@ -99,7 +99,7 @@ extension Wallet {
             )
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
             if transaction.status == .success {
-                try await reloadRecoveryMethods()
+                await reloadRecoveryMethods()
             }
             Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodSuccess, attributes: [
                 "transactionId": transaction.id
@@ -331,9 +331,15 @@ extension Wallet {
         }
     }
 
-    private func reloadRecoveryMethods() async throws(WalletError) {
-        let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        config = model.config.toDomain
+    func reloadRecoveryMethods() async {
+        do {
+            let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+            config = model.config.toDomain
+        } catch {
+            Logger.smartWallet.warning(LogEvents.walletRecoveryMethodsReloadError, attributes: [
+                "error": "\(error)"
+            ])
+        }
     }
 
     private func recordAddedRecoveryMethod(_ recoveryMethod: any AdminSignerData) {

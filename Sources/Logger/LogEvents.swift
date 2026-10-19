@@ -547,6 +547,10 @@ public enum LogEvents {
     /// The SDK uses the first supported recovery signer instead.
     public static let walletConfigAdminSignerFallback = "walletConfig.adminSigner.fallback"
 
+    /// The SDK could not read the recovery methods again after a change succeeded.
+    /// The wallet shows the new recovery methods after the next time the app gets the wallet.
+    public static let walletRecoveryMethodsReloadError = "walletConfig.recoveryMethods.reload.error"
+
     /// A quorum member has a type that this SDK version does not support.
     /// The SDK does not show the member in the quorum members.
     public static let walletConfigQuorumMemberSkipped = "walletConfig.quorumMember.skipped"
