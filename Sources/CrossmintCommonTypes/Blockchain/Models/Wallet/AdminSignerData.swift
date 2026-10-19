@@ -111,9 +111,12 @@ public struct ServerSignerData: AdminSignerData {
 
 /// A signer that approves only when `threshold` of its `members` approve.
 public struct QuorumSignerData: AdminSignerData {
-    /// The identifier that Crossmint gives the quorum when it is added to the wallet.
+    /// The identifier of the quorum on the wallet.
     public let id: String
     public let threshold: Int
+    /// The signers of the quorum.
+    ///
+    /// If this SDK version does not support the type of a member, the list does not show that member.
     public let members: [any AdminSignerData]
 
     public var type: AdminSignerDataType { .quorum }
