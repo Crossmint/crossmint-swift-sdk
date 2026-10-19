@@ -84,14 +84,11 @@ struct DefaultTransactionService: TransactionService {
     }
 
     private func transactionError(code: String?, message: String?) -> TransactionError? {
-        switch code {
-        case "TRANSACTION_EXPIRED":
-            .transactionExpired(message ?? "The transaction expired")
-        case "SIGNER_IS_QUORUM_MEMBER":
+        let mapped: [TransactionError] = [
+            .transactionExpired(message ?? "The transaction expired"),
             .signerIsQuorumMember(message ?? "The signer is a quorum member")
-        default:
-            nil
-        }
+        ]
+        return mapped.first { $0.code == code }
     }
 
     private func executeTransactionListRequest<T: WalletTypeTransactionMapping>(
