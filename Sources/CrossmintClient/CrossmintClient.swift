@@ -1,6 +1,8 @@
-import CrossmintService
-import Logger
 import CrossmintAuth
+import CrossmintService
+import DeviceSigner
+import Http
+import Logger
 
 actor CrossmintClient {
     enum Error: Swift.Error {
@@ -16,7 +18,12 @@ actor CrossmintClient {
         self.apiKey = apiKey
     }
 
-    static func sdk(key: String, authManager: CrossmintAuthManager? = nil) throws -> ClientSDK {
+    static func sdk(
+        key: String,
+        authManager: CrossmintAuthManager? = nil,
+        httpClient: HTTPClient = .live,
+        deviceSignerKeyStorage: any DeviceSignerKeyStorage = SecureEnclaveKeyStorage.default
+    ) throws -> ClientSDK {
         lock.lock()
         defer { lock.unlock() }
 
@@ -31,7 +38,12 @@ actor CrossmintClient {
 
             DataDogConfig.configure(environment: apiKey.environment.rawValue)
 
-            let instance = CrossmintClientSDK(apiKey: apiKey, authManager: authManager)
+            let instance = CrossmintClientSDK(
+                apiKey: apiKey,
+                authManager: authManager,
+                httpClient: httpClient,
+                deviceSignerKeyStorage: deviceSignerKeyStorage
+            )
             shared = instance
             return instance
         }
