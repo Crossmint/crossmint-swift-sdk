@@ -291,7 +291,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
 
     /// Writes the given signer locators into the fixture wallet's config,
     /// mirroring what the backend reports for a wallet with delegated signers.
-    private static func walletModel(
+    static func walletModel(
         from fixture: Data,
         signerLocators: [String]?
     ) throws -> WalletApiModel {

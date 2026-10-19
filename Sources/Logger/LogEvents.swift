@@ -423,6 +423,9 @@ public enum LogEvents {
     /// Remove signer failed
     public static let walletRemoveSignerError = "wallet.removeSigner.error"
 
+    /// Remove signer succeeded but the device key could not be deleted from the local store
+    public static let walletRemoveSignerLocalKeyNotDeleted = "wallet.removeSigner.localKeyNotDeleted"
+
     /// Starting add recovery method
     public static let walletAddRecoveryMethodStart = "wallet.addRecoveryMethod.start"
 

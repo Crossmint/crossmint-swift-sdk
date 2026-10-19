@@ -226,7 +226,8 @@ let package = Package(
         .testTarget(
             name: "DeviceSignerTests",
             dependencies: [
-                "DeviceSigner"
+                "DeviceSigner",
+                "TestsUtils"
             ],
             plugins: basePlugins
         ),
@@ -242,6 +243,7 @@ let package = Package(
             dependencies: [
                 "CrossmintAuth",
                 "CrossmintService",
+                "DeviceSigner",
                 "Http",
                 "Web",
                 .product(name: "P256K", package: "swift-secp256k1")
