@@ -32,17 +32,19 @@ struct WalletQuorumSignerTests {
     @Test func loadsAWalletWhoseOnlyRecoveryMethodIsAQuorum() throws {
         let wallet = try makeStellarWallet()
 
-        let quorum = try #require(wallet.config.recovery as? QuorumSignerData)
+        let method = try #require(wallet.recoveryMethods.first)
+        let quorum = try #require(method.signer as? QuorumSignerData)
 
+        #expect(wallet.recoveryMethods.count == 1)
         #expect(quorum.locator == "quorum:\(QUORUM_ID)")
         #expect(quorum.threshold == 2)
-        #expect(wallet.config.recoveryMethodsWithStatus.map(\.status) == [.active])
+        #expect(method.status == .active)
     }
 
     @Test func keepsTheSupportedMembersInOrder() throws {
         let wallet = try makeStellarWallet()
 
-        let quorum = try #require(wallet.config.recovery as? QuorumSignerData)
+        let quorum = try #require(wallet.recoveryMethods.first?.signer as? QuorumSignerData)
 
         #expect(quorum.members.map(\.locator) == [
             "email:alice@example.com",
