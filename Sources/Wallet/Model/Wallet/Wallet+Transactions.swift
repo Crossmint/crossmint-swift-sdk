@@ -327,8 +327,9 @@ extension Wallet {
         let createdTransaction = try await createTransaction(transactionRequest)
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
 
+        let polledTransaction: Transaction?
         do {
-            return try await pollTransactionWhilePending(transaction: signedTransaction)
+            polledTransaction = try await pollTransactionWhilePending(transaction: signedTransaction)
         } catch {
             switch error {
             case .serviceError(let crossmintServiceError):
@@ -348,6 +349,10 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 throw error
             }
         }
+        if let polledTransaction, polledTransaction.awaitsQuorumMembers {
+            throw .awaitingQuorumApproval(transactionId: polledTransaction.id)
+        }
+        return polledTransaction
     }
 
     internal func transferTokenAndPollWhilePending(
@@ -540,7 +545,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         _ quorum: Transaction.Approvals.QuorumProgress,
         transactionId: String
     ) async throws(TransactionError) {
-        for member in quorum.pending {
+        var needed = quorum.remaining
+        for member in quorum.pending where needed > 0 {
             guard (try? await approvalSigner(for: member.signer)) != nil else {
                 Logger.smartWallet.info(LogEvents.walletApproveQuorumMemberSkipped, attributes: [
                     "quorum": quorum.signer.value,
@@ -553,6 +559,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 signerLocator: member.signer,
                 message: member.message
             )
+            needed -= 1
         }
     }
 
