@@ -19,7 +19,7 @@ struct DelegatedSignerFlowTests {
             Issue.record("registered as \(registered.locator.value)")
             return
         }
-        try await wallet.fund(token: .usdxm, amount: 5)
+        try await Funding.fund(wallet, usdxm: 5)
         let selected = SignerConfig.externalWallet(registeredAddress) { message in try await delegate.sign(message: message) }
         try await wallet.useSigner(selected)
         let transfer: TransactionSummary
@@ -32,6 +32,7 @@ struct DelegatedSignerFlowTests {
             }
             throw error
         }
+        try await wallet.useSigner(session.signer.config)
         _ = try await wallet.removeSigner(locator: registered.locator)
         let remaining = try await wallet.signers().map(\.locator)
 

@@ -10,14 +10,13 @@ struct FundAndSendFlowTests {
         let wallet = try await SessionPool.shared.evmWallet(of: sender)
         let destination = try await SessionPool.shared.evmWallet(of: recipient)
 
-        try await wallet.fund(token: .usdxm, amount: 5)
-        let funded = try await wallet.balances([.usdxm])
+        try await Funding.fund(wallet, usdxm: 5)
+        let before = try await Funding.usdxmBalance(of: destination)
         let transfer = try await wallet.send(destination.address, IntegrationEnvironment.EVM_USDXM, 1)
-        let received = try await destination.balances([.usdxm])
+        let after = try await Funding.usdxmBalance(of: destination)
 
-        #expect(funded.tokens.contains { $0.name.lowercased() == "usdxm" && $0.amount != "0" })
         #expect(transfer.hash.hasPrefix("0x"))
-        #expect(received.tokens.contains { $0.name.lowercased() == "usdxm" && $0.amount != "0" })
+        #expect(after >= before + 1)
     }
 
     @Test func surfacesTheApiRejectionWhenTheBalanceIsInsufficient() async throws {
