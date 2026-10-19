@@ -121,9 +121,8 @@ public protocol CrossmintWallets: Sendable {
         options: WalletOptions?
     ) async throws(WalletError) -> Wallet
 
-    /// Creates a new smart wallet whose recovery method is a quorum.
+    /// Creates a new smart wallet whose recovery method is a quorum. Stellar wallets only.
     ///
-    /// The quorum approves only when `threshold` of its members approve. Stellar wallets only.
     /// The first member of the quorum is the active signer until ``Wallet/useSigner(_:)`` selects another member.
     ///
     /// - Parameters:
@@ -349,7 +348,6 @@ extension CrossmintWallets {
     ///
     /// The first member of the quorum is the active signer until ``Wallet/useSigner(_:)`` selects another member.
     ///
-    /// The SDK adds the `signers` when it creates the wallet. The quorum does not approve them.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if Crossmint does not accept the quorum.
     public func createWallet<C: ChainWithSigners>(
         chain: C,

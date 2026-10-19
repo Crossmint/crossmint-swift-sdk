@@ -116,6 +116,9 @@ extension Wallet {
     /// The signer must be registered on this wallet.
     /// To register a new signer, call ``addSigner(_:)`` first.
     ///
+    /// The signer can also be a member of a quorum recovery method.
+    /// Then the transactions that you send name the quorum, and the member approves for the quorum.
+    ///
     /// To select the recovery method that approves signer changes, use ``useRecoveryMethod(_:)``.
     ///
     /// - Parameter config: The signer to use.

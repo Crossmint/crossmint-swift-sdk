@@ -19,8 +19,8 @@ extension Wallet {
     /// - Parameter method: An email, phone, external wallet or passkey signer.
     ///   For a passkey, the SDK shows the system prompt to create a new passkey.
     ///   A Solana wallet does not accept a passkey as a recovery method.
-    /// - Returns: The completed ``Transaction``. If a quorum approves the change and other members must still
-    ///   approve it, the transaction has the status ``TransactionStatus/awaitingApproval``.
+    /// - Returns: The completed ``Transaction``. If other quorum members must still approve the change,
+    ///   the transaction has the status ``TransactionStatus/awaitingApproval``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
     ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` if the wallet is an EVM wallet.
     ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey
@@ -67,14 +67,21 @@ extension Wallet {
     /// To change them, add a new quorum and then remove the old one with ``removeRecoveryMethod(locator:)``.
     ///
     /// - Parameter quorum: The threshold and the members of the quorum.
-    /// - Returns: The completed ``Transaction``. If a quorum approves the change and other members must still
-    ///   approve it, the transaction has the status ``TransactionStatus/awaitingApproval``.
+    /// - Returns: The completed ``Transaction``. If other quorum members must still approve the change,
+    ///   the transaction has the status ``TransactionStatus/awaitingApproval``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if Crossmint does not accept the quorum.
     ///   For example ``WalletError/RecoveryConfigCode/quorumTooFewMembers``.
     ///
     /// ## Example
     /// ```swift
-    /// let quorum = QuorumConfig(threshold: 2, members: [alice, bob, carol])
+    /// let quorum = QuorumConfig(
+    ///     threshold: 2,
+    ///     members: [
+    ///         StellarSigners.email("alice@example.com").signer,
+    ///         StellarSigners.email("bob@example.com").signer,
+    ///         StellarSigners.email("carol@example.com").signer
+    ///     ]
+    /// )
     /// let transaction = try await wallet.addRecoveryMethod(quorum: quorum)
     /// ```
     @discardableResult
@@ -115,8 +122,8 @@ extension Wallet {
     /// To remove a signer that you added with ``addSigner(_:)``, use ``removeSigner(locator:)``.
     ///
     /// - Parameter locator: The recovery method to remove. To remove a quorum, use ``SignerLocator/quorum(id:)``.
-    /// - Returns: The completed ``Transaction``. If a quorum approves the change and other members must still
-    ///   approve it, the transaction has the status ``TransactionStatus/awaitingApproval``.
+    /// - Returns: The completed ``Transaction``. If other quorum members must still approve the change,
+    ///   the transaction has the status ``TransactionStatus/awaitingApproval``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
     ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
     ///   - ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.

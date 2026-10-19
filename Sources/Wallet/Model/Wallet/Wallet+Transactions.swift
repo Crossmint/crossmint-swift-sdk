@@ -12,7 +12,7 @@ extension Wallet {
     /// shows ``TransactionStatus/awaitingApproval``. The SDK signs the approval message and
     /// polls until the transaction reaches a terminal state.
     ///
-    /// If a quorum must approve the transaction, the SDK signs as each member that this device holds.
+    /// If a quorum must approve the transaction, the SDK approves as each member that this device has a signer for.
     /// When only other members must still approve, the SDK returns the transaction with the status
     /// ``TransactionStatus/awaitingApproval``. ``Transaction/Approvals/quorums`` shows the progress.
     ///
