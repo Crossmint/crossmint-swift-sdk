@@ -8,12 +8,9 @@ struct DelegatedSignerFlowTests {
         let session = try await SessionPool.shared.primary()
         let recipient = try await SessionPool.shared.secondary()
         let wallet = try await SessionPool.shared.evmWallet(of: session)
-        let delegate = try EVMKeyPairSigner()
-        try await delegate.initialize(nil)
-        let delegateAddress = await delegate.evmAddress.address
-        let delegateConfig = SignerConfig.externalWallet(delegateAddress) { message in
-            try await delegate.sign(message: message)
-        }
+        let delegate = try await EVMPersonalSigner.make()
+        let delegateAddress = delegate.address
+        let delegateConfig = delegate.config
 
         try await wallet.addSigner(delegateConfig)
         try await wallet.fund(token: .usdxm, amount: 5)

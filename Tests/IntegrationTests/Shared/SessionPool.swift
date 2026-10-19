@@ -18,10 +18,10 @@ actor SessionPool {
     func evmWallet(of session: CryptoWalletSession) async throws -> Wallet {
         let wallet = try await wallet(of: session, chain: IntegrationEnvironment.EVM_CHAIN) {
             try await session.wallets().createWallet(
-                chain: IntegrationEnvironment.EVM_CHAIN, recovery: session.keypair, options: nil
+                chain: IntegrationEnvironment.EVM_CHAIN, recovery: session.signer, options: nil
             )
         }
-        try await wallet.useSigner(session.signerConfig)
+        try await wallet.useSigner(session.signer.config)
         return wallet
     }
 
