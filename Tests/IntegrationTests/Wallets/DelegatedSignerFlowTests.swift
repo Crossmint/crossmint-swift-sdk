@@ -11,21 +11,26 @@ struct DelegatedSignerFlowTests {
         let delegate = try await EVMPersonalSigner.make()
 
         try await wallet.addSigner(delegate.config)
-        let registered = try #require(try await wallet.signers().first { signer in
-            signer.locator.value.lowercased() == delegate.adminSigner.locator.lowercased()
-        })
+        let expectedLocator = delegate.adminSigner.locator.lowercased()
+        let signers = try await wallet.signers()
+        let match = signers.first { $0.locator.value.lowercased() == expectedLocator }
+        let registered = try #require(match)
         guard case .externalWallet(let registeredAddress) = registered.locator else {
             Issue.record("registered as \(registered.locator.value)")
             return
         }
         try await wallet.fund(token: .usdxm, amount: 5)
-        try await wallet.useSigner(.externalWallet(registeredAddress) { message in try await delegate.sign(message: message) })
+        let selected = SignerConfig.externalWallet(registeredAddress) { message in try await delegate.sign(message: message) }
+        try await wallet.useSigner(selected)
         let transfer: TransactionSummary
         do {
             transfer = try await wallet.send(recipient.address, IntegrationEnvironment.EVM_USDXM, 1)
-        } catch TransactionError.transactionSigningFailed(let inner) {
-            Issue.record("signing with \(registered.locator.value) (status \(registered.status)) failed: \(inner)")
-            return
+        } catch {
+            if case .transactionSigningFailed(let inner) = error {
+                Issue.record("signing with \(registered.locator.value) (status \(registered.status)) failed: \(inner)")
+                return
+            }
+            throw error
         }
         _ = try await wallet.removeSigner(locator: registered.locator)
         let remaining = try await wallet.signers().map(\.locator)
