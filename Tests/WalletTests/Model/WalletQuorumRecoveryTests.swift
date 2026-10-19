@@ -83,6 +83,20 @@ struct QuorumWalletCreationTests {
         #expect(wallet.signer as? MockSigner === alice)
     }
 
+    @Test func leavesAQuorumWithAPasskeyMemberOnSolanaToCrossmint() throws {
+        let quorum = QuorumConfig(
+            threshold: 2,
+            members: [MockSigner(signerType: .passkey), MockSigner(email: "bob@example.com")]
+        )
+
+        let resolved = try RecoveryInput.quorum(quorum).resolved(for: Chain("solana"))
+
+        guard case .quorum = resolved else {
+            Issue.record("A quorum must stay a quorum")
+            return
+        }
+    }
+
     @Test func rejectsAQuorumWithoutMembersBeforeCallingTheApi() async throws {
         await #expect {
             _ = try await makeWallets().createWallet(
@@ -194,6 +208,58 @@ struct WalletQuorumRecoveryMethodChangesTests {
         _ = try await wallet.approve(transactionId: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
 
         #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value, "email:carol@example.com"])
+    }
+
+    @Test func rejectsAddingAQuorumWithoutMembersBeforeCallingTheApi() async throws {
+        let wallet = try makeWallet(
+            fileName: "WalletStellarRecoveryMethods",
+            signer: MockSigner(email: "alice@example.com")
+        )
+
+        await #expect {
+            try await wallet.addRecoveryMethod(quorum: QuorumConfig(threshold: 1, members: []))
+        } throws: { error in
+            guard case .recoveryConfigRejected(.invalidConfig, _) = error as? WalletError else { return false }
+            return true
+        }
+        #expect(walletService.addRecoveryMethodCallCount == 0)
+    }
+
+    @Test func reportsACancelledPasskeyMemberWhenAddingAQuorum() async throws {
+        let wallet = try makeWallet(
+            fileName: "WalletStellarRecoveryMethods",
+            signer: MockSigner(email: "alice@example.com")
+        )
+        let passkey = MockSigner(signerType: .passkey)
+        passkey.initializeError = .passkey(.cancelled)
+
+        await #expect {
+            try await wallet.addRecoveryMethod(
+                quorum: QuorumConfig(threshold: 2, members: [passkey, MockSigner(email: "bob@example.com")])
+            )
+        } throws: { error in
+            guard case .walletGeneric(let message) = error as? WalletError else { return false }
+            return message == "Passkey registration was cancelled"
+        }
+    }
+
+    @Test func clearsTheSelectedApproverWhenAnApprovedChangeRemovesIt() async throws {
+        let wallet = try makeWallet(fileName: "WalletStellarQuorumThenEmail", signer: nil)
+        try await wallet.useRecoveryMethod(.email("alice@example.com"))
+        let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResults = [try transaction("StellarTransactionQuorumApproved")]
+        walletService.fetchTransactionResult = success
+        walletService.getWalletResult = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarRecoveryMethods",
+            bundle: Bundle.module
+        )
+
+        _ = try await wallet.approve(transactionId: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+
+        #expect(wallet.selectedRecoveryMethod == nil)
     }
 
     @Test func keepsAQuorumWhoseRemovalWaitsOnOtherMembers() async throws {
