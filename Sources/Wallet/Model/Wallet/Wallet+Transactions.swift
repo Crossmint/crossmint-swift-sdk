@@ -30,7 +30,10 @@ extension Wallet {
 
         do {
             let transaction = try await self.transaction(withId: id)
-            guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
+            guard let signedTransaction = try await signAndPollWhilePending(
+                transaction,
+                stopWhenOtherMembersMustApprove: true
+            ) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
 
@@ -239,10 +242,12 @@ extension Wallet {
     ///   - amount: Amount as a human-readable decimal (e.g. `0.01` for 0.01 ETH).
     ///   - idempotencyKey: Pass a stable key to prevent duplicate transactions on retry; omit to generate one automatically.
     ///
-    /// - Returns: A ``TransactionSummary`` with the on-chain hash and explorer link once confirmed.
+    ///   - prepareOnly: Pass `true` to create the transfer without approving it. Then approve it with
+    ///     ``approve(transactionId:)``. Use this when a quorum must approve the transfer and other members
+    ///     approve it on their devices.
     ///
-    /// - Throws: ``TransactionError/awaitingQuorumApproval(transactionId:)`` if a quorum must approve
-    ///   the transfer and other members must still approve it after this device signs.
+    /// - Returns: A ``TransactionSummary`` with the on-chain hash and explorer link once confirmed.
+    ///   With `prepareOnly`, the summary has only the transaction ID.
     ///
     /// ## Example
     /// ```swift
@@ -251,13 +256,14 @@ extension Wallet {
     ///     "base-sepolia:usdc",
     ///     5.0
     /// )
-    /// print("Sent. Explorer:", summary.explorerLink)
+    /// print("Sent. Explorer:", summary.explorerLink?.absoluteString ?? "")
     /// ```
     public func send(
         _ walletLocator: String,
         _ tokenLocator: String,
         _ amount: Double,
-        idempotencyKey: String? = nil
+        idempotencyKey: String? = nil,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
             "recipient": walletLocator,
@@ -269,10 +275,11 @@ extension Wallet {
             tokenLocator: tokenLocator,
             recipient: walletLocator,
             amount: String(amount),
-            idempotencyKey: idempotencyKey
+            idempotencyKey: idempotencyKey,
+            prepareOnly: prepareOnly
         )
-        if let polledTransaction, polledTransaction.awaitsQuorumMembers {
-            throw .awaitingQuorumApproval(transactionId: polledTransaction.id)
+        if prepareOnly, let polledTransaction {
+            return polledTransaction.preparedSummary
         }
         guard let transaction = polledTransaction?.toCompleted() else {
             Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
@@ -318,13 +325,15 @@ extension Wallet {
     // MARK: - Internal
 
     internal func sendTransaction(
-        _ transactionRequest: any TransactionRequest
+        _ transactionRequest: any TransactionRequest,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> Transaction? {
         do { try await preAuthIfNeeded() } catch {
             throw .transactionGeneric(error.message)
         }
         onTransactionStart?()
         let createdTransaction = try await createTransaction(transactionRequest)
+        if prepareOnly { return createdTransaction }
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
 
         let polledTransaction: Transaction?
@@ -349,9 +358,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 throw error
             }
         }
-        if let polledTransaction, polledTransaction.awaitsQuorumMembers {
-            throw .awaitingQuorumApproval(transactionId: polledTransaction.id)
-        }
         return polledTransaction
     }
 
@@ -359,7 +365,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         tokenLocator: String,
         recipient: String,
         amount: String,
-        idempotencyKey: String? = nil
+        idempotencyKey: String? = nil,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> Transaction? {
         do { try await preAuthIfNeeded() } catch {
             throw .transactionGeneric(error.message)
@@ -394,27 +401,17 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
             .toDomain()
 
+        if prepareOnly { return createdTransaction }
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
     internal func transactionSignerLocator() async throws(TransactionError) -> String? {
         if let selected = try await selectedSignerLocatorForTransactions() {
-            guard !config.containsRecoveryMethod(selected), let quorum = config.quorum(withMember: selected) else {
-                return selected.value
-            }
-            return try await isDelegatedSigner(selected) ? selected.value : quorum.locator
+            return (selectedQuorum ?? selected).value
         }
         guard config.recoveryMethods.count > 1 else { return nil }
         return await signer?.adminSigner.locator ?? config.recovery.locator
-    }
-
-    private func isDelegatedSigner(_ locator: SignerLocator) async throws(TransactionError) -> Bool {
-        do {
-            return try await fetchSignerRegistration(locator)
-        } catch {
-            throw .transactionGeneric(error.message)
-        }
     }
 
     private var hasSigner: Bool {
@@ -435,10 +432,14 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     }
 
     internal func signAndPollWhilePending(
-        _ transaction: Transaction?
+        _ transaction: Transaction?,
+        stopWhenOtherMembersMustApprove: Bool = false
     ) async throws(TransactionError) -> Transaction? {
         let signedTransaction = try await signTransactionIfRequired(transaction)
-        return try await pollTransactionWhilePending(transaction: signedTransaction)
+        return try await pollTransactionWhilePending(
+            transaction: signedTransaction,
+            stopWhenOtherMembersMustApprove: stopWhenOtherMembersMustApprove
+        )
     }
 
     internal func getTransferTokenLocator(
@@ -485,9 +486,18 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         signerLocator: String,
         message: String
     ) async throws(TransactionError) {
-        let request: SignRequestApi
+        let request = try await signRequest(for: signerLocator, message: message)
+        _ = try await smartWalletService.signTransaction(
+            .init(transactionId: transactionId, apiRequest: request, chainType: chain.chainType)
+        )
+    }
+
+    private func signRequest(
+        for signerLocator: String,
+        message: String
+    ) async throws(TransactionError) -> SignRequestApi {
         do {
-            request = try await makeSignRequest(for: signerLocator, message: message)
+            return try await makeSignRequest(for: signerLocator, message: message)
         } catch {
             switch error {
             case .invalidMessage:
@@ -513,9 +523,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
                 throw .transactionSigningFailed(error)
             }
         }
-        _ = try await smartWalletService.signTransaction(
-            .init(transactionId: transactionId, apiRequest: request, chainType: chain.chainType)
-        )
     }
 
     private func createTransaction(
@@ -544,37 +551,43 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             }
         }
         if let transaction, let approvals = transaction.approvals {
-            for quorum in approvals.quorums {
-                try await approveAsQuorumMembers(quorum, transactionId: transaction.id)
-            }
+            try await approveAsQuorumMembers(of: approvals.quorums, transactionId: transaction.id)
         }
         return transaction
     }
 
     private func approveAsQuorumMembers(
-        _ quorum: Transaction.Approvals.QuorumProgress,
+        of quorums: [Transaction.Approvals.QuorumProgress],
         transactionId: String
     ) async throws(TransactionError) {
-        var needed = quorum.remaining
-        for member in quorum.pending where needed > 0 {
-            guard (try? await approvalSigner(for: member.signer)) != nil else {
-                Logger.smartWallet.info(LogEvents.walletApproveQuorumMemberSkipped, attributes: [
-                    "quorum": quorum.signer.value,
-                    "member": member.signer
-                ])
-                continue
+        var memberApprovals: [SignRequestApi.Approval] = []
+        var signedMembers = 0
+        for quorum in quorums where quorum.remaining > 0 {
+            for member in quorum.pending {
+                guard (try? await approvalSigner(for: member.signer)) != nil else {
+                    Logger.smartWallet.info(LogEvents.walletApproveQuorumMemberSkipped, attributes: [
+                        "quorum": quorum.signer.value,
+                        "member": member.signer
+                    ])
+                    continue
+                }
+                memberApprovals += try await signRequest(for: member.signer, message: member.message).approvals
+                signedMembers += 1
             }
-            try await approveTransaction(
-                transactionId: transactionId,
-                signerLocator: member.signer,
-                message: member.message
-            )
-            needed -= 1
         }
+        guard signedMembers > 0 else { return }
+        _ = try await smartWalletService.signTransaction(
+            .init(
+                transactionId: transactionId,
+                apiRequest: SignRequestApi(approvals: memberApprovals),
+                chainType: chain.chainType
+            )
+        )
     }
 
     private func pollTransactionWhilePending(
-        transaction: Transaction?
+        transaction: Transaction?,
+        stopWhenOtherMembersMustApprove: Bool = false
     ) async throws(TransactionError) -> Transaction? {
         guard let transaction else { return nil }
 
@@ -589,7 +602,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             updatedTransaction = try await smartWalletService.fetchTransaction(
                 .init(transactionId: updatedTransaction.id, chainType: chain.chainType)
             ).toDomain()
-            if updatedTransaction.awaitsQuorumMembers { break }
+            if stopWhenOtherMembersMustApprove, updatedTransaction.awaitsQuorumMembers { break }
         }
 
         return updatedTransaction

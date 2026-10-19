@@ -70,21 +70,27 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
     /// Submits a serialized Solana transaction and polls until it is confirmed on-chain.
     ///
-    /// - Parameter transaction: A base64-encoded, serialized Solana transaction.
+    /// - Parameters:
+    ///   - transaction: A base64-encoded, serialized Solana transaction.
+    ///   - prepareOnly: Pass `true` to create the transaction without approving it.
+    ///     Then approve it with ``Wallet/approve(transactionId:)``. The summary then has only the transaction ID.
     ///
     /// ## Example
     /// ```swift
     /// let summary = try await solanaWallet.sendTransaction(transaction: base64EncodedTx)
-    /// print("Signature:", summary.hash)
+    /// print("Signature:", summary.hash ?? "")
     /// ```
     public func sendTransaction(
-        transaction: String
+        transaction: String,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.solanaSendTransactionStart)
 
         guard let tx = try await super.sendTransaction(
-            CreateSolanaTransactionRequest(transaction: transaction, signer: try await transactionSignerLocator())
+            CreateSolanaTransactionRequest(transaction: transaction, signer: try await transactionSignerLocator()),
+            prepareOnly: prepareOnly
         ) else { throw .transactionGeneric("Unknown error") }
+        if prepareOnly { return tx.preparedSummary }
 
         Logger.smartWallet.info(LogEvents.solanaSendTransactionPrepared, attributes: [
             "transactionId": tx.id
