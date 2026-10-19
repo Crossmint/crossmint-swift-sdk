@@ -115,12 +115,14 @@ public struct Transaction: Sendable, CustomStringConvertible {
             public let signer: SignerLocator
             /// The number of members that must approve.
             public let threshold: Int
-            /// The number of member approvals that the quorum still needs. The value is `0` when the quorum approved.
+            /// The number of member approvals that the quorum still needs. The value is `0` after the quorum approves.
             public let remaining: Int
             let pending: [Approvals.Pending]
             let submitted: [Approvals.Submitted]
 
             /// The members that did not approve yet.
+            ///
+            /// After the quorum approves, the list can still show members that do not need to approve.
             public var pendingMembers: [SignerLocator] {
                 pending.map { SignerLocator(orUnknown: $0.signer) }
             }
@@ -134,6 +136,7 @@ public struct Transaction: Sendable, CustomStringConvertible {
         let pending: [Approvals.Pending]
         let submitted: [Approvals.Submitted]
         /// The approval progress of each quorum signer of the transaction.
+        /// The list is empty when no quorum must approve the transaction.
         public let quorums: [QuorumProgress]
 
         init(pending: [Pending], submitted: [Submitted], quorums: [QuorumProgress] = []) {
