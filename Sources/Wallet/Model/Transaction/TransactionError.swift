@@ -13,11 +13,13 @@ public enum TransactionError: CrossmintError {
     case transactionSigningFailedInvalidKey
     case transactionSigningFailed(Error)
     case transactionGeneric(String)
-    /// This device signed as the quorum members that it holds. Other members must still approve the transaction.
+    /// This device approved as each quorum member that it has a signer for.
+    /// Other members must still approve the transaction.
     case awaitingQuorumApproval(transactionId: String)
     /// The transaction expired before it got all the approvals. Create a new transaction.
     case transactionExpired(String)
-    /// The signer is a member of a quorum. A member can approve a transaction but cannot create one.
+    /// The signer is a member of a quorum. A member can approve a transaction.
+    /// A member cannot create a transaction.
     case signerIsQuorumMember(String)
 
     public var code: String {
