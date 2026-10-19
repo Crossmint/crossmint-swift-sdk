@@ -125,20 +125,37 @@ final class SignerRegistrationService: Sendable {
         transactionId: String,
         signer: any Signer
     ) async throws(WalletError) {
+        var waitsOnOtherMembers = false
         do {
             let transaction = try await smartWalletService.transaction(withId: transactionId, chainType: chainType)
-            guard let pending = transaction.approvals?.pending, !pending.isEmpty else { return }
-            try await signer.initialize(smartWalletService)
-            for approval in pending {
-                try await smartWalletService.signTransaction(
-                    transactionId: transactionId,
-                    chainType: chainType,
-                    signer: signer,
-                    message: approval.message
-                )
+            let signerLocator = await signer.locator
+            let isSigner = { (approval: Transaction.Approvals.Pending) in
+                SignerLocator(orUnknown: approval.signer) == signerLocator
+            }
+            let openQuorums = (transaction.approvals?.quorums ?? []).filter { $0.remaining > 0 }
+            let memberPending = openQuorums.compactMap { $0.pending.first(where: isSigner) }
+            waitsOnOtherMembers = openQuorums.contains { $0.remaining > ($0.pending.contains(where: isSigner) ? 1 : 0) }
+            let messages = ((transaction.approvals?.pending ?? []) + memberPending).map(\.message)
+            if !messages.isEmpty {
+                try await sign(messages, transactionId: transactionId, signer: signer)
             }
         } catch {
             throw WalletError.walletGeneric("Failed to approve signer registration: \(error)")
+        }
+        if waitsOnOtherMembers {
+            throw .awaitingQuorumApproval(transactionId: transactionId)
+        }
+    }
+
+    private func sign(_ messages: [String], transactionId: String, signer: any Signer) async throws {
+        try await signer.initialize(smartWalletService)
+        for message in messages {
+            try await smartWalletService.signTransaction(
+                transactionId: transactionId,
+                chainType: chainType,
+                signer: signer,
+                message: message
+            )
         }
     }
 }
