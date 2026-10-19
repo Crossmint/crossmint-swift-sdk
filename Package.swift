@@ -172,6 +172,8 @@ let package = Package(
                 .process("Resources/Transaction/CreateSolanaTransactionResponse.json"),
                 .process("Resources/Transaction/CreateStellarTransactionResponse.json"),
                 .process("Resources/Transaction/StellarTransactionAwaitingQuorum.json"),
+                .process("Resources/Transaction/StellarTransactionQuorumApproved.json"),
+                .process("Resources/Transaction/StellarTransactionAwaitingOneOfTwoMembers.json"),
                 .process("Resources/Transaction/SolanaSignerRegistrationAwaitingApproval.json"),
                 .process("Resources/Transaction/ListTransactionsResponse.json"),
                 .process("Resources/Transaction/ListSolanaTransactionsResponse.json"),
