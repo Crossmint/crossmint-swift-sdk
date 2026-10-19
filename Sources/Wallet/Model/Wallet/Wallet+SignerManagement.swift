@@ -60,6 +60,11 @@ extension Wallet {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
+        if _deviceKeyLost, await storage.getKey(address: address) != nil {
+            Logger.smartWallet.info(LogEvents.walletRecoverDeviceKeyReadable)
+            deviceKeyIsUsable()
+            return
+        }
 
         let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
 
@@ -251,7 +256,10 @@ extension Wallet {
 
     internal func selectedSignerLocator() async throws(SignerError) -> SignerLocator? {
         guard let selectedSigner else { return nil }
-        guard let locator = await selectedSigner.locator else { throw .device(.keyNotFound) }
+        guard let locator = await selectedSigner.locator else {
+            if selectedSigner is DeviceSigner { markDeviceKeyLost(.keyNotFound) }
+            throw .device(.keyNotFound)
+        }
         return locator
     }
 
@@ -268,12 +276,20 @@ extension Wallet {
         }
     }
 
-    /// The key this wallet trusted at creation is no longer usable, as after a restore from backup,
-    /// so the next ``recover()`` (or the next operation, through `preAuthIfNeeded`) re-registers one.
+    /// The key this wallet trusted is not usable right now, so the next ``recover()`` (or the next
+    /// operation, through `preAuthIfNeeded`) re-registers one, unless the key reads again by then:
+    /// a locked device reads as missing too.
     private func markDeviceKeyLost(_ error: DeviceSignerError) {
         Logger.smartWallet.warning(LogEvents.walletDeviceKeyLost, attributes: ["error": "\(error)"])
         _needsRecovery = true
         _deviceSignerApproved = false
+        _deviceKeyLost = true
+    }
+
+    private func deviceKeyIsUsable() {
+        _needsRecovery = false
+        _deviceSignerApproved = true
+        _deviceKeyLost = false
     }
 
     internal func preAuthIfNeeded() async throws(WalletError) {
@@ -416,8 +432,7 @@ extension Wallet {
             approver: approver,
             deployImmediately: deployImmediately
         )
-        _needsRecovery = false
-        _deviceSignerApproved = true
+        deviceKeyIsUsable()
     }
 
 }
