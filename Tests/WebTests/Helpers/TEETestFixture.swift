@@ -36,7 +36,7 @@ struct TEETestFixture {
     }
 
     func setupAuthentication(jwt: String? = nil) async {
-        await authManager.setJWT(jwt ?? CrossmintTEETestHelpers.createTestJWT())
+        await authManager.setJWT(jwt ?? SignerFrameMessages.createTestJWT())
     }
 
     /// Mirrors production, where the signer owns its identity and passes it with each request.
@@ -54,13 +54,13 @@ struct TEETestFixture {
     }
 
     func setupHandshake(verificationId: String = "test123") async throws {
-        let handshakeResponse = CrossmintTEETestHelpers.createHandshakeResponse(verificationId: verificationId)
+        let handshakeResponse = SignerFrameMessages.createHandshakeResponse(verificationId: verificationId)
         webProxy.configureResponse(for: HandshakeResponse.self, response: handshakeResponse)
         try await tee.load()
     }
 
     func configureReadyDevice() {
-        let statusResponse = CrossmintTEETestHelpers.createGetStatusResponse(
+        let statusResponse = SignerFrameMessages.createGetStatusResponse(
             status: .success,
             signerStatus: .ready
         )
@@ -68,7 +68,7 @@ struct TEETestFixture {
     }
 
     func configureNewDevice() {
-        let statusResponse = CrossmintTEETestHelpers.createGetStatusResponse(
+        let statusResponse = SignerFrameMessages.createGetStatusResponse(
             status: .success,
             signerStatus: .newDevice
         )
@@ -76,22 +76,22 @@ struct TEETestFixture {
     }
 
     func configureOnboardingFlow() {
-        let startOnboardingResponse = CrossmintTEETestHelpers.createStartOnboardingResponse()
+        let startOnboardingResponse = SignerFrameMessages.createStartOnboardingResponse()
         webProxy.configureResponse(for: StartOnboardingResponse.self, response: startOnboardingResponse)
 
-        let completeOnboardingResponse = CrossmintTEETestHelpers.createCompleteOnboardingResponse()
+        let completeOnboardingResponse = SignerFrameMessages.createCompleteOnboardingResponse()
         webProxy.configureResponse(for: CompleteOnboardingResponse.self, response: completeOnboardingResponse)
     }
 
     func configureSignResponse(signature: String) {
-        let signResponse = CrossmintTEETestHelpers.createNonCustodialSignResponse(
+        let signResponse = SignerFrameMessages.createNonCustodialSignResponse(
             signature: signature
         )
         webProxy.configureResponse(for: NonCustodialSignResponse.self, response: signResponse)
     }
 
     func configureErrorResponse(errorMessage: String) {
-        let statusResponse = CrossmintTEETestHelpers.createGetStatusResponse(
+        let statusResponse = SignerFrameMessages.createGetStatusResponse(
             status: .error,
             signerStatus: nil,
             errorMessage: errorMessage
@@ -114,7 +114,7 @@ struct TEETestFixture {
 
     func verifySignRequest(expectedTransaction: String) throws {
         let statusRequest = try #require(webProxy.lastSentMessage(ofType: GetStatusRequest.self))
-        #expect(statusRequest.data.authData.jwt == CrossmintTEETestHelpers.createTestJWT())
+        #expect(statusRequest.data.authData.jwt == SignerFrameMessages.createTestJWT())
         #expect(try wireAuthId(statusRequest) == identity.authId)
 
         let signRequest = try #require(webProxy.lastSentMessage(ofType: NonCustodialSignRequest.self))

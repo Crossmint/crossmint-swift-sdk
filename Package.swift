@@ -155,7 +155,8 @@ let package = Package(
             name: "WalletTests",
             dependencies: [
                 "Wallet",
-                "TestsUtils"
+                "TestsUtils",
+                "Web"
             ],
             resources: [
                 .process("Resources/WalletPasskey.json"),
@@ -240,9 +241,12 @@ let package = Package(
         .target(
             name: "TestsUtils",
             dependencies: [
+                "CrossmintAuth",
                 "CrossmintService",
                 "DeviceSigner",
-                "Http"
+                "Http",
+                "Web",
+                .product(name: "P256K", package: "swift-secp256k1")
             ]
         )
     ]
