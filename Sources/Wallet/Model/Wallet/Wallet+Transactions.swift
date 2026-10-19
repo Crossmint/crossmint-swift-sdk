@@ -404,11 +404,21 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
     internal func transactionSignerLocator() async throws(TransactionError) -> String? {
         if let selected = try await selectedSignerLocatorForTransactions() {
-            let actingLocator = config.recoveryLocator(actingFor: selected) ?? selected
-            return actingLocator.value
+            guard !config.containsRecoveryMethod(selected), let quorum = config.quorum(withMember: selected) else {
+                return selected.value
+            }
+            return try await isDelegatedSigner(selected) ? selected.value : quorum.locator
         }
         guard config.recoveryMethods.count > 1 else { return nil }
         return await signer?.adminSigner.locator ?? config.recovery.locator
+    }
+
+    private func isDelegatedSigner(_ locator: SignerLocator) async throws(TransactionError) -> Bool {
+        do {
+            return try await fetchSignerRegistration(locator)
+        } catch {
+            throw .transactionGeneric(error.message)
+        }
     }
 
     private var hasSigner: Bool {
