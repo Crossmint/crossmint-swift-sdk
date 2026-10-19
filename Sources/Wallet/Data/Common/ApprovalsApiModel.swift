@@ -12,7 +12,7 @@ public struct SubmittedApprovalEntry: Decodable {
     let message: String
 }
 
-public struct QuorumApprovalEntry: Decodable {
+struct QuorumApprovalEntry: Decodable {
     struct Progress: Decodable {
         let threshold: Int
         let remaining: Int
