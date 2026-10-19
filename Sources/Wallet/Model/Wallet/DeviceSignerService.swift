@@ -114,6 +114,9 @@ final class DeviceSignerService: Sendable {
                 ])
             }
         } catch {
+            if case .awaitingQuorumApproval = error {
+                throw error
+            }
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw error
