@@ -20,7 +20,9 @@ struct DelegatedSignerFlowTests {
             return
         }
         try await Funding.fund(wallet, usdxm: 5)
-        let selected = SignerConfig.externalWallet(registeredAddress) { message in try await delegate.sign(message: message) }
+        let selected = SignerConfig.externalWallet(registeredAddress) { message in
+            try await delegate.sign(message: message)
+        }
         try await wallet.useSigner(selected)
         let transfer: TransactionSummary
         do {

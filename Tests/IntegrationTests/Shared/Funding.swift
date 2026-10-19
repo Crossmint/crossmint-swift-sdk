@@ -9,7 +9,7 @@ enum Funding {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
             if try await usdxmBalance(of: wallet) >= Double(amount) { return }
-            try await Task.sleep(for: .seconds(3))
+            try await Task.sleep(nanoseconds: 3_000_000_000)
         }
         throw IntegrationSetupError(message: "\(wallet.address) did not reach \(amount) USDXM within \(Int(timeout)) s")
     }
