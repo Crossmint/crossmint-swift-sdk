@@ -228,6 +228,20 @@ let package = Package(
             plugins: basePlugins
         ),
         .testTarget(
+            name: "IntegrationTests",
+            dependencies: [
+                "CrossmintAuth",
+                "CrossmintCommonTypes",
+                "CrossmintService",
+                "DeviceSigner",
+                "Http",
+                "SecureStorage",
+                "Wallet",
+                .product(name: "SwiftKeccak", package: "SwiftKeccak")
+            ],
+            plugins: basePlugins
+        ),
+        .testTarget(
             name: "LoggerTests",
             dependencies: [
                 "Logger"
