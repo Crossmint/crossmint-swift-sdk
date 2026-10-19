@@ -2,8 +2,6 @@ import CryptoKit
 import Foundation
 
 public enum P256SignatureCheck {
-    /// Verifies a device-signer signature (`0x`-prefixed hex `r` and `s`) against a 65-byte
-    /// uncompressed public key, over the raw bytes of a base64 message.
     public static func verifies(r: String, s: String, publicKeyBase64: String, messageBase64: String) -> Bool {
         guard let publicKeyData = Data(base64Encoded: publicKeyBase64),
               let publicKey = try? P256.Signing.PublicKey(x963Representation: publicKeyData),

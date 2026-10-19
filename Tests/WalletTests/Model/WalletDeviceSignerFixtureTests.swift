@@ -1,6 +1,8 @@
 import CrossmintCommonTypes
+import CrossmintService
 import DeviceSigner
 import Foundation
+import Security
 import Testing
 import TestsUtils
 
@@ -41,6 +43,16 @@ struct WalletDeviceSignerFixtureTests {
 
     private enum TestFailure: Error { case notADeviceApproval }
 
+    private func removalTransaction(status: String = "success") throws -> SolanaTransactionApiModel {
+        let url = try #require(Bundle.module.url(forResource: "RemoveSignerTransactionSuccess", withExtension: "json"))
+        var json = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any] ?? [:]
+        json["status"] = status
+        return try DefaultJSONCoder().decode(
+            SolanaTransactionApiModel.self,
+            from: JSONSerialization.data(withJSONObject: json)
+        )
+    }
+
     @Test func registersADeviceSignerAndSignsWithAVerifyingKey() async throws {
         let wallet = try makeSolanaWallet()
 
@@ -60,11 +72,7 @@ struct WalletDeviceSignerFixtureTests {
         let onboarded = try makeSolanaWallet()
         try await onboarded.recover()
         let oldLocator = try #require(await onboarded.localDeviceSigner())
-        let removedTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "RemoveSignerTransactionSuccess",
-            bundle: Bundle.module
-        )
-        walletService.removeSignerResult = removedTransaction
+        walletService.removeSignerResult = try removalTransaction()
 
         store.corrupt(tag: InMemoryKeychainItemStore.walletTag(address: onboarded.address))
         #expect(await onboarded.localDeviceSigner() == nil)
@@ -88,11 +96,7 @@ struct WalletDeviceSignerFixtureTests {
         let wallet = try makeSolanaWallet()
         try await wallet.recover()
         let locator = try #require(await wallet.localDeviceSigner())
-        let removedTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "RemoveSignerTransactionSuccess",
-            bundle: Bundle.module
-        )
-        walletService.removeSignerResult = removedTransaction
+        walletService.removeSignerResult = try removalTransaction()
 
         _ = try await wallet.removeSigner(locator: locator)
 
@@ -100,14 +104,35 @@ struct WalletDeviceSignerFixtureTests {
         #expect(await wallet.localDeviceSigner() == nil)
     }
 
+    @Test func keepsTheLocalKeyWhenTheRemovalFailsOnChain() async throws {
+        let wallet = try makeSolanaWallet()
+        try await wallet.recover()
+        let locator = try #require(await wallet.localDeviceSigner())
+        walletService.removeSignerResult = try removalTransaction(status: "failed")
+
+        _ = try await wallet.removeSigner(locator: locator)
+
+        #expect(store.tags.count == 1)
+        #expect(await wallet.localDeviceSigner() == locator)
+    }
+
+    @Test func reportsTheRemovalWhenTheLocalKeyCannotBeDeleted() async throws {
+        let wallet = try makeSolanaWallet()
+        try await wallet.recover()
+        let locator = try #require(await wallet.localDeviceSigner())
+        walletService.removeSignerResult = try removalTransaction()
+        store.deleteError = .storageError(errSecInteractionNotAllowed)
+
+        _ = try await wallet.removeSigner(locator: locator)
+
+        #expect(store.tags.count == 1)
+        #expect(await wallet.localDeviceSigner() == locator)
+    }
+
     @Test func keepsTheLocalKeyWhenAnotherDeviceSignerIsRemoved() async throws {
         let wallet = try makeSolanaWallet()
         try await wallet.recover()
-        let removedTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "RemoveSignerTransactionSuccess",
-            bundle: Bundle.module
-        )
-        walletService.removeSignerResult = removedTransaction
+        walletService.removeSignerResult = try removalTransaction()
 
         _ = try await wallet.removeSigner(locator: .device(publicKey: "BAAA"))
 

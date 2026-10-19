@@ -170,7 +170,9 @@ extension Wallet {
             guard let result = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
-            await forgetLocalDeviceKey(removedLocator: locator)
+            if result.status == .success {
+                await forgetLocalDeviceKey(removedLocator: locator)
+            }
             Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
                 "locator": locator
             ])
@@ -188,7 +190,15 @@ extension Wallet {
         guard let storage = deviceSignerKeyStorage,
               case .device(let publicKey)? = try? SignerLocator(from: removedLocator),
               await storage.getKey(address: address) == publicKey else { return }
-        try? await storage.deleteKey(address: address)
+        do {
+            try await storage.deleteKey(address: address)
+        } catch {
+            Logger.smartWallet.warning(LogEvents.walletRemoveSignerLocalKeyNotDeleted, attributes: [
+                "locator": removedLocator,
+                "error": "\(error)"
+            ])
+            return
+        }
         if selectedSigner is DeviceSigner {
             selectedSigner = nil
         }
