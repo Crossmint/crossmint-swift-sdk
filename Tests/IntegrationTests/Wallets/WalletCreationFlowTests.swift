@@ -5,27 +5,22 @@ import Testing
 @Suite("Integration: wallet creation")
 struct WalletCreationFlowTests {
     @Test func createsAWalletWithAnExternalWalletRecoveryAndReadsItBack() async throws {
-        let session = try await CryptoWalletSession.start()
-        let wallets = session.wallets()
+        let session = try await SessionPool.shared.primary()
 
-        let created = try await wallets.createWallet(
-            chain: IntegrationEnvironment.EVM_CHAIN,
-            recovery: session.keypair,
-            options: nil
-        )
-        let fetched = try #require(
-            try await wallets.getWallet(chain: IntegrationEnvironment.EVM_CHAIN, options: nil)
+        let wallet = try await SessionPool.shared.evmWallet(of: session)
+        let again = try #require(
+            try await session.wallets().getWallet(chain: IntegrationEnvironment.EVM_CHAIN, options: nil)
         )
 
-        #expect(created.address.hasPrefix("0x"))
-        #expect(fetched.address == created.address)
-        #expect(fetched.config.recovery.locator == "external-wallet:\(session.address)")
+        #expect(wallet.address.hasPrefix("0x"))
+        #expect(again.address == wallet.address)
+        #expect(again.config.recovery.locator == "external-wallet:\(session.address)")
     }
 
-    @Test func reportsNoWalletForAUserWhoNeverCreatedOne() async throws {
-        let session = try await CryptoWalletSession.start()
+    @Test func reportsNoWalletOnAChainTheUserNeverCreatedOneOn() async throws {
+        let session = try await SessionPool.shared.secondary()
 
-        let wallet = try await session.wallets().getWallet(chain: IntegrationEnvironment.EVM_CHAIN, options: nil)
+        let wallet = try await session.wallets().getWallet(chain: IntegrationEnvironment.SOLANA_CHAIN, options: nil)
 
         #expect(wallet == nil)
     }

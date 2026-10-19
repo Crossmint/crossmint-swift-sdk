@@ -5,14 +5,10 @@ import Testing
 @Suite("Integration: fund and send")
 struct FundAndSendFlowTests {
     @Test func fundsThenSendsWithTheRecoverySignerApprovingLocally() async throws {
-        let sender = try await CryptoWalletSession.start()
-        let recipient = try await CryptoWalletSession.start()
-        let wallet = try await sender.wallets().createWallet(
-            chain: IntegrationEnvironment.EVM_CHAIN, recovery: sender.keypair, options: nil
-        )
-        let destination = try await recipient.wallets().createWallet(
-            chain: IntegrationEnvironment.EVM_CHAIN, recovery: recipient.keypair, options: nil
-        )
+        let sender = try await SessionPool.shared.primary()
+        let recipient = try await SessionPool.shared.secondary()
+        let wallet = try await SessionPool.shared.evmWallet(of: sender)
+        let destination = try await SessionPool.shared.evmWallet(of: recipient)
 
         try await wallet.fund(token: .usdxm, amount: 5)
         let funded = try await wallet.balances([.usdxm])
@@ -25,13 +21,11 @@ struct FundAndSendFlowTests {
     }
 
     @Test func surfacesTheApiRejectionWhenTheBalanceIsInsufficient() async throws {
-        let session = try await CryptoWalletSession.start()
-        let wallet = try await session.wallets().createWallet(
-            chain: IntegrationEnvironment.EVM_CHAIN, recovery: session.keypair, options: nil
-        )
+        let session = try await SessionPool.shared.primary()
+        let wallet = try await SessionPool.shared.evmWallet(of: session)
 
         await #expect(throws: TransactionError.self) {
-            _ = try await wallet.send(session.address, IntegrationEnvironment.EVM_USDXM, 1)
+            _ = try await wallet.send(session.address, IntegrationEnvironment.EVM_USDXM, 1_000_000)
         }
     }
 }

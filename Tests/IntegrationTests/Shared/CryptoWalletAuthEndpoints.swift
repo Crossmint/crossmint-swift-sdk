@@ -17,7 +17,10 @@ enum CryptoWalletAuthEndpoints {
         Endpoint(
             path: "\(base)/authenticate",
             method: .post,
-            queryItems: [URLQueryItem(name: "signinAuthenticationMethod", value: "evm")],
+            queryItems: [
+                URLQueryItem(name: "signinAuthenticationMethod", value: "evm"),
+                URLQueryItem(name: "callbackUrl", value: "https://localhost/sdk/auth/callback")
+            ],
             body: try JSONEncoder().encode([
                 "walletAddress": walletAddress, "message": challenge, "signature": signature
             ])

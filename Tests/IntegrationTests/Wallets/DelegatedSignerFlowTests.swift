@@ -5,11 +5,9 @@ import Testing
 @Suite("Integration: delegated signer")
 struct DelegatedSignerFlowTests {
     @Test func registersSignsWithAndRemovesAnExternalWalletSigner() async throws {
-        let session = try await CryptoWalletSession.start()
-        let recipient = try await CryptoWalletSession.start()
-        let wallet = try await session.wallets().createWallet(
-            chain: IntegrationEnvironment.EVM_CHAIN, recovery: session.keypair, options: nil
-        )
+        let session = try await SessionPool.shared.primary()
+        let recipient = try await SessionPool.shared.secondary()
+        let wallet = try await SessionPool.shared.evmWallet(of: session)
         let delegate = try EVMKeyPairSigner()
         try await delegate.initialize(nil)
         let delegateAddress = await delegate.evmAddress.address
