@@ -6,12 +6,9 @@ enum Funding {
     /// The faucet returns before the credit lands on chain; wait for the balance the test needs.
     static func fund(_ wallet: Wallet, usdxm amount: Int, timeout: TimeInterval = 90) async throws {
         try await wallet.fund(token: .usdxm, amount: amount)
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if try await usdxmBalance(of: wallet) >= Double(amount) { return }
-            try await Task.sleep(nanoseconds: 3_000_000_000)
+        _ = try await Eventually.value(timeout: timeout, describing: "\(wallet.address) reaching \(amount) USDXM") {
+            try await usdxmBalance(of: wallet) >= Double(amount) ? true : nil
         }
-        throw IntegrationSetupError(message: "\(wallet.address) did not reach \(amount) USDXM within \(Int(timeout)) s")
     }
 
     static func usdxmBalance(of wallet: Wallet) async throws -> Double {

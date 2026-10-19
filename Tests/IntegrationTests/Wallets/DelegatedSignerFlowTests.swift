@@ -12,9 +12,11 @@ struct DelegatedSignerFlowTests {
 
         try await wallet.addSigner(delegate.config)
         let expectedLocator = delegate.adminSigner.locator.lowercased()
-        let signers = try await wallet.signers()
-        let match = signers.first { $0.locator.value.lowercased() == expectedLocator }
-        let registered = try #require(match)
+        let registered = try await Eventually.value(describing: "\(expectedLocator) becoming active") {
+            try await wallet.signers().first { signer in
+                signer.locator.value.lowercased() == expectedLocator && signer.status == .active
+            }
+        }
         guard case .externalWallet(let registeredAddress) = registered.locator else {
             Issue.record("registered as \(registered.locator.value)")
             return
