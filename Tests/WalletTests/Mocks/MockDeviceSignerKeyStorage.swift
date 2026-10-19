@@ -9,6 +9,7 @@ final class MockDeviceSignerKeyStorage: DeviceSignerKeyStorage, @unchecked Senda
     private(set) var deletePendingKeyCallCount = 0
     var generateKeyError: DeviceSignerError?
     var mapAddressToKeyError: DeviceSignerError?
+    var signMessageError: DeviceSignerError?
 
     func isAvailable() -> Bool { true }
 
@@ -43,7 +44,10 @@ final class MockDeviceSignerKeyStorage: DeviceSignerKeyStorage, @unchecked Senda
         address: String,
         message: String
     ) async throws(DeviceSignerError) -> (r: String, s: String) {
-        ("0xr", "0xs")
+        if let signMessageError {
+            throw signMessageError
+        }
+        return ("0xr", "0xs")
     }
 
     func deleteKey(address: String) async throws(DeviceSignerError) {
