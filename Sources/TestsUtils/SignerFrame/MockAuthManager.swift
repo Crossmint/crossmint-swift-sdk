@@ -1,7 +1,7 @@
 import CrossmintAuth
 import Foundation
 
-package actor StubAuthManager: AuthManager {
+package actor MockAuthManager: AuthManager {
     private var _jwt: String?
 
     package init() {}

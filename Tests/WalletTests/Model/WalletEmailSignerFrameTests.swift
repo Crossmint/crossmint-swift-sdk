@@ -6,12 +6,14 @@ import Web
 
 @testable import Wallet
 
-@Suite("Wallet email signer over the scripted frame", .tags(.unit), .serialized)
+private let EMAIL = "user@example.com"
+private let EMAIL_LOCATOR = "email:user@example.com"
+private let MESSAGE = "0x52769994aa43c041dad4d211d584bef75e03b318dc8d34a449f815aeb50b99c8"
+
+@Suite("Wallet email signer over the scripted frame", .tags(.unit))
 @MainActor
 struct WalletEmailSignerFrameTests {
     private let walletService = MockSmartWalletService()
-    private let email = "user@example.com"
-    private let message = "0x52769994aa43c041dad4d211d584bef75e03b318dc8d34a449f815aeb50b99c8"
 
     private func makeWallets() -> DefaultCrossmintWallets {
         DefaultCrossmintWallets(
@@ -30,20 +32,15 @@ struct WalletEmailSignerFrameTests {
         walletService.createWalletFixture = try emailWalletFixture()
         return try await makeWallets().createWallet(
             chain: Chain("base-sepolia"),
-            recoveryMethods: [EVMEmailSigner(email: email, crossmintTEE: tee)],
+            recoveryMethods: [EVMEmailSigner(email: EMAIL, crossmintTEE: tee)],
             options: nil
         )
     }
 
-    private func keypairSignature(of request: SignRequestApi) throws -> String {
-        guard case let .keypair(signer, signature)? = request.approvals.first else {
-            throw TestFailure.notAKeypairApproval
-        }
-        #expect(signer == "email:\(email)")
-        return signature
+    private func keypairApproval(of request: SignRequestApi) -> (signer: String, signature: String)? {
+        guard case let .keypair(signer, signature)? = request.approvals.first else { return nil }
+        return (signer, signature)
     }
-
-    private enum TestFailure: Error { case notAKeypairApproval }
 
     @Test func onboardsANewDeviceThenSignsWithTheFrameKey() async throws {
         let fixture = try SignerFrameFixture()
@@ -53,12 +50,13 @@ struct WalletEmailSignerFrameTests {
         fixture.scriptSigning()
         let wallet = try await createWallet(signingWith: fixture.tee)
 
-        let signing = Task { try await wallet.makeSignRequest(for: "email:\(email)", message: message) }
+        let signing = Task { try await wallet.makeSignRequest(for: EMAIL_LOCATOR, message: MESSAGE) }
         await fixture.waitForOTPRequired()
         fixture.tee.provideOTP("123456")
 
-        let signature = try keypairSignature(of: try await signing.value)
-        #expect(fixture.key.verifies(signatureHex: signature, hexBytes: message))
+        let approval = try #require(keypairApproval(of: try await signing.value))
+        #expect(approval.signer == EMAIL_LOCATOR)
+        #expect(fixture.key.verifies(signatureHex: approval.signature, hexBytes: MESSAGE))
         #expect(fixture.lastOtpSubmitted() == "123456")
         #expect(fixture.tee.isOTPRequired == false)
     }
@@ -74,10 +72,11 @@ struct WalletEmailSignerFrameTests {
         walletService.getWalletFixture = try emailWalletFixture()
         let wallet = try #require(try await makeWallets().getWallet(chain: Chain("base-sepolia"), options: nil))
 
-        let request = try await wallet.makeSignRequest(for: "email:\(email)", message: message)
-        let signature = try keypairSignature(of: request)
+        let request = try await wallet.makeSignRequest(for: EMAIL_LOCATOR, message: MESSAGE)
+        let approval = try #require(keypairApproval(of: request))
+        #expect(approval.signer == EMAIL_LOCATOR)
 
-        #expect(fixture.key.verifies(signatureHex: signature, hexBytes: message))
+        #expect(fixture.key.verifies(signatureHex: approval.signature, hexBytes: MESSAGE))
     }
 
     @Test func reportsCancellationWhenTheUserAbandonsTheOtp() async throws {
@@ -87,7 +86,7 @@ struct WalletEmailSignerFrameTests {
         fixture.scriptNewDevice()
         let wallet = try await createWallet(signingWith: fixture.tee)
 
-        let signing = Task { try await wallet.makeSignRequest(for: "email:\(email)", message: message) }
+        let signing = Task { try await wallet.makeSignRequest(for: EMAIL_LOCATOR, message: MESSAGE) }
         await fixture.waitForOTPRequired()
         fixture.tee.cancelOTP()
 
@@ -103,7 +102,7 @@ struct WalletEmailSignerFrameTests {
         #expect(fixture.handshakeCount() == 3)
 
         await #expect(throws: SignerError.signingFailed) {
-            try await wallet.makeSignRequest(for: "email:\(email)", message: message)
+            try await wallet.makeSignRequest(for: EMAIL_LOCATOR, message: MESSAGE)
         }
         #expect(fixture.handshakeCount() == 6)
     }
@@ -117,7 +116,7 @@ struct WalletEmailSignerFrameTests {
         let wallet = try await createWallet(signingWith: fixture.tee)
 
         await #expect(throws: SignerError.signingFailed) {
-            try await wallet.makeSignRequest(for: "email:\(email)", message: message)
+            try await wallet.makeSignRequest(for: EMAIL_LOCATOR, message: MESSAGE)
         }
     }
 
@@ -131,10 +130,11 @@ struct WalletEmailSignerFrameTests {
         let handshakesBefore = fixture.handshakeCount()
 
         fixture.terminateFrame()
-        let request = try await wallet.makeSignRequest(for: "email:\(email)", message: message)
-        let signature = try keypairSignature(of: request)
+        let request = try await wallet.makeSignRequest(for: EMAIL_LOCATOR, message: MESSAGE)
+        let approval = try #require(keypairApproval(of: request))
+        #expect(approval.signer == EMAIL_LOCATOR)
 
-        #expect(fixture.key.verifies(signatureHex: signature, hexBytes: message))
+        #expect(fixture.key.verifies(signatureHex: approval.signature, hexBytes: MESSAGE))
         #expect(fixture.handshakeCount() > handshakesBefore)
     }
 }

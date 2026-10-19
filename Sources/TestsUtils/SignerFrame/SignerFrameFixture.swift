@@ -5,8 +5,8 @@ import Web
 /// A `CrossmintTEE` wired to a scripted frame, a stub session and a signing key: no WebView, no network.
 @MainActor
 package struct SignerFrameFixture {
-    package let authManager = StubAuthManager()
-    package let frame = ScriptedSignerFrame()
+    package let authManager = MockAuthManager()
+    package let frame = MockWebViewCommunicationProxy()
     package let key: SignerFrameKey
     package let tee: CrossmintTEE
 
@@ -18,7 +18,7 @@ package struct SignerFrameFixture {
             webProxy: frame,
             apiKey: apiKey,
             isProductionEnvironment: isProductionEnvironment,
-            signerStorage: StubSignerStorage()
+            signerStorage: MockSignerStorage()
         )
     }
 

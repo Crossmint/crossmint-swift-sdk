@@ -14,8 +14,8 @@ import Testing
 
 @MainActor
 struct TEETestFixture {
-    let authManager = StubAuthManager()
-    let webProxy = ScriptedSignerFrame()
+    let authManager = MockAuthManager()
+    let webProxy = MockWebViewCommunicationProxy()
     let apiKey = "test-api-key"
     let identity: SignerIdentity
     let tee: CrossmintTEE
@@ -31,7 +31,7 @@ struct TEETestFixture {
             webProxy: webProxy,
             apiKey: apiKey,
             isProductionEnvironment: isProductionEnvironment,
-            signerStorage: StubSignerStorage()
+            signerStorage: MockSignerStorage()
         )
     }
 

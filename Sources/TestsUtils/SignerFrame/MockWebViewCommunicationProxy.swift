@@ -3,7 +3,7 @@ import WebKit
 import Web
 
 @MainActor
-package final class ScriptedSignerFrame: NSObject, WebViewCommunicationProxy {
+package final class MockWebViewCommunicationProxy: NSObject, WebViewCommunicationProxy {
     public let name = "mockCrossmintMessageHandler"
     public weak var webView: WKWebView?
     public var onWebViewMessage: (any WebViewMessage) -> Void = { _ in }
