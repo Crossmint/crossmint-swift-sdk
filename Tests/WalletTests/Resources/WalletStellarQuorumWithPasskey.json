@@ -1,0 +1,40 @@
+{
+  "type": "smart",
+  "chainType": "stellar",
+  "config": {
+    "adminSigner": {
+      "type": "email",
+      "email": "carol@example.com",
+      "locator": "email:carol@example.com"
+    },
+    "recoveryMethods": [
+      {
+        "type": "email",
+        "email": "carol@example.com",
+        "locator": "email:carol@example.com"
+      },
+      {
+        "type": "quorum",
+        "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+        "threshold": 2,
+        "members": [
+          { "type": "email", "email": "alice@example.com", "locator": "email:alice@example.com" },
+          {
+            "type": "passkey",
+            "id": "v-Qxh--c2nOkUyBYJHRaXCwSOJw",
+            "name": "alice",
+            "publicKey": {
+              "x": "63974445517478826529511626494808493056716472585867467274057723945542198688292",
+              "y": "65992374220708497472363050084829585264656015540354474091056129332958175065018"
+            },
+            "locator": "passkey:v-Qxh--c2nOkUyBYJHRaXCwSOJw"
+          }
+        ]
+      }
+    ],
+    "delegatedSigners": []
+  },
+  "address": "CA3SGE76PWYAM4OVKETY47GASUGYDF3Y3QFFSPIWFCNKQLUOO4SOIT2W",
+  "linkedUser": "email:carol@example.com",
+  "createdAt": "2026-10-16T10:00:00.000Z"
+}
