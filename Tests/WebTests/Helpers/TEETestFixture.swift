@@ -8,6 +8,7 @@
 import CrossmintAuth
 import CrossmintCommonTypes
 import Foundation
+import TestsUtils
 import Testing
 @testable import Web
 
@@ -23,6 +24,7 @@ struct TEETestFixture {
         isProductionEnvironment: Bool = true,
         identity: SignerIdentity = .email("test@example.com")
     ) {
+        NetworkKillSwitch.install()
         self.identity = identity
         self.tee = CrossmintTEE(
             auth: authManager,
