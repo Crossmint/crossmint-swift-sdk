@@ -89,6 +89,7 @@ extension Wallet {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
             try assertRecoveryMethodChangesSupported()
+            try assertHasMembers(quorum)
             let approver = try await recoveryMethodApprover()
             try await initializeMembers(of: quorum)
             onTransactionStart?()
@@ -321,11 +322,19 @@ extension Wallet {
         return completed
     }
 
+    private func assertHasMembers(_ quorum: QuorumConfig) throws(WalletError) {
+        guard quorum.members.isEmpty else { return }
+        throw .recoveryConfigRejected(code: .invalidConfig, message: "The quorum has no members")
+    }
+
     private func initializeMembers(of quorum: QuorumConfig) async throws(WalletError) {
         for member in quorum.members {
             do {
                 try await member.initialize(smartWalletService)
             } catch {
+                if case .passkey(.cancelled) = error {
+                    throw .walletGeneric("Passkey registration was cancelled")
+                }
                 throw .walletGeneric("Could not prepare a member of the quorum: \(error)")
             }
         }
@@ -335,6 +344,9 @@ extension Wallet {
         do {
             let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
             config = model.config.toDomain
+            if let selected = selectedRecoveryMethod?.locator, !config.containsRecoveryMethod(selected) {
+                selectedRecoveryMethod = nil
+            }
         } catch {
             Logger.smartWallet.warning(LogEvents.walletRecoveryMethodsReloadError, attributes: [
                 "error": "\(error)"

@@ -22,6 +22,10 @@ enum RecoveryInput {
         }
     }
 
+    private var isQuorum: Bool {
+        if case .quorum = self { true } else { false }
+    }
+
     var active: any Signer {
         switch self {
         case .single(let signer): signer
@@ -54,7 +58,7 @@ enum RecoveryInput {
     }
 
     func resolved(for chain: Chain) throws(WalletError) -> RecoveryInput {
-        if chain.chainType == .solana, signers.contains(where: { $0.signerType == .passkey }) {
+        if chain.chainType == .solana, !isQuorum, signers.contains(where: { $0.signerType == .passkey }) {
             throw .passkeyRecoveryNotAllowedOnSolana
         }
         if case .quorum(let quorum) = self, quorum.members.isEmpty {
