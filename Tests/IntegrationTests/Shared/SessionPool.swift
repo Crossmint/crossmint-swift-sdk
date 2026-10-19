@@ -7,9 +7,9 @@ import Foundation
 actor SessionPool {
     static let shared = SessionPool()
 
-    private var sessions: [String: CryptoWalletSession] = [:]
+    private var sessions: [String: Task<CryptoWalletSession, Error>] = [:]
     private var solanaRecovery: [String: SolanaKeypairSigner] = [:]
-    private var createdWallets: Set<String> = []
+    private var creations: [String: Task<Void, Error>] = [:]
 
     func primary() async throws -> CryptoWalletSession { try await session(named: "primary") }
     func secondary() async throws -> CryptoWalletSession { try await session(named: "secondary") }
@@ -36,22 +36,22 @@ actor SessionPool {
     }
 
     private func session(named name: String) async throws -> CryptoWalletSession {
-        if let existing = sessions[name] { return existing }
-        let session = try await CryptoWalletSession.start()
-        sessions[name] = session
-        return session
+        if let inFlight = sessions[name] { return try await inFlight.value }
+        let task = Task { try await CryptoWalletSession.start() }
+        sessions[name] = task
+        return try await task.value
     }
 
     private func wallet(
         of session: CryptoWalletSession,
         chain: Chain,
-        create: () async throws -> Wallet
+        create: @escaping @Sendable () async throws -> Wallet
     ) async throws -> Wallet {
         let key = "\(session.address):\(chain.name)"
-        if !createdWallets.contains(key) {
-            _ = try await create()
-            createdWallets.insert(key)
+        if creations[key] == nil {
+            creations[key] = Task { _ = try await create() }
         }
+        try await creations[key]?.value
         guard let wallet = try await session.wallets().getWallet(chain: chain, options: nil) else {
             throw IntegrationSetupError(
                 message: "\(chain.name) wallet for \(session.address) was created but cannot be read back"

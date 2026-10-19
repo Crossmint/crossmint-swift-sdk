@@ -20,6 +20,10 @@ struct CryptoWalletSession {
         let oneTimeSecret: String
     }
 
+    private struct RefreshResponse: Decodable {
+        let jwt: String
+    }
+
     static func start() async throws -> CryptoWalletSession {
         let service = try IntegrationEnvironment.service()
         let authManager = CrossmintAuthManager(
@@ -41,7 +45,11 @@ struct CryptoWalletSession {
             ),
             errorType: AuthError.self
         )
-        _ = try await authManager.oneTimeSecretAuthentication(oneTimeSecret: authenticated.oneTimeSecret)
+        let refreshed: RefreshResponse = try await service.executeRequest(
+            try CryptoWalletAuthEndpoints.refresh(oneTimeSecret: authenticated.oneTimeSecret),
+            errorType: AuthError.self
+        )
+        await authManager.setJWT(refreshed.jwt)
         return CryptoWalletSession(service: service, authManager: authManager, keypair: keypair, address: address)
     }
 
