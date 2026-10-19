@@ -19,9 +19,20 @@ private func loadFixture(_ name: String) throws -> Data {
     return try Data(contentsOf: url)
 }
 
-private func encodedJSON(_ value: some Encodable) throws -> [String: Any] {
-    let data = try JSONEncoder().encode(value)
-    return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+private struct SentRecoveryConfig: Decodable {
+    struct Method: Decodable {
+        let type: String
+        let threshold: Int?
+        let members: [Member]?
+    }
+
+    struct Member: Decodable {
+        let type: String
+        let email: String?
+    }
+
+    let adminSigner: Method?
+    let recoveryMethods: [Method]?
 }
 
 @Suite("Wallet creation with a quorum", .tags(.unit))
@@ -45,14 +56,14 @@ struct QuorumWalletCreationTests {
 
         _ = try await makeWallets().createWallet(chain: Chain("stellar"), quorum: quorum, signers: [], options: nil)
 
-        let config = try encodedJSON(try #require(walletService.lastCreateWalletParams?.config))
-        let methods = try #require(config["recoveryMethods"] as? [[String: Any]])
-        #expect(config["adminSigner"] == nil)
+        let body = try JSONEncoder().encode(try #require(walletService.lastCreateWalletParams?.config))
+        let config = try JSONDecoder().decode(SentRecoveryConfig.self, from: body)
+        let methods = try #require(config.recoveryMethods)
+        #expect(config.adminSigner == nil)
         #expect(methods.count == 1)
-        #expect(methods[0]["type"] as? String == "quorum")
-        #expect(methods[0]["threshold"] as? Int == 2)
-        let members = try #require(methods[0]["members"] as? [[String: Any]])
-        #expect(members.map { $0["email"] as? String } == ["alice@example.com", "bob@example.com"])
+        #expect(methods[0].type == "quorum")
+        #expect(methods[0].threshold == 2)
+        #expect(methods[0].members?.map(\.email) == ["alice@example.com", "bob@example.com"])
     }
 
     @Test func initializesEveryMemberAndActivatesTheFirstOne() async throws {
@@ -144,6 +155,45 @@ struct WalletQuorumRecoveryMethodChangesTests {
 
         #expect(pending.status == .awaitingApproval)
         #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value])
+    }
+
+    @Test func returnsTheAddedQuorumWhenTheWalletCannotBeReadAgain() async throws {
+        let wallet = try makeWallet(
+            fileName: "WalletStellarRecoveryMethods",
+            signer: MockSigner(email: "alice@example.com")
+        )
+        let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        )
+        walletService.addRecoveryMethodResult = success
+        walletService.getWalletError = .walletGeneric("offline")
+        let quorum = QuorumConfig(
+            threshold: 2,
+            members: [MockSigner(email: "bob@example.com"), MockSigner(email: "carol@example.com")]
+        )
+
+        let transaction = try await wallet.addRecoveryMethod(quorum: quorum)
+
+        #expect(transaction.status == .success)
+    }
+
+    @Test func readsTheRecoveryMethodsAgainAfterAQuorumApprovesAChange() async throws {
+        let wallet = try makeWallet(fileName: "WalletStellarQuorum", signer: nil)
+        let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResults = [try transaction("StellarTransactionQuorumApproved")]
+        walletService.fetchTransactionResult = success
+        walletService.getWalletResult = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorumThenEmail",
+            bundle: Bundle.module
+        )
+
+        _ = try await wallet.approve(transactionId: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+
+        #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value, "email:carol@example.com"])
     }
 
     @Test func keepsAQuorumWhoseRemovalWaitsOnOtherMembers() async throws {
