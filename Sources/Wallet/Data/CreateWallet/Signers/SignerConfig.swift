@@ -53,6 +53,11 @@ public enum SignerConfig: Sendable {
     case externalWallet(String, onSign: (@Sendable (String) async throws -> String)? = nil)
     /// The API key signer (server-side / custodial).
     case apiKey
+    /// A quorum that approves only when `threshold` of its `members` approve.
+    ///
+    /// Use it with ``Wallet/addRecoveryMethod(_:prepareOnly:)``. A member cannot be a quorum,
+    /// an API key signer or a device signer.
+    indirect case quorum(threshold: Int, members: [SignerConfig])
 }
 
 extension SignerConfig {
@@ -64,7 +69,7 @@ extension SignerConfig {
         case .phone(let phone, _): .phone(phone)
         case .externalWallet(let address, _): .externalWallet(address: address)
         case .apiKey: .apiKey()
-        case .device, .passkey: nil
+        case .device, .passkey, .quorum: nil
         }
     }
 }

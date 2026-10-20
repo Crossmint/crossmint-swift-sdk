@@ -63,15 +63,6 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         try await createWallet(chain: chain, recovery: .list(recoveryMethods), signers: signers, options: options)
     }
 
-    public func createWallet(
-        chain: Chain,
-        quorum: QuorumConfig,
-        signers: [SignerConfig],
-        options: WalletOptions? = nil
-    ) async throws(WalletError) -> Wallet {
-        try await createWallet(chain: chain, recovery: .quorum(quorum), signers: signers, options: options)
-    }
-
     private func getWallet(
         chain: Chain,
         recovery: RecoveryInput?,
@@ -290,6 +281,8 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
             switch config {
             case .device:
                 continue
+            case .quorum:
+                throw .walletGeneric("Adding a quorum as a signer is not supported yet.")
             case .passkey(let name, let host, _):
                 let passkeySigner = PasskeySigner(name: name, host: host)
                 try await initializeSigner(passkeySigner)
