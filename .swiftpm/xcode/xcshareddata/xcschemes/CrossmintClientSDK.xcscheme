@@ -36,6 +36,9 @@
          <TestPlanReference
             reference = "container:CrossmintSDKIntegration.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:CrossmintSDKHeartbeat.xctestplan">
+         </TestPlanReference>
       </TestPlans>
    </TestAction>
    <LaunchAction

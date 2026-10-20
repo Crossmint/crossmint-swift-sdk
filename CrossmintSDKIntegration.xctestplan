@@ -1,24 +1,23 @@
 {
-  "configurations" : [
+  "configurations": [
     {
-      "id" : "7C1B9E42-5D3A-4F0E-9B2C-3A6D8F1E5C70",
-      "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "id": "7C1B9E42-5D3A-4F0E-9B2C-3A6D8F1E5C70",
+      "name": "Configuration 1",
+      "options": {}
     }
   ],
-  "defaultOptions" : {
-
-  },
-  "testTargets" : [
+  "defaultOptions": {},
+  "testTargets": [
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "IntegrationTests",
-        "name" : "IntegrationTests"
-      }
+      "target": {
+        "containerPath": "container:",
+        "identifier": "IntegrationTests",
+        "name": "IntegrationTests"
+      },
+      "skippedTests": [
+        "WalletsHeartbeatTests"
+      ]
     }
   ],
-  "version" : 1
+  "version": 1
 }
