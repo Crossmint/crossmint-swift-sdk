@@ -195,7 +195,7 @@ struct WalletsHeartbeatTests {
 
     @Test func getSigner() async throws {
         let evm = try await evm()
-        _ = try await evm.service.getSigner(evm.adminLocator, chainType: .evm)
+        _ = try #require(try await evm.service.getSigner(evm.adminLocator, chainType: .evm))
     }
 
     @Test func removeSigner() async throws {
