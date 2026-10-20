@@ -54,6 +54,20 @@ public enum WalletError: CrossmintError {
         case signerNotAllowed = "RECOVERY_SIGNER_NOT_ALLOWED"
         /// The wallet has no other recovery method, so you cannot remove this one.
         case lastSigner = "LAST_RECOVERY_SIGNER"
+        /// The chain does not accept a quorum yet. Only Stellar wallets accept a quorum.
+        case quorumUnsupported = "QUORUM_SIGNER_UNSUPPORTED"
+        /// The quorum has fewer than two members.
+        case quorumTooFewMembers = "QUORUM_TOO_FEW_MEMBERS"
+        /// The quorum has fewer than two members or more than ten members.
+        case quorumSizeInvalid = "QUORUM_SIZE_INVALID"
+        /// The threshold of the quorum is larger than the number of members.
+        case quorumThresholdExceedsMembers = "QUORUM_THRESHOLD_EXCEEDS_MEMBERS"
+        /// The quorum has the same member more than once.
+        case quorumMemberDuplicated = "QUORUM_MEMBER_DUPLICATED"
+        /// A member of the quorum has a signer type that cannot be a quorum member, for example an API key.
+        case quorumMemberTypeNotAllowed = "QUORUM_MEMBER_TYPE_NOT_ALLOWED"
+        /// The chain does not accept the signer type of a member as a quorum member.
+        case quorumMemberTypeUnsupported = "QUORUM_MEMBER_TYPE_UNSUPPORTED"
     }
 
     public var code: String {
@@ -172,6 +186,16 @@ extension WalletError.RecoveryConfigCode {
             "Use a signer type that the chain accepts. An API key signer must be the only recovery signer."
         case .lastSigner:
             "Add another recovery method before you remove this one."
+        case .quorumUnsupported:
+            "Use a Stellar wallet, or use recovery methods that each authorize on their own."
+        case .quorumTooFewMembers, .quorumSizeInvalid:
+            "Give the quorum between 2 and 10 members."
+        case .quorumThresholdExceedsMembers:
+            "Use a threshold that is not larger than the number of members."
+        case .quorumMemberDuplicated:
+            "Give each member of the quorum only once."
+        case .quorumMemberTypeNotAllowed, .quorumMemberTypeUnsupported:
+            "Use email, phone, external wallet, passkey or server signers as quorum members."
         case .adminSignerConflict:
             nil
         }

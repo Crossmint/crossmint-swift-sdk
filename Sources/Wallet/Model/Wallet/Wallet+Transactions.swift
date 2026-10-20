@@ -36,6 +36,10 @@ extension Wallet {
             ) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
+            let quorumApproved = !(transaction.approvals?.quorums.isEmpty ?? true)
+            if quorumApproved, signedTransaction.status == .success {
+                await reloadRecoveryMethods()
+            }
 
             Logger.smartWallet.info(LogEvents.walletApproveSuccessTransaction, attributes: [
                 "transactionId": signedTransaction.id
