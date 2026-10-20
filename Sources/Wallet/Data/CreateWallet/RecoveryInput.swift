@@ -10,7 +10,6 @@ import CrossmintCommonTypes
 enum RecoveryInput {
     case single(any Signer)
     case list([any Signer])
-    case quorum(QuorumConfig)
 
     private var chainTypesAcceptingSeveralMethods: Set<ChainType> { [.solana, .stellar] }
 
@@ -18,20 +17,13 @@ enum RecoveryInput {
         switch self {
         case .single(let signer): [signer]
         case .list(let signers): signers
-        case .quorum(let quorum): quorum.members
         }
-    }
-
-    private var isQuorum: Bool {
-        if case .quorum = self { true } else { false }
     }
 
     var active: any Signer {
-        switch self {
-        case .single(let signer): signer
-        case .list(let signers): signers[0]
-        case .quorum(let quorum): quorum.members[0]
-        }
+        let first = signers[0]
+        guard let quorum = first as? QuorumSigner, let member = quorum.members.first else { return first }
+        return member
     }
 
     func defaultSigner(for first: any AdminSignerData) async -> any Signer {
@@ -52,20 +44,15 @@ enum RecoveryInput {
                 methods.append(await signer.adminSigner)
             }
             return .init(recoveryMethods: methods, delegatedSigners: delegatedSigners)
-        case .quorum(let quorum):
-            return .init(recoveryMethods: [await quorum.input()], delegatedSigners: delegatedSigners)
         }
     }
 
     func resolved(for chain: Chain) throws(WalletError) -> RecoveryInput {
-        if chain.chainType == .solana, !isQuorum, signers.contains(where: { $0.signerType == .passkey }) {
+        if chain.chainType == .solana, signers.contains(where: { $0.signerType == .passkey }) {
             throw .passkeyRecoveryNotAllowedOnSolana
         }
-        if case .quorum(let quorum) = self, quorum.members.isEmpty {
-            throw .recoveryConfigRejected(
-                code: .invalidConfig,
-                message: "The quorum has no members"
-            )
+        if signers.contains(where: { ($0 as? QuorumSigner)?.members.isEmpty == true }) {
+            throw .recoveryConfigRejected(code: .invalidConfig, message: "The quorum has no members")
         }
         guard case .list(let signers) = self else { return self }
         guard let first = signers.first else {

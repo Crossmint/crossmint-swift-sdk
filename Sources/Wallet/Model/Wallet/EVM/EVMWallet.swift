@@ -82,6 +82,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///   - value: Native token value in wei as a decimal string, e.g. `"1000000000000000"`. Pass `nil` or `"0"` for contract calls that transfer no ETH.
     ///   - data: ABI-encoded call data as a `0x`-prefixed hex string. Pass `nil` or `"0x"` for plain ETH transfers.
     ///   - chain: Target chain. Defaults to the chain the wallet was opened on.
+    ///   - prepareOnly: Pass `true` to create the transaction without approving it.
+    ///     Then approve it with ``Wallet/approve(transactionId:)``. The summary then has only the transaction ID.
     ///
     /// ## Example
     /// ```swift
@@ -91,13 +93,14 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///     value: "1000000000000000",
     ///     data: nil
     /// )
-    /// print("Confirmed:", summary.explorerLink)
+    /// print("Confirmed:", summary.explorerLink?.absoluteString ?? "")
     /// ```
     public func sendTransaction(
         to address: String,
         value: String?,
         data: String?,
-        chain: EVMChain? = nil
+        chain: EVMChain? = nil,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.evmSendTransactionStart)
 
@@ -112,10 +115,12 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
                 signer: try await selectedSignerLocatorForTransactions()?.value ?? self.config.recovery.locator
-            )
+            ),
+            prepareOnly: prepareOnly
         ) else {
             throw .transactionGeneric("Unknown error")
         }
+        if prepareOnly { return transaction.preparedSummary }
 
         Logger.smartWallet.info(LogEvents.evmSendTransactionPrepared, attributes: [
             "transactionId": transaction.id

@@ -8,6 +8,6 @@ extension EVMWallet {
     ///     transaction rather than the lazy signature-request flow.
     /// - Throws: ``WalletError`` if registration fails.
     public func addSigner(_ config: SignerConfig, deployImmediately: Bool) async throws(WalletError) {
-        try await registerSigner(config, deployImmediately: deployImmediately)
+        _ = try await registerSigner(config, deployImmediately: deployImmediately)
     }
 }

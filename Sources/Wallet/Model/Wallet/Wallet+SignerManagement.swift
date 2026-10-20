@@ -22,12 +22,21 @@ extension Wallet {
 
     /// Registers a new signer on this wallet.
     ///
-    /// - Parameter config: The signer configuration to register.
+    /// If a quorum must approve the new signer, the SDK approves as each member that this device has a signer for.
+    /// Then it waits until the other members approve.
+    ///
+    /// - Parameters:
+    ///   - config: The signer configuration to register.
+    ///   - prepareOnly: Pass `true` to create the registration without approving it.
+    ///     Then approve it with ``approve(transactionId:)``. Solana and Stellar wallets only.
+    /// - Returns: With `prepareOnly`, the transaction that adds the signer. Otherwise `nil`.
     /// - Throws: ``WalletError`` if registration fails.
-    ///   ``WalletError/awaitingQuorumApproval(transactionId:)`` if a quorum must approve the signer
-    ///   and other members must still approve it.
-    public func addSigner(_ config: SignerConfig) async throws(WalletError) {
-        try await registerSigner(config, deployImmediately: true)
+    @discardableResult
+    public func addSigner(
+        _ config: SignerConfig,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> Transaction? {
+        try await registerSigner(config, deployImmediately: true, prepareOnly: prepareOnly)
     }
 
     /// Re-registers the device signer on this device.
@@ -41,8 +50,8 @@ extension Wallet {
     /// is not retried for this wallet instance.
     ///
     /// - Throws: ``WalletError`` if recovery fails or there is no device signer configured.
-    ///   ``WalletError/awaitingQuorumApproval(transactionId:)`` if a quorum must approve the device signer
-    ///   and other members must still approve it.
+    ///   ``WalletError/quorumApprovalRequired(quorum:)`` if a quorum with a threshold above one
+    ///   must approve the device signer.
     public func recover() async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletRecoverStart)
         await signerInitializationTask?.value
@@ -68,7 +77,9 @@ extension Wallet {
         let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
 
         do {
-            try await registerDeviceSigner(storage: storage, approver: try await authorizingRecovery())
+            let approver = try await authorizingRecovery()
+            try assertSingleApproval(by: approver)
+            try await registerDeviceSigner(storage: storage, approver: approver)
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
         } catch {
             if case .deviceSignerNotSupported = error {
@@ -82,6 +93,13 @@ extension Wallet {
         if let staleDeviceSignerLocator {
             await removeStaleDeviceSigner(staleDeviceSignerLocator)
         }
+    }
+
+    private func assertSingleApproval(by approver: RecoveryApprover) throws(WalletError) {
+        let approverLocator = approver.locator?.value ?? config.recovery.locator
+        let quorum = config.recoveryMethods.first { $0.locator == approverLocator } as? QuorumSignerData
+        guard let quorum, quorum.threshold > 1 else { return }
+        throw .quorumApprovalRequired(quorum: .quorum(id: quorum.id))
     }
 
     private func findStaleDeviceSignerLocator() async -> SignerLocator? {
@@ -122,10 +140,14 @@ extension Wallet {
     ///
     /// The signer can also be a member of a quorum recovery method.
     /// Then the transactions that you send name the quorum, and the member approves for the quorum.
+    /// If the signer is also a signer of the wallet on its own, it sends as itself.
     ///
     /// To select the recovery method that approves signer changes, use ``useRecoveryMethod(_:)``.
     ///
-    /// - Parameter config: The signer to use.
+    /// - Parameters:
+    ///   - config: The signer to use.
+    ///   - quorumLocator: The quorum that the signer acts for. Use it when the signer is a member of
+    ///     more than one quorum, or to act for the quorum when the signer can also act on its own.
     /// - Throws:
     ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
     ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
@@ -136,7 +158,9 @@ extension Wallet {
     ///     and the wallet has more than one passkey signer.
     ///   - ``WalletError/deviceSignerNotSupported(_:)`` if you select `.device`
     ///     and the wallet provider does not accept device signers.
-    public func useSigner(_ config: SignerConfig) async throws(WalletError) {
+    ///   - ``WalletError/quorumSelectionAmbiguous(quorums:)`` if the signer is a member of more than one quorum
+    ///     and you do not give `quorumLocator`.
+    public func useSigner(_ config: SignerConfig, quorumLocator: SignerLocator? = nil) async throws(WalletError) {
         switch config {
         case .device:
             try await activateDeviceSigner()
@@ -150,43 +174,77 @@ extension Wallet {
             try await activatePasskeySigner(name: name, host: host, id: id)
         case .apiKey:
             try await activateApiKeySigner()
+        case .quorum:
+            throw .walletGeneric("A quorum cannot be the active signer. Pick one of its members.")
         }
+        guard let memberLocator = await selectedSigner?.locator else {
+            selectedQuorum = nil
+            return
+        }
+        selectedQuorum = try await quorumRole(of: memberLocator, explicit: quorumLocator)
+    }
+
+    private func quorumRole(
+        of locator: SignerLocator,
+        explicit: SignerLocator?
+    ) async throws(WalletError) -> SignerLocator? {
+        let quorums = config.quorumLocators(withMember: locator)
+        if let explicit {
+            guard quorums.contains(explicit) else { throw .signerNotRegistered(explicit.value) }
+            return explicit
+        }
+        guard !quorums.isEmpty, !config.containsRecoveryMethod(locator) else { return nil }
+        if try await fetchSignerRegistration(locator) { return nil }
+        guard quorums.count == 1 else { throw .quorumSelectionAmbiguous(quorums: quorums) }
+        return quorums[0]
     }
 
     // MARK: - Internal
 
-    internal func registerSigner(_ config: SignerConfig, deployImmediately: Bool) async throws(WalletError) {
+    internal func registerSigner(
+        _ config: SignerConfig,
+        deployImmediately: Bool,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> Transaction? {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart, attributes: [
             "deployImmediately": "\(deployImmediately)"
         ])
         await signerInitializationTask?.value
         do {
             let approver = try await authorizingRecovery()
+            let pendingTransactionId: String?
             switch config {
             case .device:
                 let storage = deviceSignerKeyStorage ?? .default
-                try await registerDeviceSigner(
+                pendingTransactionId = try await registerDeviceSigner(
                     storage: storage,
                     approver: approver,
-                    deployImmediately: deployImmediately
+                    deployImmediately: deployImmediately,
+                    prepareOnly: prepareOnly
                 )
                 deviceSignerKeyStorage = storage
             case .email, .phone, .externalWallet, .apiKey:
-                guard let locator = config.locator else { return }
-                try await signerRegistrationService.register(
+                guard let locator = config.locator else { return nil }
+                pendingTransactionId = try await signerRegistrationService.register(
                     locator: locator,
                     approver: approver,
-                    deployImmediately: deployImmediately
+                    deployImmediately: deployImmediately,
+                    prepareOnly: prepareOnly
                 )
+            case .quorum:
+                try rejectQuorumSigner()
             case .passkey(let name, let host, _):
-                try await signerRegistrationService.registerPasskey(
+                pendingTransactionId = try await signerRegistrationService.registerPasskey(
                     name: name,
                     host: host,
                     approver: approver,
-                    deployImmediately: deployImmediately
+                    deployImmediately: deployImmediately,
+                    prepareOnly: prepareOnly
                 )
             }
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
+            guard prepareOnly, let pendingTransactionId else { return nil }
+            return try await preparedTransaction(withId: pendingTransactionId)
         } catch {
             Logger.smartWallet.error(LogEvents.walletAddSignerError, attributes: ["error": "\(error)"])
             if case .deviceSignerNotSupported = error {
@@ -210,16 +268,23 @@ extension Wallet {
         } else {
             activeSigner = await updateSignerIfRequired()
         }
+        let signerRequired = WalletError.recoveryConfigRejected(
+            code: .signerRequired,
+            message: "This wallet has several recovery methods, and the active signer is not one of them. "
+                + "Call useRecoveryMethod with one of the wallet's recovery methods."
+        )
         guard let activeSigner,
               let activeLocator = await activeSigner.locator,
-              let recoveryLocator = config.recoveryLocator(actingFor: activeLocator),
               let signer = activeSigner as? any Signer else {
-            throw .recoveryConfigRejected(
-                code: .signerRequired,
-                message: "This wallet has several recovery methods, and the active signer is not one of them. "
-                    + "Call useRecoveryMethod with one of the wallet's recovery methods."
-            )
+            throw signerRequired
         }
+        let recoveryLocator: SignerLocator?
+        if let selectedQuorum {
+            recoveryLocator = selectedQuorum
+        } else {
+            recoveryLocator = try config.recoveryRole(of: activeLocator, explicit: nil)
+        }
+        guard let recoveryLocator else { throw signerRequired }
         return RecoveryApprover(signer: signer, locator: recoveryLocator)
     }
 
@@ -397,18 +462,35 @@ extension Wallet {
 
     // MARK: - Device signer registration
 
+    @discardableResult
     private func registerDeviceSigner(
         storage: any DeviceSignerKeyStorage,
         approver: RecoveryApprover,
-        deployImmediately: Bool = true
-    ) async throws(WalletError) {
-        try await deviceSignerService.register(
+        deployImmediately: Bool = true,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> String? {
+        let pendingTransactionId = try await deviceSignerService.register(
             storage: storage,
             approver: approver,
-            deployImmediately: deployImmediately
+            deployImmediately: deployImmediately,
+            prepareOnly: prepareOnly
         )
+        guard !prepareOnly else { return pendingTransactionId }
         _needsRecovery = false
         _deviceSignerApproved = true
+        return pendingTransactionId
+    }
+
+    private func rejectQuorumSigner() throws(WalletError) -> Never {
+        throw .walletGeneric("Adding a quorum as a signer is not supported yet.")
+    }
+
+    private func preparedTransaction(withId id: String) async throws(WalletError) -> Transaction {
+        do {
+            return try await smartWalletService.transaction(withId: id, chainType: chain.chainType)
+        } catch {
+            throw .walletGeneric("Could not read the prepared transaction \(id): \(error.message)")
+        }
     }
 
 }
