@@ -3,6 +3,10 @@ import Logger
 
 public struct HTTPClient: Sendable {
     public let fetch: @Sendable (URLRequest) async throws(NetworkError) -> (Data, URLResponse)
+
+    public init(fetch: @escaping @Sendable (URLRequest) async throws(NetworkError) -> (Data, URLResponse)) {
+        self.fetch = fetch
+    }
 }
 
 public extension HTTPClient {
@@ -16,28 +20,31 @@ public extension HTTPClient {
                 } catch {
                     throw NetworkError.unknown(error)
                 }
-
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw NetworkError.invalidStatusCode(-1, data)
-                }
-
-                switch httpResponse.statusCode {
-                case 200...299:
-                    return (data, response)
-                case 400:
-                    throw NetworkError.badRequest(data)
-                case 401:
-                    throw NetworkError.unauthorized(data)
-                case 403:
-                    throw NetworkError.forbidden(data)
-                case 404:
-                    throw NetworkError.notFound(data)
-                case 500...599:
-                    throw NetworkError.serverError(data)
-                default:
-                    throw NetworkError.invalidStatusCode(httpResponse.statusCode, data)
-                }
+                return try mapStatus(data: data, response: response)
             }
         )
+    }
+
+    package static func mapStatus(data: Data, response: URLResponse) throws(NetworkError) -> (Data, URLResponse) {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidStatusCode(-1, data)
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            return (data, response)
+        case 400:
+            throw NetworkError.badRequest(data)
+        case 401:
+            throw NetworkError.unauthorized(data)
+        case 403:
+            throw NetworkError.forbidden(data)
+        case 404:
+            throw NetworkError.notFound(data)
+        case 500...599:
+            throw NetworkError.serverError(data)
+        default:
+            throw NetworkError.invalidStatusCode(httpResponse.statusCode, data)
+        }
     }
 }

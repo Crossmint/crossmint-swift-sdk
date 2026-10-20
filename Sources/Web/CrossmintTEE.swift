@@ -15,7 +15,7 @@ extension Logger {
 @MainActor
 // swiftlint:disable:next type_body_length
 public final class CrossmintTEE: ObservableObject {
-    public private(set) static var shared: CrossmintTEE?
+    public package(set) static var shared: CrossmintTEE?
 
     public enum Error: Swift.Error, Equatable {
         case handshakeFailed
@@ -69,7 +69,7 @@ public final class CrossmintTEE: ObservableObject {
 
     private static let ephemeralDeviceStorageQuery = "deviceStorage=memory"
 
-    init(
+    package init(
         auth: AuthManager,
         webProxy: WebViewCommunicationProxy,
         apiKey: String,

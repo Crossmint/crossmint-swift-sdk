@@ -4,8 +4,15 @@ import Utils
 
 public struct DefaultRequestBuilder: RequestBuilder {
     private let whitelistedDomainHack: String?
+    private let baseURLOverride: URL?
+
     public init() {
+        self.init(baseURL: nil)
+    }
+
+    package init(baseURL: URL?) {
         whitelistedDomainHack = getStringEnvironment("CROSSMINT_WHITELISTED_DOMAIN")
+        baseURLOverride = baseURL
     }
 
     public func getRequest(
@@ -39,6 +46,9 @@ public struct DefaultRequestBuilder: RequestBuilder {
     }
 
     public func getApiBaseURL(forApiKey key: ApiKey) throws(RequestBuilderError) -> URL {
+        if let baseURLOverride {
+            return baseURLOverride
+        }
         guard let url = URL(string: "https://\(key.apiEnvironmentPathComponent)crossmint.com/api") else {
             throw .invalidURL
         }

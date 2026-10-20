@@ -68,6 +68,11 @@ test:
 	@echo "Running tests..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -destination "$(SIMULATOR_DEST)" test)
 
+# Real-API flows (IntegrationTests target). Needs TEST_RUNNER_PREVIEW_CK_KEY in the environment.
+integration-test:
+	@echo "Running integration tests..."
+	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -testPlan CrossmintSDKIntegration -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation)
+
 # CI sanity check and test running
 ci-test:
 	@echo "Resolving dependencies..."

@@ -20,6 +20,17 @@ struct CrossmintAuthManagerTests {
         }
     }
 
+    @Test(arguments: ["not-an-email", "", "user@", "@example.com"])
+    func rejectsAnInvalidEmailBeforeCallingTheService(email: String) async {
+        let authService = MockAuthService()
+        let authManager = CrossmintAuthManager(authService: authService, secureStorage: MockSecureStorage())
+
+        await #expect(throws: AuthManagerError.invalidEmail) {
+            try await authManager.sendEmailOtp(email: email)
+        }
+        #expect(authService.validateEmailCallCount == 0)
+    }
+
     @Test func sendsOtpToValidEmail() async throws {
         try await authManager.sendEmailOtp(email: "user@example.com")
     }
