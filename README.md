@@ -11,6 +11,6 @@ Take a look at the following screenshot to see a valid configuration. (As you ca
 ### How to Run Tests
 Run the unit suite with `make test`. It builds for the iOS simulator through `xcodebuild`, which is what CI runs.
 
-`swift test` does not work on a Mac host: the package declares only iOS, so a host build takes SwiftPM's default macOS 10.13 minimum, below the macOS 12 that `SwiftLintBuildToolPlugin` requires, and four sources import UIKit. Both would need changes to the package before `swift test` could run (tracked as QA-112).
+`swift test` does not work on a Mac host: the package declares only iOS, so a host build takes SwiftPM's default macOS 10.13 minimum, below the macOS 12 that `SwiftLintBuildToolPlugin` requires. `PasskeyDelegate` also uses `UIApplication` without a platform guard (the other UIKit uses are already behind `#if canImport(UIKit)`). Both need changes before `swift test` could run (tracked as QA-112).
 
 Other targets: `make integration-test` runs the real-API flows (needs `TEST_RUNNER_PREVIEW_CK_KEY`), `make lint` runs SwiftLint.
