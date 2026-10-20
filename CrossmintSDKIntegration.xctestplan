@@ -13,10 +13,7 @@
         "containerPath": "container:",
         "identifier": "IntegrationTests",
         "name": "IntegrationTests"
-      },
-      "skippedTests": [
-        "WalletsHeartbeatTests"
-      ]
+      }
     }
   ],
   "version": 1

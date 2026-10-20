@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Testing
 @testable import Wallet
 
-@Suite("Integration: fund and send")
+@Suite("Integration: fund and send", Tier.integration)
 struct FundAndSendFlowTests {
     @Test func fundsThenSendsWithTheRecoverySignerApprovingLocally() async throws {
         let sender = try await SessionPool.shared.primary()

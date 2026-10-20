@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import Wallet
 
-@Suite("Heartbeat: wallets API contract", .serialized)
+@Suite("Heartbeat: wallets API contract", .serialized, Tier.heartbeat)
 struct WalletsHeartbeatTests {
     static let EVM_CHAIN_NAME = "base-sepolia"
     static let MESSAGE = "heartbeat"
@@ -195,7 +195,15 @@ struct WalletsHeartbeatTests {
 
     @Test func getSigner() async throws {
         let evm = try await evm()
-        _ = try #require(try await evm.service.getSigner(evm.adminLocator, chainType: .evm))
+        let delegate = try await EVMPersonalSigner.make()
+        _ = try await evm.service.addSigner(
+            DelegatedSignerEntry(signer: .locator(.externalWallet(address: delegate.address))),
+            chainType: .evm,
+            chainName: Self.EVM_CHAIN_NAME,
+            deployImmediately: true,
+            approver: evm.approver
+        )
+        _ = try #require(try await evm.service.getSigner(delegate.adminSigner.locator, chainType: .evm))
     }
 
     @Test func removeSigner() async throws {
