@@ -10,3 +10,7 @@ Take a look at the following screenshot to see a valid configuration. (As you ca
 
 ### How to Run Tests
 The fastest way to run all the tests is by executing `swift test` in the command line.
+
+### Embedded offramp
+
+See [the integration guide](docs/embedded-offramp.md) for session credentials, wallet callbacks, and KYC requirements.
