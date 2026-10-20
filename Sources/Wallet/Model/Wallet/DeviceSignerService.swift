@@ -27,11 +27,13 @@ final class DeviceSignerService: Sendable {
         )
     }
 
+    @discardableResult
     func register(
         storage: any DeviceSignerKeyStorage,
         approver: RecoveryApprover,
-        deployImmediately: Bool = true
-    ) async throws(WalletError) {
+        deployImmediately: Bool = true,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> String? {
         Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerStart)
         let publicKeyBase64 = try await generatePendingKey(in: storage)
         let registration = try await submitRegistration(
@@ -40,6 +42,8 @@ final class DeviceSignerService: Sendable {
             deployImmediately: deployImmediately,
             approver: approver.locator
         )
+        let pendingTransactionId = registrationService.pendingTransactionId(in: registration)
+        guard !prepareOnly else { return pendingTransactionId }
         try await approveRegistration(
             registration,
             signer: approver.signer,
@@ -48,6 +52,7 @@ final class DeviceSignerService: Sendable {
         )
         try await persistKey(publicKeyBase64, in: storage)
         Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerSuccess)
+        return pendingTransactionId
     }
 
     private func generatePendingKey(in storage: any DeviceSignerKeyStorage) async throws(WalletError) -> String {
@@ -114,9 +119,6 @@ final class DeviceSignerService: Sendable {
                 ])
             }
         } catch {
-            if case .awaitingQuorumApproval = error {
-                throw error
-            }
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])
             throw error
