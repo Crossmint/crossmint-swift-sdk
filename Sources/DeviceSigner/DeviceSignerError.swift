@@ -82,3 +82,13 @@ extension DeviceSignerError: Equatable {
         }
     }
 }
+
+extension DeviceSignerError {
+    /// The stored key cannot sign any more: missing, or present but unusable by the Secure Enclave.
+    package var isKeyLoss: Bool {
+        switch self {
+        case .keyNotFound, .signingFailed: true
+        default: false
+        }
+    }
+}

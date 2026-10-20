@@ -92,6 +92,60 @@ struct WalletDeviceSignerFixtureTests {
         ))
     }
 
+    @Test func marksTheWalletForRecoveryWhenTheTrustedKeyDies() async throws {
+        let wallet = try makeSolanaWallet()
+        try await wallet.recover()
+        try await wallet.useSigner(.device)
+        let oldLocator = try #require(await wallet.localDeviceSigner())
+        _ = try await deviceApproval(of: wallet, locator: oldLocator)
+        walletService.getWalletSignerLocators = [oldLocator.value]
+        walletService.removeSignerResult = try removalTransaction()
+
+        store.corrupt(tag: InMemoryKeychainItemStore.walletTag(address: wallet.address))
+
+        await #expect(throws: SignerError.device(.keyNotFound)) {
+            try await wallet.makeSignRequest(for: oldLocator.value, message: message)
+        }
+        #expect(await wallet.needsRecovery())
+
+        try await wallet.recover()
+
+        let newLocator = try #require(await wallet.localDeviceSigner())
+        guard case .device(let newPublicKey) = newLocator else { Issue.record("expected a device locator"); return }
+        #expect(newLocator != oldLocator)
+        #expect(walletService.removeSignerLastLocator == oldLocator.value)
+        #expect(await wallet.needsRecovery() == false)
+        let (_, signature) = try await deviceApproval(of: wallet, locator: newLocator)
+        #expect(P256SignatureCheck.verifies(
+            r: signature.r, s: signature.s, publicKeyBase64: newPublicKey, messageBase64: message
+        ))
+    }
+
+    @Test func keepsTheKeyThatWasOnlyUnreadable() async throws {
+        let wallet = try makeSolanaWallet()
+        try await wallet.recover()
+        try await wallet.useSigner(.device)
+        let locator = try #require(await wallet.localDeviceSigner())
+        guard case .device(let publicKey) = locator else { Issue.record("expected a device locator"); return }
+
+        store.locked = true
+        await #expect(throws: SignerError.device(.keyNotFound)) {
+            try await wallet.makeSignRequest(for: locator.value, message: message)
+        }
+        #expect(await wallet.needsRecovery())
+        store.locked = false
+
+        try await wallet.recover()
+
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(await wallet.needsRecovery() == false)
+        #expect(await wallet.localDeviceSigner() == locator)
+        let (_, signature) = try await deviceApproval(of: wallet, locator: locator)
+        #expect(P256SignatureCheck.verifies(
+            r: signature.r, s: signature.s, publicKeyBase64: publicKey, messageBase64: message
+        ))
+    }
+
     @Test func removingTheDeviceSignerDeletesTheLocalKey() async throws {
         let wallet = try makeSolanaWallet()
         try await wallet.recover()

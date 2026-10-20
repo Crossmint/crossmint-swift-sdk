@@ -124,6 +124,28 @@ struct WalletDeviceSignerRecoveryTests {
         #expect(await wallet.needsRecovery())
     }
 
+    @Test
+    func marksTheWalletForRecoveryWhenTheTrustedKeyCannotSign() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeSolanaWallet(walletService: walletService, storage: storage)
+        try await wallet.recover()
+        try await wallet.useSigner(.device)
+        let locator = try #require(await wallet.localDeviceSigner())
+        storage.signMessageError = .signingFailed(
+            operation: "Secure Enclave key reconstruction",
+            underlyingError: EnclaveFailure.keyGone
+        )
+
+        await #expect(throws: SignerError.self) {
+            try await wallet.makeSignRequest(for: locator.value, message: Data("m".utf8).base64EncodedString())
+        }
+
+        #expect(await wallet.needsRecovery())
+    }
+
+    private enum EnclaveFailure: Error { case keyGone }
+
     @Suite("when the provider rejects device signers", .tags(.unit))
     struct ProviderRejectionTests {
         private func makeRejectedSolanaWallet(

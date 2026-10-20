@@ -7,6 +7,8 @@ package final class InMemoryKeychainItemStore: KeychainItemStore, @unchecked Sen
     package private(set) var items: [String: Data] = [:]
     package var saveError: DeviceSignerError?
     package var deleteError: DeviceSignerError?
+    /// Reads return nothing, as the system store does while the device is locked.
+    package var locked = false
 
     package init() {}
 
@@ -31,7 +33,7 @@ package final class InMemoryKeychainItemStore: KeychainItemStore, @unchecked Sen
     }
 
     package func load(tag: String, prompt: String?, authContext: LAContext?) -> Data? {
-        items[tag]
+        locked ? nil : items[tag]
     }
 
     package func delete(tag: String) throws(DeviceSignerError) {
