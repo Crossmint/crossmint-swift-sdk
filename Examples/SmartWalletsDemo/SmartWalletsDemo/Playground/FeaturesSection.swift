@@ -31,7 +31,7 @@ struct FeaturesSection: View {
             .disabled(appState.wallet == nil)
 
             Button { presentedSheet = .approve } label: {
-                Label("Approve Transaction", systemImage: "checkmark.seal")
+                Label("Approve", systemImage: "checkmark.seal")
             }
             .disabled(appState.wallet == nil)
             .accessibilityIdentifier("features-approve-button")

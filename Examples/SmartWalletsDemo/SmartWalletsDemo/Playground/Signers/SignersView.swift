@@ -126,8 +126,6 @@ struct SignersView: View {
                 )
                 .accessibilityIdentifier("recovery-quorum-threshold")
             }
-        } footer: {
-            Text("The recovery methods above become the members of one quorum.")
         }
     }
 
@@ -185,10 +183,6 @@ struct SignersView: View {
                 }
             } header: {
                 Text("Recovery")
-            } footer: {
-                if editable {
-                    Text("Tap a recovery method or a quorum member to approve signer changes with it.")
-                }
             }
         }
     }
@@ -256,10 +250,7 @@ struct SignersView: View {
         do {
             let transaction = try await appState.removeRecoveryMethod(locator: locator)
             if let transaction, transaction.status == .awaitingApproval {
-                show(
-                    title: "Prepared",
-                    message: "Approve transaction \(transaction.id) in Approve Transaction for each quorum member."
-                )
+                show(title: "Prepared for the quorum", message: transaction.id)
             } else {
                 show(title: "Removed", message: "Recovery method removed.")
             }

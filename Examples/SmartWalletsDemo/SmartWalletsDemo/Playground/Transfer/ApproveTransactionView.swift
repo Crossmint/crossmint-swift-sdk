@@ -32,8 +32,6 @@ struct ApproveTransactionView: View {
 
                 Section {
                     SignerPicker()
-                } footer: {
-                    Text("For a quorum, pick the member that approves on this device.")
                 }
 
                 if let result {
@@ -69,7 +67,7 @@ struct ApproveTransactionView: View {
                     .accessibilityIdentifier("approve-submit-button")
                 }
             }
-            .navigationTitle("Approve Transaction")
+            .navigationTitle("Approve")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

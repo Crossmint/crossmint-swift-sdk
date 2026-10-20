@@ -17,6 +17,7 @@ struct AddSignerSheet: View {
     @State private var quorumThreshold = 2
     @State private var isAdding = false
     @State private var errorMessage: String?
+    @State private var prepared: WalletTransaction?
 
     enum Mode: String, CaseIterable, Identifiable {
         case recovery = "Recovery"
@@ -182,8 +183,6 @@ struct AddSignerSheet: View {
                             )
                             .accessibilityIdentifier("add-quorum-threshold")
                         }
-                    } footer: {
-                        Text("Separate the members with commas. A phone number starts with +.")
                     }
                 }
 
@@ -195,6 +194,10 @@ struct AddSignerSheet: View {
                         }
                         .pickerStyle(.segmented)
                     }
+                }
+
+                if let prepared {
+                    PreparedQuorumSection(transaction: prepared, labelIdentifier: "add-signer-prepared-label")
                 }
 
                 if let error = errorMessage {
@@ -296,6 +299,7 @@ struct AddSignerSheet: View {
     private func addRecoveryMethod() async {
         isAdding = true
         errorMessage = nil
+        prepared = nil
         let value = inputText.trimmingCharacters(in: .whitespaces)
         let config: SignerConfig
         switch selectedType {
@@ -314,7 +318,7 @@ struct AddSignerSheet: View {
                 appState.rememberChannel(channel, for: "phone:\(value)")
             }
             if let transaction, transaction.status == .awaitingApproval {
-                errorMessage = "Approve transaction \(transaction.id) in Approve Transaction for each quorum member."
+                prepared = transaction
             } else {
                 dismiss()
             }
@@ -328,13 +332,14 @@ struct AddSignerSheet: View {
     private func addRecoveryQuorum() async {
         isAdding = true
         errorMessage = nil
+        prepared = nil
         do {
             let transaction = try await appState.addRecoveryQuorum(
                 threshold: effectiveQuorumThreshold,
                 members: quorumMembers
             )
             if let transaction, transaction.status == .awaitingApproval {
-                errorMessage = "Approve transaction \(transaction.id) in Approve Transaction for each quorum member."
+                prepared = transaction
             } else {
                 dismiss()
             }
@@ -348,6 +353,7 @@ struct AddSignerSheet: View {
         guard let wallet = appState.wallet else { return }
         isAdding = true
         errorMessage = nil
+        prepared = nil
         let value = inputText.trimmingCharacters(in: .whitespaces)
 
         do {

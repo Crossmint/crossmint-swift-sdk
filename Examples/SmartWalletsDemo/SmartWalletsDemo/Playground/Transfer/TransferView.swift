@@ -98,15 +98,10 @@ struct TransferView: View {
                 }
 
                 if let awaitingQuorum {
-                    Section {
-                        Label("Prepared for the quorum", systemImage: "person.3")
-                            .fontWeight(.medium)
-                            .accessibilityIdentifier("transfer-awaiting-quorum-label")
-                        QuorumProgressRows(transaction: awaitingQuorum)
-                        CopyButton(value: awaitingQuorum.id, lineLimit: 2)
-                    } footer: {
-                        Text("Approve this transaction ID in Approve Transaction for each quorum member.")
-                    }
+                    PreparedQuorumSection(
+                        transaction: awaitingQuorum,
+                        labelIdentifier: "transfer-awaiting-quorum-label"
+                    )
                 }
 
                 if let error = errorMessage {
