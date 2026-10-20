@@ -168,6 +168,120 @@ struct WalletQuorumApprovalTests {
         #expect(walletService.fetchTransactionResults.isEmpty)
     }
 
+    @Test func namesTheQuorumAsApproverWhenAPasskeyMemberIsTheSelectedRecoveryMethod() async throws {
+        let walletService = MockSmartWalletService()
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorumWithPasskey",
+            bundle: Bundle.module
+        )
+        let wallet = try StellarWallet(
+            smartWalletService: walletService,
+            signer: nil,
+            baseModel: baseModel,
+            stellarChain: .stellar
+        )
+        walletService.removeRecoveryMethodResult = try awaitingQuorum()
+        walletService.fetchTransactionResults = [try awaitingQuorum()]
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        ) as SolanaTransactionApiModel
+
+        try await wallet.useRecoveryMethod(
+            .passkey(name: "alice", host: "example.com", id: "v-Qxh--c2nOkUyBYJHRaXCwSOJw")
+        )
+        _ = try? await wallet.removeRecoveryMethod(locator: .email("carol@example.com"))
+
+        #expect(walletService.lastRemoveRecoveryMethodApprover == QUORUM)
+    }
+
+    @Test func namesTheQuorumAsApproverWhenTheActiveSignerIsAMember() async throws {
+        let walletService = MockSmartWalletService()
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorumWithPasskey",
+            bundle: Bundle.module
+        )
+        let wallet = try StellarWallet(
+            smartWalletService: walletService,
+            signer: nil,
+            baseModel: baseModel,
+            stellarChain: .stellar
+        )
+        wallet.selectedSigner = MockSigner(email: "alice@example.com")
+        walletService.removeRecoveryMethodResult = try awaitingQuorum()
+        walletService.fetchTransactionResults = [try awaitingQuorum()]
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        ) as SolanaTransactionApiModel
+
+        _ = try? await wallet.removeRecoveryMethod(locator: .email("carol@example.com"))
+
+        #expect(walletService.lastRemoveRecoveryMethodApprover == QUORUM)
+    }
+
+    @Test func approvesForTheQuorumThatTheAppNamesAsRecoveryMethod() async throws {
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarTwoQuorums",
+            bundle: Bundle.module
+        )
+        let wallet = try StellarWallet(
+            smartWalletService: MockSmartWalletService(),
+            signer: nil,
+            baseModel: baseModel,
+            stellarChain: .stellar
+        )
+        let second = SignerLocator.quorum(id: "2b7d1c0e-6a5f-4b3c-9d8e-7f6a5b4c3d2e")
+
+        try await wallet.useRecoveryMethod(.email("bob@example.com"), quorumLocator: second)
+
+        #expect(wallet.selectedRecoveryMethod?.locator == second)
+    }
+
+    @Test func rejectsAMemberOfSeveralQuorumsAsRecoveryMethodWithoutAQuorumLocator() async throws {
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarTwoQuorums",
+            bundle: Bundle.module
+        )
+        let wallet = try StellarWallet(
+            smartWalletService: MockSmartWalletService(),
+            signer: nil,
+            baseModel: baseModel,
+            stellarChain: .stellar
+        )
+
+        await #expect {
+            try await wallet.useRecoveryMethod(.email("bob@example.com"))
+        } throws: { error in
+            guard case .quorumSelectionAmbiguous = error as? WalletError else { return false }
+            return true
+        }
+    }
+
+    @Test func refusesToRecoverWhenAQuorumOfSeveralMembersMustApprove() async throws {
+        let walletService = MockSmartWalletService()
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorumThenEmail",
+            bundle: Bundle.module
+        )
+        walletService.getWalletResult = baseModel
+        let wallet = try StellarWallet(
+            smartWalletService: walletService,
+            signer: MockSigner(email: "alice@example.com"),
+            baseModel: baseModel,
+            stellarChain: .stellar,
+            deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
+        )
+
+        await #expect {
+            try await wallet.recover()
+        } throws: { error in
+            guard case .quorumApprovalRequired(let quorum) = error as? WalletError else { return false }
+            return quorum == QUORUM
+        }
+        #expect(walletService.addSignerCallCount == 0)
+    }
+
     @Test func actsForTheQuorumWhenTheSignerIsOnlyAMember() async throws {
         let wallet = try makeWallet(walletService: MockSmartWalletService())
 

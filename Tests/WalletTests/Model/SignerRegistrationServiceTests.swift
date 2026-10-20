@@ -198,6 +198,72 @@ struct SignerRegistrationTransactionApprovalTests {
     }
 
     @Test
+    func approvesTheRegistrationAsTheQuorumMemberThatTheSignerIs() async throws {
+        let walletService = MockSmartWalletService()
+        let registrationTransaction: StellarTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "StellarTransactionAwaitingQuorum",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResult = registrationTransaction
+        let member = MockSigner(email: "bob@example.com")
+        let service = makeSolanaService(walletService: walletService)
+
+        let registration = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
+        )
+        try await service.approveIfNeeded(registration: registration, signer: member)
+
+        #expect(member.signedMessages == ["bob-message"])
+        #expect(walletService.signTransactionCallCount == 1)
+    }
+
+    @Test
+    func waitsUntilTheOtherQuorumMembersApproveTheRegistration() async throws {
+        let walletService = MockSmartWalletService()
+        let awaitingQuorum: StellarTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "StellarTransactionAwaitingQuorum",
+            bundle: Bundle.module
+        )
+        let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResults = [awaitingQuorum, awaitingQuorum]
+        walletService.fetchTransactionResult = success
+        let outsider = MockSigner(email: "carol@example.com")
+        let service = makeSolanaService(walletService: walletService)
+
+        let registration = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
+        )
+        try await service.approveIfNeeded(registration: registration, signer: outsider)
+
+        #expect(walletService.fetchTransactionResults.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
+    }
+
+    @Test
+    func returnsThePendingRegistrationWithoutApprovingItWhenPreparing() async throws {
+        let walletService = MockSmartWalletService()
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
+        )
+        let service = makeSolanaService(walletService: walletService)
+
+        let pendingId = try await service.register(
+            locator: .email("dave@example.com"),
+            approver: RecoveryApprover(signer: MockSigner(), locator: nil),
+            prepareOnly: true
+        )
+
+        #expect(pendingId == "registration-tx-1")
+        #expect(walletService.signTransactionCallCount == 0)
+    }
+
+    @Test
     func throwsWalletErrorWhenTheTransactionFetchFails() async throws {
         let walletService = MockSmartWalletService()
         let signer = MockSigner()
