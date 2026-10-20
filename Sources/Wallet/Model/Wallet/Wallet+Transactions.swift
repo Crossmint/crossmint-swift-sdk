@@ -148,13 +148,23 @@ extension Wallet {
     ///
     /// Use ``removeRecoveryMethod(locator:)`` to remove a recovery method.
     ///
-    /// - Parameter locator: The locator that identifies the signer to remove.
+    /// - Parameters:
+    ///   - locator: The locator that identifies the signer to remove.
+    ///   - prepareOnly: Pass `true` to create the removal without approving it.
+    ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
-    public func removeSigner(locator: SignerLocator) async throws(TransactionError) -> Transaction {
-        try await removeSignerByLocatorString(locator.value)
+    ///   With `prepareOnly`, the transaction before any approval.
+    public func removeSigner(
+        locator: SignerLocator,
+        prepareOnly: Bool = false
+    ) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator.value, prepareOnly: prepareOnly)
     }
 
-    private func removeSignerByLocatorString(_ locator: String) async throws(TransactionError) -> Transaction {
+    private func removeSignerByLocatorString(
+        _ locator: String,
+        prepareOnly: Bool = false
+    ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
             "locator": locator
         ])
@@ -174,6 +184,7 @@ extension Wallet {
                 approver: approver.locator
             )
             let transaction = transactionModel.toDomain()
+            if prepareOnly { return transaction }
             guard let result = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
