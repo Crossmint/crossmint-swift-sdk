@@ -67,6 +67,8 @@ struct PlaygroundView: View {
                 SignersView(email: email).environment(appState)
             case .transfer:
                 TransferView { await appState.fetchBalance() }.environment(appState)
+            case .approve:
+                ApproveTransactionView().environment(appState)
             case .activity:
                 ActivityView().environment(appState)
             case .signing:

@@ -7,6 +7,8 @@ import CrossmintClient
 import Foundation
 import Observation
 
+typealias WalletTransaction = Transaction
+
 extension Error {
     var userMessage: String {
         if let e = self as? WalletError { return e.message }
@@ -33,6 +35,7 @@ final class AppState {
     private var phoneChannels: [String: OTPDeliveryChannel] = [:]
 
     var pendingRecovery: [RecoverySignerDraft] = []
+    var pendingQuorumThreshold: Int?
 
     // Signer selection (shared across Transfer/Signing/Signers)
     private(set) var selectedSignerLocator: String?
@@ -54,9 +57,26 @@ final class AppState {
     }
     var approvingRecoveryLocator: String? { approvingRecovery[selectedChain] }
 
+    var selectableRecoveryLocators: [String] {
+        recoveryLocators.flatMap { locator in
+            quorum(for: locator).map { $0.members.map(\.locator) } ?? [locator]
+        }
+    }
+
     func recoveryName(for locator: String) -> String? {
         let signer = wallet?.recoveryMethods.first { $0.signer.locator == locator }?.signer
+        if let quorum = signer as? QuorumSignerData {
+            return "Quorum · \(quorum.threshold) of \(quorum.members.count)"
+        }
         return (signer as? PasskeySignerData)?.name
+    }
+
+    var hasQuorumRecovery: Bool {
+        wallet?.recoveryMethods.contains { $0.signer is QuorumSignerData } ?? false
+    }
+
+    func quorum(for locator: String) -> QuorumSignerData? {
+        wallet?.recoveryMethods.first { $0.signer.locator == locator }?.signer as? QuorumSignerData
     }
 
     var formattedBalance: String {
@@ -115,8 +135,14 @@ final class AppState {
         walletErrorMessage = nil
 
         do {
-            let w = try await makeWallet(chain: chain, email: email, extraRecovery: pendingRecovery)
+            let w: Wallet
+            if chain == .stellar, let threshold = pendingQuorumThreshold {
+                w = try await makeQuorumWallet(email: email, otherMembers: pendingRecovery, threshold: threshold)
+            } else {
+                w = try await makeWallet(chain: chain, email: email, extraRecovery: pendingRecovery)
+            }
             pendingRecovery = []
+            pendingQuorumThreshold = nil
             walletCache[chain] = w
             approvingRecovery[chain] = nil
             notFoundChains.remove(chain)
@@ -142,6 +168,7 @@ final class AppState {
         guard chain != selectedChain else { return }
         selectedChain = chain
         pendingRecovery = []
+        pendingQuorumThreshold = nil
         selectedSignerLocator = nil
         signers = []
         localDeviceLocator = nil
@@ -199,20 +226,38 @@ final class AppState {
         }
     }
 
-    func addRecoveryMethod(_ config: SignerConfig) async throws {
-        guard let wallet else { return }
-        try await wallet.addRecoveryMethod(config)
+    func addRecoveryMethod(_ config: SignerConfig) async throws -> Transaction? {
+        guard let wallet else { return nil }
+        let transaction = try await wallet.addRecoveryMethod(config, prepareOnly: hasQuorumRecovery)
         await loadSigners()
+        return transaction
     }
 
-    func removeRecoveryMethod(locator: String) async throws {
-        guard let wallet else { return }
+    func addRecoveryQuorum(threshold: Int, members: [String]) async throws -> Transaction? {
+        try await addRecoveryMethod(.quorum(threshold: threshold, members: members.map(memberConfig)))
+    }
+
+    func removeRecoveryMethod(locator: String) async throws -> Transaction? {
+        guard let wallet else { return nil }
         let chain = selectedChain
-        try await wallet.removeRecoveryMethod(locator: SignerLocator(from: locator))
-        if approvingRecovery[chain] == locator {
+        let transaction = try await wallet.removeRecoveryMethod(
+            locator: SignerLocator(from: locator),
+            prepareOnly: hasQuorumRecovery
+        )
+        if transaction.status == .success, approvingRecovery[chain] == locator {
             approvingRecovery[chain] = nil
         }
         await loadSigners()
+        return transaction
+    }
+
+    func approve(transactionId: String) async throws -> Transaction? {
+        guard let wallet else { return nil }
+        return try await wallet.approve(transactionId: transactionId)
+    }
+
+    func transaction(id: String) async -> Transaction? {
+        try? await wallet?.getTransaction(id: id)
     }
 
     func useRecoveryMethod(locator: String) async throws {
@@ -268,7 +313,9 @@ final class AppState {
     }
 
     private func firstSelectableLocator() -> String? {
-        if let recovery = recoveryLocators.first(where: { signerConfig(for: $0) != nil }) { return recovery }
+        if let recovery = selectableRecoveryLocators.first(where: { signerConfig(for: $0) != nil }) {
+            return recovery
+        }
         return signers
             .map(\.locator)
             .first { signerConfig(for: $0) != nil }?
@@ -357,6 +404,24 @@ final class AppState {
                 options: options
             )
         }
+    }
+
+    private func makeQuorumWallet(
+        email: String,
+        otherMembers: [RecoverySignerDraft],
+        threshold: Int
+    ) async throws -> Wallet {
+        let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
+        let members = [StellarSigners.email(email)] + otherMembers.map(stellarSigner)
+        return try await sdk.crossmintWallets.createWallet(
+            chain: StellarChain.stellar,
+            recoveryMethods: [.quorum(threshold: min(threshold, members.count), members: members)],
+            options: options
+        )
+    }
+
+    private func memberConfig(_ value: String) -> SignerConfig {
+        value.hasPrefix("+") ? .phone(value, channel: phoneChannels["phone:\(value)"]) : .email(value)
     }
 
     private func solanaSigner(for draft: RecoverySignerDraft) -> SolanaSigners {

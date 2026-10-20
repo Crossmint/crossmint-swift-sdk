@@ -6,7 +6,7 @@
 import SwiftUI
 
 enum SheetType: Identifiable, Hashable {
-    case signers, transfer, activity, signing
+    case signers, transfer, approve, activity, signing
     var id: Self { self }
 }
 
@@ -29,6 +29,12 @@ struct FeaturesSection: View {
                 Label("Transfer", systemImage: "arrow.up.circle")
             }
             .disabled(appState.wallet == nil)
+
+            Button { presentedSheet = .approve } label: {
+                Label("Approve", systemImage: "checkmark.seal")
+            }
+            .disabled(appState.wallet == nil)
+            .accessibilityIdentifier("features-approve-button")
 
             Button { presentedSheet = .activity } label: {
                 Label("Activity", systemImage: "list.bullet")
