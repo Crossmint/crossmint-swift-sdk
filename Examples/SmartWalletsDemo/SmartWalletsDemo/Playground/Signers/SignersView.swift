@@ -256,7 +256,10 @@ struct SignersView: View {
         do {
             let transaction = try await appState.removeRecoveryMethod(locator: locator)
             if let transaction, transaction.status == .awaitingApproval {
-                show(title: "Waiting", message: "Other quorum members must approve transaction \(transaction.id).")
+                show(
+                    title: "Prepared",
+                    message: "Approve transaction \(transaction.id) in Approve Transaction for each quorum member."
+                )
             } else {
                 show(title: "Removed", message: "Recovery method removed.")
             }

@@ -99,13 +99,13 @@ struct TransferView: View {
 
                 if let awaitingQuorum {
                     Section {
-                        Label("Waiting for other quorum members", systemImage: "person.3")
+                        Label("Prepared for the quorum", systemImage: "person.3")
                             .fontWeight(.medium)
                             .accessibilityIdentifier("transfer-awaiting-quorum-label")
                         QuorumProgressRows(transaction: awaitingQuorum)
                         CopyButton(value: awaitingQuorum.id, lineLimit: 2)
                     } footer: {
-                        Text("Select another member, then approve this transaction ID in Approve Transaction.")
+                        Text("Approve this transaction ID in Approve Transaction for each quorum member.")
                     }
                 }
 
@@ -157,17 +157,18 @@ struct TransferView: View {
         let locator = tokens[selectedTokenIndex].locator
         let trimmedAddress = recipientAddress.trimmingCharacters(in: .whitespaces)
         do {
-            let result = try await wallet.send(trimmedAddress, locator, amountValue)
-            transactionId = result.hash
+            let prepareOnly = appState.hasQuorumRecovery
+            let result = try await wallet.send(trimmedAddress, locator, amountValue, prepareOnly: prepareOnly)
+            if prepareOnly {
+                awaitingQuorum = await appState.transaction(id: result.transactionID)
+            } else {
+                transactionId = result.hash ?? result.transactionID
+            }
             recipientAddress = ""
             amount = ""
             await onComplete?()
         } catch {
-            if case .awaitingQuorumApproval(let id) = error {
-                awaitingQuorum = await appState.transaction(id: id)
-            } else {
-                errorMessage = error.userMessage
-            }
+            errorMessage = error.userMessage
         }
         isSending = false
     }

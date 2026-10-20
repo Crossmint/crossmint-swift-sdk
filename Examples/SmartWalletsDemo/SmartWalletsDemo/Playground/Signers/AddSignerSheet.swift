@@ -309,11 +309,15 @@ struct AddSignerSheet: View {
         }
 
         do {
-            try await appState.addRecoveryMethod(config)
+            let transaction = try await appState.addRecoveryMethod(config)
             if selectedType == .phone {
                 appState.rememberChannel(channel, for: "phone:\(value)")
             }
-            dismiss()
+            if let transaction, transaction.status == .awaitingApproval {
+                errorMessage = "Approve transaction \(transaction.id) in Approve Transaction for each quorum member."
+            } else {
+                dismiss()
+            }
         } catch {
             errorMessage = error.userMessage
         }
@@ -330,7 +334,7 @@ struct AddSignerSheet: View {
                 members: quorumMembers
             )
             if let transaction, transaction.status == .awaitingApproval {
-                errorMessage = "Other quorum members must approve transaction \(transaction.id)."
+                errorMessage = "Approve transaction \(transaction.id) in Approve Transaction for each quorum member."
             } else {
                 dismiss()
             }
