@@ -13,7 +13,10 @@ struct FundAndSendFlowTests {
         try await Funding.fund(wallet, usdxm: 5)
         let before = try await Funding.usdxmBalance(of: destination)
         let transfer = try await wallet.send(destination.address, IntegrationEnvironment.EVM_USDXM, 1)
-        let after = try await Funding.usdxmBalance(of: destination)
+        let after = try await Eventually.value(describing: "\(destination.address) receiving 1 USDXM") {
+            let balance = try await Funding.usdxmBalance(of: destination)
+            return balance >= before + 1 ? balance : nil
+        }
 
         #expect(transfer.hash.hasPrefix("0x"))
         #expect(after >= before + 1)
