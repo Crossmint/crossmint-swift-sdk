@@ -15,6 +15,13 @@
     {
       "target" : {
         "containerPath" : "container:",
+        "identifier" : "CrossmintClientTests",
+        "name" : "CrossmintClientTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
         "identifier" : "WebTests",
         "name" : "WebTests"
       }

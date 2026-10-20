@@ -135,6 +135,11 @@ let package = Package(
         // MARK: - Tests
         //
         .testTarget(
+            name: "CrossmintClientTests",
+            dependencies: ["CrossmintClient"],
+            plugins: basePlugins
+        ),
+        .testTarget(
             name: "CrossmintCommonTypesTests",
             dependencies: [
                 "CrossmintCommonTypes",
