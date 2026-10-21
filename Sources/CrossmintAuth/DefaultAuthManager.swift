@@ -210,7 +210,7 @@ public actor CrossmintAuthManager: AuthManager {
             Task {
                 // swiftlint:disable:next line_length
                 guard case let .authenticationStatus(.authenticated(_, _, oneTimeSecret)) = await self?.otpAuthenticationStatus else {
-                    Logger.auth.error("Skipping JWT refresh because the user is not authenticated")
+                    Logger.auth.debug("Skipping JWT refresh because the user is not authenticated")
                     return
                 }
                 do {
