@@ -39,6 +39,7 @@ final class AppState {
 
     // Signer selection (shared across Transfer/Signing/Signers)
     private(set) var selectedSignerID: String?
+    private(set) var selectedSignerQuorum: String?
     private(set) var signers: [WalletSigner] = []
     private(set) var localDeviceLocator: String?
     private(set) var walletRecoveryLocators: [String] = []
@@ -72,6 +73,12 @@ final class AppState {
         return (signer as? PasskeySignerData)?.name
     }
 
+    var signerQuorumMembers: [SignerChoice] {
+        signers.flatMap { signer in
+            (signer.quorum?.members ?? []).map { SignerChoice(locator: $0.value, quorum: signer.locator.value) }
+        }
+    }
+
     var hasQuorumRecovery: Bool {
         wallet?.recoveryMethods.contains { $0.signer is QuorumSignerData } ?? false
     }
@@ -99,6 +106,7 @@ final class AppState {
     func loadWallet(email: String) async {
         currentEmail = email
         selectedSignerID = nil
+        selectedSignerQuorum = nil
         let chain = selectedChain
         guard !loadingChains.contains(chain) else { return }
 
@@ -174,6 +182,7 @@ final class AppState {
         pendingRecovery = []
         pendingQuorumThreshold = nil
         selectedSignerID = nil
+        selectedSignerQuorum = nil
         signers = []
         localDeviceLocator = nil
         walletRecoveryLocators = []
@@ -215,6 +224,7 @@ final class AppState {
     func selectSigner(_ choice: SignerChoice) async -> String? {
         guard choice.locator != "default-signer", !choice.locator.isEmpty else {
             selectedSignerID = nil
+        selectedSignerQuorum = nil
             return nil
         }
         guard let wallet = wallet else { return "No wallet available" }
@@ -224,10 +234,18 @@ final class AppState {
         do {
             try await wallet.useSigner(config, quorumLocator: choice.quorumLocator)
             selectedSignerID = choice.id
+            selectedSignerQuorum = choice.quorum
             return nil
         } catch {
             return error.userMessage
         }
+    }
+
+    func addSigner(_ config: SignerConfig) async throws -> Transaction? {
+        guard let wallet else { return nil }
+        let transaction = try await wallet.addSigner(config, prepareOnly: hasQuorumRecovery)
+        await loadSigners()
+        return transaction
     }
 
     func addRecoveryMethod(_ config: SignerConfig) async throws -> Transaction? {
@@ -422,7 +440,7 @@ final class AppState {
         )
     }
 
-    private func memberConfig(_ value: String) -> SignerConfig {
+    func memberConfig(_ value: String) -> SignerConfig {
         value.hasPrefix("+") ? .phone(value, channel: phoneChannels["phone:\(value)"]) : .email(value)
     }
 

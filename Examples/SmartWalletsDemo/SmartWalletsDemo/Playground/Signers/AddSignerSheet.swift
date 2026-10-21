@@ -112,6 +112,8 @@ struct AddSignerSheet: View {
             return [.email, .phone, .externalWallet, .passkey, .quorum]
         case .recovery:
             return [.email, .phone, .externalWallet]
+        case .signer where appState.selectedChain == .stellar:
+            return [.device, .passkey, .externalWallet, .phone, .quorum]
         case .signer:
             return [.device, .passkey, .externalWallet, .phone]
         }
@@ -355,29 +357,38 @@ struct AddSignerSheet: View {
     }
 
     private func addSigner() async {
-        guard let wallet = appState.wallet else { return }
+        guard appState.wallet != nil else { return }
         isAdding = true
         errorMessage = nil
         prepared = nil
         let value = inputText.trimmingCharacters(in: .whitespaces)
 
         do {
+            let transaction: WalletTransaction?
             switch selectedType {
             case .device:
-                try await wallet.addSigner(.device)
+                transaction = try await appState.addSigner(.device)
             case .passkey:
-                try await wallet.addSigner(.passkey(name: passkeyName(value), host: passkeyHost))
+                transaction = try await appState.addSigner(.passkey(name: passkeyName(value), host: passkeyHost))
             case .externalWallet:
-                try await wallet.addSigner(.externalWallet(value))
+                transaction = try await appState.addSigner(.externalWallet(value))
             case .phone:
                 // The registration endpoint has no channel field, so the channel is remembered
                 // here and supplied again when the signer is selected for signing.
-                try await wallet.addSigner(.phone(value))
+                transaction = try await appState.addSigner(.phone(value))
                 appState.rememberChannel(channel, for: "phone:\(value)")
-            case .email, .apiKey, .quorum:
+            case .quorum:
+                let members = quorumMembers.map(appState.memberConfig)
+                let quorum = SignerConfig.quorum(threshold: effectiveQuorumThreshold, members: members)
+                transaction = try await appState.addSigner(quorum)
+            case .email, .apiKey:
                 return
             }
-            dismiss()
+            if let transaction, transaction.status == .awaitingApproval {
+                prepared = transaction
+            } else {
+                dismiss()
+            }
         } catch {
             errorMessage = error.userMessage
         }
