@@ -73,6 +73,12 @@ integration-test:
 	@echo "Running integration tests..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -testPlan CrossmintSDKIntegration -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation)
 
+# API contract the SDK reads: the IntegrationTests target with only the heartbeat suite enabled. Needs TEST_RUNNER_PREVIEW_CK_KEY.
+heartbeat-test: export TEST_RUNNER_HEARTBEAT = 1
+heartbeat-test:
+	@echo "Running heartbeat suite..."
+	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -testPlan CrossmintSDKIntegration -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation)
+
 # CI sanity check and test running
 ci-test:
 	@echo "Resolving dependencies..."

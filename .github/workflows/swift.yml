@@ -97,3 +97,11 @@ jobs:
         TEST_RUNNER_PREVIEW_CK_KEY: ${{ secrets.PREVIEW_CK_KEY }}
       run: |
         make integration-test
+
+    - name: Run heartbeat suite
+      if: steps.changed.outputs.run == 'true'
+      timeout-minutes: 20
+      env:
+        TEST_RUNNER_PREVIEW_CK_KEY: ${{ secrets.PREVIEW_CK_KEY }}
+      run: |
+        make heartbeat-test
