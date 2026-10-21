@@ -3,6 +3,7 @@ import Foundation
 
 public struct WalletConfig {
     let recoveryMethodsWithStatus: [RecoveryMethod]
+    let signerQuorums: [QuorumSignerData]
 
     /// Every recovery signer of the wallet. Each one can authorize on its own.
     public var recoveryMethods: [AdminSignerData] { recoveryMethodsWithStatus.map(\.signer) }
@@ -10,8 +11,9 @@ public struct WalletConfig {
     /// The first recovery signer of the wallet.
     public var recovery: AdminSignerData { recoveryMethodsWithStatus[0].signer }
 
-    init(recovery: RecoveryMethod, others: [RecoveryMethod] = []) {
+    init(recovery: RecoveryMethod, others: [RecoveryMethod] = [], signerQuorums: [QuorumSignerData] = []) {
         recoveryMethodsWithStatus = [recovery] + others
+        self.signerQuorums = signerQuorums
     }
 
     init(recovery: AdminSignerData) {
@@ -37,15 +39,23 @@ public struct WalletConfig {
         return nil
     }
 
+    func recoveryQuorumLocators(withMember locator: SignerLocator) -> [SignerLocator] {
+        quorumLocators(withMember: locator, in: recoveryMethods.compactMap { $0 as? QuorumSignerData })
+    }
+
     func quorumLocators(withMember locator: SignerLocator) -> [SignerLocator] {
-        recoveryMethods
-            .compactMap { $0 as? QuorumSignerData }
+        let recoveryQuorums = recoveryMethods.compactMap { $0 as? QuorumSignerData }
+        return quorumLocators(withMember: locator, in: recoveryQuorums + signerQuorums)
+    }
+
+    private func quorumLocators(withMember locator: SignerLocator, in quorums: [QuorumSignerData]) -> [SignerLocator] {
+        quorums
             .filter { quorum in quorum.members.contains { (try? SignerLocator(from: $0.locator)) == locator } }
             .map { SignerLocator.quorum(id: $0.id) }
     }
 
     func recoveryRole(of locator: SignerLocator, explicit: SignerLocator?) throws(WalletError) -> SignerLocator? {
-        let quorums = quorumLocators(withMember: locator)
+        let quorums = recoveryQuorumLocators(withMember: locator)
         if let explicit {
             return quorums.contains(explicit) ? explicit : nil
         }

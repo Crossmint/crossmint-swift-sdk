@@ -329,7 +329,11 @@ extension Wallet {
         } else {
             methods.append(RecoveryMethod(signer: recoveryMethod, status: .active))
         }
-        config = WalletConfig(recovery: methods[0], others: Array(methods.dropFirst()))
+        config = WalletConfig(
+            recovery: methods[0],
+            others: Array(methods.dropFirst()),
+            signerQuorums: config.signerQuorums
+        )
     }
 
     private func recordRemovedRecoveryMethod(_ locator: SignerLocator) {
@@ -338,6 +342,10 @@ extension Wallet {
         }
         let remaining = config.recoveryMethodsWithStatus.filter { $0.signer.locator != locator.value }
         guard let first = remaining.first else { return }
-        config = WalletConfig(recovery: first, others: Array(remaining.dropFirst()))
+        config = WalletConfig(
+            recovery: first,
+            others: Array(remaining.dropFirst()),
+            signerQuorums: config.signerQuorums
+        )
     }
 }

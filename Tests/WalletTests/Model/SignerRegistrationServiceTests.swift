@@ -16,7 +16,7 @@ struct SignerRegistrationServiceTests {
         )
     }
 
-    // MARK: - register(locator:signer:)
+    // MARK: - register(_:approver:)
 
     @Test
     func registerLocator_callsAddSignerWithLocator() async throws {
@@ -25,7 +25,7 @@ struct SignerRegistrationServiceTests {
         let service = makeService(walletService: walletService)
 
         try await service.register(
-            locator: .email("test@example.com"),
+            .locator(.email("test@example.com")),
             approver: RecoveryApprover(signer: signer, locator: nil)
         )
 
@@ -43,7 +43,7 @@ struct SignerRegistrationServiceTests {
         let service = makeService(walletService: walletService)
 
         try await service.register(
-            locator: .email("test@example.com"),
+            .locator(.email("test@example.com")),
             approver: RecoveryApprover(signer: signer, locator: nil)
         )
 
@@ -67,7 +67,7 @@ struct SignerRegistrationServiceTests {
         let service = makeService(walletService: walletService)
 
         try await service.register(
-            locator: .email("test@example.com"),
+            .locator(.email("test@example.com")),
             approver: RecoveryApprover(signer: signer, locator: nil)
         )
 
@@ -254,7 +254,7 @@ struct SignerRegistrationTransactionApprovalTests {
         let service = makeSolanaService(walletService: walletService)
 
         let pendingId = try await service.register(
-            locator: .email("dave@example.com"),
+            .locator(.email("dave@example.com")),
             approver: RecoveryApprover(signer: MockSigner(), locator: nil),
             prepareOnly: true
         )
