@@ -59,7 +59,7 @@ struct SignerPicker: View {
     }
 
     private func title(for option: Option) -> String {
-        guard option.isRecovery, option.name == nil else {
+        guard option.isRecovery || option.choice.quorum != nil, option.name == nil else {
             return SignerRow.title(for: option.locator, name: option.name)
         }
         return SignerRow.shortValue(for: option.locator)
