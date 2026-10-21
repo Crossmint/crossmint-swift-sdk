@@ -23,6 +23,7 @@
 		7CAB0000000000000000000B /* TransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000B /* TransferView.swift */; };
 		7CAB0000000000000000A101 /* ApproveTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000A101 /* ApproveTransactionView.swift */; };
 		7CAB0000000000000000A102 /* PreparedQuorumSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000A102 /* PreparedQuorumSection.swift */; };
+		7CAB0000000000000000A103 /* SignerChoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000A103 /* SignerChoice.swift */; };
 		7CAB0000000000000000000C /* SigningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000C /* SigningView.swift */; };
 		7CAB0000000000000000000D /* SignersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000D /* SignersView.swift */; };
 		7CAB0000000000000000000E /* SignerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CAF0000000000000000000E /* SignerRow.swift */; };
@@ -66,6 +67,7 @@
 		7CAF0000000000000000000B /* TransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferView.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000A101 /* ApproveTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApproveTransactionView.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000A102 /* PreparedQuorumSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreparedQuorumSection.swift; sourceTree = "<group>"; };
+		7CAF0000000000000000A103 /* SignerChoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignerChoice.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000C /* SigningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningView.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000D /* SignersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignersView.swift; sourceTree = "<group>"; };
 		7CAF0000000000000000000E /* SignerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignerRow.swift; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 				7CAF00000000000000000011 /* AddSignerSheet.swift */,
 				7CAF00000000000000000021 /* RecoverySignerDraft.swift */,
 				7CAF00000000000000000012 /* SignerPicker.swift */,
+				7CAF0000000000000000A103 /* SignerChoice.swift */,
 			);
 			path = Signers;
 			sourceTree = "<group>";
@@ -346,6 +349,7 @@
 				7CAB0000000000000000000B /* TransferView.swift in Sources */,
 				7CAB0000000000000000A101 /* ApproveTransactionView.swift in Sources */,
 				7CAB0000000000000000A102 /* PreparedQuorumSection.swift in Sources */,
+				7CAB0000000000000000A103 /* SignerChoice.swift in Sources */,
 				7CAB0000000000000000000C /* SigningView.swift in Sources */,
 				7CAB0000000000000000000D /* SignersView.swift in Sources */,
 				7CAB0000000000000000000E /* SignerRow.swift in Sources */,

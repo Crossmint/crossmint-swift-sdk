@@ -96,7 +96,7 @@ struct SignersView: View {
                         .fontWeight(.medium)
                 }
             }
-            .disabled(appState.isCreatingWallet)
+            .disabled(appState.isCreatingWallet || quorumNeedsMoreMembers)
             .accessibilityIdentifier("recovery-create-wallet-button")
             if let error = appState.walletErrorMessage {
                 Label(error, systemImage: "exclamationmark.triangle")
@@ -104,6 +104,10 @@ struct SignersView: View {
                     .font(.footnote)
             }
         }
+    }
+
+    private var quorumNeedsMoreMembers: Bool {
+        appState.pendingQuorumThreshold != nil && appState.pendingRecovery.isEmpty
     }
 
     @ViewBuilder
@@ -114,6 +118,7 @@ struct SignersView: View {
                 get: { appState.pendingQuorumThreshold != nil },
                 set: { appState.pendingQuorumThreshold = $0 ? min(2, memberCount) : nil }
             ))
+            .disabled(memberCount < 2 && appState.pendingQuorumThreshold == nil)
             .accessibilityIdentifier("recovery-quorum-toggle")
             if let threshold = appState.pendingQuorumThreshold.map({ min($0, memberCount) }) {
                 Stepper(
@@ -177,7 +182,7 @@ struct SignersView: View {
                     recoveryRow(index: index, locator: locator, editable: editable)
                     if let quorum = appState.quorum(for: locator) {
                         ForEach(quorum.members.map(\.locator), id: \.self) { member in
-                            quorumMemberRow(locator: member)
+                            quorumMemberRow(SignerChoice(locator: member, quorum: locator))
                         }
                     }
                 }
@@ -187,12 +192,12 @@ struct SignersView: View {
         }
     }
 
-    private func quorumMemberRow(locator: String) -> some View {
+    private func quorumMemberRow(_ member: SignerChoice) -> some View {
         SignerRow(
             idPrefix: "quorum-member",
-            locator: locator,
-            status: appState.approvingRecoveryLocator == locator ? "Approver" : "Member",
-            isRemoving: selectingApproverLocator == locator,
+            locator: member.locator,
+            status: appState.approvingRecoveryMethod == member ? "Approver" : "Member",
+            isRemoving: selectingApproverLocator == member.id,
             canRemove: false,
             onSelect: {}
         )
@@ -200,7 +205,7 @@ struct SignersView: View {
         .contentShape(Rectangle())
         .accessibilityAddTraits(.isButton)
         .onTapGesture {
-            Task { await selectApprover(locator: locator) }
+            Task { await selectApprover(member) }
         }
     }
 
@@ -210,7 +215,7 @@ struct SignersView: View {
             idPrefix: "recovery",
             locator: locator,
             name: appState.recoveryName(for: locator),
-            status: appState.approvingRecoveryLocator == locator ? "Approver" : nil,
+            status: appState.approvingRecoveryMethod?.id == locator ? "Approver" : nil,
             isRemoving: removingSignerLocator == locator || selectingApproverLocator == locator,
             canRemove: editable,
             onSelect: {},
@@ -220,7 +225,7 @@ struct SignersView: View {
         .accessibilityAddTraits(editable ? .isButton : [])
         .onTapGesture {
             guard editable, appState.quorum(for: locator) == nil else { return }
-            Task { await selectApprover(locator: locator) }
+            Task { await selectApprover(SignerChoice(locator: locator, quorum: nil)) }
         }
     }
 
@@ -260,10 +265,10 @@ struct SignersView: View {
         removingSignerLocator = nil
     }
 
-    private func selectApprover(locator: String) async {
-        selectingApproverLocator = locator
+    private func selectApprover(_ choice: SignerChoice) async {
+        selectingApproverLocator = choice.id
         do {
-            try await appState.useRecoveryMethod(locator: locator)
+            try await appState.useRecoveryMethod(choice)
         } catch {
             show(title: "Error", message: error.userMessage)
         }

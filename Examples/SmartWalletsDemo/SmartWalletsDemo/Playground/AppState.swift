@@ -38,11 +38,11 @@ final class AppState {
     var pendingQuorumThreshold: Int?
 
     // Signer selection (shared across Transfer/Signing/Signers)
-    private(set) var selectedSignerLocator: String?
+    private(set) var selectedSignerID: String?
     private(set) var signers: [WalletSigner] = []
     private(set) var localDeviceLocator: String?
     private(set) var walletRecoveryLocators: [String] = []
-    private var approvingRecovery: [SupportedChain: String] = [:]
+    private var approvingRecovery: [SupportedChain: SignerChoice] = [:]
 
     private let sdk: CrossmintSDK = .shared
 
@@ -55,11 +55,12 @@ final class AppState {
         if wallet != nil { return walletRecoveryLocators }
         return currentEmail.map { ["email:\($0)"] } ?? []
     }
-    var approvingRecoveryLocator: String? { approvingRecovery[selectedChain] }
+    var approvingRecoveryMethod: SignerChoice? { approvingRecovery[selectedChain] }
 
-    var selectableRecoveryLocators: [String] {
+    var selectableRecoveryMethods: [SignerChoice] {
         recoveryLocators.flatMap { locator in
-            quorum(for: locator).map { $0.members.map(\.locator) } ?? [locator]
+            guard let quorum = quorum(for: locator) else { return [SignerChoice(locator: locator, quorum: nil)] }
+            return quorum.members.map { SignerChoice(locator: $0.locator, quorum: locator) }
         }
     }
 
@@ -97,7 +98,7 @@ final class AppState {
     /// Fetches fresh wallet state for the current chain. Safe to call on pull-to-refresh.
     func loadWallet(email: String) async {
         currentEmail = email
-        selectedSignerLocator = nil
+        selectedSignerID = nil
         let chain = selectedChain
         guard !loadingChains.contains(chain) else { return }
 
@@ -159,8 +160,11 @@ final class AppState {
         walletRecoveryLocators = wallet?.recoveryMethods.map(\.signer.locator) ?? []
         signers = (try? await wallet?.signers()) ?? []
         localDeviceLocator = await wallet?.localDeviceSigner()?.value
-        guard selectedSignerLocator == nil, let locator = firstSelectableLocator() else { return }
-        await selectSigner(locator: locator)
+        if let approving = approvingRecovery[selectedChain], !selectableRecoveryMethods.contains(approving) {
+            approvingRecovery[selectedChain] = nil
+        }
+        guard selectedSignerID == nil, let choice = firstSelectableChoice() else { return }
+        await selectSigner(choice)
     }
 
     /// Switches chain without re-fetching if the wallet is already cached.
@@ -169,7 +173,7 @@ final class AppState {
         selectedChain = chain
         pendingRecovery = []
         pendingQuorumThreshold = nil
-        selectedSignerLocator = nil
+        selectedSignerID = nil
         signers = []
         localDeviceLocator = nil
         walletRecoveryLocators = []
@@ -208,18 +212,18 @@ final class AppState {
     /// Selects the given signer locator as active for all wallet operations.
     /// Returns an error message on failure, or nil on success.
     @discardableResult
-    func selectSigner(locator: String) async -> String? {
-        guard locator != "default-signer", !locator.isEmpty else {
-            selectedSignerLocator = nil
+    func selectSigner(_ choice: SignerChoice) async -> String? {
+        guard choice.locator != "default-signer", !choice.locator.isEmpty else {
+            selectedSignerID = nil
             return nil
         }
         guard let wallet = wallet else { return "No wallet available" }
-        guard let config = signerConfig(for: locator) else {
+        guard let config = signerConfig(for: choice.locator) else {
             return "This signer type cannot be selected directly"
         }
         do {
-            try await wallet.useSigner(config)
-            selectedSignerLocator = locator
+            try await wallet.useSigner(config, quorumLocator: choice.quorumLocator)
+            selectedSignerID = choice.id
             return nil
         } catch {
             return error.userMessage
@@ -244,7 +248,7 @@ final class AppState {
             locator: SignerLocator(from: locator),
             prepareOnly: hasQuorumRecovery
         )
-        if transaction.status == .success, approvingRecovery[chain] == locator {
+        if transaction.status == .success, approvingRecovery[chain]?.belongs(to: locator) == true {
             approvingRecovery[chain] = nil
         }
         await loadSigners()
@@ -260,14 +264,14 @@ final class AppState {
         try? await wallet?.getTransaction(id: id)
     }
 
-    func useRecoveryMethod(locator: String) async throws {
+    func useRecoveryMethod(_ choice: SignerChoice) async throws {
         guard let wallet else { return }
-        guard let config = signerConfig(for: locator) else {
+        guard let config = signerConfig(for: choice.locator) else {
             throw WalletError.walletGeneric("This recovery method cannot approve changes from the app")
         }
         let chain = selectedChain
-        try await wallet.useRecoveryMethod(config)
-        approvingRecovery[chain] = locator
+        try await wallet.useRecoveryMethod(config, quorumLocator: choice.quorumLocator)
+        approvingRecovery[chain] = choice
     }
 
     func fetchBalance() async {
@@ -312,14 +316,12 @@ final class AppState {
         }
     }
 
-    private func firstSelectableLocator() -> String? {
-        if let recovery = selectableRecoveryLocators.first(where: { signerConfig(for: $0) != nil }) {
+    private func firstSelectableChoice() -> SignerChoice? {
+        if let recovery = selectableRecoveryMethods.first(where: { signerConfig(for: $0.locator) != nil }) {
             return recovery
         }
-        return signers
-            .map(\.locator)
-            .first { signerConfig(for: $0) != nil }?
-            .value
+        let signer = signers.map(\.locator).first { signerConfig(for: $0) != nil }
+        return signer.map { SignerChoice(locator: $0.value, quorum: nil) }
     }
 
     func signerConfig(for locator: String) -> SignerConfig? {

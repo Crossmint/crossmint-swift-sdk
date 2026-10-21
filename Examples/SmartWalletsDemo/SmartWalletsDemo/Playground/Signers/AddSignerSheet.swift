@@ -130,6 +130,7 @@ struct AddSignerSheet: View {
 
     private var isValid: Bool {
         guard !isAdding, modeUnavailableMessage == nil else { return false }
+        if selectedType == .quorum { return quorumMembers.count >= 2 }
         if selectedType.inputRequired { return !inputText.trimmingCharacters(in: .whitespaces).isEmpty }
         return true
     }
@@ -197,7 +198,11 @@ struct AddSignerSheet: View {
                 }
 
                 if let prepared {
-                    PreparedQuorumSection(transaction: prepared, labelIdentifier: "add-signer-prepared-label")
+                    PreparedQuorumSection(
+                        transactionID: prepared.id,
+                        transaction: prepared,
+                        labelIdentifier: "add-signer-prepared-label"
+                    )
                 }
 
                 if let error = errorMessage {

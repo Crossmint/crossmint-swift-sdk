@@ -87,6 +87,9 @@ struct ApproveTransactionView: View {
         do {
             result = try await appState.approve(transactionId: trimmedId)
             await appState.fetchBalance()
+            if result?.status == .success {
+                await appState.loadSigners()
+            }
         } catch {
             errorMessage = error.userMessage
         }

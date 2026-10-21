@@ -17,6 +17,7 @@ struct TransferView: View {
     @State private var selectedTokenIndex = 0
     @State private var isSending = false
     @State private var transactionId: String?
+    @State private var preparedID: String?
     @State private var awaitingQuorum: WalletTransaction?
     @State private var errorMessage: String?
     @State private var txCopied = false
@@ -97,8 +98,9 @@ struct TransferView: View {
                     }
                 }
 
-                if let awaitingQuorum {
+                if let preparedID {
                     PreparedQuorumSection(
+                        transactionID: preparedID,
                         transaction: awaitingQuorum,
                         labelIdentifier: "transfer-awaiting-quorum-label"
                     )
@@ -148,6 +150,7 @@ struct TransferView: View {
         isSending = true
         errorMessage = nil
         transactionId = nil
+        preparedID = nil
         awaitingQuorum = nil
         let locator = tokens[selectedTokenIndex].locator
         let trimmedAddress = recipientAddress.trimmingCharacters(in: .whitespaces)
@@ -155,6 +158,7 @@ struct TransferView: View {
             let prepareOnly = appState.hasQuorumRecovery
             let result = try await wallet.send(trimmedAddress, locator, amountValue, prepareOnly: prepareOnly)
             if prepareOnly {
+                preparedID = result.transactionID
                 awaitingQuorum = await appState.transaction(id: result.transactionID)
             } else {
                 transactionId = result.hash ?? result.transactionID
