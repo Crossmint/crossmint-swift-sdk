@@ -26,7 +26,7 @@ make test
 make ci-test
 
 # Run specific test target
-xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=latest" test
+xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 18 Pro,OS=latest" test
 ```
 
 ### Linting
@@ -157,13 +157,13 @@ Before writing code or tests, read [docs/conventions/code.md](docs/conventions/c
 ## Testing conventions
 
 - New and changed code follows the `code/test` best practices.
-- Unit tests: `make test` (xcodebuild, iPhone 17 Pro simulator), `make ci-test` (adds lint), or `xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=latest" test` for one scheme. Naming and structure follow `docs/conventions/tests.md`.
+- Unit tests: `make test` (xcodebuild, iPhone 18 Pro simulator), `make ci-test` (adds lint), or `xcodebuild -scheme CrossmintClientSDK -destination "platform=iOS Simulator,name=iPhone 18 Pro,OS=latest" test` for one scheme. Naming and structure follow `docs/conventions/tests.md`.
 - E2E: comment `/e2e` (optionally `/e2e ios` or `/e2e android`) on a PR to dispatch the shared mobile suite in `Crossmint/crossmint-mobile-e2e-tests`.
 
 ## Development Workflow
 
 1. All code must pass SwiftLint checks before merging (`make lint`).
-2. Tests run on iPhone 17 Pro simulator by default.
+2. Tests run on iPhone 18 Pro simulator by default.
 3. The SDK uses Swift Package Manager for dependency management.
 4. SwiftLint is integrated as a build tool plugin.
 5. Set these environment variables when running the demo app:

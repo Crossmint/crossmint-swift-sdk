@@ -18,7 +18,7 @@ actor SessionPool {
     func evmWallet(of session: CryptoWalletSession) async throws -> Wallet {
         let wallet = try await wallet(of: session, chain: IntegrationEnvironment.EVM_CHAIN) {
             try await session.wallets().createWallet(
-                chain: IntegrationEnvironment.EVM_CHAIN, recovery: session.signer, options: nil
+                chain: IntegrationEnvironment.EVM_CHAIN, recoveryMethods: [session.signer], options: nil
             )
         }
         try await wallet.useSigner(session.signer.config)
@@ -31,7 +31,7 @@ actor SessionPool {
         solanaRecovery[session.address] = recovery
         let wallet = try await wallet(of: session, chain: IntegrationEnvironment.SOLANA_CHAIN) {
             try await session.wallets().createWallet(
-                chain: IntegrationEnvironment.SOLANA_CHAIN, recovery: recovery, options: nil
+                chain: IntegrationEnvironment.SOLANA_CHAIN, recoveryMethods: [recovery], options: nil
             )
         }
         try await wallet.useSigner(recovery.config)
