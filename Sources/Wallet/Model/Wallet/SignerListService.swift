@@ -38,13 +38,19 @@ final class SignerListService: Sendable {
             for (index, config) in configs.enumerated() {
                 let locator = config.locator
                 let name = config.name
+                let quorum = config.quorum.map { quorum in
+                    WalletSigner.Quorum(
+                        threshold: quorum.threshold,
+                        members: quorum.members.compactMap { try? SignerLocator(from: $0.locator) }
+                    )
+                }
                 group.addTask {
                     do {
                         guard let response = try await self.smartWalletService.getSigner(
                             locator.value,
                             chainType: self.chainType
                         ) else {
-                            return (index, WalletSigner(locator: locator, status: .unknown, name: name))
+                            return (index, WalletSigner(locator: locator, status: .unknown, name: name, quorum: quorum))
                         }
                         guard let status = response.registrationStatus(
                             chainType: self.chainType,
@@ -52,13 +58,13 @@ final class SignerListService: Sendable {
                         ) else {
                             return (index, nil)
                         }
-                        return (index, WalletSigner(locator: locator, status: status, name: name))
+                        return (index, WalletSigner(locator: locator, status: status, name: name, quorum: quorum))
                     } catch {
                         Logger.smartWallet.warning(LogEvents.walletSignersStateLookupFailed, attributes: [
                             "locator": locator.value,
                             "error": "\(error)"
                         ])
-                        return (index, WalletSigner(locator: locator, status: .unknown, name: name))
+                        return (index, WalletSigner(locator: locator, status: .unknown, name: name, quorum: quorum))
                     }
                 }
             }

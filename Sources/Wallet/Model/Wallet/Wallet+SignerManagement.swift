@@ -138,7 +138,7 @@ extension Wallet {
     /// The signer must be registered on this wallet.
     /// To register a new signer, call ``addSigner(_:)`` first.
     ///
-    /// The signer can also be a member of a quorum recovery method.
+    /// The signer can also be a member of a quorum recovery method or of a quorum signer.
     /// Then the transactions that you send name the quorum, and the member approves for the quorum.
     /// If the signer is also a signer of the wallet on its own, it sends as itself.
     ///
@@ -223,16 +223,14 @@ extension Wallet {
                     prepareOnly: prepareOnly
                 )
                 deviceSignerKeyStorage = storage
-            case .email, .phone, .externalWallet, .apiKey:
-                guard let locator = config.locator else { return nil }
+            case .email, .phone, .externalWallet, .apiKey, .quorum:
+                guard let signer = try DelegatedSignerEntry.Signer.registration(of: config) else { return nil }
                 pendingTransactionId = try await signerRegistrationService.register(
-                    locator: locator,
+                    signer,
                     approver: approver,
                     deployImmediately: deployImmediately,
                     prepareOnly: prepareOnly
                 )
-            case .quorum:
-                try rejectQuorumSigner()
             case .passkey(let name, let host, _):
                 pendingTransactionId = try await signerRegistrationService.registerPasskey(
                     name: name,
@@ -241,6 +239,9 @@ extension Wallet {
                     deployImmediately: deployImmediately,
                     prepareOnly: prepareOnly
                 )
+            }
+            if case .quorum = config, !prepareOnly {
+                await reloadRecoveryMethods()
             }
             Logger.smartWallet.info(LogEvents.walletAddSignerSuccess)
             guard prepareOnly, let pendingTransactionId else { return nil }
@@ -457,6 +458,7 @@ extension Wallet {
 
     private func requireRegisteredSigner(_ locator: SignerLocator) async throws(WalletError) {
         if config.recoveryLocator(actingFor: locator) != nil { return }
+        if !config.quorumLocators(withMember: locator).isEmpty { return }
         guard try await fetchSignerRegistration(locator) else { throw .signerNotRegistered(locator.value) }
     }
 
@@ -479,10 +481,6 @@ extension Wallet {
         _needsRecovery = false
         _deviceSignerApproved = true
         return pendingTransactionId
-    }
-
-    private func rejectQuorumSigner() throws(WalletError) -> Never {
-        throw .walletGeneric("Adding a quorum as a signer is not supported yet.")
     }
 
     private func preparedTransaction(withId id: String) async throws(WalletError) -> Transaction {
