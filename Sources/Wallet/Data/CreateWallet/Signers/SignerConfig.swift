@@ -55,7 +55,7 @@ public enum SignerConfig: Sendable {
     case apiKey
     /// A quorum that approves only when `threshold` of its `members` approve.
     ///
-    /// Use it with ``Wallet/addRecoveryMethod(_:prepareOnly:)``. A member cannot be a quorum,
+    /// Use it with ``Wallet/addRecoveryMethod(_:signer:prepareOnly:)``. A member cannot be a quorum,
     /// an API key signer or a device signer.
     indirect case quorum(threshold: Int, members: [SignerConfig])
 }

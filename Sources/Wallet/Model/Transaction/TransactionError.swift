@@ -18,6 +18,8 @@ public enum TransactionError: CrossmintError {
     /// The signer is a member of a quorum. A member can approve a transaction.
     /// A member cannot create a transaction.
     case signerIsQuorumMember(String)
+    /// The active signer is a member of more than one quorum. Name the quorum with the `signer` parameter.
+    case quorumSelectionAmbiguous(quorums: [SignerLocator])
 
     public var code: String {
         switch self {
@@ -34,6 +36,7 @@ public enum TransactionError: CrossmintError {
         case .transactionGeneric: "TRANSACTION_ERROR"
         case .transactionExpired: "TRANSACTION_EXPIRED"
         case .signerIsQuorumMember: "SIGNER_IS_QUORUM_MEMBER"
+        case .quorumSelectionAmbiguous: "QUORUM_SELECTION_AMBIGUOUS"
         }
     }
 
@@ -61,6 +64,8 @@ public enum TransactionError: CrossmintError {
             "Transaction signing failed: invalid key"
         case .userCancelled:
             "The user cancelled the signing"
+        case .quorumSelectionAmbiguous(let quorums):
+            "The signer is a member of these quorums: \(quorums.map(\.value).joined(separator: ", "))"
         }
     }
 
@@ -77,6 +82,8 @@ public enum TransactionError: CrossmintError {
             "Send the transaction again."
         case .signerIsQuorumMember:
             "Name the quorum as the signer."
+        case .quorumSelectionAmbiguous:
+            "Pass the quorum to act for as signer."
         default:
             nil
         }

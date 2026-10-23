@@ -100,6 +100,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         value: String?,
         data: String?,
         chain: EVMChain? = nil,
+        signer: SignerLocator? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.evmSendTransactionStart)
@@ -114,13 +115,13 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: try await selectedSignerLocatorForTransactions()?.value ?? self.config.recovery.locator
+                signer: try await evmSignerLocator(explicit: signer)
             ),
             prepareOnly: prepareOnly
         ) else {
             throw .transactionGeneric("Unknown error")
         }
-        if prepareOnly { return transaction.preparedSummary }
+        if prepareOnly || transaction.awaitsQuorumMembers { return transaction.pendingSummary }
 
         Logger.smartWallet.info(LogEvents.evmSendTransactionPrepared, attributes: [
             "transactionId": transaction.id
@@ -357,5 +358,10 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 .notStarted:
             return .signingFailed(underlyingError: error)
         }
+    }
+
+    private func evmSignerLocator(explicit: SignerLocator?) async throws(TransactionError) -> String {
+        if let explicit { return explicit.value }
+        return try await selectedSignerLocatorForTransactions()?.value ?? config.recovery.locator
     }
 }

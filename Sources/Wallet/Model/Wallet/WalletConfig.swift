@@ -44,6 +44,10 @@ public struct WalletConfig {
             .map { SignerLocator.quorum(id: $0.id) }
     }
 
+    func canApproveRecoveryChanges(_ locator: SignerLocator) -> Bool {
+        containsRecoveryMethod(locator) || !quorumLocators(withMember: locator).isEmpty
+    }
+
     func recoveryRole(of locator: SignerLocator, explicit: SignerLocator?) throws(WalletError) -> SignerLocator? {
         let quorums = quorumLocators(withMember: locator)
         if let explicit {
