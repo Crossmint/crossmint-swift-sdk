@@ -189,8 +189,8 @@ public struct Transaction: Sendable, CustomStringConvertible {
         "id: \(id), status: \(status), onChain: \(onChain), params: \(params), walletType: \(walletType), createdAt: \(createdAt), approvals: \(String(describing: approvals)), error: \(String(describing: error))"
     }
 
-    var preparedSummary: TransactionSummary {
-        TransactionSummary(hash: nil, transactionID: id, explorerLink: nil)
+    var pendingSummary: TransactionSummary {
+        TransactionSummary(hash: nil, transactionID: id, explorerLink: nil, status: .awaitingApproval)
     }
 
     var awaitsQuorumMembers: Bool {

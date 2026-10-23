@@ -158,21 +158,16 @@ struct WalletQuorumRecoveryMethodChangesTests {
         #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value])
     }
 
-    @Test func addsTheRecoveryMethodAfterTheOtherQuorumMembersApprove() async throws {
+    @Test func returnsThePendingRecoveryMethodWhenOtherQuorumMembersMustApprove() async throws {
         let wallet = try makeWallet(fileName: "WalletStellarQuorum", signer: nil)
         wallet.selectedSigner = MockSigner(email: "bob@example.com")
-        let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "RemoveSignerTransactionSuccess",
-            bundle: Bundle.module
-        )
         walletService.addRecoveryMethodResult = try transaction("StellarTransactionAwaitingQuorum")
-        walletService.fetchTransactionResults = [try transaction("StellarTransactionAwaitingQuorum")]
-        walletService.fetchTransactionResult = success
+        walletService.fetchTransactionResult = try transaction("StellarTransactionAwaitingQuorum")
 
-        let added = try await wallet.addRecoveryMethod(.email("dave@example.com"))
+        let pending = try await wallet.addRecoveryMethod(.email("dave@example.com"))
 
-        #expect(added.status == .success)
-        #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value, "email:dave@example.com"])
+        #expect(pending.status == .awaitingApproval)
+        #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value])
     }
 
     @Test func returnsTheAddedQuorumWhenTheWalletCannotBeReadAgain() async throws {
@@ -257,7 +252,7 @@ struct WalletQuorumRecoveryMethodChangesTests {
 
     @Test func clearsTheSelectedApproverWhenAnApprovedChangeRemovesIt() async throws {
         let wallet = try makeWallet(fileName: "WalletStellarQuorumThenEmail", signer: nil)
-        try await wallet.useRecoveryMethod(.email("alice@example.com"))
+        try await wallet.useRecoveryMethod(.email("bob@example.com"))
         let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
             fileName: "RemoveSignerTransactionSuccess",
             bundle: Bundle.module
