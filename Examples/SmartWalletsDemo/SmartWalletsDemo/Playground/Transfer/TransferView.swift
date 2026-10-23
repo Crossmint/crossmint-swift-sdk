@@ -155,9 +155,9 @@ struct TransferView: View {
         let locator = tokens[selectedTokenIndex].locator
         let trimmedAddress = recipientAddress.trimmingCharacters(in: .whitespaces)
         do {
-            let prepareOnly = appState.hasQuorumRecovery
-            let result = try await wallet.send(trimmedAddress, locator, amountValue, prepareOnly: prepareOnly)
-            if prepareOnly {
+            let quorum = appState.selectedSignerQuorum
+            let result = try await wallet.send(trimmedAddress, locator, amountValue, signer: quorum)
+            if result.status == .awaitingApproval {
                 preparedID = result.transactionID
                 awaitingQuorum = await appState.transaction(id: result.transactionID)
             } else {
