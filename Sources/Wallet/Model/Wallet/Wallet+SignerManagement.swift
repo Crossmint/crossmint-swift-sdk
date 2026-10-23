@@ -119,13 +119,12 @@ extension Wallet {
     /// The signer can also be a member of a quorum recovery method.
     /// Then the transactions that you send name the quorum, and the member approves for the quorum.
     /// If the signer is also a signer of the wallet on its own, it sends as itself.
+    /// If it is a member of more than one quorum, name the quorum with the `signer` parameter of the call.
     ///
     /// To select the recovery method that approves signer changes, use ``useRecoveryMethod(_:)``.
     ///
     /// - Parameters:
     ///   - config: The signer to use.
-    ///   - quorumLocator: The quorum that the signer acts for. Use it when the signer is a member of
-    ///     more than one quorum, or to act for the quorum when the signer can also act on its own.
     /// - Throws:
     ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
     ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
@@ -136,9 +135,7 @@ extension Wallet {
     ///     and the wallet has more than one passkey signer.
     ///   - ``WalletError/deviceSignerNotSupported(_:)`` if you select `.device`
     ///     and the wallet provider does not accept device signers.
-    ///   - ``WalletError/quorumSelectionAmbiguous(quorums:)`` if the signer is a member of more than one quorum
-    ///     and you do not give `quorumLocator`.
-    public func useSigner(_ config: SignerConfig, quorumLocator: SignerLocator? = nil) async throws(WalletError) {
+    public func useSigner(_ config: SignerConfig) async throws(WalletError) {
         switch config {
         case .device:
             try await activateDeviceSigner()
@@ -153,29 +150,6 @@ extension Wallet {
         case .apiKey:
             try await activateApiKeySigner()
         }
-        guard let memberLocator = await selectedSigner?.locator else {
-            selectedQuorum = nil
-            return
-        }
-        selectedQuorum = try await quorumRole(of: memberLocator, explicit: quorumLocator)
-    }
-
-    private func quorumRole(
-        of locator: SignerLocator,
-        explicit: SignerLocator?
-    ) async throws(WalletError) -> SignerLocator? {
-        let quorums = config.recoveryMethods
-            .compactMap { $0 as? QuorumSignerData }
-            .filter { quorum in quorum.members.contains { (try? SignerLocator(from: $0.locator)) == locator } }
-            .map { SignerLocator.quorum(id: $0.id) }
-        if let explicit {
-            guard quorums.contains(explicit) else { throw .signerNotRegistered(explicit.value) }
-            return explicit
-        }
-        guard !quorums.isEmpty, !config.containsRecoveryMethod(locator) else { return nil }
-        if try await fetchSignerRegistration(locator) { return nil }
-        guard quorums.count == 1 else { throw .quorumSelectionAmbiguous(quorums: quorums) }
-        return quorums[0]
     }
 
     // MARK: - Internal
