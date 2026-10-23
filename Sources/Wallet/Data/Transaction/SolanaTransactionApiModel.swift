@@ -2,37 +2,10 @@ import CrossmintCommonTypes
 import Foundation
 
 public struct SolanaTransactionApiModel: TransactionApiModel {
-    public struct SolanaApprovalEntry: Decodable {
-        let signer: SignerApiModel
-        let message: String
-    }
+    public typealias SolanaApprovalEntry = ApprovalEntry
+    public typealias SolanaSubmittedApprovalEntry = SubmittedApprovalEntry
+    public typealias SolanaApprovals = Approvals
 
-    public struct SolanaSubmittedApprovalEntry: Decodable {
-        let signature: String
-        let submittedAt: Date
-        let signer: SignerApiModel
-        let message: String
-    }
-
-    public struct SolanaApprovals: Decodable {
-        let required: Int?
-        let pending: [SolanaApprovalEntry]
-        let submitted: [SolanaSubmittedApprovalEntry]
-
-        var toDomain: Transaction.Approvals {
-            Transaction.Approvals(
-                pending: pending.map { Transaction.Approvals.Pending(signer: $0.signer.locator, message: $0.message) },
-                submitted: submitted.map {
-                    Transaction.Approvals.Submitted(
-                        signature: $0.signature,
-                        submittedAt: $0.submittedAt,
-                        signer: $0.signer.locator,
-                        message: $0.message
-                    )
-                }
-            )
-        }
-    }
     public struct OnChainData: Decodable {
         public let transaction: String
         public let lastValidBlockHeight: Int
