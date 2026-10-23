@@ -41,8 +41,8 @@ open class Wallet: @unchecked Sendable {
     var signerRegistrationService: SignerRegistrationService
     let signerListService: SignerListService
     var selectedSigner: (any ApprovalSigner)?
-    var selectedQuorum: SignerLocator?
     var selectedRecoveryMethod: RecoveryApprover?
+    var pendingDeviceKey: PendingDeviceKey?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
     var _deviceSignerUnsupported: Bool = false

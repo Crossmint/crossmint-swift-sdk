@@ -28,9 +28,10 @@ final class SignerRegistrationService: Sendable {
             deployImmediately: deployImmediately,
             approver: approver.locator
         )
-        if !prepareOnly {
-            try await approveIfNeeded(registration: registration, signer: approver.signer)
-        }
+        let awaitsOtherMembers = prepareOnly
+            ? false
+            : try await approveIfNeeded(registration: registration, signer: approver.signer)
+        guard prepareOnly || awaitsOtherMembers else { return nil }
         return pendingTransactionId(in: registration)
     }
 
@@ -50,9 +51,10 @@ final class SignerRegistrationService: Sendable {
             deployImmediately: deployImmediately,
             approver: approver.locator
         )
-        if !prepareOnly {
-            try await approveIfNeeded(registration: registration, signer: approver.signer)
-        }
+        let awaitsOtherMembers = prepareOnly
+            ? false
+            : try await approveIfNeeded(registration: registration, signer: approver.signer)
+        guard prepareOnly || awaitsOtherMembers else { return nil }
         return pendingTransactionId(in: registration)
     }
 
@@ -74,7 +76,11 @@ final class SignerRegistrationService: Sendable {
         return await passkeySigner.adminSigner
     }
 
-    func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {
+    @discardableResult
+    func approveIfNeeded(
+        registration: AddDelegatedSignerResponse,
+        signer: any Signer
+    ) async throws(WalletError) -> Bool {
         switch pendingApproval(in: registration) {
         case let .signature(signatureId, pending):
             Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: [
@@ -82,14 +88,16 @@ final class SignerRegistrationService: Sendable {
                 "id": signatureId
             ])
             try await approveSignatureRegistration(signatureId: signatureId, pending: pending, signer: signer)
+            return false
         case let .transaction(transactionId):
             Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: [
                 "route": "transaction",
                 "id": transactionId
             ])
-            try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
+            return try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
         case .notNeeded:
             Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: ["route": "none"])
+            return false
         }
     }
 
@@ -139,7 +147,7 @@ final class SignerRegistrationService: Sendable {
     private func approveRegistrationTransaction(
         transactionId: String,
         signer: any Signer
-    ) async throws(WalletError) {
+    ) async throws(WalletError) -> Bool {
         var waitsOnOtherMembers = false
         do {
             let transaction = try await smartWalletService.transaction(withId: transactionId, chainType: chainType)
@@ -157,33 +165,7 @@ final class SignerRegistrationService: Sendable {
         } catch {
             throw WalletError.walletGeneric("Failed to approve signer registration: \(error)")
         }
-        if waitsOnOtherMembers {
-            try await waitForOtherMembers(transactionId: transactionId)
-        }
-    }
-
-    private func waitForOtherMembers(transactionId: String) async throws(WalletError) {
-        while true {
-            do {
-                try await Task.sleep(nanoseconds: 1_000_000_000)
-            } catch {
-                throw .walletGeneric("The signer registration was cancelled")
-            }
-            let status: TransactionStatus
-            do {
-                status = try await smartWalletService.transaction(withId: transactionId, chainType: chainType).status
-            } catch {
-                throw .walletGeneric("Failed to read the signer registration: \(error.message)")
-            }
-            switch status {
-            case .success:
-                return
-            case .failed:
-                throw .walletGeneric("The signer registration \(transactionId) did not succeed")
-            case .pending, .awaitingApproval:
-                continue
-            }
-        }
+        return waitsOnOtherMembers
     }
 
     private func sign(_ messages: [String], transactionId: String, signer: any Signer) async throws {

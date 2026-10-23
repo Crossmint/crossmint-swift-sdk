@@ -57,7 +57,8 @@ internal struct TransactionCompleted: Sendable {
         TransactionSummary(
             hash: onChain.txId,
             transactionID: id,
-            explorerLink: onChain.explorerLink
+            explorerLink: onChain.explorerLink,
+            status: .success
         )
     }
 }

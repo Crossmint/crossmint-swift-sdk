@@ -117,8 +117,7 @@ extension Wallet {
     ///
     /// - Parameter method: An email, phone, API key or passkey recovery method of the wallet.
     ///   It can also be a member of a quorum recovery method. Then the member approves for the quorum.
-    /// - Parameter quorumLocator: The quorum that the member approves for.
-    ///   Use it when the member belongs to more than one quorum.
+    ///   If it is a member of more than one quorum, name the quorum with the `signer` parameter of each change.
     ///   For a passkey, the SDK selects the passkey in ``recoveryMethods`` that has the `id` you give.
     ///   If `id` is `nil`, the wallet must have only one passkey recovery method.
     ///   The SDK does not create a new passkey.
@@ -132,13 +131,10 @@ extension Wallet {
     /// try await wallet.useRecoveryMethod(.phone("+14155552671"))
     /// let transaction = try await wallet.removeRecoveryMethod(locator: .email("old@example.com"))
     /// ```
-    public func useRecoveryMethod(
-        _ method: SignerConfig,
-        quorumLocator: SignerLocator? = nil
-    ) async throws(WalletError) {
+    public func useRecoveryMethod(_ method: SignerConfig) async throws(WalletError) {
         Logger.smartWallet.info(LogEvents.walletUseRecoveryMethodStart)
         do {
-            let locator = try recoveryMethodLocator(of: method, quorumLocator: quorumLocator)
+            let locator = try recoveryMethodLocator(of: method)
             let signer = try await recoveryMethodSigner(for: method)
             selectedRecoveryMethod = RecoveryApprover(signer: signer, locator: locator)
             Logger.smartWallet.info(LogEvents.walletUseRecoveryMethodSuccess, attributes: [
@@ -152,10 +148,7 @@ extension Wallet {
         }
     }
 
-    private func recoveryMethodLocator(
-        of method: SignerConfig,
-        quorumLocator: SignerLocator?
-    ) throws(WalletError) -> SignerLocator {
+    private func recoveryMethodLocator(of method: SignerConfig) throws(WalletError) -> SignerLocator {
         let candidate: String? = switch method {
         case .apiKey: config.recoverySigner(ofType: ApiKeySignerData.self)?.locator
         case .passkey(_, _, let id): try recoveryPasskey(id: id)?.locator
@@ -168,10 +161,8 @@ extension Wallet {
         guard let candidate, let candidateLocator = try? SignerLocator(from: candidate) else {
             throw notRecoveryMethod
         }
-        guard let recoveryLocator = try config.recoveryRole(of: candidateLocator, explicit: quorumLocator) else {
-            throw notRecoveryMethod
-        }
-        return recoveryLocator
+        guard config.canApproveRecoveryChanges(candidateLocator) else { throw notRecoveryMethod }
+        return candidateLocator
     }
 
     private func recoveryMethodSigner(for method: SignerConfig) async throws(WalletError) -> any Signer {
@@ -283,11 +274,12 @@ extension Wallet {
     }
 
     private func recordRemovedRecoveryMethod(_ locator: SignerLocator) {
-        if selectedRecoveryMethod?.locator == locator {
+        let remaining = config.recoveryMethodsWithStatus.filter { $0.signer.locator != locator.value }
+        if let first = remaining.first {
+            config = WalletConfig(recovery: first, others: Array(remaining.dropFirst()))
+        }
+        if let selected = selectedRecoveryMethod?.locator, !config.canApproveRecoveryChanges(selected) {
             selectedRecoveryMethod = nil
         }
-        let remaining = config.recoveryMethodsWithStatus.filter { $0.signer.locator != locator.value }
-        guard let first = remaining.first else { return }
-        config = WalletConfig(recovery: first, others: Array(remaining.dropFirst()))
     }
 }
