@@ -94,8 +94,10 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         }
 
         let delegatedLocators = walletApiModel.config.signers?.map(\.locator) ?? []
+        let recoveryConfig = walletApiModel.config.toDomain
+        let signableRecovery = recoveryConfig.recoveryMethods.first { !($0 is QuorumSignerData) }
         let defaults = await SignerFactory.defaults(
-            recovery: walletApiModel.config.toDomain.recovery,
+            recovery: signableRecovery ?? recoveryConfig.recovery,
             delegated: deviceSignerStorage == nil ? delegatedLocators : [],
             chainType: walletApiModel.chainType,
             passkeyHost: options?.passkeyHost

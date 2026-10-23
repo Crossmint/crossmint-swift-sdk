@@ -471,6 +471,13 @@ struct WalletLoadingTests {
         #expect(signer.adminSigner.address == "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb")
     }
 
+    @Test func buildsTheSignerFromTheFirstRecoveryMethodThatIsNotAQuorum() async throws {
+        let wallet = try await loadWallet(fixture: "WalletStellarQuorumThenEmail", chain: "stellar")
+
+        let signer = try #require(wallet.signer as? StellarEmailSigner)
+        #expect(signer.email == "carol@example.com")
+    }
+
     @Test func leavesTheSignerUnsetForAPasskeyRecoveryMethod() async throws {
         let wallet = try await loadWallet(fixture: "WalletPasskey", chain: "base-sepolia")
 
