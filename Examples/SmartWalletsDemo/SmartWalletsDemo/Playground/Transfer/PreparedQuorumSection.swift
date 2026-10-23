@@ -13,7 +13,7 @@ struct PreparedQuorumSection: View {
 
     var body: some View {
         Section {
-            Label("Prepared for the quorum", systemImage: "person.3")
+            Label("Waiting for the quorum", systemImage: "person.3")
                 .fontWeight(.medium)
                 .accessibilityIdentifier(labelIdentifier)
             if let transaction {

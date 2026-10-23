@@ -13,6 +13,7 @@ import TestsUtils
 @testable import Wallet
 
 private let SIGNER_QUORUM = SignerLocator.quorum(id: "0b8e7d6c-5a4f-4e3d-8c2b-1a0f9e8d7c6b")
+private let RECIPIENT = "CANKOZR2XAFXTUT7JX6ZPKKDNOQQ2XS5RGVC6ZU57VLDNDYRJPXUK2SJ"
 
 private struct SentSignerConfig: Decodable {
     struct Entry: Decodable {
@@ -83,17 +84,34 @@ struct QuorumAsSignerTests {
             bundle: Bundle.module
         )
 
+        walletService.transferTokenResult = try GetFromFile.getModelFrom(
+            fileName: "StellarTransactionAwaitingQuorum",
+            bundle: Bundle.module
+        ) as StellarTransactionApiModel
         try await wallet.addSigner(
             .quorum(threshold: 2, members: [.email("carol@example.com"), .email("dave@example.com")])
         )
         try await wallet.useSigner(.email("carol@example.com"))
+        _ = try await wallet.send(RECIPIENT, "stellar:usdc", 1, prepareOnly: true)
 
         let sent = walletService.lastAddSignerEntry?.signer
         #expect(sent == .quorum(threshold: 2, members: [
             .locator(.email("carol@example.com")),
             .locator(.email("dave@example.com"))
         ]))
-        #expect(wallet.selectedQuorum == SIGNER_QUORUM)
+        #expect(walletService.transferTokenLastRequest?.signer == SIGNER_QUORUM.value)
+    }
+
+    @Test func acceptsAMemberOfAQuorumSignerAddedSinceTheWalletLoaded() async throws {
+        let wallet = try makeWallet(fileName: "WalletStellarRecoveryMethods", signer: nil)
+        walletService.getWalletResult = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorum",
+            bundle: Bundle.module
+        )
+
+        try await wallet.useSigner(.email("carol@example.com"))
+
+        #expect(await wallet.selectedSigner?.locator == .email("carol@example.com"))
     }
 
     @Test func rejectsAQuorumSignerWithADeviceMemberBeforeCallingTheApi() async throws {

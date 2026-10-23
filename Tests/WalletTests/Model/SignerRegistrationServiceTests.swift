@@ -219,18 +219,12 @@ struct SignerRegistrationTransactionApprovalTests {
     }
 
     @Test
-    func waitsUntilTheOtherQuorumMembersApproveTheRegistration() async throws {
+    func reportsThatOtherQuorumMembersMustApproveTheRegistration() async throws {
         let walletService = MockSmartWalletService()
-        let awaitingQuorum: StellarTransactionApiModel = try GetFromFile.getModelFrom(
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
             fileName: "StellarTransactionAwaitingQuorum",
             bundle: Bundle.module
-        )
-        let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "RemoveSignerTransactionSuccess",
-            bundle: Bundle.module
-        )
-        walletService.fetchTransactionResults = [awaitingQuorum, awaitingQuorum]
-        walletService.fetchTransactionResult = success
+        ) as StellarTransactionApiModel
         let outsider = MockSigner(email: "carol@example.com")
         let service = makeSolanaService(walletService: walletService)
 
@@ -238,9 +232,9 @@ struct SignerRegistrationTransactionApprovalTests {
             chains: nil,
             transaction: RegistrationTransaction(id: "registration-tx-1")
         )
-        try await service.approveIfNeeded(registration: registration, signer: outsider)
+        let awaitsOtherMembers = try await service.approveIfNeeded(registration: registration, signer: outsider)
 
-        #expect(walletService.fetchTransactionResults.isEmpty)
+        #expect(awaitsOtherMembers)
         #expect(walletService.signTransactionCallCount == 0)
     }
 

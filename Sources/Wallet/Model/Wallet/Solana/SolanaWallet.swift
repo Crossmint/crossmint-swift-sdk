@@ -82,15 +82,19 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
     /// ```
     public func sendTransaction(
         transaction: String,
+        signer: SignerLocator? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.solanaSendTransactionStart)
 
         guard let tx = try await super.sendTransaction(
-            CreateSolanaTransactionRequest(transaction: transaction, signer: try await transactionSignerLocator()),
+            CreateSolanaTransactionRequest(
+                transaction: transaction,
+                signer: try await transactionSignerLocator(explicit: signer)
+            ),
             prepareOnly: prepareOnly
         ) else { throw .transactionGeneric("Unknown error") }
-        if prepareOnly { return tx.preparedSummary }
+        if prepareOnly || tx.awaitsQuorumMembers { return tx.pendingSummary }
 
         Logger.smartWallet.info(LogEvents.solanaSendTransactionPrepared, attributes: [
             "transactionId": tx.id

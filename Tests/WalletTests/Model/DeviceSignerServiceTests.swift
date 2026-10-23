@@ -90,14 +90,38 @@ struct DeviceSignerServiceTests {
         let storage = MockDeviceSignerKeyStorage()
         let service = makeSolanaService(walletService: walletService)
 
-        let pendingId = try await service.register(
+        let pending = try await service.register(
             storage: storage,
             approver: RecoveryApprover(signer: MockSigner(email: "carol@example.com"), locator: nil),
             prepareOnly: true
         )
 
-        #expect(pendingId == "registration-tx-1")
+        #expect(pending?.transactionId == "registration-tx-1")
         #expect(walletService.signTransactionCallCount == 0)
+        #expect(storage.deletePendingKeyCallCount == 0)
+        #expect(await storage.getKey(address: walletAddress) == nil)
+    }
+
+    @Test
+    func keepsThePendingKeyWhileOtherQuorumMembersMustApprove() async throws {
+        let walletService = MockSmartWalletService()
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
+        )
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "StellarTransactionAwaitingQuorum",
+            bundle: Bundle.module
+        ) as StellarTransactionApiModel
+        let storage = MockDeviceSignerKeyStorage()
+        let service = makeSolanaService(walletService: walletService)
+
+        let pending = try await service.register(
+            storage: storage,
+            approver: RecoveryApprover(signer: MockSigner(email: "carol@example.com"), locator: nil)
+        )
+
+        #expect(pending?.transactionId == "registration-tx-1")
         #expect(storage.deletePendingKeyCallCount == 0)
         #expect(await storage.getKey(address: walletAddress) == nil)
     }
