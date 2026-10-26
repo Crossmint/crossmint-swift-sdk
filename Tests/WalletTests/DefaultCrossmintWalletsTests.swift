@@ -485,24 +485,33 @@ struct WalletLoadingTests {
     }
 
     @Test(arguments: [
-        ("WalletPasskey", "base-sepolia", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc"),
-        ("WalletStellarPasskey", "stellar", "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37", "stellar:usdc")
+        ("WalletPasskey", "base-sepolia", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "base-sepolia:usdc", nil),
+        (
+            "WalletStellarPasskey",
+            "stellar",
+            "GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37",
+            "stellar:usdc",
+            "passkey:v-Qxh--c2nOkUyBYJHRaXCwSOJw"
+        )
     ])
     func sendsWithAPasskeyRecoveryMethodWhenThePasskeyHostIsSet(
         fixture: String,
         chain: String,
         recipient: String,
-        token: String
+        token: String,
+        expectedSigner: String?
     ) async throws {
         let wallet = try await loadWallet(
             fixture: fixture,
             chain: chain,
             options: WalletOptions(passkeyHost: "example.com")
         )
+        #expect(wallet.signer is PasskeySigner)
 
         _ = try? await wallet.send(recipient, token, 1)
 
-        #expect(walletService.transferTokenCallCount == 1)
+        let request = try #require(walletService.transferTokenLastRequest)
+        #expect(request.signer == expectedSigner)
     }
 
     @Test func rejectsSendingBeforeCreatingTheTransactionWhenNoSignerIsAvailable() async throws {

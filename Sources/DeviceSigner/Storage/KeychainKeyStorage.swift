@@ -18,15 +18,21 @@ import Security
 /// Secure Enclave is available and falls back to this implementation when it is not.
 public final class KeychainKeyStorage: DeviceSignerKeyStorage {
     private let biometricPolicy: BiometricPolicy
-    private let keychain = DeviceSignerKeychainStorage()
+    private let keychain: DeviceSignerKeychainStorage
 
     /// Creates a Keychain key storage.
-    public init() {
-        self.biometricPolicy = .none
+    public convenience init() {
+        self.init(biometricPolicy: .none)
     }
 
     init(biometricPolicy: BiometricPolicy) {
         self.biometricPolicy = biometricPolicy
+        self.keychain = DeviceSignerKeychainStorage()
+    }
+
+    package init(store: any KeychainItemStore) {
+        self.biometricPolicy = .none
+        self.keychain = DeviceSignerKeychainStorage(store: store)
     }
 
     public func isAvailable() -> Bool {
