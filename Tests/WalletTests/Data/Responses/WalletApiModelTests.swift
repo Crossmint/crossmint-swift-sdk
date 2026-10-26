@@ -168,6 +168,15 @@ struct WalletApiModelTest {
         #expect(wallet.config.toDomain.recoveryMethodsWithStatus.map(\.status) == [.active, .pending, .unknown])
     }
 
+    @Test func decodesAFailedRecoveryMethodStatus() async throws {
+        let wallet: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletSolanaFailedRecoveryMethod",
+            bundle: Bundle.module
+        )
+
+        #expect(wallet.config.toDomain.recoveryMethodsWithStatus.map(\.status) == [.active, .failed])
+    }
+
     @Test(
         "Will fall back to the admin signer when the recovery list is absent"
     )

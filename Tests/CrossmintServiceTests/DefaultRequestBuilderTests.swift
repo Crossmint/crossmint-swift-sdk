@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import CrossmintService
 
@@ -21,6 +22,18 @@ struct DefaultRequestBuilderTest {
         )
 
         #expect(request.url?.absoluteString == "https://www.crossmint.com/api/x/y/z?")
+    }
+
+    @Test func usesTheBaseURLOverrideInsteadOfTheKeyEnvironment() throws {
+        let override = try #require(URL(string: "https://preview.crossmint.com/api"))
+        let request = try DefaultRequestBuilder(baseURL: override).getRequest(
+            forEndpoint: .init(path: "/x/y/z", method: .get),
+            withKey: try ApiKey(key: "ck_development_abc"),
+            andAppIdentifier: "App-Identifier"
+        )
+
+        #expect(request.url?.absoluteString == "https://preview.crossmint.com/api/x/y/z?")
+        #expect(request.value(forHTTPHeaderField: "X-API-KEY") == "ck_development_abc")
     }
 
     @Test("Handle path with query items")

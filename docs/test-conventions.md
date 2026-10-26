@@ -8,7 +8,7 @@
 
 - **Consistency over preference** — one way to do things, everywhere.
 - **Readability as documentation** — a test name should explain itself without reading the code.
-- **Scalability** — must support unit, integration, and staging tests as the SDK grows.
+- **Scalability** — must support unit and integration tests as the SDK grows.
 - **Tests live with their module** — each test target mirrors its source module.
 - **Mock at the boundary** — mock protocols, not concrete implementations.
 
@@ -29,7 +29,7 @@ Tests/
       <FixtureName>.json            ← JSON fixtures for decode tests
 ```
 
-Staging integration tests live inside `CrossmintClientTests/` alongside unit tests and are identified by `(STAG)` in their `@Test` display name.
+Tests against the real API will live in an `IntegrationTests` target (QA-109); until it exists there is no real-API test in this repo, and everything under the existing test targets runs offline.
 
 **Key paths:**
 
@@ -39,7 +39,7 @@ Staging integration tests live inside `CrossmintClientTests/` alongside unit tes
 | Mock | `Tests/<Module>Tests/Mocks/Mock<Protocol>.swift` |
 | Helper | `Tests/<Module>Tests/Helpers/<Feature>Helpers.swift` |
 | JSON fixture | `Tests/<Module>Tests/Resources/<Fixture>.json` |
-| Staging tests | `Tests/CrossmintClientTests/StagingIntegrationTests.swift` |
+| Network stub | `Sources/TestsUtils/HTTPFixtureRouter.swift` |
 
 ---
 
@@ -149,9 +149,6 @@ import Testing
 
 extension Tag {
     @Tag static var unit: Self
-    @Tag static var staging: Self
-    @Tag static var critical: Self
-    @Tag static var flaky: Self
 }
 ```
 
@@ -159,23 +156,13 @@ extension Tag {
 
 ```swift
 // Good — tag on @Suite applies to all tests inside
-@Suite("Wallet Creation", .tags(.critical))
+@Suite("Wallet Creation", .tags(.unit))
 struct WalletCreationTests { ... }
-
-// Good — tag on individual test when it differs from the suite
-@Suite("Signer Management")
-struct SignerManagementTests {
-    @Test(.tags(.staging))
-    func signerIsRegisteredOnStaging() async throws { }
-}
 ```
 
 | Tag | Meaning |
 |-----|---------|
 | `.unit` | Pure unit test — no network, no simulator I/O |
-| `.staging` | Requires a live `staging.crossmint.com` connection |
-| `.critical` | Must pass on every PR |
-| `.flaky` | Temporarily skipped in CI — must include a `TODO` with a ticket reference |
 
 **Disabling flaky tests:**
 
@@ -188,7 +175,7 @@ func sendsOtpUnderLoad() async throws { }
 
 ```bash
 # Swift 6.1+ tag filter
-swift test --filter tag:staging
+swift test --filter tag:unit
 
 # Or control via the xctestplan — see CrossmintSDK.xctestplan
 ```
@@ -349,51 +336,9 @@ func parsesKnownEnvironmentPrefix(prefix: ApiKeyEnvironmentPrefix) throws {
 
 ---
 
-## 11. Staging Integration Tests
+## 11. Network
 
-Staging tests make real network calls against `staging.crossmint.com`. They live in `StagingIntegrationTests.swift` and are identified by `(STAG)` in the `@Test` display name.
-
-### Shared context actor
-
-Use a shared `actor` to run the auth + wallet-creation flow only once per test session:
-
-```swift
-actor StagingTestContext {
-    private var _wallets: (evm: EVMWallet, solana: SolanaWallet)?
-
-    func getOrInitializeWallets() async throws -> (evm: EVMWallet, solana: SolanaWallet) {
-        if let w = _wallets { return w }
-        let w = try await authenticateAndCreateWallets()
-        _wallets = w
-        return w
-    }
-}
-
-private let stagingCtx = StagingTestContext()
-```
-
-### OTP via Mailnesia
-
-```swift
-let testEmail = "crossmint-swift-sdk-test@mailnesia.com"
-
-// Snapshot existing GUIDs before triggering OTP
-let before = try await MailnesiaReader.fetchGUIDs(inbox: "crossmint-swift-sdk-test")
-
-// Send OTP
-_ = try await authManager.sendEmailOtp(email: testEmail)
-
-// Poll for a new GUID and extract the 6-digit code
-let otp = try await MailnesiaReader.waitForNewOTP(
-    inbox: "crossmint-swift-sdk-test",
-    knownGUIDs: before
-)
-```
-
-**Rules:**
-- Always use GUID-based detection — Mailnesia RSS items are **not** sorted chronologically.
-- Staging sends two emails per OTP (HTML + plain text); check all new GUIDs for the code.
-- Mark every staging test `(STAG)` in its display name and tag it `.staging`.
+Unit tests never reach the network. Build services with `HTTPFixtureRouter().client` from `TestsUtils` and stub each route the test needs; an unstubbed request fails naming its method and URL. `NetworkKillSwitch` (installed by every router) fails anything that still reaches `URLSession.shared`. Tests against the real API will live in an `IntegrationTests` target (QA-109), not behind a tag.
 
 ---
 
@@ -437,7 +382,7 @@ When adding or migrating a test file:
 - [ ] JSON fixtures in `Resources/`, registered in `Package.swift`
 - [ ] Constants named `UPPER_SNAKE_CASE`
 - [ ] Tags applied at `@Suite` level where possible
-- [ ] Staging tests marked `(STAG)` in display name and tagged `.staging`
+- [ ] Network stubbed through `HTTPFixtureRouter`; no inline `HTTPClient(fetch:)`
 - [ ] No `@Suite(.serialized)` — replaced with actor or Task coordination
 
 ---
@@ -456,6 +401,6 @@ When adding or migrating a test file:
 | Mock location | `Tests/<Module>Tests/Mocks/Mock<Protocol>.swift` |
 | Fixture loading | `GetFromFile.getModelFrom(fileName:bundle:.module)` |
 | No verb prefixes | `sendsOtp()` not `shouldSendOtp()` / `willSendOtp()` |
-| Tags | `.tags(.unit)` `.tags(.staging)` `.tags(.critical)` |
-| Staging marker | `(STAG)` suffix in `@Test("... (STAG)")` display name |
+| Tags | `.tags(.unit)` |
+| Network stub | `HTTPFixtureRouter().client` |
 | Avoid | `@Suite(.serialized)`, `XCTest`, `class` test types |
