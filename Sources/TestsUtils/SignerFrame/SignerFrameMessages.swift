@@ -1,13 +1,13 @@
 import Foundation
 import Web
 
-enum CrossmintTEETestHelpers {
+package enum SignerFrameMessages {
 
-    static func createHandshakeRequest(verificationId: String = "test123") -> HandshakeRequest {
+    package static func createHandshakeRequest(verificationId: String = "test123") -> HandshakeRequest {
         HandshakeRequest(requestVerificationId: verificationId)
     }
 
-    static func createHandshakeResponse(verificationId: String = "test123") -> HandshakeResponse {
+    package static func createHandshakeResponse(verificationId: String = "test123") -> HandshakeResponse {
         let json = """
         {"event":"handshakeResponse","data":{"requestVerificationId":"\(verificationId)"}}
         """
@@ -16,11 +16,11 @@ enum CrossmintTEETestHelpers {
         return try! JSONDecoder().decode(HandshakeResponse.self, from: data)
     }
 
-    static func createHandshakeComplete(verificationId: String = "test123") -> HandshakeComplete {
+    package static func createHandshakeComplete(verificationId: String = "test123") -> HandshakeComplete {
         HandshakeComplete(requestVerificationId: verificationId)
     }
 
-    static func createGetStatusResponse(
+    package static func createGetStatusResponse(
         status: ResponseStatus = .success,
         signerStatus: SignerStatus? = .ready,
         errorMessage: String? = nil
@@ -37,7 +37,7 @@ enum CrossmintTEETestHelpers {
         return try! JSONDecoder().decode(GetStatusResponse.self, from: data)
     }
 
-    static func createStartOnboardingResponse(
+    package static func createStartOnboardingResponse(
         status: ResponseStatus = .success,
         errorMessage: String? = nil
     ) -> StartOnboardingResponse {
@@ -52,7 +52,7 @@ enum CrossmintTEETestHelpers {
         return try! JSONDecoder().decode(StartOnboardingResponse.self, from: data)
     }
 
-    static func createCompleteOnboardingResponse(
+    package static func createCompleteOnboardingResponse(
         status: ResponseStatus = .success,
         errorMessage: String? = nil
     ) -> CompleteOnboardingResponse {
@@ -67,7 +67,7 @@ enum CrossmintTEETestHelpers {
         return try! JSONDecoder().decode(CompleteOnboardingResponse.self, from: data)
     }
 
-    static func createNonCustodialSignResponse(
+    package static func createNonCustodialSignResponse(
         signature: String = "0xabcdef123456",
         status: ResponseStatus = .success,
         errorMessage: String? = nil
@@ -86,11 +86,11 @@ enum CrossmintTEETestHelpers {
         return try! JSONDecoder().decode(NonCustodialSignResponse.self, from: data)
     }
 
-    static func createTestJWT() -> String {
+    package static func createTestJWT() -> String {
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20ifQ.test"
     }
 
-    static func createTestTransaction() -> String {
+    package static func createTestTransaction() -> String {
         "0x52769994aa43c041dad4d211d584bef75e03b318dc8d34a449f815aeb50b99c8"
     }
 }

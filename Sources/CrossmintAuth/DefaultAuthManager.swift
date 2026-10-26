@@ -1,5 +1,6 @@
-import Logger
 import CrossmintService
+import Http
+import Logger
 import SecureStorage
 import Utils
 
@@ -62,13 +63,17 @@ public actor CrossmintAuthManager: AuthManager {
     }
 
     public init(apiKey apiKeyString: String) throws {
+        try self.init(apiKey: apiKeyString, httpClient: .live)
+    }
+
+    package init(apiKey apiKeyString: String, httpClient: HTTPClient) throws {
         let apiKey = try ApiKey(key: apiKeyString)
         guard let bundleId = Bundle.main.bundleIdentifier else {
             throw Errors.noBundleIdFound
         }
 
         let secureStorage = KeychainSecureStorage(bundleId: bundleId)
-        let crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId)
+        let crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId, httpClient: httpClient)
         self.init(
             authService: DefaultAuthService(crossmintService: crossmintService),
             secureStorage: secureStorage
@@ -205,9 +210,14 @@ public actor CrossmintAuthManager: AuthManager {
             Task {
                 // swiftlint:disable:next line_length
                 guard case let .authenticationStatus(.authenticated(_, _, oneTimeSecret)) = await self?.otpAuthenticationStatus else {
-                    throw AuthError.generic("User is not authenticated")
+                    Logger.auth.debug("Skipping JWT refresh because the user is not authenticated")
+                    return
                 }
-                _ = try await self?.refreshJWT(oneTimeSecret)
+                do {
+                    _ = try await self?.refreshJWT(oneTimeSecret)
+                } catch {
+                    Logger.auth.error("JWT refresh failed: \(error.localizedDescription)")
+                }
             }
         }
 

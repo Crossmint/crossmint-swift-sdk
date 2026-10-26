@@ -76,13 +76,13 @@ struct OTPSignInView: View {
         guard !email.isEmpty else { return }
         isSigningIn = true
         Task {
-            do {
+            do throws(AuthError) {
                 let otpRequest = try await CrossmintSDK.shared.authClient.sendOTP(to: email)
                 isSigningIn = false
                 pendingOTPRequest = otpRequest
-            } catch let authError as AuthError {
+            } catch {
                 isSigningIn = false
-                alertMessage = authError.message
+                alertMessage = error.message
                 showAlert = true
             }
         }

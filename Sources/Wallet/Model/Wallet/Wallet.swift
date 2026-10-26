@@ -45,6 +45,7 @@ open class Wallet: @unchecked Sendable {
     var pendingDeviceKey: PendingDeviceKey?
     var _needsRecovery: Bool = false
     var _deviceSignerApproved: Bool = false
+    var _deviceKeyLost: Bool = false
     var _deviceSignerUnsupported: Bool = false
     var signerInitializationTask: Task<Void, Never>?
 

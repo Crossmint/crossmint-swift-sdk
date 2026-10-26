@@ -18,16 +18,22 @@ import Security
 /// The `DeviceSignerKeyStorage.default` property selects this implementation automatically
 /// when Secure Enclave is available, and falls back to ``KeychainKeyStorage`` when it is not.
 public final class SecureEnclaveKeyStorage: DeviceSignerKeyStorage {
-    private let keychain = DeviceSignerKeychainStorage()
+    private let keychain: DeviceSignerKeychainStorage
     private let biometricPolicy: BiometricPolicy
 
     /// Creates a Secure Enclave key storage.
-    public init() {
-        self.biometricPolicy = .none
+    public convenience init() {
+        self.init(biometricPolicy: .none)
     }
 
     init(biometricPolicy: BiometricPolicy) {
         self.biometricPolicy = biometricPolicy
+        self.keychain = DeviceSignerKeychainStorage()
+    }
+
+    package init(store: any KeychainItemStore) {
+        self.biometricPolicy = .none
+        self.keychain = DeviceSignerKeychainStorage(store: store)
     }
 
     public func isAvailable() -> Bool {

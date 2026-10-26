@@ -9,6 +9,7 @@ import CrossmintAuth
 import CrossmintCommonTypes
 import Foundation
 import Testing
+import TestsUtils
 @testable import Web
 
 @Suite("CrossmintTEE Onboarding", .tags(.unit))
@@ -31,7 +32,7 @@ struct CrossmintTEEOnboardingTests {
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature456")
 
-        let transaction = CrossmintTEETestHelpers.createTestTransaction()
+        let transaction = SignerFrameMessages.createTestTransaction()
         let signTask = Task {
             try await fixture.signTransaction(transaction: transaction)
         }
@@ -56,7 +57,7 @@ struct CrossmintTEEOnboardingTests {
         fixture.configureOnboardingFlow()
 
         let signTask = Task {
-            try await fixture.signTransaction(transaction: CrossmintTEETestHelpers.createTestTransaction())
+            try await fixture.signTransaction(transaction: SignerFrameMessages.createTestTransaction())
         }
 
         await fixture.waitForOTPRequired()
@@ -74,19 +75,19 @@ struct CrossmintTEEOnboardingTests {
         try await fixture.setupHandshake()
 
         fixture.configureNewDevice()
-        let startOnboardingResponse = CrossmintTEETestHelpers.createStartOnboardingResponse()
+        let startOnboardingResponse = SignerFrameMessages.createStartOnboardingResponse()
         fixture.webProxy.configureResponse(for: StartOnboardingResponse.self, response: startOnboardingResponse)
         fixture.configureSignResponse(signature: "0xsignature_reonboard")
 
         let signTask = Task {
-            try await fixture.signTransaction(transaction: CrossmintTEETestHelpers.createTestTransaction())
+            try await fixture.signTransaction(transaction: SignerFrameMessages.createTestTransaction())
         }
 
         await fixture.waitForOTPRequired()
         fixture.tee.provideOTP("stale-otp")
 
         await fixture.waitForOTPRequired()
-        let completeOnboardingResponse = CrossmintTEETestHelpers.createCompleteOnboardingResponse()
+        let completeOnboardingResponse = SignerFrameMessages.createCompleteOnboardingResponse()
         fixture.webProxy.configureResponse(
             for: CompleteOnboardingResponse.self,
             response: completeOnboardingResponse
@@ -103,14 +104,14 @@ struct CrossmintTEEOnboardingTests {
         let fixture = TEETestFixture(identity: .phone("+15551234567", channel: .whatsapp))
         await fixture.setupAuthentication()
 
-        let handshakeResponse = CrossmintTEETestHelpers.createHandshakeResponse(verificationId: "test123")
+        let handshakeResponse = SignerFrameMessages.createHandshakeResponse(verificationId: "test123")
         fixture.webProxy.configureResponse(for: HandshakeResponse.self, response: handshakeResponse)
         fixture.configureNewDevice()
         fixture.configureOnboardingFlow()
         fixture.configureSignResponse(signature: "0xsignature456")
 
         let signTask = Task {
-            try await fixture.signTransaction(transaction: CrossmintTEETestHelpers.createTestTransaction())
+            try await fixture.signTransaction(transaction: SignerFrameMessages.createTestTransaction())
         }
 
         await fixture.waitForOTPRequired()
