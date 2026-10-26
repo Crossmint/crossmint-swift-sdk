@@ -28,6 +28,16 @@ struct ApiKeyTest {
     }
 
     @Test(
+        "Will throw when the API key has a prefix but no environment",
+        arguments: ["ck_", "sk_", "ck__", "sk_ "]
+    )
+    func rejectsAnApiKeyWithoutAnEnvironment(key: String) async throws {
+        #expect(throws: ApiKey.Error.invalidEnviromentKey) {
+            try ApiKey(key: key)
+        }
+    }
+
+    @Test(
         "Will extract the expected environment from the API key",
         arguments: ApiKeyEnvironmentPrefix.allCases
     )

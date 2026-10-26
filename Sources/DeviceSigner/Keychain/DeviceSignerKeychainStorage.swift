@@ -5,7 +5,7 @@ import Security
 
 private let logger = Logger(subsystem: "com.crossmint.devicesigner", category: "KeychainStorage")
 
-protocol KeychainItemStore: Sendable {
+package protocol KeychainItemStore: Sendable {
     func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError)
     func load(tag: String, prompt: String?, authContext: LAContext?) -> Data?
     func delete(tag: String) throws(DeviceSignerError)
@@ -88,13 +88,17 @@ struct SystemKeychainItemStore: KeychainItemStore {
     }
 }
 
-struct DeviceSignerKeychainStorage {
-    static let pendingKeyPrefix = "crossmint.device.pending."
-    static let walletKeyPrefix = "crossmint.device.wallet."
+package struct DeviceSignerKeychainStorage {
+    package static let pendingKeyPrefix = "crossmint.device.pending."
+    package static let walletKeyPrefix = "crossmint.device.wallet."
 
     private let store: KeychainItemStore
 
-    init(store: KeychainItemStore = SystemKeychainItemStore()) {
+    init() {
+        self.init(store: SystemKeychainItemStore())
+    }
+
+    package init(store: any KeychainItemStore) {
         self.store = store
     }
 

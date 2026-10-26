@@ -9,6 +9,7 @@ import CrossmintAuth
 import CrossmintCommonTypes
 import Foundation
 import Testing
+import TestsUtils
 @testable import Web
 
 @Suite("CrossmintTEE Concurrent Requests", .tags(.unit))
@@ -18,12 +19,12 @@ struct CrossmintTEEConcurrentRequestsTests {
         let fixture = TEETestFixture()
         await fixture.setupAuthentication()
 
-        let handshakeResponse = CrossmintTEETestHelpers.createHandshakeResponse(verificationId: "test123")
+        let handshakeResponse = SignerFrameMessages.createHandshakeResponse(verificationId: "test123")
         fixture.webProxy.holdResponse(for: HandshakeResponse.self, response: handshakeResponse)
         fixture.configureReadyDevice()
         fixture.configureSignResponse(signature: "0xsignature_first")
 
-        let transaction = CrossmintTEETestHelpers.createTestTransaction()
+        let transaction = SignerFrameMessages.createTestTransaction()
         let firstTask = Task {
             try await fixture.signTransaction(transaction: transaction)
         }
@@ -45,12 +46,12 @@ struct CrossmintTEEConcurrentRequestsTests {
         let fixture = TEETestFixture()
         await fixture.setupAuthentication()
 
-        let handshakeResponse = CrossmintTEETestHelpers.createHandshakeResponse(verificationId: "test123")
+        let handshakeResponse = SignerFrameMessages.createHandshakeResponse(verificationId: "test123")
         fixture.webProxy.holdResponse(for: HandshakeResponse.self, response: handshakeResponse)
         fixture.configureReadyDevice()
         fixture.configureSignResponse(signature: "0xsignature_all")
 
-        let transaction = CrossmintTEETestHelpers.createTestTransaction()
+        let transaction = SignerFrameMessages.createTestTransaction()
         let signTasks = (0..<3).map { _ in
             Task {
                 try await fixture.signTransaction(transaction: transaction)

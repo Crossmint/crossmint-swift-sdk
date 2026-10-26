@@ -426,6 +426,9 @@ public enum LogEvents {
     /// Remove signer failed
     public static let walletRemoveSignerError = "wallet.removeSigner.error"
 
+    /// Remove signer succeeded but the device key could not be deleted from the local store
+    public static let walletRemoveSignerLocalKeyNotDeleted = "wallet.removeSigner.localKeyNotDeleted"
+
     /// Starting add recovery method
     public static let walletAddRecoveryMethodStart = "wallet.addRecoveryMethod.start"
 
@@ -502,6 +505,12 @@ public enum LogEvents {
 
     /// Recover failed
     public static let walletRecoverError = "wallet.recover.error"
+
+    /// The device key this wallet trusted stopped being usable; recovery is needed again
+    public static let walletDeviceKeyLost = "wallet.recover.deviceKeyLost"
+
+    /// Recover skipped — the device key reads again, so it was only unreadable, not lost
+    public static let walletRecoverDeviceKeyReadable = "wallet.recover.deviceKeyReadable"
 
     /// Recover fell back to the recovery signer — the wallet's provider does not support device signers
     public static let walletRecoverDeviceSignerUnsupported = "wallet.recover.deviceSignerUnsupported"

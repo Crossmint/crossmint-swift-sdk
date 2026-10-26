@@ -81,6 +81,11 @@ extension Wallet {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
+        if _deviceKeyLost, await storage.getKey(address: address) != nil {
+            Logger.smartWallet.info(LogEvents.walletRecoverDeviceKeyReadable)
+            deviceKeyIsUsable()
+            return nil
+        }
         if let pending = try await pendingDeviceRegistration() {
             return pending
         }
@@ -134,8 +139,7 @@ extension Wallet {
             return
         }
         pendingDeviceKey = nil
-        _needsRecovery = false
-        _deviceSignerApproved = true
+        deviceKeyIsUsable()
         if let replacedSigner = pending.replacedSigner {
             await removeStaleDeviceSigner(replacedSigner)
         }
@@ -339,14 +343,40 @@ extension Wallet {
 
     internal func selectedSignerLocator() async throws(SignerError) -> SignerLocator? {
         guard let selectedSigner else { return nil }
-        guard let locator = await selectedSigner.locator else { throw .device(.keyNotFound) }
+        guard let locator = await selectedSigner.locator else {
+            if selectedSigner is DeviceSigner { markDeviceKeyLost(.keyNotFound) }
+            throw .device(.keyNotFound)
+        }
         return locator
     }
 
     internal func makeSignRequest(for locator: String, message: String) async throws(SignerError) -> SignRequestApi {
-        let signer = try await approvalSigner(for: locator)
-        try await signer.initialize(smartWalletService)
-        return SignRequestApi(approvals: try await signer.approvals(for: message, on: chain.chainType))
+        do {
+            let signer = try await approvalSigner(for: locator)
+            try await signer.initialize(smartWalletService)
+            return SignRequestApi(approvals: try await signer.approvals(for: message, on: chain.chainType))
+        } catch {
+            if case .device(let deviceError) = error, deviceError.isKeyLoss {
+                markDeviceKeyLost(deviceError)
+            }
+            throw error
+        }
+    }
+
+    /// The key this wallet trusted is not usable right now, so the next ``recover()`` (or the next
+    /// operation, through `preAuthIfNeeded`) re-registers one, unless the key reads again by then:
+    /// a locked device reads as missing too.
+    private func markDeviceKeyLost(_ error: DeviceSignerError) {
+        Logger.smartWallet.warning(LogEvents.walletDeviceKeyLost, attributes: ["error": "\(error)"])
+        _needsRecovery = true
+        _deviceSignerApproved = false
+        _deviceKeyLost = true
+    }
+
+    private func deviceKeyIsUsable() {
+        _needsRecovery = false
+        _deviceSignerApproved = true
+        _deviceKeyLost = false
     }
 
     internal func preAuthIfNeeded() async throws(WalletError) {
@@ -497,8 +527,7 @@ extension Wallet {
             return pending.transactionId
         }
         guard !prepareOnly else { return nil }
-        _needsRecovery = false
-        _deviceSignerApproved = true
+        deviceKeyIsUsable()
         return nil
     }
 
