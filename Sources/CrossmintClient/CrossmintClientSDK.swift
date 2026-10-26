@@ -2,6 +2,7 @@
 import CrossmintService
 import DeviceSigner
 import Foundation
+import Http
 import Logger
 import SecureStorage
 import Wallet
@@ -14,8 +15,16 @@ final class CrossmintClientSDK: ClientSDK, Sendable {
     let authManager: CrossmintAuthManager
     let authClient: any AuthClient
 
-    init(apiKey: ApiKey, authManager: CrossmintAuthManager? = nil) {
+    private let deviceSignerKeyStorage: any DeviceSignerKeyStorage
+
+    init(
+        apiKey: ApiKey,
+        authManager: CrossmintAuthManager? = nil,
+        httpClient: HTTPClient = .live,
+        deviceSignerKeyStorage: any DeviceSignerKeyStorage = SecureEnclaveKeyStorage.default
+    ) {
         self.apiKey = apiKey
+        self.deviceSignerKeyStorage = deviceSignerKeyStorage
 
         guard let bundleId = Bundle.main.bundleIdentifier else {
             Logger.sdk.error("Failed to initialize CrossmintClientSDK due to Bundle.main.bundleIdentifier being nil")
@@ -24,7 +33,7 @@ final class CrossmintClientSDK: ClientSDK, Sendable {
 
         secureStorage = KeychainSecureStorage(bundleId: bundleId)
         secureWalletStorage = KeychainSecureWalletStorage(bundleId: bundleId)
-        crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId)
+        crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId, httpClient: httpClient)
 
         let authService = DefaultAuthService(crossmintService: crossmintService)
         let resolvedAuthManager = authManager
@@ -40,7 +49,7 @@ final class CrossmintClientSDK: ClientSDK, Sendable {
                 authManager: authManager
             ),
             secureWalletStorage: secureWalletStorage,
-            deviceSignerKeyStorage: .default
+            deviceSignerKeyStorage: deviceSignerKeyStorage
         )
     }
 }

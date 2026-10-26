@@ -70,16 +70,13 @@ Define tags in `Tests/<AnyTarget>/Tags.swift`. Apply at suite level where possib
 ```swift
 extension Tag {
     @Tag static var unit: Self
-    @Tag static var staging: Self
-    @Tag static var critical: Self
-    @Tag static var flaky: Self
 }
 
-@Suite("Wallet Creation", .tags(.critical))
+@Suite("Wallet Creation", .tags(.unit))
 struct WalletCreationTests { ... }
 ```
 
-Staging tests: mark with `(STAG)` in the `@Test` display name and tag `.staging`. Use GUID-based Mailnesia detection for OTP (RSS items are not sorted chronologically).
+Unit tests never reach the network: build services with `HTTPFixtureRouter().client` from `TestsUtils`. An unstubbed request fails naming its method and URL, and `NetworkKillSwitch` fails anything that reaches `URLSession.shared`.
 
 ## Test Philosophy
 

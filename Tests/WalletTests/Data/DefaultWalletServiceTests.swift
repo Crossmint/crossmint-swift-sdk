@@ -2,29 +2,27 @@ import CrossmintCommonTypes
 import CrossmintService
 import Foundation
 import Testing
+import TestsUtils
 
-@testable import Http
 @testable import Wallet
 
 @Suite("Signer Registration API Errors", .tags(.unit))
 struct DefaultWalletServiceTests {
     private let entry = DelegatedSignerEntry(signer: .locator(.device(publicKey: "test-key")))
 
-    private func makeService(httpClient: HTTPClient) throws -> DefaultWalletService {
+    private func makeService(status: Int = 200, body: Data) throws -> DefaultWalletService {
+        let router = HTTPFixtureRouter()
+        router.respond(status: status, body: body)
         let crossmintService = DefaultCrossmintService(
             apiKey: try ApiKey(key: "ck_staging_test123"),
             appIdentifier: "com.crossmint.tests",
-            httpClient: httpClient
+            httpClient: router.client
         )
         return DefaultWalletService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
     }
 
     private func makeService(errorBody: Data) throws -> DefaultWalletService {
-        try makeService(
-            httpClient: HTTPClient(fetch: { _ throws(NetworkError) in
-                throw NetworkError.badRequest(errorBody)
-            })
-        )
+        try makeService(status: 400, body: errorBody)
     }
 
     @Test
@@ -34,9 +32,7 @@ struct DefaultWalletServiceTests {
             {"chains": {"solana": {"id": "sig1", "status": "success"}}}
             """.utf8
         )
-        let service = try makeService(
-            httpClient: HTTPClient(fetch: { _ throws(NetworkError) in (body, URLResponse()) })
-        )
+        let service = try makeService(body: body)
 
         let response = try await service.addSigner(
             entry,
@@ -51,9 +47,7 @@ struct DefaultWalletServiceTests {
     @Test
     func decodesTransactionRegistrationResponse() async throws {
         let body = Data(#"{"transaction": {"id": "tx-123", "status": "awaiting-approval"}}"#.utf8)
-        let service = try makeService(
-            httpClient: HTTPClient(fetch: { _ throws(NetworkError) in (body, URLResponse()) })
-        )
+        let service = try makeService(body: body)
 
         let response = try await service.addSigner(
             entry,
@@ -199,14 +193,12 @@ struct DefaultWalletServiceDeployImmediatelyTests {
     )
     private let successBody = Data(#"{"chains": {"base-sepolia": {"id": "sig1", "status": "success"}}}"#.utf8)
 
-    private func makeService(capturingBodyInto capturedBody: SendableBox<Data?>) throws -> DefaultWalletService {
+    private func makeService(recording router: HTTPFixtureRouter) throws -> DefaultWalletService {
+        router.respond(body: successBody)
         let crossmintService = DefaultCrossmintService(
             apiKey: try ApiKey(key: "ck_staging_test123"),
             appIdentifier: "com.crossmint.tests",
-            httpClient: HTTPClient(fetch: { [successBody] request throws(NetworkError) in
-                capturedBody.value = request.httpBody
-                return (successBody, URLResponse())
-            })
+            httpClient: router.client
         )
         return DefaultWalletService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
     }
@@ -219,8 +211,8 @@ struct DefaultWalletServiceDeployImmediatelyTests {
 
     @Test
     func sendsTheApproverWhenNamed() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.addSigner(
             entry,
@@ -230,70 +222,70 @@ struct DefaultWalletServiceDeployImmediatelyTests {
             approver: .email("alice@example.com")
         )
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["approver"] as? String == "email:alice@example.com")
     }
 
     @Test
     func omitsTheApproverWhenAbsent() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.addSigner(entry, chainType: .solana, chainName: "solana", deployImmediately: nil)
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["approver"] == nil)
     }
 
     @Test
     func sendsDeployImmediatelyTrueByDefaultForEVM() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.addSigner(entry, chainType: .evm, chainName: "base-sepolia", deployImmediately: true)
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["deployImmediately"] as? Bool == true)
     }
 
     @Test
     func sendsDeployImmediatelyFalseWhenOverridden() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.addSigner(entry, chainType: .evm, chainName: "base-sepolia", deployImmediately: false)
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["deployImmediately"] as? Bool == false)
     }
 
     @Test
     func omitsDeployImmediatelyForSolana() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.addSigner(entry, chainType: .solana, chainName: "solana", deployImmediately: true)
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["deployImmediately"] == nil)
         #expect(json["chain"] == nil)
     }
 
     @Test
     func omitsDeployImmediatelyForStellar() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.addSigner(entry, chainType: .stellar, chainName: "stellar", deployImmediately: true)
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["deployImmediately"] == nil)
     }
 
     @Test
     func sendsDeployImmediatelyTrueByDefaultForEVMTypedSigner() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.registerTypedSigner(
             typedSigner,
@@ -302,14 +294,14 @@ struct DefaultWalletServiceDeployImmediatelyTests {
             deployImmediately: true
         )
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["deployImmediately"] as? Bool == true)
     }
 
     @Test
     func sendsDeployImmediatelyFalseWhenOverriddenForTypedSigner() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.registerTypedSigner(
             typedSigner,
@@ -318,14 +310,14 @@ struct DefaultWalletServiceDeployImmediatelyTests {
             deployImmediately: false
         )
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["deployImmediately"] as? Bool == false)
     }
 
     @Test(arguments: [ChainType.solana, .stellar])
     func omitsDeployImmediatelyForNonEVMTypedSigner(chainType: ChainType) async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
 
         _ = try await service.registerTypedSigner(
             typedSigner,
@@ -334,7 +326,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
             deployImmediately: true
         )
 
-        let json = try decodedBody(capturedBody.value)
+        let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["deployImmediately"] == nil)
     }
 }
@@ -343,42 +335,40 @@ struct DefaultWalletServiceDeployImmediatelyTests {
 struct DefaultWalletServiceSignerBodyTests {
     private let successBody = Data(#"{"chains": {"base-sepolia": {"id": "sig1", "status": "success"}}}"#.utf8)
 
-    private func makeService(capturingBodyInto capturedBody: SendableBox<Data?>) throws -> DefaultWalletService {
+    private func makeService(recording router: HTTPFixtureRouter) throws -> DefaultWalletService {
+        router.respond(body: successBody)
         let crossmintService = DefaultCrossmintService(
             apiKey: try ApiKey(key: "ck_staging_test123"),
             appIdentifier: "com.crossmint.tests",
-            httpClient: HTTPClient(fetch: { [successBody] request throws(NetworkError) in
-                capturedBody.value = request.httpBody
-                return (successBody, URLResponse())
-            })
+            httpClient: router.client
         )
         return DefaultWalletService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
     }
 
     @Test
     func encodesLocatorSignerAsPlainString() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
         let entry = DelegatedSignerEntry(signer: .locator(.externalWallet(address: "0x456")))
 
         _ = try await service.addSigner(entry, chainType: .evm, chainName: "base-sepolia", deployImmediately: true)
 
-        let data = try #require(capturedBody.value)
+        let data = try #require(router.lastRequest?.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(json["signer"] as? String == "external-wallet:0x456")
     }
 
     @Test
     func encodesDeviceSignerWithPublicKeyAndName() async throws {
-        let capturedBody = SendableBox<Data?>(nil)
-        let service = try makeService(capturingBodyInto: capturedBody)
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
         let rawKey = Data([0x04]) + Data((0..<64).map { UInt8($0) })
         let publicKey = try #require(DevicePublicKey(publicKeyBase64: rawKey.base64EncodedString()))
         let entry = DelegatedSignerEntry(signer: .device(publicKey: publicKey, name: "My iPhone"))
 
         _ = try await service.addSigner(entry, chainType: .evm, chainName: "base-sepolia", deployImmediately: true)
 
-        let data = try #require(capturedBody.value)
+        let data = try #require(router.lastRequest?.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let signer = try #require(json["signer"] as? [String: Any])
         #expect(signer["type"] as? String == "device")

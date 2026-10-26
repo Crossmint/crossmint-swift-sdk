@@ -109,7 +109,7 @@ let package = Package(
         ),
         .target(
             name: "CrossmintAuth",
-            dependencies: baseDependencies + ["CrossmintService", "SecureStorage"],
+            dependencies: baseDependencies + ["CrossmintService", "Http", "SecureStorage"],
             path: "Sources/CrossmintAuth",
             plugins: basePlugins
         ),
@@ -145,6 +145,8 @@ let package = Package(
         .testTarget(
             name: "CrossmintServiceTests",
             dependencies: [
+                "Http",
+                "TestsUtils",
                 "CrossmintService"
             ],
             plugins: basePlugins
@@ -153,7 +155,8 @@ let package = Package(
             name: "WalletTests",
             dependencies: [
                 "Wallet",
-                "TestsUtils"
+                "TestsUtils",
+                "Web"
             ],
             resources: [
                 .process("Resources/WalletPasskey.json"),
@@ -218,14 +221,30 @@ let package = Package(
                 "Web",
                 "TestsUtils",
                 "CrossmintAuth",
-                "CrossmintCommonTypes"
+                "CrossmintCommonTypes",
+                "Http"
             ],
             plugins: basePlugins
         ),
         .testTarget(
             name: "DeviceSignerTests",
             dependencies: [
-                "DeviceSigner"
+                "DeviceSigner",
+                "TestsUtils"
+            ],
+            plugins: basePlugins
+        ),
+        .testTarget(
+            name: "IntegrationTests",
+            dependencies: [
+                "CrossmintAuth",
+                "CrossmintCommonTypes",
+                "CrossmintService",
+                "DeviceSigner",
+                "Http",
+                "SecureStorage",
+                "Wallet",
+                .product(name: "SwiftKeccak", package: "SwiftKeccak")
             ],
             plugins: basePlugins
         ),
@@ -239,8 +258,12 @@ let package = Package(
         .target(
             name: "TestsUtils",
             dependencies: [
+                "CrossmintAuth",
                 "CrossmintService",
-                "Http"
+                "DeviceSigner",
+                "Http",
+                "Web",
+                .product(name: "P256K", package: "swift-secp256k1")
             ]
         )
     ]
