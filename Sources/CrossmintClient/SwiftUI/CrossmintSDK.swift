@@ -2,6 +2,8 @@ import CrossmintAuth
 import Combine
 @_exported import CrossmintCommonTypes
 import CrossmintService
+import DeviceSigner
+import Http
 import Logger
 import SwiftUI
 import Utils
@@ -57,12 +59,21 @@ final public class CrossmintSDK: ObservableObject {
     ///   - apiKey: A client API key (prefixed `ck_`).
     ///   - logLevel: Controls SDK log verbosity. Defaults to `.error`.
     @MainActor public static func configure(apiKey: String, logLevel: LogLevel = .error) {
+        configure(apiKey: apiKey, logLevel: logLevel, httpClient: .live)
+    }
+
+    @MainActor package static func configure(
+        apiKey: String,
+        logLevel: LogLevel = .error,
+        httpClient: HTTPClient,
+        deviceSignerKeyStorage: any DeviceSignerKeyStorage = SecureEnclaveKeyStorage.default
+    ) {
         guard _shared == nil else {
             Logger.sdk.warning("CrossmintSDK.configure() called after SDK is already configured — ignoring")
             return
         }
         Logger.level = logLevel
-        _shared = CrossmintSDK(apiKey: apiKey)
+        _shared = CrossmintSDK(apiKey: apiKey, httpClient: httpClient, deviceSignerKeyStorage: deviceSignerKeyStorage)
     }
 
     private let sdk: ClientSDK
@@ -107,7 +118,7 @@ final public class CrossmintSDK: ObservableObject {
         await authManager.setJWT(jwt)
     }
 
-    private init(apiKey: String) {
+    private init(apiKey: String, httpClient: HTTPClient, deviceSignerKeyStorage: any DeviceSignerKeyStorage) {
         sdkInstances += 1
         if sdkInstances > 1 {
             Logger.sdk.error("Multiple SDK instances created, behaviour is undefined")
@@ -115,7 +126,11 @@ final public class CrossmintSDK: ObservableObject {
 
         let innerSdk: ClientSDK
         do {
-            innerSdk = try CrossmintClient.sdk(key: apiKey)
+            innerSdk = try CrossmintClient.sdk(
+                key: apiKey,
+                httpClient: httpClient,
+                deviceSignerKeyStorage: deviceSignerKeyStorage
+            )
         } catch {
             Logger.client.error("Invalid Crossmint API key provided: \(error)")
             fatalError("Invalid Crossmint API key provided. Please verify your API key is a valid client key.")

@@ -9,6 +9,7 @@ import CrossmintAuth
 import CrossmintCommonTypes
 import Foundation
 import Testing
+import TestsUtils
 @testable import Web
 
 struct RejectedSignResponse: Sendable, CustomTestStringConvertible {
@@ -35,7 +36,7 @@ struct CrossmintTEESigningTests {
         fixture.configureReadyDevice()
         fixture.configureSignResponse(signature: "0xsignature123")
 
-        let transaction = CrossmintTEETestHelpers.createTestTransaction()
+        let transaction = SignerFrameMessages.createTestTransaction()
         let signature = try await fixture.signTransaction(transaction: transaction)
 
         #expect(signature == "0xsignature123")
@@ -103,7 +104,7 @@ struct CrossmintTEESigningTests {
         try await fixture.setupHandshake()
 
         fixture.configureReadyDevice()
-        let signResponse = CrossmintTEETestHelpers.createNonCustodialSignResponse(
+        let signResponse = SignerFrameMessages.createNonCustodialSignResponse(
             signature: response.signature,
             status: response.status,
             errorMessage: response.errorMessage
@@ -112,7 +113,7 @@ struct CrossmintTEESigningTests {
 
         await #expect(throws: response.expectedError) {
             _ = try await fixture.signTransaction(
-                transaction: CrossmintTEETestHelpers.createTestTransaction(),
+                transaction: SignerFrameMessages.createTestTransaction(),
                 keyType: "secp256k1",
                 encoding: response.encoding
             )
@@ -130,7 +131,7 @@ struct CrossmintTEESigningTests {
         fixture.configureSignResponse(signature: "0x48656c6c6f")
 
         let signature = try await fixture.signTransaction(
-            transaction: CrossmintTEETestHelpers.createTestTransaction(),
+            transaction: SignerFrameMessages.createTestTransaction(),
             keyType: "secp256k1",
             encoding: "hex"
         )

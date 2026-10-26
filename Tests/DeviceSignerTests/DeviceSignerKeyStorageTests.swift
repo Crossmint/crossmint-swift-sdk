@@ -1,28 +1,7 @@
 import Foundation
-import LocalAuthentication
-import Security
 import Testing
+import TestsUtils
 @testable import DeviceSigner
-
-final class InMemoryKeychainItemStore: KeychainItemStore, @unchecked Sendable {
-    private var items: [String: Data] = [:]
-
-    func save(_ data: Data, tag: String, accessControl: SecAccessControl?) throws(DeviceSignerError) {
-        items[tag] = data
-    }
-
-    func load(tag: String, prompt: String?, authContext: LAContext?) -> Data? {
-        items[tag]
-    }
-
-    func delete(tag: String) throws(DeviceSignerError) {
-        items[tag] = nil
-    }
-
-    func allTags(prefix: String) -> [String] {
-        items.keys.filter { $0.hasPrefix(prefix) }
-    }
-}
 
 @Suite("DeviceSigner keychain storage")
 struct DeviceSignerKeychainStorageTests {
