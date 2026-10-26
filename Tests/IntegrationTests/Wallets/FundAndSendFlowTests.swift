@@ -18,7 +18,7 @@ struct FundAndSendFlowTests {
             return balance >= before + 1 ? balance : nil
         }
 
-        #expect(transfer.hash.hasPrefix("0x"))
+        #expect(transfer.hash?.hasPrefix("0x") == true)
         #expect(after >= before + 1)
     }
 
