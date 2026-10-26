@@ -40,7 +40,7 @@ struct DelegatedSignerFlowTests {
         _ = try await wallet.removeSigner(locator: registered.locator)
         let remaining = try await wallet.signers().map(\.locator)
 
-        #expect(transfer.hash.hasPrefix("0x"))
+        #expect(transfer.hash?.hasPrefix("0x") == true)
         #expect(registered.status == .active)
         #expect(!remaining.contains(registered.locator))
     }
