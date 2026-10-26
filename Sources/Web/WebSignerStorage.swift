@@ -1,7 +1,7 @@
 import WebKit
 
 @MainActor
-protocol SignerStorage {
+package protocol SignerStorage {
     var dataStore: WKWebsiteDataStore { get }
     func clear() async
 }

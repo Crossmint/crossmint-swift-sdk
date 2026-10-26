@@ -1,32 +1,22 @@
 import CrossmintService
 import Foundation
 import Testing
+import TestsUtils
 
-@testable import Http
 @testable import Wallet
 
 @Suite("List Transactions", .tags(.unit))
 struct ListTransactionsTests {
-    private final class RequestCapture: @unchecked Sendable {
-        var request: URLRequest?
-    }
+    private let router = HTTPFixtureRouter()
 
-    private func makeService(httpClient: HTTPClient) throws -> DefaultTransactionService {
+    private func makeService(returning body: Data, status: Int = 200) throws -> DefaultTransactionService {
+        router.respond(status: status, body: body)
         let crossmintService = DefaultCrossmintService(
             apiKey: try ApiKey(key: "ck_staging_test123"),
             appIdentifier: "com.crossmint.tests",
-            httpClient: httpClient
+            httpClient: router.client
         )
         return DefaultTransactionService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
-    }
-
-    private func makeService(returning body: Data, capture: RequestCapture? = nil) throws -> DefaultTransactionService {
-        try makeService(
-            httpClient: HTTPClient(fetch: { request throws(NetworkError) in
-                capture?.request = request
-                return (body, URLResponse())
-            })
-        )
     }
 
     private func fixtureData(_ fileName: String) throws -> Data {
@@ -68,12 +58,11 @@ struct ListTransactionsTests {
     }
 
     @Test func requestsMeWalletTransactionsPathWithGetMethod() async throws {
-        let capture = RequestCapture()
-        let service = try makeService(returning: Data(#"{"transactions": []}"#.utf8), capture: capture)
+        let service = try makeService(returning: Data(#"{"transactions": []}"#.utf8))
 
         _ = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))
 
-        let request = try #require(capture.request)
+        let request = try #require(router.lastRequest)
         let url = try #require(request.url)
         #expect(request.httpMethod == "GET")
         #expect(url.path.hasSuffix("/2025-06-09/wallets/me:evm/transactions"))
@@ -81,12 +70,11 @@ struct ListTransactionsTests {
     }
 
     @Test func encodesPageAndPerPageAsQueryItems() async throws {
-        let capture = RequestCapture()
-        let service = try makeService(returning: Data(#"{"transactions": []}"#.utf8), capture: capture)
+        let service = try makeService(returning: Data(#"{"transactions": []}"#.utf8))
 
         _ = try await service.listTransactions(.init(chainType: .evm, page: 2, perPage: 15))
 
-        let request = try #require(capture.request)
+        let request = try #require(router.lastRequest)
         let url = try #require(request.url)
         let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
         #expect(queryItems.contains(URLQueryItem(name: "page", value: "2")))
@@ -95,11 +83,7 @@ struct ListTransactionsTests {
 
     @Test func mapsHttpErrorToTransactionError() async throws {
         let errorBody = Data(#"{"error": true, "message": "boom"}"#.utf8)
-        let service = try makeService(
-            httpClient: HTTPClient(fetch: { _ throws(NetworkError) in
-                throw NetworkError.badRequest(errorBody)
-            })
-        )
+        let service = try makeService(returning: errorBody, status: 400)
 
         await #expect {
             _ = try await service.listTransactions(.init(chainType: .evm, page: 1, perPage: 20))

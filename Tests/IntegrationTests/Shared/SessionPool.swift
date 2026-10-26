@@ -1,0 +1,65 @@
+import CrossmintCommonTypes
+import Foundation
+@testable import Wallet
+
+/// Two users per run: preview throttles the auth routes at 5 requests a minute per project, so each test
+/// cannot sign in on its own. Wallets are created once per user and chain; tests fetch their own instance.
+actor SessionPool {
+    static let shared = SessionPool()
+
+    private var sessions: [String: Task<CryptoWalletSession, Error>] = [:]
+    private var solanaRecovery: [String: SolanaKeypairSigner] = [:]
+    private var creations: [String: Task<Void, Error>] = [:]
+
+    func primary() async throws -> CryptoWalletSession { try await session(named: "primary") }
+    func secondary() async throws -> CryptoWalletSession { try await session(named: "secondary") }
+
+    /// The user's EVM wallet, created on first use with the user's keypair as recovery.
+    func evmWallet(of session: CryptoWalletSession) async throws -> Wallet {
+        let wallet = try await wallet(of: session, chain: IntegrationEnvironment.EVM_CHAIN) {
+            try await session.wallets().createWallet(
+                chain: IntegrationEnvironment.EVM_CHAIN, recoveryMethods: [session.signer], options: nil
+            )
+        }
+        try await wallet.useSigner(session.signer.config)
+        return wallet
+    }
+
+    /// The user's Solana wallet, created on first use with an ed25519 external wallet as recovery.
+    func solanaWallet(of session: CryptoWalletSession) async throws -> (wallet: Wallet, recovery: SolanaKeypairSigner) {
+        let recovery = solanaRecovery[session.address] ?? SolanaKeypairSigner()
+        solanaRecovery[session.address] = recovery
+        let wallet = try await wallet(of: session, chain: IntegrationEnvironment.SOLANA_CHAIN) {
+            try await session.wallets().createWallet(
+                chain: IntegrationEnvironment.SOLANA_CHAIN, recoveryMethods: [recovery], options: nil
+            )
+        }
+        try await wallet.useSigner(recovery.config)
+        return (wallet, recovery)
+    }
+
+    private func session(named name: String) async throws -> CryptoWalletSession {
+        if let inFlight = sessions[name] { return try await inFlight.value }
+        let task = Task { try await CryptoWalletSession.start() }
+        sessions[name] = task
+        return try await task.value
+    }
+
+    private func wallet(
+        of session: CryptoWalletSession,
+        chain: Chain,
+        create: @escaping @Sendable () async throws -> Wallet
+    ) async throws -> Wallet {
+        let key = "\(session.address):\(chain.name)"
+        if creations[key] == nil {
+            creations[key] = Task { _ = try await create() }
+        }
+        try await creations[key]?.value
+        guard let wallet = try await session.wallets().getWallet(chain: chain, options: nil) else {
+            throw IntegrationSetupError(
+                message: "\(chain.name) wallet for \(session.address) was created but cannot be read back"
+            )
+        }
+        return wallet
+    }
+}

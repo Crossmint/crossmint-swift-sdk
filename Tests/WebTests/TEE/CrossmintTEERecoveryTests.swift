@@ -9,6 +9,7 @@ import CrossmintAuth
 import CrossmintCommonTypes
 import Foundation
 import Testing
+import TestsUtils
 @testable import Web
 
 @Suite("Recovery", .tags(.unit))
@@ -31,7 +32,7 @@ struct CrossmintTEERecoveryTests {
         fixture.configureReadyDevice()
         fixture.configureSignResponse(signature: "0xrecovered")
 
-        let transaction = CrossmintTEETestHelpers.createTestTransaction()
+        let transaction = SignerFrameMessages.createTestTransaction()
         let signature = try await fixture.signTransaction(transaction: transaction)
 
         #expect(signature == "0xrecovered")
