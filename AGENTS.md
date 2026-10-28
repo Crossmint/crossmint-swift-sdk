@@ -156,12 +156,13 @@ Before writing code or tests, read [docs/conventions/code.md](docs/conventions/c
 
 ## Security
 
-- Never log or put in a URL: JWTs, refresh secrets, API keys, OTP and signer codes, private keys, or personal data (email, phone, `authId`). This applies at debug level and to messages sent to or from the signer frame.
-- Keychain items set `kSecAttrAccessible` to a `ThisDeviceOnly` class. Session data restored from a backup on another device has no matching signer key.
-- Logout and `reset()` clear the Keychain even when the server call fails.
+- Never log tokens, passwords, API keys, codes, or personal data (for example email or phone), at any log level. Never put sensitive or personal data in a URL.
+- Errors do not expose sensitive data or system details to the caller.
+- Store tokens, credentials and personal data in the Keychain, never in `UserDefaults` or plain files. Use the Secure Enclave for keys when available.
+- All traffic uses HTTPS with TLS 1.2 or higher.
 - Secure by default. Lowering a protection needs an explicit option whose name says what it gives up.
-- Crypto comes from CryptoKit, Security.framework, or the Secure Enclave. No custom crypto, no MD5 or SHA-1.
-- Every new or bumped dependency needs a reason in the PR. Prefer Apple frameworks over packages kept by one person.
+- Use CryptoKit and Apple's security frameworks. No custom crypto, no MD5 or SHA-1.
+- Prefer Apple frameworks over third-party packages. Every new or bumped dependency needs a reason in the PR, stays on its latest patched version, and is not kept by one person.
 
 ## Testing conventions
 
