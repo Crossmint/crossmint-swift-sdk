@@ -66,7 +66,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: "\(value ?? .zero)",
                 data: data ?? "0x",
                 chain: chain,
-                signer: try await selectedSignerLocatorForTransactions()?.value ?? self.config.recovery.locator
+                signer: try await evmSignerLocator(explicit: nil)
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -361,7 +361,6 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     }
 
     private func evmSignerLocator(explicit: SignerLocator?) async throws(TransactionError) -> String {
-        if let explicit { return explicit.value }
-        return try await selectedSignerLocatorForTransactions()?.value ?? config.recovery.locator
+        try await transactionSignerLocator(explicit: explicit) ?? config.recovery.locator
     }
 }
