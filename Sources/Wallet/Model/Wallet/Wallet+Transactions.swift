@@ -436,6 +436,14 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     }
 
     internal func transactionSignerLocator(explicit: SignerLocator? = nil) async throws(TransactionError) -> String? {
+        let locator = try await actingSignerLocator(explicit: explicit)
+        if chain.chainType == .solana, let locator, case .quorum = try? SignerLocator(from: locator) {
+            throw .quorumUnsupported(chain: .solana)
+        }
+        return locator
+    }
+
+    private func actingSignerLocator(explicit: SignerLocator?) async throws(TransactionError) -> String? {
         if let explicit { return explicit.value }
         if let selected = try await selectedSignerLocatorForTransactions() {
             return (try await quorumRole(of: selected) ?? selected).value

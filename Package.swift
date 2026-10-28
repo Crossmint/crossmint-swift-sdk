@@ -202,6 +202,8 @@ let package = Package(
                 .process("Resources/WalletStellarExternalWallet.json"),
                 .process("Resources/WalletStellarPasskey.json"),
                 .process("Resources/WalletStellarQuorum.json"),
+                .process("Resources/WalletEVMQuorum.json"),
+                .process("Resources/WalletSolanaQuorum.json"),
                 .process("Resources/WalletStellarTwoQuorums.json"),
                 .process("Resources/WalletStellarQuorumThenEmail.json"),
                 .process("Resources/WalletSolanaUnsupportedSigners.json"),
