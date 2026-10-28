@@ -154,6 +154,15 @@ Services make exactly one API call per method — no coordination, no polling. M
 
 Before writing code or tests, read [docs/conventions/code.md](docs/conventions/code.md) and [docs/conventions/tests.md](docs/conventions/tests.md); they hold the full code and test conventions.
 
+## Security
+
+- Never log or put in a URL: JWTs, refresh secrets, API keys, OTP and signer codes, private keys, or personal data (email, phone, `authId`). This applies at debug level and to messages sent to or from the signer frame.
+- Keychain items set `kSecAttrAccessible` to a `ThisDeviceOnly` class. Session data restored from a backup on another device has no matching signer key.
+- Logout and `reset()` clear the Keychain even when the server call fails.
+- Secure by default. Lowering a protection needs an explicit option whose name says what it gives up.
+- Crypto comes from CryptoKit, Security.framework, or the Secure Enclave. No custom crypto, no MD5 or SHA-1.
+- Every new or bumped dependency needs a reason in the PR. Prefer Apple frameworks over packages kept by one person.
+
 ## Testing conventions
 
 - New and changed code follows the `code/test` best practices.
