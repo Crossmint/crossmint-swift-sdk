@@ -1,3 +1,4 @@
+import CrossmintCommonTypes
 import CrossmintService
 import Http
 
@@ -20,6 +21,8 @@ public enum TransactionError: CrossmintError {
     case signerIsQuorumMember(String)
     /// The active signer is a member of more than one quorum. Name the quorum with the `signer` parameter.
     case quorumSelectionAmbiguous(quorums: [SignerLocator])
+    /// A quorum cannot act on this chain yet. Only Stellar wallets act as a quorum.
+    case quorumUnsupported(chain: ChainType)
 
     public var code: String {
         switch self {
@@ -37,6 +40,7 @@ public enum TransactionError: CrossmintError {
         case .transactionExpired: "TRANSACTION_EXPIRED"
         case .signerIsQuorumMember: "SIGNER_IS_QUORUM_MEMBER"
         case .quorumSelectionAmbiguous: "QUORUM_SELECTION_AMBIGUOUS"
+        case .quorumUnsupported: "QUORUM_SIGNER_UNSUPPORTED"
         }
     }
 
@@ -66,6 +70,8 @@ public enum TransactionError: CrossmintError {
             "The user cancelled the signing"
         case .quorumSelectionAmbiguous(let quorums):
             "The signer is a member of these quorums: \(quorums.map(\.value).joined(separator: ", "))"
+        case .quorumUnsupported(let chain):
+            "A quorum cannot act on \(chain.rawValue) wallets yet."
         }
     }
 
@@ -84,6 +90,8 @@ public enum TransactionError: CrossmintError {
             "Name the quorum as the signer."
         case .quorumSelectionAmbiguous:
             "Pass the quorum to act for as signer."
+        case .quorumUnsupported:
+            "Use a signer that authorizes on its own."
         default:
             nil
         }
