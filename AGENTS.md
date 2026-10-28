@@ -165,7 +165,6 @@ Before writing code or tests, read [docs/conventions/code.md](docs/conventions/c
 - Prefer Apple frameworks over third-party packages. Every new or bumped dependency needs a reason in the PR, stays on its latest patched version, and is not kept by one person.
 - Do not commit secrets, keys or certificates, as files, values or comments. Test fixtures use fake values.
 - Treat all data as untrusted, even from Crossmint servers. Validate it before it reaches storage, a WebView, or any other sensitive operation.
-- Pin certificates or public keys for Crossmint hosts.
 - Log security-relevant events (for example failed authentication or a rejected origin) in a format that supports monitoring, without sensitive data.
 - Authentication features (biometrics, passkeys) give the host app callbacks for failures and fallbacks.
 - Public docs explain how to configure the SDK securely and name the common mistakes.
