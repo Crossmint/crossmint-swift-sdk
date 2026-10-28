@@ -104,9 +104,13 @@ extension Wallet {
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
             return nil
         case .none:
-            break
+            return try await registerReplacementDeviceKey(storage: storage)
         }
+    }
 
+    private func registerReplacementDeviceKey(
+        storage: any DeviceSignerKeyStorage
+    ) async throws(WalletError) -> Transaction? {
         let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
 
         do {
