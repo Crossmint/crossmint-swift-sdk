@@ -161,7 +161,7 @@ Before writing code or tests, read [docs/conventions/code.md](docs/conventions/c
 - Store tokens, credentials and personal data in the Keychain, never in `UserDefaults` or plain files. Use the Secure Enclave for keys when available.
 - All traffic uses HTTPS with TLS 1.2 or higher.
 - Secure by default. Lowering a protection needs an explicit option whose name says what it gives up.
-- Use CryptoKit and Apple's security frameworks. No custom crypto, no MD5 or SHA-1.
+- Prefer CryptoKit and Apple's security frameworks where they support the required algorithm. Use reviewed third-party libraries for EVM secp256k1 signing and Keccak hashing. No custom crypto, no MD5 or SHA-1.
 - Prefer Apple frameworks over third-party packages. Every new or bumped dependency needs a reason in the PR, stays on its latest patched version, and is not kept by one person.
 - Do not commit secrets, keys or certificates, as files, values or comments. Test fixtures use fake values.
 - Treat all data as untrusted, even from Crossmint servers. Validate it before it reaches storage, a WebView, or any other sensitive operation.
