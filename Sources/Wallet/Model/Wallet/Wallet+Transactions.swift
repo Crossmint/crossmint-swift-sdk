@@ -34,7 +34,7 @@ extension Wallet {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
             if signedTransaction.status == .success, pendingDeviceKey?.transactionId == signedTransaction.id {
-                await activatePendingDeviceKey()
+                _ = await activatePendingDeviceKey()
             }
 
             Logger.smartWallet.info(LogEvents.walletApproveSuccessTransaction, attributes: [
@@ -418,6 +418,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             throw .transactionGeneric(error.message)
         }
         onTransactionStart?()
+        if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported {
+            await restorePendingDeviceKey(storage: storage)
+        }
         if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported, pendingDeviceKey == nil {
             do {
                 pendingDeviceKey = try await deviceSignerService.ensureRegistered(

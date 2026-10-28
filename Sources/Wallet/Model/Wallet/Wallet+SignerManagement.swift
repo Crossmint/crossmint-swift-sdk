@@ -65,6 +65,17 @@ extension Wallet {
     /// - Throws: ``WalletError`` if recovery fails or there is no device signer configured.
     @discardableResult
     public func recover() async throws(WalletError) -> Transaction? {
+        let outcome = await recoveryGate.run { [self] () async -> Result<Transaction?, WalletError> in
+            do throws(WalletError) {
+                return .success(try await recoverOnce())
+            } catch {
+                return .failure(error)
+            }
+        }
+        return try outcome.get()
+    }
+
+    private func recoverOnce() async throws(WalletError) -> Transaction? {
         Logger.smartWallet.info(LogEvents.walletRecoverStart)
         await signerInitializationTask?.value
         if _deviceSignerUnsupported {
@@ -86,8 +97,14 @@ extension Wallet {
             deviceKeyIsUsable()
             return nil
         }
-        if let pending = try await pendingDeviceRegistration() {
-            return pending
+        switch try await pendingDeviceRegistration(storage: storage) {
+        case .awaitingApproval(let transaction):
+            return transaction
+        case .activated:
+            Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
+            return nil
+        case .none:
+            break
         }
 
         let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
@@ -114,37 +131,6 @@ extension Wallet {
         return nil
     }
 
-    private func pendingDeviceRegistration() async throws(WalletError) -> Transaction? {
-        guard let pendingDeviceKey else { return nil }
-        let transaction = try await preparedTransaction(withId: pendingDeviceKey.transactionId)
-        switch transaction.status {
-        case .success:
-            await activatePendingDeviceKey()
-            return nil
-        case .failed:
-            try? await pendingDeviceKey.storage.deletePendingKey(publicKeyBase64: pendingDeviceKey.publicKeyBase64)
-            self.pendingDeviceKey = nil
-            return nil
-        case .pending, .awaitingApproval:
-            return transaction
-        }
-    }
-
-    internal func activatePendingDeviceKey() async {
-        guard let pending = pendingDeviceKey else { return }
-        do {
-            try await deviceSignerService.persistKey(pending.publicKeyBase64, in: pending.storage)
-        } catch {
-            Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
-            return
-        }
-        pendingDeviceKey = nil
-        deviceKeyIsUsable()
-        if let replacedSigner = pending.replacedSigner {
-            await removeStaleDeviceSigner(replacedSigner)
-        }
-    }
-
     private func findStaleDeviceSignerLocator() async -> SignerLocator? {
         let currentSigners = (try? await signers()) ?? []
         let deviceLocators = currentSigners
@@ -154,7 +140,7 @@ extension Wallet {
         return deviceLocators[0]
     }
 
-    private func removeStaleDeviceSigner(_ locator: SignerLocator) async {
+    func removeStaleDeviceSigner(_ locator: SignerLocator) async {
         do {
             _ = try await removeSigner(locator: locator)
             Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [
@@ -373,7 +359,7 @@ extension Wallet {
         _deviceKeyLost = true
     }
 
-    private func deviceKeyIsUsable() {
+    func deviceKeyIsUsable() {
         _needsRecovery = false
         _deviceSignerApproved = true
         _deviceKeyLost = false
