@@ -447,10 +447,12 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     }
 
     var createTransactionResult: (any TransactionApiModel)?
+    var createTransactionLastRequest: CreateTransactionRequest?
 
     func createTransaction(
         _ request: CreateTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
+        createTransactionLastRequest = request
         guard let createTransactionResult else {
             throw TransactionError.transactionGeneric("not implemented")
         }
