@@ -154,6 +154,22 @@ Services make exactly one API call per method — no coordination, no polling. M
 
 Before writing code or tests, read [docs/conventions/code.md](docs/conventions/code.md) and [docs/conventions/tests.md](docs/conventions/tests.md); they hold the full code and test conventions.
 
+## Security
+
+- Never log tokens, passwords, API keys, codes, or personal data (for example email or phone), at any log level. Never put sensitive or personal data in a URL.
+- Errors do not expose sensitive data or system details to the caller.
+- Store tokens, credentials and personal data in the Keychain, never in `UserDefaults` or plain files. Use the Secure Enclave for keys when available.
+- All traffic uses HTTPS with TLS 1.2 or higher.
+- Secure by default. Lowering a protection needs an explicit option whose name says what it gives up.
+- Prefer CryptoKit and Apple's security frameworks where they support the required algorithm. Use reviewed third-party libraries for EVM secp256k1 signing and Keccak hashing. No custom crypto, no MD5 or SHA-1.
+- Prefer Apple frameworks over third-party packages. Every new or bumped dependency needs a reason in the PR, stays on its latest patched version, and is not kept by one person.
+- Do not commit secrets, keys or certificates, as files, values or comments. Test fixtures use fake values.
+- Treat all data as untrusted, even from Crossmint servers. Validate it before it reaches storage, a WebView, or any other sensitive operation.
+- Log security-relevant events (for example failed authentication or a rejected origin) in a format that supports monitoring, without sensitive data.
+- Authentication features (biometrics, passkeys) give the host app callbacks for failures and fallbacks.
+- Public docs explain how to configure the SDK securely and name the common mistakes.
+- Security changes come with tests that try to break the protection, not only tests of the happy path.
+
 ## Testing conventions
 
 - New and changed code follows the `code/test` best practices.
