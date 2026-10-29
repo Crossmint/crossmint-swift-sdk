@@ -9,6 +9,8 @@ public enum FiatCurrency: Codable, Sendable, Hashable, Comparable, RangeExpressi
     case krw
     case inr
     case vnd
+    case mxn
+    case xcd
     case unknown(String)
 
     public init(name: String) {
@@ -61,6 +63,10 @@ public enum FiatCurrency: Codable, Sendable, Hashable, Comparable, RangeExpressi
             KnownFiatCurrency.inr.rawValue
         case .vnd:
             KnownFiatCurrency.vnd.rawValue
+        case .mxn:
+            KnownFiatCurrency.mxn.rawValue
+        case .xcd:
+            KnownFiatCurrency.xcd.rawValue
         }
     }
 
@@ -81,6 +87,8 @@ private enum KnownFiatCurrency: String {
     case krw
     case inr
     case vnd
+    case mxn
+    case xcd
 
     var currency: FiatCurrency {
         return switch self {
@@ -94,6 +102,8 @@ private enum KnownFiatCurrency: String {
         case .krw: .krw
         case .inr: .inr
         case .vnd: .vnd
+        case .mxn: .mxn
+        case .xcd: .xcd
         }
     }
 }
@@ -102,7 +112,7 @@ private enum KnownFiatCurrency: String {
 extension FiatCurrency {
     public var isPaymentEnabledFiatCurrency: Bool {
         switch self {
-        case .usd, .eur, .gbp, .jpy, .aud, .sgd, .hkd, .krw, .inr, .vnd:
+        case .usd, .eur, .gbp, .jpy, .aud, .sgd, .hkd, .krw, .inr, .vnd, .mxn, .xcd:
             return true
         case .unknown:
             return false
