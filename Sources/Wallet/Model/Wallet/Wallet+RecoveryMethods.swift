@@ -327,13 +327,21 @@ extension Wallet {
         } else {
             methods.append(RecoveryMethod(signer: recoveryMethod, status: .active))
         }
-        config = WalletConfig(recovery: methods[0], others: Array(methods.dropFirst()))
+        config = WalletConfig(
+            recovery: methods[0],
+            others: Array(methods.dropFirst()),
+            signerQuorums: config.signerQuorums
+        )
     }
 
     private func recordRemovedRecoveryMethod(_ locator: SignerLocator) {
         let remaining = config.recoveryMethodsWithStatus.filter { $0.signer.locator != locator.value }
         if let first = remaining.first {
-            config = WalletConfig(recovery: first, others: Array(remaining.dropFirst()))
+            config = WalletConfig(
+                recovery: first,
+                others: Array(remaining.dropFirst()),
+                signerQuorums: config.signerQuorums
+            )
         }
         if let selected = selectedRecoveryMethod?.locator, !config.canApproveRecoveryChanges(selected) {
             selectedRecoveryMethod = nil
