@@ -58,12 +58,12 @@ let package = Package(
         ),
         .target(
             name: "CrossmintCommonTypes",
-            dependencies: baseDependencies,
+            dependencies: ["Utils"],
             plugins: basePlugins
         ),
         .target(
             name: "CrossmintService",
-            dependencies: baseDependencies + ["Http"],
+            dependencies: ["Utils", "Http"],
             plugins: basePlugins
         ),
         .target(
@@ -115,12 +115,13 @@ let package = Package(
         ),
         .target(
             name: "SecureStorage",
-            dependencies: baseDependencies,
+            dependencies: ["Logger"],
             plugins: basePlugins
         ),
         .target(
             name: "Passkeys",
-            dependencies: baseDependencies + [
+            dependencies: [
+                "Utils",
                 .product(name: "SwiftCBOR", package: "SwiftCBOR"),
                 .product(name: "BigInt", package: "BigInt")
             ],
@@ -137,8 +138,7 @@ let package = Package(
         .testTarget(
             name: "CrossmintCommonTypesTests",
             dependencies: [
-                "CrossmintCommonTypes",
-                "TestsUtils"
+                "CrossmintCommonTypes"
             ],
             plugins: basePlugins
         ),
@@ -208,7 +208,7 @@ let package = Package(
         .testTarget(
             name: "UtilsTests",
             dependencies: [
-                "TestsUtils"
+                "Utils"
             ],
             plugins: basePlugins
         ),
@@ -218,8 +218,7 @@ let package = Package(
                 "Web",
                 "TestsUtils",
                 "CrossmintAuth",
-                "CrossmintCommonTypes",
-                "Http"
+                "CrossmintCommonTypes"
             ],
             plugins: basePlugins
         ),
