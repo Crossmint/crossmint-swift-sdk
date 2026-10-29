@@ -50,14 +50,10 @@ enum RecoveryInput {
         if chain.chainType == .solana, signers.contains(where: { $0.signerType == .passkey }) {
             throw .passkeyRecoveryNotAllowedOnSolana
         }
-        guard case .list(let signers) = self else { return self }
-        guard let first = signers.first else {
-            throw .recoveryConfigRejected(
-                code: .invalidConfig,
-                message: "At least one recovery method is required"
-            )
-        }
-        guard chain.chainType == .evm, signers.count == 1 else { return self }
-        return .single(first)
+        guard case .list(let signers) = self, signers.isEmpty else { return self }
+        throw .recoveryConfigRejected(
+            code: .invalidConfig,
+            message: "At least one recovery method is required"
+        )
     }
 }

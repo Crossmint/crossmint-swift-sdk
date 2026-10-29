@@ -237,16 +237,15 @@ struct RecoverySignerListCreationTests {
     }
 
     @Test(arguments: [
-        ("solana", "WalletSolanaRecoveryMethods", 2, false),
-        ("solana", "WalletSolanaRecoveryMethods", 1, false),
-        ("base-sepolia", "WalletEVMEmail", 2, false),
-        ("base-sepolia", "WalletEVMEmail", 1, true)
+        ("solana", "WalletSolanaRecoveryMethods", 2),
+        ("solana", "WalletSolanaRecoveryMethods", 1),
+        ("base-sepolia", "WalletEVMEmail", 2),
+        ("base-sepolia", "WalletEVMEmail", 1)
     ])
-    func sendsTheListUnderRecoveryMethodsExceptASingleOneOnEVM(
+    func sendsTheListUnderRecoveryMethods(
         chain: String,
         fixture: String,
-        count: Int,
-        underAdminSigner: Bool
+        count: Int
     ) async throws {
         walletService.createWalletFixture = try loadFixture(fixture)
         let signers = (0..<count).map { MockSigner(email: "signer\($0)@example.com") }
@@ -254,8 +253,8 @@ struct RecoverySignerListCreationTests {
         _ = try await makeWallets().createWallet(chain: Chain(chain), recoveryMethods: signers, options: nil)
 
         let config = try #require(walletService.lastCreateWalletParams?.config)
-        #expect((config.adminSigner != nil) == underAdminSigner)
-        #expect(config.recoveryMethods?.count == (underAdminSigner ? nil : count))
+        #expect(config.adminSigner == nil)
+        #expect(config.recoveryMethods?.count == count)
     }
 
     @Test func keepsASingleRecoveryMethodAsIsOnAChainThatAcceptsAList() throws {
