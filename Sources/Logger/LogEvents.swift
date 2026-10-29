@@ -553,6 +553,10 @@ public enum LogEvents {
     /// The SDK uses the first supported recovery signer instead.
     public static let walletConfigAdminSignerFallback = "walletConfig.adminSigner.fallback"
 
+    /// A quorum member has a type that this SDK version does not support.
+    /// The SDK does not show the member in the quorum members.
+    public static let walletConfigQuorumMemberSkipped = "walletConfig.quorumMember.skipped"
+
     // MARK: - WalletFactory Error Events
 
     public static let walletFactoryInvalidChain = "walletFactory.invalidChain"

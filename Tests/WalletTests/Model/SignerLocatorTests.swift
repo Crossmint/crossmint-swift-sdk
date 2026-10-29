@@ -17,6 +17,7 @@ struct SignerLocatorTests {
             (SignerLocator.apiKey(address: "0xdef"), "api-key:0xdef"),
             (SignerLocator.apiKey(), "api-key"),
             (SignerLocator.server(address: "0x999"), "server:0x999"),
+            (SignerLocator.quorum(id: "9f2c6a1e"), "quorum:9f2c6a1e"),
             (SignerLocator.unknown("carrier-pigeon:0xabc"), "carrier-pigeon:0xabc")
         ]
     )
@@ -34,7 +35,8 @@ struct SignerLocatorTests {
             ("passkey:cred-1", SignerLocator.passkey(credentialId: "cred-1")),
             ("api-key:0xdef", SignerLocator.apiKey(address: "0xdef")),
             ("api-key", SignerLocator.apiKey()),
-            ("server:0x999", SignerLocator.server(address: "0x999"))
+            ("server:0x999", SignerLocator.server(address: "0x999")),
+            ("quorum:9f2c6a1e", SignerLocator.quorum(id: "9f2c6a1e"))
         ]
     )
     func parsesKnownLocatorStrings(stringAndExpected: (String, SignerLocator)) throws {

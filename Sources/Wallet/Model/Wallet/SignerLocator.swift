@@ -17,6 +17,7 @@ public enum SignerLocator: Codable, Sendable, Hashable {
     case passkey(credentialId: String)
     case apiKey(address: String? = nil)
     case server(address: String)
+    case quorum(id: String)
     case unknown(String)
 
     /// Whether this locator refers to a device signer, regardless of its public key.
@@ -49,6 +50,8 @@ public enum SignerLocator: Codable, Sendable, Hashable {
             address.map { "api-key:\($0)" } ?? "api-key"
         case let .server(address):
             "server:\(address)"
+        case let .quorum(id):
+            "quorum:\(id)"
         case let .unknown(raw):
             raw
         }
@@ -105,6 +108,8 @@ public enum SignerLocator: Codable, Sendable, Hashable {
             self = .apiKey(address: address)
         case ("server", .some(let address)):
             self = .server(address: address)
+        case ("quorum", .some(let id)):
+            self = .quorum(id: id)
         default:
             throw .signerLocatorError(locator)
         }
