@@ -9,30 +9,36 @@ import CrossmintCommonTypes
 import CrossmintService
 import Foundation
 import Testing
+import TestsUtils
 
-@testable import Http
 @testable import Wallet
 
 @Suite("Recovery method requests", .tags(.unit))
 struct RecoveryMethodRequestTests {
-    private let capturedRequest = SendableBox<URLRequest?>(nil)
+    private let router = HTTPFixtureRouter()
 
-    private func makeService(responding response: Result<String, NetworkError>) throws -> DefaultWalletService {
+    private func makeService(fixture: String) throws -> DefaultWalletService {
+        let url = try #require(Bundle.module.url(forResource: fixture, withExtension: "json"))
+        router.respond(body: try Data(contentsOf: url))
+        return try makeService()
+    }
+
+    private func makeService(status: Int, body: String) throws -> DefaultWalletService {
+        router.respond(status: status, json: body)
+        return try makeService()
+    }
+
+    private func makeService() throws -> DefaultWalletService {
         let crossmintService = DefaultCrossmintService(
             apiKey: try ApiKey(key: "ck_staging_test123"),
             appIdentifier: "com.crossmint.tests",
-            httpClient: HTTPClient(fetch: { [capturedRequest] request throws(NetworkError) in
-                capturedRequest.value = request
-                let fixture = try response.get()
-                let url = Bundle.module.url(forResource: fixture, withExtension: "json")
-                return (url.flatMap { try? Data(contentsOf: $0) } ?? Data(), URLResponse())
-            })
+            httpClient: router.client
         )
         return DefaultWalletService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
     }
 
     @Test func postsTheRecoveryMethodAndTheApprover() async throws {
-        let service = try makeService(responding: .success("AddRecoveryMethodResponse"))
+        let service = try makeService(fixture: "AddRecoveryMethodResponse")
 
         let transaction = try await service.addRecoveryMethod(
             PhoneSignerData(phone: "+14155552671"),
@@ -41,7 +47,7 @@ struct RecoveryMethodRequestTests {
             approver: .email("alice@example.com")
         )
 
-        let request = try #require(capturedRequest.value)
+        let request = try #require(router.lastRequest)
         #expect(request.httpMethod == "POST")
         #expect(request.url?.path.hasSuffix("/2025-06-09/wallets/me:solana/recovery-methods") == true)
         let body = try #require(request.httpBody)
@@ -54,7 +60,7 @@ struct RecoveryMethodRequestTests {
     }
 
     @Test func decodesTheTransactionOfASuccessfulRemoval() async throws {
-        let service = try makeService(responding: .success("RemoveSignerTransactionSuccess"))
+        let service = try makeService(fixture: "RemoveSignerTransactionSuccess")
 
         let transaction = try await service.removeRecoveryMethod(
             .phone("+14155552671"),
@@ -68,7 +74,7 @@ struct RecoveryMethodRequestTests {
 
     @Test func deletesTheEncodedLocatorAndMapsTheLastRecoverySignerCode() async throws {
         let body = #"{"message": "Cannot remove the last recovery signer", "code": "LAST_RECOVERY_SIGNER"}"#
-        let service = try makeService(responding: .failure(.badRequest(Data(body.utf8))))
+        let service = try makeService(status: 400, body: body)
 
         let error = await #expect(throws: WalletError.self) {
             _ = try await service.removeRecoveryMethod(
@@ -79,9 +85,9 @@ struct RecoveryMethodRequestTests {
             )
         }
 
-        let url = try #require(capturedRequest.value?.url)
+        let url = try #require(router.lastRequest?.url)
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-        #expect(capturedRequest.value?.httpMethod == "DELETE")
+        #expect(router.lastRequest?.httpMethod == "DELETE")
         #expect(components.percentEncodedPath.hasSuffix(
             "/2025-06-09/wallets/me:solana/recovery-methods/phone:%2B14155552671"
         ))

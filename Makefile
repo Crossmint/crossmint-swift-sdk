@@ -8,7 +8,7 @@ all: build
 # ==========================================
 
 # Simulator destination for builds and tests
-SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5
+SIMULATOR_DEST := platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0
 
 # Scheme names
 SDK_SCHEME := CrossmintClientSDK
@@ -67,6 +67,17 @@ build-evm-demo:
 test:
 	@echo "Running tests..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -destination "$(SIMULATOR_DEST)" test)
+
+# Real-API flows (IntegrationTests target). Needs TEST_RUNNER_PREVIEW_CK_KEY in the environment.
+integration-test:
+	@echo "Running integration tests..."
+	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -testPlan CrossmintSDKIntegration -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation)
+
+# API contract the SDK reads: the IntegrationTests target with only the heartbeat suite enabled. Needs TEST_RUNNER_PREVIEW_CK_KEY.
+heartbeat-test: export TEST_RUNNER_HEARTBEAT = 1
+heartbeat-test:
+	@echo "Running heartbeat suite..."
+	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -testPlan CrossmintSDKIntegration -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation)
 
 # CI sanity check and test running
 ci-test:
@@ -167,7 +178,7 @@ run-evm-demo:
 	@echo "Building and running $(EVM_DEMO_SCHEME)..."
 	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -skipPackagePluginValidation build)
 	@echo "Launching $(EVM_DEMO_SCHEME) in simulator..."
-	$(XCRUN) simctl boot "iPhone 17 Pro" 2>/dev/null || true
+	$(XCRUN) simctl boot "iPhone 18 Pro" 2>/dev/null || true
 	open -a Simulator
-	$(XCRUN) simctl install "iPhone 17 Pro" "$$($(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | awk '{print $$3}')/$(EVM_DEMO_SCHEME).app"
-	$(XCRUN) simctl launch "iPhone 17 Pro" $(EVM_BUNDLE_ID)
+	$(XCRUN) simctl install "iPhone 18 Pro" "$$($(XCODEBUILD) -scheme $(EVM_DEMO_SCHEME) -destination "$(SIMULATOR_DEST)" -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | awk '{print $$3}')/$(EVM_DEMO_SCHEME).app"
+	$(XCRUN) simctl launch "iPhone 18 Pro" $(EVM_BUNDLE_ID)

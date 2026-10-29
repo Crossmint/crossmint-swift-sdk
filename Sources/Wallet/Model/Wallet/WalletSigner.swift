@@ -13,4 +13,8 @@ public struct WalletSigner: Sendable, Hashable {
 
     /// The registration status of this signer on the wallet's chain.
     public let status: SignerStatus
+
+    /// The name of the signer, if it has one. For example, the name that the user gave to a passkey.
+    /// The value is `nil` when the signer has no name, for example an email or phone signer.
+    public let name: String?
 }

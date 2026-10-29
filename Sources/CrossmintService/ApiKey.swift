@@ -80,6 +80,7 @@ public struct ApiKey: Sendable {
 
     private static func getEnvironment(forKey key: String) -> ApiKeyEnvironmentPrefix? {
         let tokens = key.split(separator: "_")
+        guard tokens.count > 1 else { return nil }
         return ApiKeyEnvironmentPrefix.allCases.first { prefix in
             prefix.rawValue == tokens[1]
         }

@@ -151,6 +151,48 @@ struct WalletApprovalRoutingTests {
             return underlying as? DeviceSignerError == .keyNotFound
         }
     }
+
+    private func makeWalletTrustingTheDeviceKey() async throws -> EVMWallet {
+        let fixtureUrl = try #require(Bundle.module.url(forResource: "WalletEVMApiKey", withExtension: "json"))
+        let fixture = try Data(contentsOf: fixtureUrl)
+        let address = try MockSmartWalletService.walletModel(from: fixture, signerLocators: nil).address
+        let publicKeyBase64 = try await storage.generateKey(address: address)
+        let baseModel = try MockSmartWalletService.walletModel(
+            from: fixture,
+            signerLocators: ["device:\(publicKeyBase64)"]
+        )
+        walletService.getWalletResult = baseModel
+        let wallet = try EVMWallet(
+            smartWalletService: walletService,
+            signer: adminSigner,
+            baseModel: baseModel,
+            evmChain: .polygon,
+            deviceSignerKeyStorage: storage
+        )
+        try await wallet.useSigner(.device)
+        #expect(await wallet.needsRecovery() == false)
+        return wallet
+    }
+
+    @Test func marksTheWalletForRecoveryWhenSendTransactionFindsTheDeviceKeyMissing() async throws {
+        let wallet = try await makeWalletTrustingTheDeviceKey()
+        try await storage.deleteKey(address: wallet.address)
+
+        _ = try? await wallet.sendTransaction(to: wallet.address, value: "0", data: nil)
+
+        #expect(await wallet.needsRecovery())
+    }
+
+    @Test func registersAFreshDeviceKeyWhenSendFindsItMissing() async throws {
+        let wallet = try await makeWalletTrustingTheDeviceKey()
+        try await storage.deleteKey(address: wallet.address)
+
+        _ = try? await wallet.send(wallet.address, "polygon:usdc", 1)
+
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(await wallet.localDeviceSigner() != nil)
+        #expect(await wallet.needsRecovery() == false)
+    }
 }
 
 private extension SignRequestApi.Approval {
