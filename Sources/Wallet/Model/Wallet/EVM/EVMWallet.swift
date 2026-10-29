@@ -66,7 +66,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: "\(value ?? .zero)",
                 data: data ?? "0x",
                 chain: chain,
-                signer: try await selectedSignerLocatorForTransactions()?.value ?? self.config.recovery.locator
+                signer: try await evmSignerLocator(explicit: nil)
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -82,6 +82,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///   - value: Native token value in wei as a decimal string, e.g. `"1000000000000000"`. Pass `nil` or `"0"` for contract calls that transfer no ETH.
     ///   - data: ABI-encoded call data as a `0x`-prefixed hex string. Pass `nil` or `"0x"` for plain ETH transfers.
     ///   - chain: Target chain. Defaults to the chain the wallet was opened on.
+    ///   - prepareOnly: Pass `true` to create the transaction without approving it.
+    ///     Then approve it with ``Wallet/approve(transactionId:)``. The summary then has only the transaction ID.
     ///
     /// ## Example
     /// ```swift
@@ -91,13 +93,15 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///     value: "1000000000000000",
     ///     data: nil
     /// )
-    /// print("Confirmed:", summary.explorerLink)
+    /// print("Confirmed:", summary.explorerLink?.absoluteString ?? "")
     /// ```
     public func sendTransaction(
         to address: String,
         value: String?,
         data: String?,
-        chain: EVMChain? = nil
+        chain: EVMChain? = nil,
+        signer: SignerLocator? = nil,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.evmSendTransactionStart)
 
@@ -111,11 +115,13 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: try await selectedSignerLocatorForTransactions()?.value ?? self.config.recovery.locator
-            )
+                signer: try await evmSignerLocator(explicit: signer)
+            ),
+            prepareOnly: prepareOnly
         ) else {
             throw .transactionGeneric("Unknown error")
         }
+        if prepareOnly || transaction.awaitsQuorumMembers { return transaction.pendingSummary }
 
         Logger.smartWallet.info(LogEvents.evmSendTransactionPrepared, attributes: [
             "transactionId": transaction.id
@@ -352,5 +358,9 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 .notStarted:
             return .signingFailed(underlyingError: error)
         }
+    }
+
+    private func evmSignerLocator(explicit: SignerLocator?) async throws(TransactionError) -> String {
+        try await transactionSignerLocator(explicit: explicit) ?? config.recovery.locator
     }
 }

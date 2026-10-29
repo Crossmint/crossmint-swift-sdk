@@ -121,9 +121,15 @@ extension Wallet {
     /// The signer must be registered on this wallet.
     /// To register a new signer, call ``addSigner(_:)`` first.
     ///
+    /// The signer can also be a member of a quorum recovery method.
+    /// Then the transactions that you send name the quorum, and the member approves for the quorum.
+    /// If the signer is also a signer of the wallet on its own, it sends as itself.
+    /// If it is a member of more than one quorum, name the quorum with the `signer` parameter of the call.
+    ///
     /// To select the recovery method that approves signer changes, use ``useRecoveryMethod(_:)``.
     ///
-    /// - Parameter config: The signer to use.
+    /// - Parameters:
+    ///   - config: The signer to use.
     /// - Throws:
     ///   - ``WalletError/signerNotRegistered(_:)`` if the signer is not registered on this wallet.
     ///   - The ``WalletError`` of the failed request if the API does not return the wallet signers.
@@ -416,7 +422,7 @@ extension Wallet {
     }
 
     private func requireRegisteredSigner(_ locator: SignerLocator) async throws(WalletError) {
-        if config.containsRecoveryMethod(locator) { return }
+        if config.recoveryLocator(actingFor: locator) != nil { return }
         guard try await fetchSignerRegistration(locator) else { throw .signerNotRegistered(locator.value) }
     }
 
