@@ -17,6 +17,8 @@ struct TransferView: View {
     @State private var selectedTokenIndex = 0
     @State private var isSending = false
     @State private var transactionId: String?
+    @State private var preparedID: String?
+    @State private var awaitingQuorum: WalletTransaction?
     @State private var errorMessage: String?
     @State private var txCopied = false
     @FocusState private var isAnyFieldFocused: Bool
@@ -96,6 +98,14 @@ struct TransferView: View {
                     }
                 }
 
+                if let preparedID {
+                    PreparedQuorumSection(
+                        transactionID: preparedID,
+                        transaction: awaitingQuorum,
+                        labelIdentifier: "transfer-awaiting-quorum-label"
+                    )
+                }
+
                 if let error = errorMessage {
                     Section {
                         Label(error, systemImage: "exclamationmark.triangle")
@@ -140,11 +150,19 @@ struct TransferView: View {
         isSending = true
         errorMessage = nil
         transactionId = nil
+        preparedID = nil
+        awaitingQuorum = nil
         let locator = tokens[selectedTokenIndex].locator
         let trimmedAddress = recipientAddress.trimmingCharacters(in: .whitespaces)
         do {
-            let result = try await wallet.send(trimmedAddress, locator, amountValue)
-            transactionId = result.hash
+            let quorum = appState.selectedSignerQuorum
+            let result = try await wallet.send(trimmedAddress, locator, amountValue, signer: quorum)
+            if result.status == .awaitingApproval {
+                preparedID = result.transactionID
+                awaitingQuorum = await appState.transaction(id: result.transactionID)
+            } else {
+                transactionId = result.hash ?? result.transactionID
+            }
             recipientAddress = ""
             amount = ""
             await onComplete?()

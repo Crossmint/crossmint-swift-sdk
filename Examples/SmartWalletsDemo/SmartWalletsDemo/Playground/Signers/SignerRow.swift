@@ -24,6 +24,7 @@ struct SignerRow: View {
         if locator.hasPrefix("api-key:") { return "API Key" }
         if locator.hasPrefix("external-wallet:") { return "External Wallet" }
         if locator.hasPrefix("server:") { return "Server" }
+        if locator.hasPrefix("quorum:") { return "Quorum" }
         return "Unknown"
     }
 
@@ -37,6 +38,7 @@ struct SignerRow: View {
         case "api-key": "key"
         case "external-wallet": "wallet.bifold"
         case "server": "server.rack"
+        case "quorum": "person.3"
         default: "questionmark.circle"
         }
     }
