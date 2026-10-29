@@ -1,0 +1,60 @@
+{
+  "type": "smart",
+  "chainType": "stellar",
+  "config": {
+    "adminSigner": {
+      "type": "quorum",
+      "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+      "threshold": 2,
+      "members": [
+        {
+          "type": "email",
+          "email": "alice@example.com",
+          "locator": "email:alice@example.com"
+        },
+        {
+          "type": "email",
+          "email": "bob@example.com",
+          "locator": "email:bob@example.com"
+        }
+      ]
+    },
+    "recoveryMethods": [
+      {
+        "type": "quorum",
+        "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+        "threshold": 2,
+        "members": [
+          {
+            "type": "email",
+            "email": "alice@example.com",
+            "locator": "email:alice@example.com"
+          },
+          {
+            "type": "email",
+            "email": "bob@example.com",
+            "locator": "email:bob@example.com"
+          }
+        ]
+      },
+      {
+        "type": "email",
+        "email": "carol@example.com",
+        "locator": "email:carol@example.com"
+      }
+    ],
+    "delegatedSigners": [
+      {
+        "type": "device",
+        "locator": "device:BAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=",
+        "publicKey": {
+          "x": "1780731860627700044960722568376592200742329637303199754547598369979440671",
+          "y": "14532552714582660066924456880521368950258152170031413196862950297402215317055"
+        }
+      }
+    ]
+  },
+  "address": "CA3SGE76PWYAM4OVKETY47GASUGYDF3Y3QFFSPIWFCNKQLUOO4SOIT2W",
+  "linkedUser": "email:carol@example.com",
+  "createdAt": "2026-10-16T10:00:00.000Z"
+}

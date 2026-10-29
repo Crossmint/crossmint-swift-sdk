@@ -24,6 +24,8 @@ public enum WalletError: CrossmintError {
     case deviceSignerNotSupported(String)
     /// The SDK or Crossmint rejected the recovery method list. `message` explains the rejection.
     case recoveryConfigRejected(code: RecoveryConfigCode, message: String)
+    /// The signer is a member of more than one quorum. Name the quorum with the `signer` parameter.
+    case quorumSelectionAmbiguous(quorums: [SignerLocator])
 
     /// The reason the SDK or Crossmint rejected a recovery method list.
     public enum RecoveryConfigCode: String, Sendable {
@@ -69,6 +71,7 @@ public enum WalletError: CrossmintError {
         case .signerNotRegistered: "SIGNER_NOT_REGISTERED"
         case .deviceSignerNotSupported: "DEVICE_SIGNER_NOT_SUPPORTED"
         case .recoveryConfigRejected(let code, _): code.rawValue
+        case .quorumSelectionAmbiguous: "QUORUM_SELECTION_AMBIGUOUS"
         }
     }
 
@@ -100,6 +103,8 @@ public enum WalletError: CrossmintError {
             "Signer \"\(locator)\" is not registered on this wallet. Call addSigner first."
         case .deviceSignerNotSupported(let message), .recoveryConfigRejected(_, let message):
             message
+        case .quorumSelectionAmbiguous(let quorums):
+            "The signer is a member of these quorums: \(quorums.map(\.value).joined(separator: ", "))"
         }
     }
 
@@ -121,6 +126,8 @@ public enum WalletError: CrossmintError {
             "Use the recovery signer or another registered signer for this wallet."
         case .recoveryConfigRejected(let code, _):
             code.recoverySuggestion
+        case .quorumSelectionAmbiguous:
+            "Pass the quorum to act for as signer."
         default:
             nil
         }

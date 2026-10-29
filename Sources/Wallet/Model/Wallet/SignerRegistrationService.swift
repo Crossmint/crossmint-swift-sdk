@@ -13,11 +13,13 @@ final class SignerRegistrationService: Sendable {
         self.chainName = chainName
     }
 
+    @discardableResult
     func register(
         locator: SignerLocator,
         approver: RecoveryApprover,
-        deployImmediately: Bool = true
-    ) async throws(WalletError) {
+        deployImmediately: Bool = true,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> String? {
         let entry = DelegatedSignerEntry(signer: .locator(locator))
         let registration = try await smartWalletService.addSigner(
             entry,
@@ -26,15 +28,21 @@ final class SignerRegistrationService: Sendable {
             deployImmediately: deployImmediately,
             approver: approver.locator
         )
-        try await approveIfNeeded(registration: registration, signer: approver.signer)
+        let awaitsOtherMembers = prepareOnly
+            ? false
+            : try await approveIfNeeded(registration: registration, signer: approver.signer)
+        guard prepareOnly || awaitsOtherMembers else { return nil }
+        return pendingTransactionId(in: registration)
     }
 
+    @discardableResult
     func registerPasskey(
         name: String,
         host: String,
         approver: RecoveryApprover,
-        deployImmediately: Bool = true
-    ) async throws(WalletError) {
+        deployImmediately: Bool = true,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> String? {
         let passkeyData = try await createPasskey(name: name, host: host)
         let registration = try await smartWalletService.registerTypedSigner(
             passkeyData,
@@ -43,7 +51,16 @@ final class SignerRegistrationService: Sendable {
             deployImmediately: deployImmediately,
             approver: approver.locator
         )
-        try await approveIfNeeded(registration: registration, signer: approver.signer)
+        let awaitsOtherMembers = prepareOnly
+            ? false
+            : try await approveIfNeeded(registration: registration, signer: approver.signer)
+        guard prepareOnly || awaitsOtherMembers else { return nil }
+        return pendingTransactionId(in: registration)
+    }
+
+    func pendingTransactionId(in registration: AddDelegatedSignerResponse) -> String? {
+        guard case .transaction(let id) = pendingApproval(in: registration) else { return nil }
+        return id
     }
 
     func createPasskey(name: String, host: String) async throws(WalletError) -> PasskeySignerData {
@@ -59,7 +76,11 @@ final class SignerRegistrationService: Sendable {
         return await passkeySigner.adminSigner
     }
 
-    func approveIfNeeded(registration: AddDelegatedSignerResponse, signer: any Signer) async throws(WalletError) {
+    @discardableResult
+    func approveIfNeeded(
+        registration: AddDelegatedSignerResponse,
+        signer: any Signer
+    ) async throws(WalletError) -> Bool {
         switch pendingApproval(in: registration) {
         case let .signature(signatureId, pending):
             Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: [
@@ -67,14 +88,16 @@ final class SignerRegistrationService: Sendable {
                 "id": signatureId
             ])
             try await approveSignatureRegistration(signatureId: signatureId, pending: pending, signer: signer)
+            return false
         case let .transaction(transactionId):
             Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: [
                 "route": "transaction",
                 "id": transactionId
             ])
-            try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
+            return try await approveRegistrationTransaction(transactionId: transactionId, signer: signer)
         case .notNeeded:
             Logger.smartWallet.info(LogEvents.walletAddSignerApprovalRouted, attributes: ["route": "none"])
+            return false
         }
     }
 
@@ -124,21 +147,36 @@ final class SignerRegistrationService: Sendable {
     private func approveRegistrationTransaction(
         transactionId: String,
         signer: any Signer
-    ) async throws(WalletError) {
+    ) async throws(WalletError) -> Bool {
+        var waitsOnOtherMembers = false
         do {
             let transaction = try await smartWalletService.transaction(withId: transactionId, chainType: chainType)
-            guard let pending = transaction.approvals?.pending, !pending.isEmpty else { return }
-            try await signer.initialize(smartWalletService)
-            for approval in pending {
-                try await smartWalletService.signTransaction(
-                    transactionId: transactionId,
-                    chainType: chainType,
-                    signer: signer,
-                    message: approval.message
-                )
+            let signerLocator = await signer.locator
+            let isSigner = { (approval: Transaction.Approvals.Pending) in
+                SignerLocator(orUnknown: approval.signer) == signerLocator
+            }
+            let openQuorums = (transaction.approvals?.quorums ?? []).filter { $0.remaining > 0 }
+            let memberPending = openQuorums.compactMap { $0.pending.first(where: isSigner) }
+            waitsOnOtherMembers = openQuorums.contains { $0.remaining > ($0.pending.contains(where: isSigner) ? 1 : 0) }
+            let messages = ((transaction.approvals?.pending ?? []) + memberPending).map(\.message)
+            if !messages.isEmpty {
+                try await sign(messages, transactionId: transactionId, signer: signer)
             }
         } catch {
             throw WalletError.walletGeneric("Failed to approve signer registration: \(error)")
+        }
+        return waitsOnOtherMembers
+    }
+
+    private func sign(_ messages: [String], transactionId: String, signer: any Signer) async throws {
+        try await signer.initialize(smartWalletService)
+        for message in messages {
+            try await smartWalletService.signTransaction(
+                transactionId: transactionId,
+                chainType: chainType,
+                signer: signer,
+                message: message
+            )
         }
     }
 }
