@@ -97,7 +97,7 @@ struct RecoveryMethodRequestTests {
     }
 
     @Test func namesTheChainWhenAddingOnEVM() async throws {
-        let service = try makeService(responding: .success("EVMAddRecoveryMethodResponse"))
+        let service = try makeService(fixture: "EVMAddRecoveryMethodResponse")
 
         let transaction = try await service.addRecoveryMethod(
             PhoneSignerData(phone: "+14155552671"),
@@ -106,14 +106,14 @@ struct RecoveryMethodRequestTests {
             approver: .email("alice@example.com")
         )
 
-        let body = try #require(capturedRequest.value?.httpBody)
+        let body = try #require(router.lastRequest?.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
         #expect(json["chain"] as? String == "base-sepolia")
         #expect(transaction.toDomain().id == "evm-recovery-tx-1")
     }
 
     @Test func namesTheChainWhenRemovingOnEVM() async throws {
-        let service = try makeService(responding: .success("GetTransactionResponse"))
+        let service = try makeService(fixture: "GetTransactionResponse")
 
         _ = try await service.removeRecoveryMethod(
             .phone("+14155552671"),
@@ -122,7 +122,7 @@ struct RecoveryMethodRequestTests {
             approver: .email("alice@example.com")
         )
 
-        let url = try #require(capturedRequest.value?.url)
+        let url = try #require(router.lastRequest?.url)
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
         #expect(components.queryItems == [
             URLQueryItem(name: "approver", value: "email:alice@example.com"),

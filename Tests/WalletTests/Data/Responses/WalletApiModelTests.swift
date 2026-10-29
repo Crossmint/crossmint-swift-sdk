@@ -175,7 +175,7 @@ struct WalletApiModelTest {
             bundle: Bundle.module
         )
 
-        #expect(wallet.config.toDomain.recoveryMethodsWithStatus.map(\.status) == [.active, .failed])
+        #expect(wallet.config.toDomain(on: .solana).recoveryMethodsWithStatus.map(\.status) == [.active, .failed])
     }
 
     @Test(
