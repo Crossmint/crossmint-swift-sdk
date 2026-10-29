@@ -16,10 +16,18 @@ extension Wallet {
     /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
     /// To select it, see ``useRecoveryMethod(_:)``.
     ///
-    /// - Parameter method: An email, phone, external wallet or passkey signer.
-    ///   For a passkey, the SDK shows the system prompt to create a new passkey.
-    ///   A Solana wallet does not accept a passkey as a recovery method.
-    /// - Returns: The completed ``Transaction``.
+    /// To change the members or the threshold of a quorum, add a new quorum and then remove the old one.
+    ///
+    /// - Parameters:
+    ///   - method: An email, phone, external wallet or passkey signer, or a quorum of them.
+    ///     For a passkey, the SDK shows the system prompt to create a new passkey.
+    ///     A Solana wallet does not accept a passkey as a recovery method.
+    ///   - signer: The recovery method that approves the change. Use it to name the quorum to approve for
+    ///     when the recovery method you selected is a member of more than one quorum.
+    ///   - prepareOnly: Pass `true` to create the change without approving it.
+    ///     Then approve it with ``approve(transactionId:)``.
+    /// - Returns: The completed ``Transaction``. With `prepareOnly`, or while other quorum members must still
+    ///   approve, the transaction with the status ``TransactionStatus/awaitingApproval``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
     ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` if the wallet is an EVM wallet.
     ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey
@@ -28,14 +36,22 @@ extension Wallet {
     /// ## Example
     /// ```swift
     /// let transaction = try await wallet.addRecoveryMethod(.email("backup@example.com"))
+    ///
+    /// let quorum = try await wallet.addRecoveryMethod(
+    ///     .quorum(threshold: 2, members: [.email("alice@example.com"), .email("bob@example.com")])
+    /// )
     /// ```
     @discardableResult
-    public func addRecoveryMethod(_ method: SignerConfig) async throws(WalletError) -> Transaction {
+    public func addRecoveryMethod(
+        _ method: SignerConfig,
+        signer: SignerLocator? = nil,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
             try assertRecoveryMethodChangesSupported()
             try assertChainAccepts(method)
-            let approver = try await recoveryMethodApprover()
+            let approver = try await recoveryMethodApprover(explicit: signer)
             let recoveryMethod = try await recoveryMethodData(for: method)
             onTransactionStart?()
             let created = try await smartWalletService.addRecoveryMethod(
@@ -43,8 +59,13 @@ extension Wallet {
                 chainType: chain.chainType,
                 approver: approver
             )
+            if prepareOnly { return created.toDomain() }
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
-            recordAddedRecoveryMethod(recoveryMethod)
+            if transaction.status == .success, recoveryMethod is QuorumSignerInput {
+                await reloadRecoveryMethods()
+            } else if transaction.status == .success {
+                recordAddedRecoveryMethod(recoveryMethod)
+            }
             Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodSuccess, attributes: [
                 "transactionId": transaction.id
             ])
@@ -65,8 +86,14 @@ extension Wallet {
     ///
     /// To remove a signer that you added with ``addSigner(_:)``, use ``removeSigner(locator:)``.
     ///
-    /// - Parameter locator: The recovery method to remove.
-    /// - Returns: The completed ``Transaction``.
+    /// - Parameters:
+    ///   - locator: The recovery method to remove. To remove a quorum, use ``SignerLocator/quorum(id:)``.
+    ///   - signer: The recovery method that approves the change. Use it to name the quorum to approve for
+    ///     when the recovery method you selected is a member of more than one quorum.
+    ///   - prepareOnly: Pass `true` to create the change without approving it.
+    ///     Then approve it with ``approve(transactionId:)``.
+    /// - Returns: The completed ``Transaction``. With `prepareOnly`, or while other quorum members must still
+    ///   approve, the transaction with the status ``TransactionStatus/awaitingApproval``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
     ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
     ///   - ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
@@ -76,21 +103,28 @@ extension Wallet {
     /// let transaction = try await wallet.removeRecoveryMethod(locator: .email("old@example.com"))
     /// ```
     @discardableResult
-    public func removeRecoveryMethod(locator: SignerLocator) async throws(WalletError) -> Transaction {
+    public func removeRecoveryMethod(
+        locator: SignerLocator,
+        signer: SignerLocator? = nil,
+        prepareOnly: Bool = false
+    ) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodStart, attributes: [
             "locator": locator.value
         ])
         do {
             try assertRecoveryMethodChangesSupported()
-            let approver = try await recoveryMethodApprover()
+            let approver = try await recoveryMethodApprover(explicit: signer)
             onTransactionStart?()
             let created = try await smartWalletService.removeRecoveryMethod(
                 locator,
                 chainType: chain.chainType,
                 approver: approver
             )
+            if prepareOnly { return created.toDomain() }
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
-            recordRemovedRecoveryMethod(locator)
+            if transaction.status == .success {
+                recordRemovedRecoveryMethod(locator)
+            }
             Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodSuccess, attributes: [
                 "locator": locator.value,
                 "transactionId": transaction.id
@@ -176,7 +210,7 @@ extension Wallet {
             signer = config.recoverySigner(ofType: ApiKeySignerData.self).map { ApiKeySigner(adminSigner: $0) }
         case .passkey(_, let host, let id):
             signer = try await passkeyRecoverySigner(host: host, id: id)
-        case .externalWallet, .device:
+        case .externalWallet, .device, .quorum:
             throw .walletGeneric(
                 "Only an email, phone, API key or passkey recovery method can approve changes from the SDK."
             )
@@ -233,6 +267,15 @@ extension Wallet {
             return ExternalWalletSignerData(address: address)
         case .passkey(let name, let host, _):
             return try await signerRegistrationService.createPasskey(name: name, host: host)
+        case let .quorum(threshold, members):
+            guard !members.isEmpty else {
+                throw .recoveryConfigRejected(code: .invalidConfig, message: "The quorum has no members")
+            }
+            var memberData: [any AdminSignerData] = []
+            for member in members {
+                memberData.append(try await recoveryMethodData(for: member))
+            }
+            return QuorumSignerInput(threshold: threshold, members: memberData)
         case .apiKey, .device:
             throw .walletGeneric(
                 "A recovery method you add must be an email, phone, external wallet or passkey signer."
@@ -240,8 +283,8 @@ extension Wallet {
         }
     }
 
-    private func recoveryMethodApprover() async throws(WalletError) -> SignerLocator {
-        if let selected = try await authorizingRecovery().locator {
+    private func recoveryMethodApprover(explicit: SignerLocator?) async throws(WalletError) -> SignerLocator {
+        if let selected = try await authorizingRecovery(explicit: explicit).locator {
             return selected
         }
         return try SignerLocator(from: config.recovery.locator)
@@ -257,10 +300,24 @@ extension Wallet {
             }
             throw .walletGeneric(error.message)
         }
-        guard let completed, completed.status == .success else {
+        guard let completed, completed.status == .success || completed.awaitsQuorumMembers else {
             throw .walletGeneric("The recovery method transaction \(transaction.id) did not succeed.")
         }
         return completed
+    }
+
+    func reloadRecoveryMethods() async {
+        do {
+            let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+            config = model.config.toDomain
+            if let selected = selectedRecoveryMethod?.locator, !config.canApproveRecoveryChanges(selected) {
+                selectedRecoveryMethod = nil
+            }
+        } catch {
+            Logger.smartWallet.warning(LogEvents.walletRecoveryMethodsReloadError, attributes: [
+                "error": "\(error)"
+            ])
+        }
     }
 
     private func recordAddedRecoveryMethod(_ recoveryMethod: any AdminSignerData) {

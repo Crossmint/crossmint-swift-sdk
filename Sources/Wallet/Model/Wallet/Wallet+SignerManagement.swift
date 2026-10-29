@@ -204,6 +204,8 @@ extension Wallet {
             try await activatePasskeySigner(name: name, host: host, id: id)
         case .apiKey:
             try await activateApiKeySigner()
+        case .quorum:
+            throw .walletGeneric("A quorum cannot be the active signer. Pick one of its members.")
         }
     }
 
@@ -240,6 +242,8 @@ extension Wallet {
                     deployImmediately: deployImmediately,
                     prepareOnly: prepareOnly
                 )
+            case .quorum:
+                try rejectQuorumSigner()
             case .passkey(let name, let host, _):
                 pendingTransactionId = try await signerRegistrationService.registerPasskey(
                     name: name,
@@ -519,6 +523,10 @@ extension Wallet {
         guard !prepareOnly else { return nil }
         deviceKeyIsUsable()
         return nil
+    }
+
+    private func rejectQuorumSigner() throws(WalletError) -> Never {
+        throw .walletGeneric("Adding a quorum as a signer is not supported yet.")
     }
 
     private func preparedTransaction(withId id: String) async throws(WalletError) -> Transaction {

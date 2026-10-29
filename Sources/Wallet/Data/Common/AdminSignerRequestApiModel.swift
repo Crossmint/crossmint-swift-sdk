@@ -8,7 +8,7 @@ struct AdminSignerRequestApiModel: Encodable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case type, email, phone, address, id, name, publicKey, validatorContractVersion
+        case type, email, phone, address, id, name, publicKey, validatorContractVersion, threshold, members
     }
 
     func encode(to encoder: Encoder) throws {
@@ -30,6 +30,9 @@ struct AdminSignerRequestApiModel: Encodable {
             try container.encodeIfPresent(d.validatorContractVersion, forKey: .validatorContractVersion)
         case let d as ApiKeySignerData:
             try container.encodeIfPresent(d.address, forKey: .address)
+        case let d as QuorumSignerInput:
+            try container.encode(d.threshold, forKey: .threshold)
+            try container.encode(d.members.map(AdminSignerRequestApiModel.init), forKey: .members)
         default:
             break
         }

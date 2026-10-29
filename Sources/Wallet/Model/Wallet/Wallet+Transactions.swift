@@ -33,6 +33,10 @@ extension Wallet {
             guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
+            let quorumApproved = !(transaction.approvals?.quorums.isEmpty ?? true)
+            if quorumApproved, signedTransaction.status == .success {
+                await reloadRecoveryMethods()
+            }
             if signedTransaction.status == .success, pendingDeviceKey?.transactionId == signedTransaction.id {
                 _ = await activatePendingDeviceKey()
             }

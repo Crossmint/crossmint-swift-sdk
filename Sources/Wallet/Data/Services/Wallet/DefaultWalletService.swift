@@ -268,7 +268,9 @@ struct DefaultWalletService: WalletService {
         switch recoveryCode {
         case .invalidConfig, .signerRequired, .notSupportedOnChain:
             return nil
-        case .signerLimitExceeded, .delegatedSignerConflict, .adminSignerConflict, .signerNotAllowed, .lastSigner:
+        case .signerLimitExceeded, .delegatedSignerConflict, .adminSignerConflict, .signerNotAllowed, .lastSigner,
+             .quorumUnsupported, .quorumTooFewMembers, .quorumSizeInvalid, .quorumThresholdExceedsMembers,
+             .quorumMemberDuplicated, .quorumMemberTypeNotAllowed, .quorumMemberTypeUnsupported:
             return .recoveryConfigRejected(
                 code: recoveryCode,
                 message: message ?? "The recovery signer configuration was rejected"

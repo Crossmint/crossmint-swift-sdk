@@ -21,10 +21,9 @@ enum RecoveryInput {
     }
 
     var active: any Signer {
-        switch self {
-        case .single(let signer): signer
-        case .list(let signers): signers[0]
-        }
+        let first = signers[0]
+        guard let quorum = first as? QuorumSigner, let member = quorum.members.first else { return first }
+        return member
     }
 
     func defaultSigner(for first: any AdminSignerData) async -> any Signer {
@@ -51,6 +50,9 @@ enum RecoveryInput {
     func resolved(for chain: Chain) throws(WalletError) -> RecoveryInput {
         if chain.chainType == .solana, signers.contains(where: { $0.signerType == .passkey }) {
             throw .passkeyRecoveryNotAllowedOnSolana
+        }
+        if signers.contains(where: { ($0 as? QuorumSigner)?.members.isEmpty == true }) {
+            throw .recoveryConfigRejected(code: .invalidConfig, message: "The quorum has no members")
         }
         guard case .list(let signers) = self else { return self }
         guard let first = signers.first else {
