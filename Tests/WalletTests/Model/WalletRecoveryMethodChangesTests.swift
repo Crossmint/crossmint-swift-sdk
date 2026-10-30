@@ -106,7 +106,6 @@ struct WalletRecoveryMethodChangesTests {
     }
 
     @Test(arguments: [
-        ("WalletEVMEmail", SignerConfig.email("backup@example.com"), "RECOVERY_NOT_SUPPORTED_ON_CHAIN"),
         ("WalletSolanaEmail", SignerConfig.device, "WALLET_ERROR"),
         ("WalletSolanaEmail", SignerConfig.apiKey, "WALLET_ERROR")
     ])
@@ -132,14 +131,43 @@ struct WalletRecoveryMethodChangesTests {
         #expect(walletService.addRecoveryMethodCallCount == 0)
     }
 
-    @Test func refusesARemovalOnAnEVMWalletBeforeCallingCrossmint() async throws {
-        let wallet = try makeWallet(fileName: "WalletEVMEmail")
+    @Suite("on EVM")
+    struct EVMTests {
+        private let walletService = MockSmartWalletService()
 
-        let error = await #expect(throws: WalletError.self) {
-            try await wallet.removeRecoveryMethod(locator: .email("backup@example.com"))
+        private func makeWallet() throws -> EVMWallet {
+            let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+                fileName: "WalletEVMEmail",
+                bundle: Bundle.module
+            )
+            walletService.addRecoveryMethodResult = try completedTransaction()
+            walletService.removeRecoveryMethodResult = try completedTransaction()
+            return try EVMWallet(
+                smartWalletService: walletService,
+                signer: MockSigner(email: "user@example.com"),
+                baseModel: baseModel,
+                evmChain: .baseSepolia
+            )
         }
 
-        #expect(error?.code == "RECOVERY_NOT_SUPPORTED_ON_CHAIN")
-        #expect(walletService.removeRecoveryMethodCallCount == 0)
+        private func completedTransaction() throws -> EVMTransactionApiModel {
+            try GetFromFile.getModelFrom(fileName: "GetTransactionResponse", bundle: Bundle.module)
+        }
+
+        @Test func addsARecoveryMethod() async throws {
+            let wallet = try makeWallet()
+
+            try await wallet.addRecoveryMethod(.phone("+14155552671"))
+
+            #expect(wallet.recoveryMethods.map(\.signer.locator) == ["email:user@example.com", PHONE])
+        }
+
+        @Test func removesARecoveryMethod() async throws {
+            let wallet = try makeWallet()
+
+            try await wallet.removeRecoveryMethod(locator: .phone("+14155552671"))
+
+            #expect(walletService.removeRecoveryMethodCallCount == 1)
+        }
     }
 }

@@ -236,16 +236,25 @@ struct RecoverySignerListCreationTests {
         return try Data(contentsOf: url)
     }
 
-    @Test func sendsTheListUnderRecoveryAndNoAdminSigner() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
-        let alice = MockSigner(email: "alice@example.com")
-        let bob = MockSigner(email: "bob@example.com")
+    @Test(arguments: [
+        ("solana", "WalletSolanaRecoveryMethods", 2),
+        ("solana", "WalletSolanaRecoveryMethods", 1),
+        ("base-sepolia", "WalletEVMEmail", 2),
+        ("base-sepolia", "WalletEVMEmail", 1)
+    ])
+    func sendsTheListUnderRecoveryMethods(
+        chain: String,
+        fixture: String,
+        count: Int
+    ) async throws {
+        walletService.createWalletFixture = try loadFixture(fixture)
+        let signers = (0..<count).map { MockSigner(email: "signer\($0)@example.com") }
 
-        _ = try await makeWallets().createWallet(chain: Chain("solana"), recoveryMethods: [alice, bob], options: nil)
+        _ = try await makeWallets().createWallet(chain: Chain(chain), recoveryMethods: signers, options: nil)
 
         let config = try #require(walletService.lastCreateWalletParams?.config)
         #expect(config.adminSigner == nil)
-        #expect(config.recoveryMethods?.count == 2)
+        #expect(config.recoveryMethods?.count == count)
     }
 
     @Test func keepsASingleRecoveryMethodAsIsOnAChainThatAcceptsAList() throws {
@@ -311,50 +320,6 @@ struct RecoverySignerListCreationTests {
         } throws: { error in
             guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
             return code == .invalidConfig
-        }
-        #expect(walletService.createWalletCallCount == 0)
-    }
-
-    @Test func sendsAOneEntryListOnEVMUnderAdminSigner() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletEVMEmail")
-
-        _ = try await makeWallets().createWallet(
-            chain: Chain("base-sepolia"),
-            recoveryMethods: [MockSigner(email: "alice@example.com")],
-            options: nil
-        )
-
-        let config = try #require(walletService.lastCreateWalletParams?.config)
-        #expect(config.adminSigner != nil)
-        #expect(config.recoveryMethods == nil)
-    }
-
-    @Test func keepsAOneEntryListOnSolanaUnderRecoveryMethods() async throws {
-        walletService.createWalletFixture = try loadFixture("WalletSolanaRecoveryMethods")
-
-        _ = try await makeWallets().createWallet(
-            chain: Chain("solana"),
-            recoveryMethods: [MockSigner(email: "alice@example.com")],
-            options: nil
-        )
-
-        let config = try #require(walletService.lastCreateWalletParams?.config)
-        #expect(config.adminSigner == nil)
-        #expect(config.recoveryMethods?.count == 1)
-    }
-
-    @Test func rejectsMoreThanOneSignerOnEVMBeforeCallingTheApi() async throws {
-        let wallets = makeWallets()
-
-        await #expect {
-            _ = try await wallets.createWallet(
-                chain: Chain("base-sepolia"),
-                recoveryMethods: [MockSigner(email: "alice@example.com"), MockSigner(email: "bob@example.com")],
-                options: nil
-            )
-        } throws: { error in
-            guard case .recoveryConfigRejected(let code, _) = error as? WalletError else { return false }
-            return code == .notSupportedOnChain
         }
         #expect(walletService.createWalletCallCount == 0)
     }

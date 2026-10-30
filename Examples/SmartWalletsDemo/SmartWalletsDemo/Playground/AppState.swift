@@ -337,13 +337,17 @@ final class AppState {
         email: String,
         extraRecovery: [RecoverySignerDraft]
     ) async throws -> Wallet {
-        guard chain.supportsRecoveryList, !extraRecovery.isEmpty else {
+        guard !extraRecovery.isEmpty else {
             return try await makeWallet(chain: chain, email: email)
         }
         let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
         switch chain {
         case .evm:
-            return try await makeWallet(chain: chain, email: email)
+            return try await sdk.crossmintWallets.createWallet(
+                chain: EVMChain.baseSepolia,
+                recoveryMethods: [.email(email)] + extraRecovery.map(evmSigner),
+                options: options
+            )
         case .solana:
             return try await sdk.crossmintWallets.createWallet(
                 chain: SolanaChain.solana,
@@ -356,6 +360,15 @@ final class AppState {
                 recoveryMethods: [.email(email)] + extraRecovery.map(stellarSigner),
                 options: options
             )
+        }
+    }
+
+    private func evmSigner(for draft: RecoverySignerDraft) -> EVMSigners {
+        switch draft.kind {
+        case .email(let email): .email(email)
+        case .phone(let phone): .phone(phone, channel: phoneChannels[draft.locator])
+        case .apiKey: .apiKey
+        case .passkey(let name): .passkey(name: name, host: passkeyHost)
         }
     }
 

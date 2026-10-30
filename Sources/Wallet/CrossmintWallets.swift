@@ -21,7 +21,7 @@ import CrossmintCommonTypes
 ///     print("New wallet:", wallet.address)
 /// }
 ///
-/// // Solana and Stellar accept several recovery signers. Each one can authorize on its own.
+/// // A wallet can have several recovery signers. Each one can authorize on its own.
 /// let solanaWallet = try await wallets.createWallet(
 ///     chain: .solana,
 ///     recoveryMethods: [.email("user@example.com"), .phone("+15551234567")]
@@ -81,9 +81,8 @@ public protocol CrossmintWallets: Sendable {
     /// returns the existing wallet rather than creating a duplicate.
     ///
     /// Each recovery signer can authorize on its own. The wallet stays usable when the user loses
-    /// one of them. Only Solana and Stellar accept more than one recovery signer. The wallet's first
-    /// recovery signer, as the API reports it, is the active signer until ``Wallet/useSigner(_:)``
-    /// selects another one.
+    /// one of them. The wallet's first recovery signer, as the API reports it, is the active signer
+    /// until ``Wallet/useSigner(_:)`` selects another one.
     ///
     /// - Parameters:
     ///   - chain: The blockchain to deploy to.
@@ -92,7 +91,6 @@ public protocol CrossmintWallets: Sendable {
     ///   - options: Optional configuration, such as enabling a device signer.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` in these conditions:
     ///   - The list is empty.
-    ///   - The list has more than one signer, and the chain accepts only one.
     ///   - The list has a passkey, and the chain is Solana.
     func createWallet(
         chain: Chain,
@@ -112,7 +110,6 @@ public protocol CrossmintWallets: Sendable {
     ///     ``WalletOptions/deviceSigner``.
     ///   - options: Optional configuration, such as enabling a device signer.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` if the recovery list is empty.
-    ///   The SDK also throws this error if the list has more than one signer on a chain that accepts one.
     ///   ``WalletError/walletCreationCancelled`` if the user cancels the passkey creation.
     func createWallet(
         chain: Chain,
@@ -287,15 +284,13 @@ extension CrossmintWallets {
 
     // MARK: - createWallet convenience overloads
 
-    /// Creates a wallet with several recovery signers. Each one can authorize on its own. Only
-    /// Solana and Stellar accept more than one.
+    /// Creates a wallet with several recovery signers. Each one can authorize on its own.
     ///
     /// The wallet's first recovery signer, as the API reports it, is the active signer until
     /// ``Wallet/useSigner(_:)`` selects another one.
     ///
     /// The SDK adds the `signers` when it creates the wallet. The recovery method does not approve them.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is empty, or has more than
-    ///   one signer on a chain that accepts one.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` when the list is empty.
     public func createWallet<C: ChainWithSigners>(
         chain: C,
         recoveryMethods: [C.SpecificSigner],

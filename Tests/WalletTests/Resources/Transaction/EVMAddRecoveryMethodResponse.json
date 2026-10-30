@@ -1,0 +1,29 @@
+{
+  "recoveryMethods": { "type": "phone", "phone": "+14155552671", "locator": "phone:+14155552671" },
+  "tx": {
+    "id": "evm-recovery-tx-1",
+    "status": "awaiting-approval",
+    "chainType": "evm",
+    "walletType": "smart",
+    "createdAt": "2026-09-29T11:00:00.000Z",
+    "params": {
+      "calls": [],
+      "chain": "base-sepolia",
+      "signer": { "type": "email", "email": "alice@example.com", "locator": "email:alice@example.com" }
+    },
+    "onChain": {
+      "userOperationHash": "0x01",
+      "userOperation": {
+        "sender": "0x1234567890ABCDEF1234567890ABCDEF12345678",
+        "nonce": "0x0",
+        "callData": "0x",
+        "callGasLimit": "0x0",
+        "verificationGasLimit": "0x0",
+        "preVerificationGas": "0x0",
+        "maxFeePerGas": "0x0",
+        "maxPriorityFeePerGas": "0x0",
+        "signature": "0x"
+      }
+    }
+  }
+}

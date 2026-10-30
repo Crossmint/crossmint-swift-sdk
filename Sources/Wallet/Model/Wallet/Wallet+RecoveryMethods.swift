@@ -13,17 +13,15 @@ extension Wallet {
 
     /// Adds a recovery method to the wallet.
     ///
-    /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
-    /// To select it, see ``useRecoveryMethod(_:)``.
+    /// A recovery method of the wallet approves the change. To select it, see ``useRecoveryMethod(_:)``.
     ///
     /// - Parameter method: An email, phone, external wallet or passkey signer.
     ///   For a passkey, the SDK shows the system prompt to create a new passkey.
     ///   A Solana wallet does not accept a passkey as a recovery method.
     /// - Returns: The completed ``Transaction``.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
-    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` if the wallet is an EVM wallet.
-    ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey
-    ///     and the wallet is a Solana wallet.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
+    ///   ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey and the wallet is a
+    ///   Solana wallet.
     ///
     /// ## Example
     /// ```swift
@@ -33,7 +31,6 @@ extension Wallet {
     public func addRecoveryMethod(_ method: SignerConfig) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
-            try assertRecoveryMethodChangesSupported()
             try assertChainAccepts(method)
             let approver = try await recoveryMethodApprover()
             let recoveryMethod = try await recoveryMethodData(for: method)
@@ -41,6 +38,7 @@ extension Wallet {
             let created = try await smartWalletService.addRecoveryMethod(
                 recoveryMethod,
                 chainType: chain.chainType,
+                chainName: chain.name,
                 approver: approver
             )
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
@@ -59,17 +57,15 @@ extension Wallet {
 
     /// Removes a recovery method from the wallet.
     ///
-    /// Solana and Stellar wallets only. A different recovery method of the wallet approves the change.
-    /// To select it, see ``useRecoveryMethod(_:)``. If you selected the removed recovery method, the SDK
-    /// clears the selection.
+    /// A different recovery method of the wallet approves the change. To select it, see
+    /// ``useRecoveryMethod(_:)``. If you selected the removed recovery method, the SDK clears the selection.
     ///
     /// To remove a signer that you added with ``addSigner(_:)``, use ``removeSigner(locator:)``.
     ///
     /// - Parameter locator: The recovery method to remove.
     /// - Returns: The completed ``Transaction``.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
-    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
-    ///   - ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
+    ///   ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
     ///
     /// ## Example
     /// ```swift
@@ -81,12 +77,12 @@ extension Wallet {
             "locator": locator.value
         ])
         do {
-            try assertRecoveryMethodChangesSupported()
             let approver = try await recoveryMethodApprover()
             onTransactionStart?()
             let created = try await smartWalletService.removeRecoveryMethod(
                 locator,
                 chainType: chain.chainType,
+                chainName: chain.name,
                 approver: approver
             )
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
@@ -199,16 +195,6 @@ extension Wallet {
     private func passkeyRecoverySigner(host: String, id: String?) async throws(WalletError) -> (any Signer)? {
         guard let passkey = try recoveryPasskey(id: id) else { return nil }
         return await SignerFactory.passkey(passkey, host: host)
-    }
-
-    private func assertRecoveryMethodChangesSupported() throws(WalletError) {
-        guard chain.chainType == .solana || chain.chainType == .stellar else {
-            throw .recoveryConfigRejected(
-                code: .notSupportedOnChain,
-                message: "Adding and removing recovery methods is not supported on \(chain.name) yet. "
-                    + "It is available on Solana and Stellar."
-            )
-        }
     }
 
     private func assertChainAccepts(_ method: SignerConfig) throws(WalletError) {
