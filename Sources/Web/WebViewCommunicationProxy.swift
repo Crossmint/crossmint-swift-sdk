@@ -106,6 +106,16 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
             return
         }
 
+        let frame = message.frameInfo
+        let origin = frame.securityOrigin
+        guard frame.isMainFrame, isLoadedOrigin(scheme: origin.protocol, host: origin.host, port: origin.port) else {
+            Logger.web.warning(LogEvents.messageDropped, attributes: [
+                "origin": "\(origin.protocol)://\(origin.host)",
+                "mainFrame": frame.isMainFrame
+            ])
+            return
+        }
+
         Task { @MainActor in
             messageHandler.processIncomingMessage(message.body)
         }
@@ -210,9 +220,40 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
         return loadedContent != url
     }
+
+    func allowsNavigation(to url: URL?, inMainFrame mainFrame: Bool) -> Bool {
+        !mainFrame || isLoadedOrigin(scheme: url?.scheme, host: url?.host, port: url?.port)
+    }
+
+    private func isLoadedOrigin(scheme: String?, host: String?, port: Int?) -> Bool {
+        guard let loadedContent else {
+            return false
+        }
+
+        return loadedContent.scheme?.lowercased() == scheme?.lowercased()
+            && loadedContent.host?.lowercased() == host?.lowercased()
+            && (loadedContent.port ?? 0) == (port ?? 0)
+    }
 }
 
 extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
+    public func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+    ) {
+        let url = navigationAction.request.url
+        guard allowsNavigation(to: url, inMainFrame: navigationAction.targetFrame?.isMainFrame ?? true) else {
+            Logger.web.warning(LogEvents.navigationBlocked, attributes: [
+                "origin": "\(url?.scheme ?? "")://\(url?.host ?? "")"
+            ])
+            decisionHandler(.cancel)
+            return
+        }
+
+        decisionHandler(.allow)
+    }
+
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Logger.web.debug("Webview finished loading")
         isPageLoaded = true

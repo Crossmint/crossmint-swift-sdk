@@ -143,6 +143,14 @@ public enum LogEvents {
     /// Gave up recovering after repeated content process terminations
     public static let webProcessRecoveryGivenUp = "signer.webProcess.recovery.givenUp"
 
+    // MARK: - Signer Page Origin Events
+
+    /// Dropped a message that did not come from the main frame of the loaded signer origin
+    public static let messageDropped = "signer.message.dropped"
+
+    /// Blocked a main frame navigation away from the loaded signer origin
+    public static let navigationBlocked = "signer.navigation.blocked"
+
     // MARK: - Wallet Factory Events
 
     /// Getting wallet
