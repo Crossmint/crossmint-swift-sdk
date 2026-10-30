@@ -169,13 +169,31 @@ struct DefaultWalletService: WalletService {
     func addRecoveryMethod(
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        try await addRecoveryMethod(recoveryMethod, chainType: chainType, chain: nil, approver: approver)
+    }
+
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
         chainName: String,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        let chain = signerRegistrationChain(chainType: chainType, chainName: chainName)
+        return try await addRecoveryMethod(recoveryMethod, chainType: chainType, chain: chain, approver: approver)
+    }
+
+    private func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        chain: String?,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
         let body = AddRecoveryMethodBody(
             recoveryMethods: AdminSignerRequestApiModel(recoveryMethod),
             approver: approver.value,
-            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
+            chain: chain
         )
         let bodyData = try jsonCoder.encodeRequest(body, errorType: WalletError.self)
         let data = try await crossmintService.executeRequestForRawData(
@@ -190,14 +208,32 @@ struct DefaultWalletService: WalletService {
     func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        try await removeRecoveryMethod(locator, chainType: chainType, chain: nil, approver: approver)
+    }
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
         chainName: String,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        let chain = signerRegistrationChain(chainType: chainType, chainName: chainName)
+        return try await removeRecoveryMethod(locator, chainType: chainType, chain: chain, approver: approver)
+    }
+
+    private func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        chain: String?,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
         let endpoint = Endpoint.removeRecoveryMethod(
             chainType: chainType,
             encodedLocator: encodedSignerLocator(locator.value),
             approver: approver,
-            chain: signerRegistrationChain(chainType: chainType, chainName: chainName)
+            chain: chain
         )
         let data = try await crossmintService.executeRequestForRawData(
             endpoint,

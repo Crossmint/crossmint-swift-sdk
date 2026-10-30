@@ -231,7 +231,6 @@ struct WalletsHeartbeatTests {
         let added = try await session.smartWalletService().addRecoveryMethod(
             SolanaKeypairSigner().adminSigner,
             chainType: .solana,
-            chainName: "solana",
             approver: .externalWallet(address: recovery.address)
         ).toDomain()
         #expect(!added.id.isEmpty)
@@ -245,7 +244,6 @@ struct WalletsHeartbeatTests {
         let removal = try await session.smartWalletService().removeRecoveryMethod(
             .externalWallet(address: second.address),
             chainType: .solana,
-            chainName: "solana",
             approver: .externalWallet(address: recovery.address)
         ).toDomain()
         #expect(!removal.id.isEmpty)
