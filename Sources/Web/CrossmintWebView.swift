@@ -33,14 +33,18 @@ public struct CrossmintWebView: UIViewRepresentable {
         configuration.websiteDataStore = tee.signerWebsiteDataStore
         let userContentController = WKUserContentController()
 
-        let communicationScript = WKUserScript(
-            source: CrossmintJavaScriptBridge.communicationScript(
-                bundleID: bundleId, handlerName: webViewCommunicationProxy.name
-            ),
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: true
-        )
-        userContentController.addUserScript(communicationScript)
+        if let signerOrigin = tee.signerOrigin {
+            let communicationScript = WKUserScript(
+                source: CrossmintJavaScriptBridge.communicationScript(
+                    bundleID: bundleId,
+                    handlerName: webViewCommunicationProxy.name,
+                    allowedOrigin: signerOrigin
+                ),
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            )
+            userContentController.addUserScript(communicationScript)
+        }
 
         userContentController.add(webViewCommunicationProxy: webViewCommunicationProxy)
 

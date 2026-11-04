@@ -143,6 +143,17 @@ public enum LogEvents {
     /// Gave up recovering after repeated content process terminations
     public static let webProcessRecoveryGivenUp = "signer.webProcess.recovery.givenUp"
 
+    // MARK: - Signer Page Origin Events
+
+    /// Blocked a main frame navigation away from the signer origin
+    public static let navigationBlocked = "signer.navigation.blocked"
+
+    /// Dropped a message that did not come from the main frame of the signer origin
+    public static let messageDropped = "signer.message.dropped"
+
+    /// Did not send to the web view because the page it shows is not on the signer origin
+    public static let pageOffOrigin = "signer.page.offOrigin"
+
     // MARK: - Wallet Factory Events
 
     /// Getting wallet

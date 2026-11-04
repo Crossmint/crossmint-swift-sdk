@@ -53,6 +53,8 @@ public final class CrossmintTEE: ObservableObject {
 
     var signerWebsiteDataStore: WKWebsiteDataStore { signerStorage.dataStore }
 
+    var signerOrigin: SignerOrigin? { SignerOrigin(url: url) }
+
     private let url: URL
     private var handshakeState: HandshakeState = .idle
     private var signRequestQueue: [PendingSignRequest] = []

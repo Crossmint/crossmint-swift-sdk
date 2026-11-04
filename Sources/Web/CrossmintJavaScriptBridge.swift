@@ -1,3 +1,5 @@
+import Foundation
+
 public struct CrossmintJavaScriptBridge {
     private static let script = """
         (function() {
@@ -99,5 +101,25 @@ public struct CrossmintJavaScriptBridge {
             return "window.crossmintAppId = '\(bundleID)';\n" + reactNativeTransportAdapter + script
         }
         return reactNativeTransportAdapter + script
+    }
+
+    static func communicationScript(
+        bundleID: String?,
+        handlerName: String,
+        allowedOrigin: SignerOrigin
+    ) -> String {
+        let bridge = communicationScript(bundleID: bundleID, handlerName: handlerName)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .withoutEscapingSlashes
+        guard let originData = try? encoder.encode(allowedOrigin.webOrigin),
+              let originLiteral = String(data: originData, encoding: .utf8) else {
+            return ""
+        }
+
+        return """
+        if (window.location.origin === \(originLiteral)) {
+        \(bridge)
+        }
+        """
     }
 }

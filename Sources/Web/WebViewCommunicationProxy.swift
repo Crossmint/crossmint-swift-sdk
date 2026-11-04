@@ -106,6 +106,20 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
             return
         }
 
+        let frame = message.frameInfo
+        let origin = SignerOrigin(
+            scheme: frame.securityOrigin.protocol,
+            host: frame.securityOrigin.host,
+            port: frame.securityOrigin.port
+        )
+        guard frame.isMainFrame, let origin, origin == signerOrigin else {
+            Logger.web.warning(LogEvents.messageDropped, attributes: [
+                "host": frame.securityOrigin.host,
+                "isMainFrame": frame.isMainFrame
+            ])
+            return
+        }
+
         Task { @MainActor in
             messageHandler.processIncomingMessage(message.body)
         }
@@ -130,6 +144,11 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         if messageHandler.queueMessage(messageData) {
             Logger.web.debug("Frame not yet loaded, enqueuing message")
             return nil
+        }
+
+        guard isOnSignerOrigin(webView.url) else {
+            Logger.web.error(LogEvents.pageOffOrigin, attributes: ["host": webView.url?.host ?? ""])
+            throw .webViewNotAvailable
         }
 
         do {
@@ -181,6 +200,10 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
         Task { @MainActor in
             let messages = messageHandler.getPendingMessages()
+            guard isOnSignerOrigin(webView.url) else {
+                Logger.web.error(LogEvents.pageOffOrigin, attributes: ["host": webView.url?.host ?? ""])
+                return
+            }
             for messageData in messages {
                 do {
                     _ = try await executeJavaScript(messageData, in: webView)
@@ -210,10 +233,54 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
 
         return loadedContent != url
     }
+
+    private var signerOrigin: SignerOrigin? {
+        SignerOrigin(url: loadedContent)
+    }
+
+    private func isOnSignerOrigin(_ url: URL?) -> Bool {
+        signerOrigin?.contains(url) ?? false
+    }
+
+    private func failPendingLoad() {
+        guard let navigationContinuation else {
+            return
+        }
+        loadedContent = nil
+        navigationContinuation.resume(throwing: WebViewError.navigationFailed(URLError(.cancelled)))
+        self.navigationContinuation = nil
+    }
 }
 
 extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
+    public func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
+    ) {
+        let url = navigationAction.request.url
+        let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
+        if !isMainFrame || isOnSignerOrigin(url) {
+            decisionHandler(.allow)
+            return
+        }
+
+        Logger.web.warning(LogEvents.navigationBlocked, attributes: ["host": url?.host ?? ""])
+        decisionHandler(.cancel)
+        failPendingLoad()
+    }
+
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard isOnSignerOrigin(webView.url) else {
+            Logger.web.error(LogEvents.pageOffOrigin, attributes: ["host": webView.url?.host ?? ""])
+            isPageLoaded = false
+            Task { @MainActor in
+                messageHandler.setReady(false)
+            }
+            failPendingLoad()
+            return
+        }
+
         Logger.web.debug("Webview finished loading")
         isPageLoaded = true
         Task { @MainActor in
@@ -243,6 +310,11 @@ extension DefaultWebViewCommunicationProxy: WKNavigationDelegate {
         didFailProvisionalNavigation navigation: WKNavigation!,
         withError error: Error
     ) {
+        guard !isPageLoaded else {
+            Logger.web.debug("Provisional navigation failed while the signer page stays loaded: \(error)")
+            return
+        }
+
         Logger.web.error("Webview failed provisional navigation: \(error)")
         isPageLoaded = false
         Task { @MainActor in
