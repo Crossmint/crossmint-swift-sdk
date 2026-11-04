@@ -20,7 +20,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
         case coti
         case lightlink
         case skaleNebula = "skale-nebula"
-        case seiPacific1 = "sei-pacific-1"
         case chiliz
         case avalanche
         case xai
@@ -52,7 +51,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
         case polygonAmoy = "polygon-amoy"
         case rariTestnet = "rari-testnet"
         case scrollSepolia = "scroll-sepolia"
-        case seiAtlantic2Testnet = "sei-atlantic-2-testnet"
         case shapeSepolia = "shape-sepolia"
         case skaleNebulaTestnet = "skale-nebula-testnet"
         case soneiumMinatoTestnet = "soneium-minato-testnet"
@@ -84,7 +82,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
             case .coti: .coti
             case .lightlink: .lightlink
             case .skaleNebula: .skaleNebula
-            case .seiPacific1: .seiPacific1
             case .chiliz: .chiliz
             case .avalanche: .avalanche
             case .xai: .xai
@@ -116,7 +113,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
             case .polygonAmoy: .polygonAmoy
             case .rariTestnet: .rariTestnet
             case .scrollSepolia: .scrollSepolia
-            case .seiAtlantic2Testnet: .seiAtlantic2Testnet
             case .shapeSepolia: .shapeSepolia
             case .skaleNebulaTestnet: .skaleNebulaTestnet
             case .soneiumMinatoTestnet: .soneiumMinatoTestnet
@@ -149,7 +145,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
     case coti
     case lightlink
     case skaleNebula
-    case seiPacific1
     case chiliz
     case avalanche
     case xai
@@ -181,7 +176,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
     case polygonAmoy
     case rariTestnet
     case scrollSepolia
-    case seiAtlantic2Testnet
     case shapeSepolia
     case skaleNebulaTestnet
     case soneiumMinatoTestnet
@@ -217,7 +211,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
         case .coti: .coti
         case .lightlink: .lightlink
         case .skaleNebula: .skaleNebula
-        case .seiPacific1: .seiPacific1
         case .chiliz: .chiliz
         case .avalanche: .avalanche
         case .xai: .xai
@@ -249,7 +242,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
         case .polygonAmoy: .polygonAmoy
         case .rariTestnet: .rariTestnet
         case .scrollSepolia: .scrollSepolia
-        case .seiAtlantic2Testnet: .seiAtlantic2Testnet
         case .shapeSepolia: .shapeSepolia
         case .skaleNebulaTestnet: .skaleNebulaTestnet
         case .soneiumMinatoTestnet: .soneiumMinatoTestnet
@@ -287,7 +279,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
         case .coti: Known.coti.rawValue
         case .lightlink: Known.lightlink.rawValue
         case .skaleNebula: Known.skaleNebula.rawValue
-        case .seiPacific1: Known.seiPacific1.rawValue
         case .chiliz: Known.chiliz.rawValue
         case .avalanche: Known.avalanche.rawValue
         case .xai: Known.xai.rawValue
@@ -319,7 +310,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
         case .polygonAmoy: Known.polygonAmoy.rawValue
         case .rariTestnet: Known.rariTestnet.rawValue
         case .scrollSepolia: Known.scrollSepolia.rawValue
-        case .seiAtlantic2Testnet: Known.seiAtlantic2Testnet.rawValue
         case .shapeSepolia: Known.shapeSepolia.rawValue
         case .skaleNebulaTestnet: Known.skaleNebulaTestnet.rawValue
         case .soneiumMinatoTestnet: Known.soneiumMinatoTestnet.rawValue
@@ -353,7 +343,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
                 .coti,
                 .lightlink,
                 .skaleNebula,
-                .seiPacific1,
                 .chiliz,
                 .avalanche,
                 .xai,
@@ -386,7 +375,6 @@ public enum EVMChain: SpecificChain, CaseIterable, Equatable {
                 .polygonAmoy,
                 .rariTestnet,
                 .scrollSepolia,
-                .seiAtlantic2Testnet,
                 .shapeSepolia,
                 .skaleNebulaTestnet,
                 .soneiumMinatoTestnet,

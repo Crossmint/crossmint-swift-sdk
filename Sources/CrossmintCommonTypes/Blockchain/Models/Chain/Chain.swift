@@ -26,7 +26,6 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
     case coti
     case lightlink
     case skaleNebula
-    case seiPacific1
     case chiliz
     case avalanche
     case xai
@@ -58,7 +57,6 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
     case polygonAmoy
     case rariTestnet
     case scrollSepolia
-    case seiAtlantic2Testnet
     case shapeSepolia
     case skaleNebulaTestnet
     case soneiumMinatoTestnet
@@ -110,8 +108,6 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
             EVMChain.lightlink
         case .skaleNebula:
             EVMChain.skaleNebula
-        case .seiPacific1:
-            EVMChain.seiPacific1
         case .chiliz:
             EVMChain.chiliz
         case .avalanche:
@@ -174,8 +170,6 @@ public enum Chain: AnyChain, Equatable, Sendable, Hashable {
             EVMChain.rariTestnet
         case .scrollSepolia:
             EVMChain.scrollSepolia
-        case .seiAtlantic2Testnet:
-            EVMChain.seiAtlantic2Testnet
         case .shapeSepolia:
             EVMChain.shapeSepolia
         case .skaleNebulaTestnet:
