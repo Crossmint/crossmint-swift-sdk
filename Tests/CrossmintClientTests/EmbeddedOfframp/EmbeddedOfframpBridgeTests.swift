@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 import WebKit
 @testable import CrossmintClient
@@ -83,7 +84,7 @@ struct EmbeddedOfframpBridgeTests {
 
         let old = bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)
         while resumeOld == nil { await Task.yield() }
-        bridge.forgetPendingRequests()
+        bridge.webView(WKWebView(), didCommit: nil)
         await bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
         resumeOld?.resume(returning: "0xold")
         await old?.value
@@ -121,6 +122,16 @@ struct EmbeddedOfframpBridgeTests {
 
         #expect(reported.map(\.status) == [expected])
         #expect(reported.map(\.orderId) == ["o1"])
+    }
+
+    @Test func takesTheHeightThePageReports() throws {
+        var height: CGFloat = 0
+        let bridge = try makeBridge(for: makeOfframp(), height: Binding(get: { height }, set: { height = $0 }))
+        let resize = #"{"event":"ui:height.changed","data":{"height":812.5}}"#
+
+        bridge.receive(resize, frameURL: bridge.host.page, mainFrame: true)
+
+        #expect(height == 812.5)
     }
 
     private func reply(of bridge: EmbeddedOfframpBridge, to request: String) async throws -> [Reply] {

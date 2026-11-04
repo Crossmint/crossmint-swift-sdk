@@ -43,7 +43,11 @@ final class EmbeddedOfframpBridge: NSObject {
         case "crypto:sign-message":
             return payload(OfframpMessage.self, data).flatMap { message in
                 answer(event, key: "signature", empty: "The wallet returned no signature") {
-                    let sign = self.host.offramp.payer.signMessage ?? Self.refuseMessage
+                    let sign = self.host.offramp.payer.signMessage ?? { _ in
+                        throw OfframpError(
+                            reason: .invalidConfiguration, retriable: false, message: "This payer cannot sign messages"
+                        )
+                    }
                     return try await sign(message)
                 }
             }
@@ -51,10 +55,6 @@ final class EmbeddedOfframpBridge: NSObject {
             break
         }
         return nil
-    }
-
-    func forgetPendingRequests() {
-        pending = [:]
     }
 
     func navigationPolicy(for url: URL?, targetIsMainFrame: Bool?) -> WKNavigationActionPolicy {
@@ -112,33 +112,29 @@ final class EmbeddedOfframpBridge: NSObject {
         let request = UUID()
         pending[event] = request
         return Task {
-            let outcome: Reply
+            let outcome: (event: String, data: any Encodable)
             do {
                 let value = try await run()
-                outcome = value.isEmpty ? .failed(error: empty, rejected: false) : .succeeded([key: value])
+                if value.isEmpty {
+                    outcome = ("\(event):failed", Failure(error: empty, rejected: false))
+                } else {
+                    outcome = ("\(event):success", [key: value])
+                }
             } catch {
-                outcome = .failed(error: error.localizedDescription, rejected: error is OfframpSignatureRejectedError)
+                let rejected = error is OfframpSignatureRejectedError
+                outcome = ("\(event):failed", Failure(error: error.localizedDescription, rejected: rejected))
             }
             guard pending[event] == request else { return }
             pending[event] = nil
-            send(event, outcome)
+            send(outcome.event, outcome.data)
         }
     }
 
-    private func send(_ request: String, _ outcome: Reply) {
-        let encoded: Data?
-        let event: String
-        switch outcome {
-        case .succeeded(let data):
-            event = "\(request):success"
-            encoded = try? JSONEncoder().encode(Outgoing(event: event, data: data))
-        case .failed(let error, let rejected):
-            event = "\(request):failed"
-            encoded = try? JSONEncoder().encode(Outgoing(event: event, data: Failure(error: error, rejected: rejected)))
-        }
-        Logger.client.info(LogEvents.offrampPayerReply, attributes: attributes(["event": event]))
-        guard let encoded, let text = String(data: encoded, encoding: .utf8) else { return }
-        reply?(text)
+    private func send(_ event: String, _ data: some Encodable) {
+        guard let reply, let encoded = try? JSONEncoder().encode(Outgoing(event: event, data: data)),
+              let text = String(data: encoded, encoding: .utf8) else { return }
+        Logger.client.info(LogEvents.offrampPayerReplySent, attributes: attributes(["event": event]))
+        reply(text)
     }
 
     private func attributes(_ extra: [String: String]) -> [String: String] {
@@ -152,19 +148,6 @@ final class EmbeddedOfframpBridge: NSObject {
 
     private func payload<Payload: Decodable>(_ type: Payload.Type, _ data: Data) -> Payload? {
         try? JSONDecoder().decode(Incoming<Payload>.self, from: data).data
-    }
-
-    private enum Reply {
-        case succeeded([String: String])
-        case failed(error: String, rejected: Bool)
-    }
-
-    private struct PayerFailure: LocalizedError {
-        let errorDescription: String?
-    }
-
-    private static func refuseMessage(_ message: OfframpMessage) throws -> String {
-        throw PayerFailure(errorDescription: "This payer cannot sign messages")
     }
 
     private struct EventName: Decodable { let event: String }
@@ -201,7 +184,7 @@ extension EmbeddedOfframpBridge: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        forgetPendingRequests()
+        pending = [:]
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

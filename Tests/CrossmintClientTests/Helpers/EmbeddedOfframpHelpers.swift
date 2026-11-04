@@ -55,8 +55,11 @@ func makePageURL(for offramp: CrossmintEmbeddedOfframp, key: String = STAGING_KE
 }
 
 @MainActor
-func makeBridge(for offramp: CrossmintEmbeddedOfframp) throws -> EmbeddedOfframpBridge {
-    EmbeddedOfframpBridge(host: OfframpWebView(page: try makePageURL(for: offramp), offramp: offramp, height: .constant(0)))
+func makeBridge(
+    for offramp: CrossmintEmbeddedOfframp,
+    height: Binding<CGFloat> = .constant(0)
+) throws -> EmbeddedOfframpBridge {
+    EmbeddedOfframpBridge(host: OfframpWebView(page: try makePageURL(for: offramp), offramp: offramp, height: height))
 }
 
 func makeMessage(_ event: String, _ data: [String: String]) throws -> String {

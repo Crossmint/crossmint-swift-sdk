@@ -563,8 +563,8 @@ public enum LogEvents {
     public static let offrampLoadError = "offramp.load.error"
 
     /// WebKit stopped the process of the offramp page. The SDK loads the page again.
-    public static let offrampProcessTerminated = "offramp.webContent.terminated"
+    public static let offrampProcessTerminated = "offramp.webProcess.terminated"
 
-    /// The SDK replied to a wallet request of the offramp page.
-    public static let offrampPayerReply = "offramp.payer.reply"
+    /// The SDK sent the offramp page the reply to its wallet request.
+    public static let offrampPayerReplySent = "offramp.payerReply.sent"
 }
