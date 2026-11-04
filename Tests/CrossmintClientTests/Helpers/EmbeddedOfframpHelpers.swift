@@ -49,9 +49,14 @@ func makeOfframp(
 }
 
 @MainActor
+func makePageURL(for offramp: CrossmintEmbeddedOfframp, key: String = STAGING_KEY) throws -> URL {
+    let apiBaseURL = try DefaultRequestBuilder().getApiBaseURL(forApiKey: try ApiKey(key: key))
+    return try #require(offramp.pageURL(apiKey: key, apiBaseURL: apiBaseURL))
+}
+
+@MainActor
 func makeBridge(for offramp: CrossmintEmbeddedOfframp) throws -> EmbeddedOfframpBridge {
-    let page = try #require(offramp.pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
-    return EmbeddedOfframpBridge(host: OfframpWebView(page: page, offramp: offramp, height: .constant(0)))
+    EmbeddedOfframpBridge(host: OfframpWebView(page: try makePageURL(for: offramp), offramp: offramp, height: .constant(0)))
 }
 
 func makeMessage(_ event: String, _ data: [String: String]) throws -> String {

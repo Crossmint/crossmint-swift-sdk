@@ -18,6 +18,22 @@ import WebKit
 /// without a reload.
 ///
 /// Identity verification uses the camera. Add `NSCameraUsageDescription` to your app's Info.plist.
+///
+/// ## Example
+///
+/// ```swift
+/// // Your server creates the offramp session and returns its credentials.
+/// let credentials = EmbeddedOfframpCredentials(sessionId: session.sessionId, clientSecret: session.clientSecret)
+///
+/// CrossmintEmbeddedOfframp(
+///     credentials: credentials,
+///     payer: EmbeddedOfframpPayer(signAndSendTransaction: { transaction in
+///         try await myWallet.signAndSend(transaction.serializedTransaction, on: transaction.chain)
+///     })
+/// )
+/// .onComplete { completion in print("Deposit sent: \(completion.txId)") }
+/// .onCancel { dismiss() }
+/// ```
 public struct CrossmintEmbeddedOfframp: View {
     let credentials: EmbeddedOfframpCredentials
     let payer: EmbeddedOfframpPayer
@@ -37,7 +53,8 @@ public struct CrossmintEmbeddedOfframp: View {
     /// - Parameters:
     ///   - credentials: The credentials of the offramp session.
     ///   - payer: Signs and sends the deposit from your wallet.
-    ///   - appearance: Fonts, colors and styles: the same JSON object as the `appearance` of embedded checkout.
+    ///   - appearance: Fonts, colors and styles, encoded as the JSON `appearance` object of the
+    ///     [offramp UI customization guide](https://docs.crossmint.com/offramp/guides/ui-customization).
     ///   - locale: The language of the screens. A `nil` value uses the device language, else English.
     ///   - fill: Fills the height that the layout gives the view instead of taking the height of the page.
     public init(
@@ -92,7 +109,9 @@ public struct CrossmintEmbeddedOfframp: View {
     }
 
     public var body: some View {
-        if let page = pageURL(apiKey: CrossmintSDK.shared.apiKey) {
+        let sdk = CrossmintSDK.shared
+        if let apiBaseURL = try? sdk.crossmintService.getApiBaseURL(),
+           let page = pageURL(apiKey: sdk.apiKey.key, apiBaseURL: apiBaseURL) {
             OfframpWebView(page: page, offramp: self, height: $height)
                 .frame(height: fill ? nil : height)
                 // A new page must never receive the reply to a wallet request of the previous one.
@@ -100,15 +119,16 @@ public struct CrossmintEmbeddedOfframp: View {
         } else {
             Color.clear.onAppear {
                 onErrorHandler?(OfframpError(
-                    reason: .invalidConfiguration, retriable: false, message: "The appearance cannot be encoded as JSON"
+                    reason: .invalidConfiguration, retriable: false,
+                    message: "The offramp page URL cannot be built. Check that the appearance encodes as JSON"
                 ))
             }
         }
     }
 
-    func pageURL(apiKey: ApiKey) -> URL? {
+    func pageURL(apiKey: String, apiBaseURL: URL) -> URL? {
         var query = [
-            URLQueryItem(name: "apiKey", value: apiKey.key),
+            URLQueryItem(name: "apiKey", value: apiKey),
             URLQueryItem(name: "credentials", value: Self.json(credentials)),
             URLQueryItem(name: "sdkMetadata", value: Self.json([
                 "name": "crossmint-swift-sdk",
@@ -128,9 +148,7 @@ public struct CrossmintEmbeddedOfframp: View {
         if payer.signMessage != nil {
             query.append(URLQueryItem(name: "canSignMessage", value: "true"))
         }
-        var components = URLComponents()
-        components.scheme = "https"
-        components.host = "\(apiKey.apiEnvironmentPathComponent)crossmint.com"
+        guard var components = URLComponents(url: apiBaseURL, resolvingAgainstBaseURL: false) else { return nil }
         components.path = "/sdk/unstable/embedded-offramp"
         components.queryItems = query
         // The page reads the query with URLSearchParams, which turns a literal + into a space.
@@ -162,6 +180,7 @@ struct OfframpWebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
+        configuration.defaultWebpagePreferences.preferredContentMode = .mobile
         configuration.websiteDataStore = .nonPersistent()
         configuration.userContentController.addUserScript(WKUserScript(
             source: CrossmintJavaScriptBridge.communicationScript(bundleID: nil, handlerName: Self.handlerName),

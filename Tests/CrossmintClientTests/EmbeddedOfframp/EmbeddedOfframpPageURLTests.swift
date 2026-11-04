@@ -1,4 +1,3 @@
-import CrossmintService
 import Foundation
 import Testing
 @testable import CrossmintClient
@@ -8,7 +7,7 @@ import Testing
 struct EmbeddedOfframpPageURLTests {
     @Test(arguments: [("ck_staging_x", "staging.crossmint.com"), ("ck_production_x", "www.crossmint.com")])
     func pointsAtTheEnvironmentOfTheKey(key: String, host: String) throws {
-        let url = try #require(makeOfframp().pageURL(apiKey: try ApiKey(key: key)))
+        let url = try makePageURL(for: makeOfframp(), key: key)
 
         #expect(url.host == host)
         #expect(url.path == "/sdk/unstable/embedded-offramp")
@@ -23,7 +22,7 @@ struct EmbeddedOfframpPageURLTests {
             appearance: ["fonts": [["cssSrc": "https://fonts.googleapis.com/css2?family=Open+Sans"]]]
         )
 
-        let url = try #require(view.pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
+        let url = try makePageURL(for: view)
 
         let sent = try JSONDecoder().decode(
             EmbeddedOfframpCredentials.self, from: Data(try #require(try searchParam("credentials", in: url)).utf8)
@@ -40,14 +39,14 @@ struct EmbeddedOfframpPageURLTests {
             signMessage: signs ? { @MainActor _ in "" } : nil
         )
 
-        let url = try #require(makeOfframp(payer: payer).pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
+        let url = try makePageURL(for: makeOfframp(payer: payer))
 
         #expect(try searchParam("canSignMessage", in: url) == (signs ? "true" : nil))
     }
 
     @Test(arguments: [true, false])
     func asksThePageToFillOnlyWhenFilling(fill: Bool) throws {
-        let url = try #require(makeOfframp(fill: fill).pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
+        let url = try makePageURL(for: makeOfframp(fill: fill))
 
         #expect(try searchParam("fill", in: url) == (fill ? "true" : nil))
     }
