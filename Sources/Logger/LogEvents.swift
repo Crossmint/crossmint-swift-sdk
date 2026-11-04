@@ -556,4 +556,15 @@ public enum LogEvents {
     // MARK: - WalletFactory Error Events
 
     public static let walletFactoryInvalidChain = "walletFactory.invalidChain"
+
+    // MARK: - Embedded Offramp Events
+
+    /// The offramp page did not load.
+    public static let offrampLoadError = "offramp.load.error"
+
+    /// WebKit stopped the process of the offramp page. The SDK loads the page again.
+    public static let offrampProcessTerminated = "offramp.webContent.terminated"
+
+    /// The SDK replied to a wallet request of the offramp page.
+    public static let offrampPayerReply = "offramp.payer.reply"
 }
