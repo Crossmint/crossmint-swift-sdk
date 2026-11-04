@@ -57,6 +57,10 @@ final class EmbeddedOfframpBridge: NSObject {
         return nil
     }
 
+    func forgetPendingRequests() {
+        pending = [:]
+    }
+
     func navigationPolicy(for url: URL?, targetIsMainFrame: Bool?) -> WKNavigationActionPolicy {
         guard let url, !["javascript", "file"].contains(url.scheme?.lowercased()) else { return .cancel }
         switch targetIsMainFrame {
@@ -184,7 +188,7 @@ extension EmbeddedOfframpBridge: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        pending = [:]
+        forgetPendingRequests()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

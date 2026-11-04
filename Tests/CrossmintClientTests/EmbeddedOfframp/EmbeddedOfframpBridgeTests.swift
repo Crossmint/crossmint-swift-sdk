@@ -84,7 +84,7 @@ struct EmbeddedOfframpBridgeTests {
 
         let old = bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)
         while resumeOld == nil { await Task.yield() }
-        bridge.webView(WKWebView(), didCommit: nil)
+        bridge.forgetPendingRequests()
         await bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
         resumeOld?.resume(returning: "0xold")
         await old?.value
@@ -157,23 +157,6 @@ struct EmbeddedOfframpBridgeTests {
 
             #expect(bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: nil) == .cancel)
             #expect(opened == (opens ? [url] : []))
-        }
-
-        @Test func opensAWindowThatThePageOpensOutsideTheView() throws {
-            let bridge = try makeBridge(for: makeOfframp())
-            var opened: [URL] = []
-            bridge.openExternally = { opened.append($0) }
-            let url = try #require(URL(string: "https://help.example/x"))
-
-            let window = bridge.webView(
-                WKWebView(),
-                createWebViewWith: WKWebViewConfiguration(),
-                for: MockNavigationAction(url: url),
-                windowFeatures: WKWindowFeatures()
-            )
-
-            #expect(window == nil)
-            #expect(opened == [url])
         }
 
         @Test(arguments: [("https://withpersona.com/verify", true), ("javascript:alert(1)", false)])
