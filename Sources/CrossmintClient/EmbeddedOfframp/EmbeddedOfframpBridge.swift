@@ -205,11 +205,11 @@ extension EmbeddedOfframpBridge: WKNavigationDelegate {
 extension EmbeddedOfframpBridge: WKUIDelegate {
     func webView(
         _ webView: WKWebView,
-        requestMediaCapturePermissionFor origin: WKSecurityOrigin,
-        initiatedByFrame frame: WKFrameInfo,
-        type: WKMediaCaptureType,
-        decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void
-    ) {
-        decisionHandler(type == .camera ? .grant : .prompt)
+        createWebViewWith configuration: WKWebViewConfiguration,
+        for action: WKNavigationAction,
+        windowFeatures: WKWindowFeatures
+    ) -> WKWebView? {
+        _ = navigationPolicy(for: action.request.url, targetIsMainFrame: nil)
+        return nil
     }
 }

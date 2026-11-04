@@ -127,6 +127,7 @@ struct EmbeddedOfframpBridgeTests {
     @Test func takesTheHeightThePageReports() throws {
         var height: CGFloat = 0
         let bridge = try makeBridge(for: makeOfframp(), height: Binding(get: { height }, set: { height = $0 }))
+
         let resize = #"{"event":"ui:height.changed","data":{"height":812.5}}"#
 
         bridge.receive(resize, frameURL: bridge.host.page, mainFrame: true)
@@ -156,6 +157,23 @@ struct EmbeddedOfframpBridgeTests {
 
             #expect(bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: nil) == .cancel)
             #expect(opened == (opens ? [url] : []))
+        }
+
+        @Test func opensAWindowThatThePageOpensOutsideTheView() throws {
+            let bridge = try makeBridge(for: makeOfframp())
+            var opened: [URL] = []
+            bridge.openExternally = { opened.append($0) }
+            let url = try #require(URL(string: "https://help.example/x"))
+
+            let window = bridge.webView(
+                WKWebView(),
+                createWebViewWith: WKWebViewConfiguration(),
+                for: MockNavigationAction(url: url),
+                windowFeatures: WKWindowFeatures()
+            )
+
+            #expect(window == nil)
+            #expect(opened == [url])
         }
 
         @Test(arguments: [("https://withpersona.com/verify", true), ("javascript:alert(1)", false)])

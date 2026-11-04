@@ -2,6 +2,7 @@ import CrossmintService
 import Foundation
 import SwiftUI
 import Testing
+import WebKit
 @testable import CrossmintClient
 
 let STAGING_KEY = "ck_staging_\(UUID().uuidString)"
@@ -95,4 +96,15 @@ func searchParam(_ name: String, in url: URL) throws -> String? {
         return String(parts[1]).replacingOccurrences(of: "+", with: " ").removingPercentEncoding
     }
     return nil
+}
+
+final class MockNavigationAction: WKNavigationAction {
+    private let url: URL
+
+    init(url: URL) {
+        self.url = url
+        super.init()
+    }
+
+    override var request: URLRequest { URLRequest(url: url) }
 }
