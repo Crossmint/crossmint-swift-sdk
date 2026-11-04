@@ -89,6 +89,10 @@ final public class CrossmintSDK: ObservableObject {
 
     let crossmintTEE: CrossmintTEE
 
+    var apiKey: ApiKey {
+        sdk.apiKey
+    }
+
     /// Emits `true` when a pending transaction is waiting for the user to enter an email or phone OTP.
     public var isOTPRequired: Published<Bool>.Publisher {
         crossmintTEE.$isOTPRequired

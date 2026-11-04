@@ -8,7 +8,7 @@ import SecureStorage
 import Wallet
 
 final class CrossmintClientSDK: ClientSDK, Sendable {
-    private let apiKey: ApiKey
+    let apiKey: ApiKey
     private let secureStorage: SecureStorage
     private let secureWalletStorage: SecureWalletStorage
     let crossmintService: CrossmintService
