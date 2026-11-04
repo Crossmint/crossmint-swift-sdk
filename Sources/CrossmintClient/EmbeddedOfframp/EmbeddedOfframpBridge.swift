@@ -23,7 +23,7 @@ final class EmbeddedOfframpBridge: NSObject {
         let offramp = host.offramp
         switch event {
         case "ui:height.changed":
-            deliver(data) { (size: Height) in self.host.height = size.height }
+            deliver(data, to: resize)
         case "offramp:ready":
             offramp.onReadyHandler?()
         case "offramp:status":
@@ -143,6 +143,10 @@ final class EmbeddedOfframpBridge: NSObject {
 
     private func attributes(_ extra: [String: String]) -> [String: String] {
         extra.merging(["sessionId": host.offramp.credentials.sessionId]) { current, _ in current }
+    }
+
+    private func resize(_ size: Height) {
+        if size.height > 0 { host.height = size.height }
     }
 
     private func deliver<Payload: Decodable>(_ data: Data, to action: ((Payload) -> Void)?) {

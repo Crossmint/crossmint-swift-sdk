@@ -46,7 +46,8 @@ public struct CrossmintEmbeddedOfframp: View {
     var onCancelHandler: (() -> Void)?
     var onErrorHandler: ((OfframpError) -> Void)?
     // Until the page reports its own height. WebKit may throttle a page that has no height.
-    @State private var height: CGFloat = 500
+    private static let initialHeight: CGFloat = 500
+    @State private var height = Self.initialHeight
 
     /// Creates an offramp view.
     ///
@@ -116,6 +117,7 @@ public struct CrossmintEmbeddedOfframp: View {
                 .frame(height: fill ? nil : height)
                 // A new page must never receive the reply to a wallet request of the previous one.
                 .id(page)
+                .onChange(of: page) { _ in height = Self.initialHeight }
         } else {
             Color.clear.onAppear {
                 onErrorHandler?(OfframpError(

@@ -135,6 +135,19 @@ struct EmbeddedOfframpBridgeTests {
         #expect(height == 812.5)
     }
 
+    @Test(arguments: [0, -1])
+    func ignoresAHeightOfZeroOrLess(reported: CGFloat) throws {
+        let initial = CGFloat.random(in: 1...1000)
+        var height = initial
+        let bridge = try makeBridge(for: makeOfframp(), height: Binding(get: { height }, set: { height = $0 }))
+
+        let resize = #"{"event":"ui:height.changed","data":{"height":\#(reported)}}"#
+
+        bridge.receive(resize, frameURL: bridge.host.page, mainFrame: true)
+
+        #expect(height == initial)
+    }
+
     private func reply(of bridge: EmbeddedOfframpBridge, to request: String) async throws -> [Reply] {
         var replies: [String] = []
         bridge.reply = { replies.append($0) }
