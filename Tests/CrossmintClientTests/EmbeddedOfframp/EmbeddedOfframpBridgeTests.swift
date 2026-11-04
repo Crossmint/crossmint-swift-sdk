@@ -155,31 +155,51 @@ struct EmbeddedOfframpBridgeTests {
             var opened: [String] = []
             bridge.openExternally = { opened.append($0.absoluteString) }
 
-            #expect(bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: nil) == .cancel)
+            let policy = bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: nil, linkActivated: false)
+
+            #expect(policy == .cancel)
+            #expect(opened == (opens ? [url] : []))
+        }
+
+        @Test(arguments: [
+            ("https://terms.example/x", true),
+            ("mailto:help@terms.example", false),
+            ("javascript:alert(1)", false)
+        ])
+        func opensWebLinksTheUserTapsOutsideTheView(url: String, opens: Bool) throws {
+            let bridge = try makeBridge(for: makeOfframp())
+            var opened: [String] = []
+            bridge.openExternally = { opened.append($0.absoluteString) }
+
+            let policy = bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: true, linkActivated: true)
+
+            #expect(policy == .cancel)
             #expect(opened == (opens ? [url] : []))
         }
 
         @Test(arguments: [("https://withpersona.com/verify", true), ("javascript:alert(1)", false)])
         func allowsFramesInsideThePageExceptScripts(url: String, allowed: Bool) throws {
             let bridge = try makeBridge(for: makeOfframp())
-            let policy = bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: false)
+            let policy = bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: false, linkActivated: false)
 
             #expect(policy == (allowed ? .allow : .cancel))
         }
 
-        @Test func keepsTheMainFrameOnThePageItOpened() throws {
+        @Test func keepsTheMainFrameOnThePageWhateverItsQuery() throws {
             let bridge = try makeBridge(for: makeOfframp())
+            var opened: [URL] = []
+            bridge.openExternally = { opened.append($0) }
             let page = bridge.host.page
-            var otherSession = try #require(URLComponents(url: page, resolvingAgainstBaseURL: false))
-            otherSession.queryItems = otherSession.queryItems?.map {
-                $0.name == "credentials" ? URLQueryItem(name: $0.name, value: #"{"sessionId":"x"}"#) : $0
-            }
+            var otherQuery = try #require(URLComponents(url: page, resolvingAgainstBaseURL: false))
+            otherQuery.queryItems = [URLQueryItem(name: "step", value: UUID().uuidString)]
             var otherHost = try #require(URLComponents(url: page, resolvingAgainstBaseURL: false))
             otherHost.host = "evil.example"
+            let policy = { bridge.navigationPolicy(for: $0, targetIsMainFrame: true, linkActivated: false) }
 
-            #expect(bridge.navigationPolicy(for: page, targetIsMainFrame: true) == .allow)
-            #expect(bridge.navigationPolicy(for: otherSession.url, targetIsMainFrame: true) == .cancel)
-            #expect(bridge.navigationPolicy(for: otherHost.url, targetIsMainFrame: true) == .cancel)
+            #expect(policy(page) == .allow)
+            #expect(policy(otherQuery.url) == .allow)
+            #expect(policy(otherHost.url) == .cancel)
+            #expect(opened.isEmpty)
         }
     }
 

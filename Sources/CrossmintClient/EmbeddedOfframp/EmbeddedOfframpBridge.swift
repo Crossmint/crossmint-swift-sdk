@@ -61,20 +61,20 @@ final class EmbeddedOfframpBridge: NSObject {
         pending = [:]
     }
 
-    func navigationPolicy(for url: URL?, targetIsMainFrame: Bool?) -> WKNavigationActionPolicy {
+    func navigationPolicy(for url: URL?, targetIsMainFrame: Bool?, linkActivated: Bool) -> WKNavigationActionPolicy {
         guard let url, !["javascript", "file"].contains(url.scheme?.lowercased()) else { return .cancel }
         switch targetIsMainFrame {
-        case nil:
+        case false?:
+            return .allow
+        case true? where isPage(url):
+            return .allow
+        case true? where !linkActivated:
+            return .cancel
+        default:
             if ["https", "http"].contains(url.scheme?.lowercased()) {
                 openExternally(url)
             }
             return .cancel
-        case false?:
-            return .allow
-        case true?:
-            let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
-            let pageQuery = URLComponents(url: host.page, resolvingAgainstBaseURL: false)?.queryItems
-            return isPage(url) && query == pageQuery ? .allow : .cancel
         }
     }
 
@@ -173,7 +173,11 @@ extension EmbeddedOfframpBridge: WKNavigationDelegate {
         decidePolicyFor action: WKNavigationAction,
         decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
     ) {
-        decisionHandler(navigationPolicy(for: action.request.url, targetIsMainFrame: action.targetFrame?.isMainFrame))
+        decisionHandler(navigationPolicy(
+            for: action.request.url,
+            targetIsMainFrame: action.targetFrame?.isMainFrame,
+            linkActivated: action.navigationType == .linkActivated
+        ))
     }
 
     func webView(
@@ -213,7 +217,7 @@ extension EmbeddedOfframpBridge: WKUIDelegate {
         for action: WKNavigationAction,
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
-        _ = navigationPolicy(for: action.request.url, targetIsMainFrame: nil)
+        _ = navigationPolicy(for: action.request.url, targetIsMainFrame: nil, linkActivated: false)
         return nil
     }
 }
