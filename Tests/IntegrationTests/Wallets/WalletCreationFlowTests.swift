@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Testing
 @testable import Wallet
 
-@Suite("Integration: wallet creation")
+@Suite("Integration: wallet creation", Tier.integration)
 struct WalletCreationFlowTests {
     @Test func createsAWalletWithAnExternalWalletRecoveryAndReadsItBack() async throws {
         let session = try await SessionPool.shared.primary()

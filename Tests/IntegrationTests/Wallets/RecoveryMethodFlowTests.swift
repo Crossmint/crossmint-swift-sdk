@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Testing
 @testable import Wallet
 
-@Suite("Integration: recovery methods")
+@Suite("Integration: recovery methods", Tier.integration)
 struct RecoveryMethodFlowTests {
     @Test func addsReadsBackAndRemovesARecoveryMethodOnSolana() async throws {
         let session = try await SessionPool.shared.primary()

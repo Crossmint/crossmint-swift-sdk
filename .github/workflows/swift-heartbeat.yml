@@ -1,0 +1,57 @@
+name: Swift SDK Heartbeat
+
+on:
+  schedule:
+    - cron: "0 7,19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swift-sdk-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    name: wallets API contract (preview)
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '27.0'
+
+    - name: Cache SPM packages
+      uses: actions/cache@v4
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
+    - name: Run heartbeat suite
+      id: first
+      continue-on-error: true
+      env:
+        TEST_RUNNER_PREVIEW_CK_KEY: ${{ secrets.PREVIEW_CK_KEY }}
+      run: make heartbeat-test
+
+    - name: Retry once before alerting
+      id: retry
+      if: steps.first.outcome == 'failure'
+      env:
+        TEST_RUNNER_PREVIEW_CK_KEY: ${{ secrets.PREVIEW_CK_KEY }}
+      run: make heartbeat-test
+
+    - name: Notify Slack on failure
+      if: failure() && steps.retry.outcome == 'failure'
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_QA_ALERTS_WEBHOOK }}
+      run: |
+        curl --fail-with-body -sS -X POST -H 'Content-type: application/json' \
+          --data "{\"text\": \":rotating_light: Swift SDK heartbeat failed twice in a row — the wallets API contract may have changed. <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>\"}" \
+          "$SLACK_WEBHOOK"

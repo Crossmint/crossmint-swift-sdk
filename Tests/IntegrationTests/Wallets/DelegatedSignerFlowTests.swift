@@ -2,7 +2,7 @@ import CrossmintCommonTypes
 import Testing
 @testable import Wallet
 
-@Suite("Integration: delegated signer")
+@Suite("Integration: delegated signer", Tier.integration)
 struct DelegatedSignerFlowTests {
     @Test func registersSignsWithAndRemovesAnExternalWalletSigner() async throws {
         let session = try await SessionPool.shared.primary()
