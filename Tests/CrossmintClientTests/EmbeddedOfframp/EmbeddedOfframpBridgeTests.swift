@@ -6,43 +6,43 @@ import WebKit
 @Suite("Embedded offramp bridge", .tags(.unit))
 @MainActor
 struct EmbeddedOfframpBridgeTests {
-    nonisolated static let txOutcomes: [(PayerOutcome, Reply)] = [
+    nonisolated static let TX_OUTCOMES: [(PayerOutcome, Reply)] = [
         (.returns("0xhash"), Reply(event: "crypto:send-transaction:success", data: .init(txId: "0xhash"))),
         (.returns(""), failed("crypto:send-transaction", "The wallet returned no transaction id", rejected: false)),
         (.fails(OfframpSignatureRejectedError(message: "no")), failed("crypto:send-transaction", "no", rejected: true)),
         (.fails(WalletFailure(errorDescription: "lost")), failed("crypto:send-transaction", "lost", rejected: false))
     ]
 
-    nonisolated static let messageOutcomes: [(PayerOutcome, Reply)] = [
+    nonisolated static let MESSAGE_OUTCOMES: [(PayerOutcome, Reply)] = [
         (.returns("0xsig"), Reply(event: "crypto:sign-message:success", data: .init(signature: "0xsig"))),
         (.returns(""), failed("crypto:sign-message", "The wallet returned no signature", rejected: false)),
         (.fails(OfframpSignatureRejectedError(message: "no")), failed("crypto:sign-message", "no", rejected: true)),
         (.fails(WalletFailure(errorDescription: "locked")), failed("crypto:sign-message", "locked", rejected: false))
     ]
 
-    @Test(arguments: EmbeddedOfframpBridgeTests.txOutcomes)
+    @Test(arguments: EmbeddedOfframpBridgeTests.TX_OUTCOMES)
     func repliesToADepositWithThePayerOutcome(outcome: PayerOutcome, expected: Reply) async throws {
-        let bridge = try makeBridge(for: offramp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
+        let bridge = try makeBridge(for: makeOfframp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
             try outcome.value()
         })))
 
-        #expect(try await reply(of: bridge, to: try sendTransactionRequest()) == [expected])
+        #expect(try await reply(of: bridge, to: try makeSendTransactionRequest()) == [expected])
     }
 
-    @Test(arguments: EmbeddedOfframpBridgeTests.messageOutcomes)
+    @Test(arguments: EmbeddedOfframpBridgeTests.MESSAGE_OUTCOMES)
     func repliesToAnOwnershipProofWithThePayerOutcome(outcome: PayerOutcome, expected: Reply) async throws {
-        let bridge = try makeBridge(for: offramp(payer: EmbeddedOfframpPayer(
+        let bridge = try makeBridge(for: makeOfframp(payer: EmbeddedOfframpPayer(
             signAndSendTransaction: { _ in "" },
             signMessage: { _ in try outcome.value() }
         )))
 
-        #expect(try await reply(of: bridge, to: try signMessageRequest()) == [expected])
+        #expect(try await reply(of: bridge, to: try makeSignMessageRequest()) == [expected])
     }
 
     @Test func refusesAnOwnershipProofWhenThePayerCannotSignMessages() async throws {
-        let bridge = try makeBridge(for: offramp())
+        let bridge = try makeBridge(for: makeOfframp())
 
-        let replies = try await reply(of: bridge, to: try signMessageRequest())
+        let replies = try await reply(of: bridge, to: try makeSignMessageRequest())
 
         #expect(replies == [Self.failed("crypto:sign-message", "This payer cannot sign messages", rejected: false)])
     }
@@ -50,7 +50,7 @@ struct EmbeddedOfframpBridgeTests {
     @Test func ignoresARequestThatArrivesWhileTheSameKindIsPending() async throws {
         var calls = 0
         var resume: CheckedContinuation<String, Never>?
-        let bridge = try makeBridge(for: offramp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
+        let bridge = try makeBridge(for: makeOfframp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
             calls += 1
             if calls > 1 {
                 return "0xsecond"
@@ -60,9 +60,9 @@ struct EmbeddedOfframpBridgeTests {
         var replies: [String] = []
         bridge.reply = { replies.append($0) }
 
-        let first = bridge.receive(try sendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)
+        let first = bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)
         while resume == nil { await Task.yield() }
-        await bridge.receive(try sendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
+        await bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
         resume?.resume(returning: "0xhash")
         await first?.value
 
@@ -72,7 +72,7 @@ struct EmbeddedOfframpBridgeTests {
 
     @Test func answersOnlyTheDocumentThatIsShownNow() async throws {
         var resumeOld: CheckedContinuation<String, Never>?
-        let bridge = try makeBridge(for: offramp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
+        let bridge = try makeBridge(for: makeOfframp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
             if resumeOld == nil {
                 return await withCheckedContinuation { resumeOld = $0 }
             }
@@ -81,10 +81,10 @@ struct EmbeddedOfframpBridgeTests {
         var replies: [String] = []
         bridge.reply = { replies.append($0) }
 
-        let old = bridge.receive(try sendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)
+        let old = bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)
         while resumeOld == nil { await Task.yield() }
         bridge.forgetPendingRequests()
-        await bridge.receive(try sendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
+        await bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
         resumeOld?.resume(returning: "0xold")
         await old?.value
 
@@ -96,15 +96,15 @@ struct EmbeddedOfframpBridgeTests {
     func ignoresMessagesFromOtherPagesOrFrames(fromPage: Bool, mainFrame: Bool) async throws {
         var calls = 0
         var ready = false
-        let view = offramp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
+        let view = makeOfframp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in
             calls += 1
             return "0xhash"
         })).onReady { ready = true }
         let bridge = try makeBridge(for: view)
         let frameURL = fromPage ? bridge.host.page : URL(string: "https://evil.example/sdk/unstable/embedded-offramp")
 
-        bridge.receive(try message("offramp:ready", [:]), frameURL: frameURL, mainFrame: mainFrame)
-        await bridge.receive(try sendTransactionRequest(), frameURL: frameURL, mainFrame: mainFrame)?.value
+        bridge.receive(try makeMessage("offramp:ready", [:]), frameURL: frameURL, mainFrame: mainFrame)
+        await bridge.receive(try makeSendTransactionRequest(), frameURL: frameURL, mainFrame: mainFrame)?.value
 
         #expect(calls == 0)
         #expect(!ready)
@@ -113,9 +113,9 @@ struct EmbeddedOfframpBridgeTests {
     @Test(arguments: [("verifying-wallet", OfframpStatus.verifyingWallet), ("a-later-step", .unknown)])
     func reportsEveryStatusThePageSends(wire: String, expected: OfframpStatus) throws {
         var reported: [OfframpStatusChange] = []
-        let bridge = try makeBridge(for: offramp().onStatusChange { reported.append($0) })
+        let bridge = try makeBridge(for: makeOfframp().onStatusChange { reported.append($0) })
 
-        let status = try message("offramp:status", ["status": wire, "orderId": "o1"])
+        let status = try makeMessage("offramp:status", ["status": wire, "orderId": "o1"])
 
         bridge.receive(status, frameURL: bridge.host.page, mainFrame: true)
 
@@ -139,7 +139,7 @@ struct EmbeddedOfframpBridgeTests {
     struct NavigationTests {
         @Test(arguments: [("https://terms.example/x", true), ("javascript:alert(1)", false)])
         func opensWebLinksForANewWindowOutsideTheView(url: String, opens: Bool) throws {
-            let bridge = try makeBridge(for: offramp())
+            let bridge = try makeBridge(for: makeOfframp())
             var opened: [String] = []
             bridge.openExternally = { opened.append($0.absoluteString) }
 
@@ -149,14 +149,14 @@ struct EmbeddedOfframpBridgeTests {
 
         @Test(arguments: [("https://withpersona.com/verify", true), ("javascript:alert(1)", false)])
         func allowsFramesInsideThePageExceptScripts(url: String, allowed: Bool) throws {
-            let bridge = try makeBridge(for: offramp())
+            let bridge = try makeBridge(for: makeOfframp())
             let policy = bridge.navigationPolicy(for: URL(string: url), targetIsMainFrame: false)
 
             #expect(policy == (allowed ? .allow : .cancel))
         }
 
         @Test func keepsTheMainFrameOnThePageItOpened() throws {
-            let bridge = try makeBridge(for: offramp())
+            let bridge = try makeBridge(for: makeOfframp())
             let page = bridge.host.page
             var otherSession = try #require(URLComponents(url: page, resolvingAgainstBaseURL: false))
             otherSession.queryItems = otherSession.queryItems?.map {
@@ -182,7 +182,7 @@ struct EmbeddedOfframpBridgeTests {
             status: Int, reason: OfframpError.Reason, retriable: Bool
         ) throws {
             var errors: [OfframpError] = []
-            let bridge = try makeBridge(for: offramp().onError { errors.append($0) })
+            let bridge = try makeBridge(for: makeOfframp().onError { errors.append($0) })
 
             bridge.reportLoadFailure(status: status)
 
@@ -192,7 +192,7 @@ struct EmbeddedOfframpBridgeTests {
 
         @Test func reportsAConnectionFailureAsRetriable() throws {
             var errors: [OfframpError] = []
-            let bridge = try makeBridge(for: offramp().onError { errors.append($0) })
+            let bridge = try makeBridge(for: makeOfframp().onError { errors.append($0) })
 
             bridge.reportLoadFailure(URLError(.notConnectedToInternet))
 
@@ -202,7 +202,7 @@ struct EmbeddedOfframpBridgeTests {
 
         @Test func reportsOnlyTheFirstFailureOfALoad() throws {
             var errors: [OfframpError] = []
-            let bridge = try makeBridge(for: offramp().onError { errors.append($0) })
+            let bridge = try makeBridge(for: makeOfframp().onError { errors.append($0) })
 
             bridge.reportLoadFailure(status: 404)
             bridge.reportLoadFailure(NSError(domain: "WebKitErrorDomain", code: 102))
@@ -212,7 +212,7 @@ struct EmbeddedOfframpBridgeTests {
 
         @Test func ignoresACancelledLoad() throws {
             var errors: [OfframpError] = []
-            let bridge = try makeBridge(for: offramp().onError { errors.append($0) })
+            let bridge = try makeBridge(for: makeOfframp().onError { errors.append($0) })
 
             bridge.reportLoadFailure(URLError(.cancelled))
 

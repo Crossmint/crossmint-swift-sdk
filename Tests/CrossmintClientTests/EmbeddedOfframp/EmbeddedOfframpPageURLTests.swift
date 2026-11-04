@@ -8,7 +8,7 @@ import Testing
 struct EmbeddedOfframpPageURLTests {
     @Test(arguments: [("ck_staging_x", "staging.crossmint.com"), ("ck_production_x", "www.crossmint.com")])
     func pointsAtTheEnvironmentOfTheKey(key: String, host: String) throws {
-        let url = try #require(offramp().pageURL(apiKey: try ApiKey(key: key)))
+        let url = try #require(makeOfframp().pageURL(apiKey: try ApiKey(key: key)))
 
         #expect(url.host == host)
         #expect(url.path == "/sdk/unstable/embedded-offramp")
@@ -40,14 +40,14 @@ struct EmbeddedOfframpPageURLTests {
             signMessage: signs ? { @MainActor _ in "" } : nil
         )
 
-        let url = try #require(offramp(payer: payer).pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
+        let url = try #require(makeOfframp(payer: payer).pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
 
         #expect(try searchParam("canSignMessage", in: url) == (signs ? "true" : nil))
     }
 
     @Test(arguments: [true, false])
     func asksThePageToFillOnlyWhenFilling(fill: Bool) throws {
-        let url = try #require(offramp(fill: fill).pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
+        let url = try #require(makeOfframp(fill: fill).pageURL(apiKey: try ApiKey(key: STAGING_KEY)))
 
         #expect(try searchParam("fill", in: url) == (fill ? "true" : nil))
     }

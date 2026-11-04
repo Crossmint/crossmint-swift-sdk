@@ -35,7 +35,7 @@ struct Reply: Decodable, Equatable, Sendable {
 }
 
 @MainActor
-func offramp(
+func makeOfframp(
     payer: EmbeddedOfframpPayer = EmbeddedOfframpPayer(signAndSendTransaction: { _ in UUID().uuidString }),
     appearance: (any Encodable)? = nil,
     fill: Bool = false
@@ -54,7 +54,7 @@ func makeBridge(for offramp: CrossmintEmbeddedOfframp) throws -> EmbeddedOfframp
     return EmbeddedOfframpBridge(host: OfframpWebView(page: page, offramp: offramp, height: .constant(0)))
 }
 
-func message(_ event: String, _ data: [String: String]) throws -> String {
+func makeMessage(_ event: String, _ data: [String: String]) throws -> String {
     struct Message: Encodable {
         let event: String
         let data: [String: String]
@@ -62,16 +62,16 @@ func message(_ event: String, _ data: [String: String]) throws -> String {
     return try #require(String(data: try JSONEncoder().encode(Message(event: event, data: data)), encoding: .utf8))
 }
 
-func sendTransactionRequest() throws -> String {
-    try message("crypto:send-transaction", [
+func makeSendTransactionRequest() throws -> String {
+    try makeMessage("crypto:send-transaction", [
         "serializedTransaction": UUID().uuidString,
         "chain": "base-sepolia",
         "payerAddress": UUID().uuidString
     ])
 }
 
-func signMessageRequest() throws -> String {
-    try message("crypto:sign-message", [
+func makeSignMessageRequest() throws -> String {
+    try makeMessage("crypto:sign-message", [
         "message": UUID().uuidString,
         "chain": "solana",
         "payerAddress": UUID().uuidString
