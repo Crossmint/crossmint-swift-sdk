@@ -48,6 +48,20 @@ Wallets are chain-specific: use ``EVMWallet`` for Ethereum-compatible chains and
 - ``Balances``
 - ``NFT``
 
+### Offramp
+
+- ``CrossmintEmbeddedOfframp``
+- ``EmbeddedOfframpCredentials``
+- ``EmbeddedOfframpPayer``
+- ``OfframpTransaction``
+- ``OfframpMessage``
+- ``OfframpSignatureRejectedError``
+- ``OfframpLocale``
+- ``OfframpStatus``
+- ``OfframpStatusChange``
+- ``OfframpCompletion``
+- ``OfframpError``
+
 ### Authentication
 
 - ``CrossmintAuthManager``
