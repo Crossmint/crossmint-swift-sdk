@@ -1,111 +1,232 @@
 import Foundation
+import Logger
+import UIKit
+import WebKit
 
 @MainActor
-final class EmbeddedOfframpBridge {
-    let configuration: EmbeddedOfframpConfiguration
-    var payer: @MainActor (OfframpTransaction) async throws -> String
-    var callbacks: EmbeddedOfframpCallbacks
+final class EmbeddedOfframpBridge: NSObject {
+    var host: OfframpWebView
     var reply: ((String) -> Void)?
-    var active = true
-    var receiving = true
-    private var document = 0
-    private var signing = false
-    private var replies: [OfframpTransaction: String] = [:]
+    var openExternally: (URL) -> Void = { UIApplication.shared.open($0) }
+    // The page has one request of each kind in flight and no request IDs, so a reply goes to the request in `pending`.
+    private var pending: [String: UUID] = [:]
+    private var loadFailureReported = false
 
-    init(
-        configuration: EmbeddedOfframpConfiguration,
-        payer: @escaping @MainActor (OfframpTransaction) async throws -> String,
-        callbacks: EmbeddedOfframpCallbacks = .init()
-    ) {
-        self.configuration = configuration
-        self.payer = payer
-        self.callbacks = callbacks
+    init(host: OfframpWebView) {
+        self.host = host
     }
 
-    func beginNavigation() {
-        document += 1
-        receiving = false
-    }
-
-    // Each branch validates a distinct wire event before invoking its typed callback.
-    // swiftlint:disable:next cyclomatic_complexity
-    func receive(_ message: String, source: URL?, mainFrame: Bool) async {
-        guard active, receiving, mainFrame, configuration.trusts(source),
-              let data = message.data(using: .utf8),
-              let name = try? JSONDecoder().decode(EventName.self, from: data) else { return }
-        switch name.event {
-        case "offramp:ready":
-            if payload(Empty.self, data) != nil { callbacks.onReady() }
-        case "offramp:cancelled":
-            if payload(Empty.self, data) != nil { callbacks.onCancel() }
-        case "offramp:status":
-            if let status = payload(OfframpStatusChange.self, data) { callbacks.onStatusChange(status) }
-        case "offramp:completed":
-            if let completion = payload(OfframpCompletion.self, data) { callbacks.onComplete(completion) }
-        case "offramp:error":
-            if let error = payload(OfframpError.self, data) { callbacks.onError(error) }
+    @discardableResult
+    func receive(_ body: Any, frameURL: URL?, mainFrame: Bool) -> Task<Void, Never>? {
+        guard mainFrame, isPage(frameURL), let data = (body as? String)?.data(using: .utf8),
+              let event = try? JSONDecoder().decode(EventName.self, from: data).event else { return nil }
+        let offramp = host.offramp
+        switch event {
         case "ui:height.changed":
-            if let size = payload(Height.self, data), size.height.isFinite, size.height >= 0 {
-                callbacks.onHeightChange(size.height)
-            }
+            deliver(data) { (size: Height) in self.host.height = size.height }
+        case "offramp:ready":
+            offramp.onReadyHandler?()
+        case "offramp:status":
+            deliver(data, to: offramp.onStatusChangeHandler)
+        case "offramp:completed":
+            deliver(data, to: offramp.onCompleteHandler)
+        case "offramp:cancelled":
+            offramp.onCancelHandler?()
+        case "offramp:error":
+            deliver(data, to: offramp.onErrorHandler)
         case "crypto:send-transaction":
-            if let transaction = payload(OfframpTransaction.self, data),
-               !transaction.serializedTransaction.isEmpty, !transaction.chain.isEmpty,
-               !transaction.payerAddress.isEmpty {
-                await sign(transaction)
+            return payload(OfframpTransaction.self, data).flatMap { transaction in
+                answer(event, key: "txId", empty: "The wallet returned no transaction id") {
+                    try await self.host.offramp.payer.signAndSendTransaction(transaction)
+                }
+            }
+        case "crypto:sign-message":
+            return payload(OfframpMessage.self, data).flatMap { message in
+                answer(event, key: "signature", empty: "The wallet returned no signature") {
+                    let sign = self.host.offramp.payer.signMessage ?? Self.refuseMessage
+                    return try await sign(message)
+                }
             }
         default:
             break
         }
+        return nil
     }
 
-    private func payload<T: Decodable>(_ type: T.Type, _ data: Data) -> T? {
-        try? JSONDecoder().decode(Incoming<T>.self, from: data).data
+    func forgetPendingRequests() {
+        pending = [:]
     }
 
-    private func sign(_ transaction: OfframpTransaction) async {
-        // The page has one outstanding request and no request ID. Never let another request consume its reply.
-        guard !signing else { return }
-        if let previous = replies[transaction] {
-            reply?(previous)
-            return
-        }
-        let originDocument = document
-        signing = true
-        defer { signing = false }
-        let response: String?
-        var cacheReply = true
-        do {
-            let txId = try await payer(transaction)
-            guard !txId.isEmpty else {
-                throw OfframpError(reason: "unknown", retriable: false,
-                                   message: "The wallet returned an empty transaction ID")
+    func navigationPolicy(for url: URL?, targetIsMainFrame: Bool?) -> WKNavigationActionPolicy {
+        guard let url, !["javascript", "file"].contains(url.scheme?.lowercased()) else { return .cancel }
+        switch targetIsMainFrame {
+        case nil:
+            if ["https", "http"].contains(url.scheme?.lowercased()) {
+                openExternally(url)
             }
-            response = encode("crypto:send-transaction:success", Success(txId: txId))
-        } catch {
-            cacheReply = !(error is OfframpSignatureRejected)
-            response = encode("crypto:send-transaction:failed", Failure(
-                error: error is OfframpSignatureRejected ? "The wallet rejected the transaction" : "The wallet failed",
-                rejected: error is OfframpSignatureRejected
-            ))
-        }
-        if let response {
-            if cacheReply { replies[transaction] = response }
-            // Do not time out a wallet: a late successful broadcast must still reach the page.
-            if active, receiving, document == originDocument { reply?(response) }
+            return .cancel
+        case false?:
+            return .allow
+        case true?:
+            let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+            let pageQuery = URLComponents(url: host.page, resolvingAgainstBaseURL: false)?.queryItems
+            return isPage(url) && query == pageQuery ? .allow : .cancel
         }
     }
 
-    private func encode<T: Encodable>(_ event: String, _ data: T) -> String? {
-        guard let encoded = try? JSONEncoder().encode(Outgoing(event: event, data: data)) else { return nil }
-        return String(data: encoded, encoding: .utf8)
+    func reportLoadFailure(status: Int) {
+        reportLoadFailure("HTTP \(status)", retriable: status >= 500)
+    }
+
+    func reportLoadFailure(_ error: Error) {
+        let nsError = error as NSError
+        guard !(nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled) else { return }
+        reportLoadFailure(nsError.localizedDescription, retriable: true)
+    }
+
+    private func reportLoadFailure(_ message: String, retriable: Bool) {
+        guard !loadFailureReported else { return }
+        loadFailureReported = true
+        let error = OfframpError(
+            reason: retriable ? .providerError : .invalidConfiguration, retriable: retriable, message: message
+        )
+        Logger.client.error(LogEvents.offrampLoadError, attributes: attributes([
+            "reason": error.reason.rawValue, "message": message
+        ]))
+        host.offramp.onErrorHandler?(error)
+    }
+
+    private func isPage(_ url: URL?) -> Bool {
+        guard let url else { return false }
+        return url.scheme == "https" && url.host == host.page.host && url.port == host.page.port
+            && url.user == nil && url.password == nil && url.path == host.page.path
+    }
+
+    private func answer(
+        _ event: String,
+        key: String,
+        empty: String,
+        _ run: @escaping @MainActor () async throws -> String
+    ) -> Task<Void, Never>? {
+        guard pending[event] == nil else { return nil }
+        let request = UUID()
+        pending[event] = request
+        return Task {
+            let outcome: Reply
+            do {
+                let value = try await run()
+                outcome = value.isEmpty ? .failed(error: empty, rejected: false) : .succeeded([key: value])
+            } catch {
+                outcome = .failed(error: error.localizedDescription, rejected: error is OfframpSignatureRejectedError)
+            }
+            guard pending[event] == request else { return }
+            pending[event] = nil
+            send(event, outcome)
+        }
+    }
+
+    private func send(_ request: String, _ outcome: Reply) {
+        let encoded: Data?
+        let event: String
+        switch outcome {
+        case .succeeded(let data):
+            event = "\(request):success"
+            encoded = try? JSONEncoder().encode(Outgoing(event: event, data: data))
+        case .failed(let error, let rejected):
+            event = "\(request):failed"
+            encoded = try? JSONEncoder().encode(Outgoing(event: event, data: Failure(error: error, rejected: rejected)))
+        }
+        Logger.client.info(LogEvents.offrampPayerReply, attributes: attributes(["event": event]))
+        guard let encoded, let text = String(data: encoded, encoding: .utf8) else { return }
+        reply?(text)
+    }
+
+    private func attributes(_ extra: [String: String]) -> [String: String] {
+        extra.merging(["sessionId": host.offramp.credentials.sessionId]) { current, _ in current }
+    }
+
+    private func deliver<Payload: Decodable>(_ data: Data, to action: ((Payload) -> Void)?) {
+        guard let action, let value = payload(Payload.self, data) else { return }
+        action(value)
+    }
+
+    private func payload<Payload: Decodable>(_ type: Payload.Type, _ data: Data) -> Payload? {
+        try? JSONDecoder().decode(Incoming<Payload>.self, from: data).data
+    }
+
+    private enum Reply {
+        case succeeded([String: String])
+        case failed(error: String, rejected: Bool)
+    }
+
+    private struct PayerFailure: LocalizedError {
+        let errorDescription: String?
+    }
+
+    private static func refuseMessage(_ message: OfframpMessage) throws -> String {
+        throw PayerFailure(errorDescription: "This payer cannot sign messages")
     }
 
     private struct EventName: Decodable { let event: String }
-    private struct Incoming<T: Decodable>: Decodable { let data: T }
-    private struct Outgoing<T: Encodable>: Encodable { let event: String; let data: T }
-    private struct Empty: Decodable {}
-    private struct Height: Decodable { let height: Double }
-    private struct Success: Encodable { let txId: String }
+    private struct Incoming<Payload: Decodable>: Decodable { let data: Payload }
+    private struct Outgoing<Payload: Encodable>: Encodable { let event: String; let data: Payload }
+    private struct Height: Decodable { let height: CGFloat }
     private struct Failure: Encodable { let error: String; let rejected: Bool }
+}
+
+extension EmbeddedOfframpBridge: WKScriptMessageHandler {
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        receive(message.body, frameURL: message.frameInfo.request.url, mainFrame: message.frameInfo.isMainFrame)
+    }
+}
+
+extension EmbeddedOfframpBridge: WKNavigationDelegate {
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor action: WKNavigationAction,
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
+    ) {
+        decisionHandler(navigationPolicy(for: action.request.url, targetIsMainFrame: action.targetFrame?.isMainFrame))
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor response: WKNavigationResponse,
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void
+    ) {
+        guard response.isForMainFrame, let status = (response.response as? HTTPURLResponse)?.statusCode, status >= 400
+        else { return decisionHandler(.allow) }
+        reportLoadFailure(status: status)
+        decisionHandler(.cancel)
+    }
+
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        forgetPendingRequests()
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        reportLoadFailure(error)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        reportLoadFailure(error)
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        Logger.client.error(LogEvents.offrampProcessTerminated, attributes: attributes([:]))
+        loadFailureReported = false
+        webView.load(URLRequest(url: host.page))
+    }
+}
+
+extension EmbeddedOfframpBridge: WKUIDelegate {
+    func webView(
+        _ webView: WKWebView,
+        requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+        initiatedByFrame frame: WKFrameInfo,
+        type: WKMediaCaptureType,
+        decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void
+    ) {
+        decisionHandler(type == .camera ? .grant : .prompt)
+    }
 }

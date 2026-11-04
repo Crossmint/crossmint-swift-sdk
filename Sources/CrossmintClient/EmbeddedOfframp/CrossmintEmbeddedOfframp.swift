@@ -1,184 +1,199 @@
+import CrossmintService
+import Foundation
 import SwiftUI
+import Utils
+import Web
 import WebKit
 
-/// The host must provide NSCameraUsageDescription and NSMicrophoneUsageDescription for in-page KYC.
-@MainActor
+/// A view that runs one Crossmint offramp session: the user adds a bank account, gets a quote, verifies their
+/// identity when the session needs it, and confirms one deposit that the payer signs and sends. The view then
+/// follows the payout.
+///
+/// The view uses the client API key that ``CrossmintSDK/configure(apiKey:logLevel:)`` received.
+/// Attach event handlers with ``onReady(_:)``, ``onStatusChange(_:)``, ``onComplete(_:)``, ``onCancel(_:)``,
+/// and ``onError(_:)``.
+///
+/// The view takes the height of the page, unless `fill` is `true`. A change to the credentials, the appearance, the
+/// locale, `fill`, or to whether the payer has `signMessage` reloads the page. The payer and the handlers can change
+/// without a reload.
+///
+/// Identity verification uses the camera. Add `NSCameraUsageDescription` to your app's Info.plist.
 public struct CrossmintEmbeddedOfframp: View {
-    private let configuration: EmbeddedOfframpConfiguration
-    private let payer: @MainActor (OfframpTransaction) async throws -> String
-    private let callbacks: EmbeddedOfframpCallbacks
+    let credentials: EmbeddedOfframpCredentials
+    let payer: EmbeddedOfframpPayer
+    private let appearance: (any Encodable)?
+    private let locale: OfframpLocale?
+    private let fill: Bool
+    var onReadyHandler: (() -> Void)?
+    var onStatusChangeHandler: ((OfframpStatusChange) -> Void)?
+    var onCompleteHandler: ((OfframpCompletion) -> Void)?
+    var onCancelHandler: (() -> Void)?
+    var onErrorHandler: ((OfframpError) -> Void)?
+    // Until the page reports its own height. WebKit may throttle a page that has no height.
+    @State private var height: CGFloat = 500
 
+    /// Creates an offramp view.
+    ///
+    /// - Parameters:
+    ///   - credentials: The credentials of the offramp session.
+    ///   - payer: Signs and sends the deposit from your wallet.
+    ///   - appearance: Fonts, colors and styles: the same JSON object as the `appearance` of embedded checkout.
+    ///   - locale: The language of the screens. A `nil` value uses the device language, else English.
+    ///   - fill: Fills the height that the layout gives the view instead of taking the height of the page.
     public init(
-        configuration: EmbeddedOfframpConfiguration,
-        payer: @escaping @MainActor (OfframpTransaction) async throws -> String,
-        callbacks: EmbeddedOfframpCallbacks = .init()
+        credentials: EmbeddedOfframpCredentials,
+        payer: EmbeddedOfframpPayer,
+        appearance: (any Encodable)? = nil,
+        locale: OfframpLocale? = nil,
+        fill: Bool = false
     ) {
-        self.configuration = configuration
+        self.credentials = credentials
         self.payer = payer
-        self.callbacks = callbacks
+        self.appearance = appearance
+        self.locale = locale
+        self.fill = fill
     }
 
-    public var body: some View {
-        OfframpWebView(configuration: configuration, payer: payer, callbacks: callbacks)
-            // A changed session gets a new bridge so an old wallet reply cannot reach its page.
-            .id(configuration.url)
-    }
-}
-
-@MainActor
-struct OfframpWebView: UIViewRepresentable {
-    let configuration: EmbeddedOfframpConfiguration
-    let payer: @MainActor (OfframpTransaction) async throws -> String
-    let callbacks: EmbeddedOfframpCallbacks
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(bridge: EmbeddedOfframpBridge(configuration: configuration, payer: payer, callbacks: callbacks))
-    }
-
-    func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = []
-        config.websiteDataStore = .nonPersistent()
-        config.userContentController.add(context.coordinator, name: "crossmintOfframp")
-        config.userContentController.addUserScript(WKUserScript(
-            source: Self.script, injectionTime: .atDocumentStart, forMainFrameOnly: true
-        ))
-        let view = WKWebView(frame: .zero, configuration: config)
-        view.isOpaque = false
-        view.backgroundColor = .clear
-        view.navigationDelegate = context.coordinator
-        view.uiDelegate = context.coordinator
-        let coordinator = context.coordinator
-        coordinator.bridge.reply = { [weak view, weak coordinator] message in
-            guard let view, let documentId = coordinator?.documentId else { return }
-            // callAsyncJavaScript passes data as an argument, never as executable source.
-            view.callAsyncJavaScript(
-                Self.replyScript, arguments: ["message": message, "documentId": documentId],
-                in: nil, in: .page
-            ) { _ in }
-        }
-        view.load(URLRequest(url: configuration.url))
+    /// Adds an action to perform when the first screen shows. It runs once per load.
+    public func onReady(_ action: @escaping () -> Void) -> Self {
+        var view = self
+        view.onReadyHandler = action
         return view
     }
 
-    func updateUIView(_ view: WKWebView, context: Context) {
-        context.coordinator.bridge.payer = payer
-        context.coordinator.bridge.callbacks = callbacks
+    /// Adds an action to perform when the flow moves to another step.
+    public func onStatusChange(_ action: @escaping (OfframpStatusChange) -> Void) -> Self {
+        var view = self
+        view.onStatusChangeHandler = action
+        return view
     }
 
-    static func dismantleUIView(_ view: WKWebView, coordinator: Coordinator) {
-        coordinator.bridge.active = false
-        coordinator.bridge.reply = nil
-        view.stopLoading()
-        view.navigationDelegate = nil
-        view.uiDelegate = nil
-        view.configuration.userContentController.removeScriptMessageHandler(forName: "crossmintOfframp")
+    /// Adds an action to perform when the deposit is confirmed. It can run again for a reopened withdrawal,
+    /// so deduplicate by `orderId`.
+    public func onComplete(_ action: @escaping (OfframpCompletion) -> Void) -> Self {
+        var view = self
+        view.onCompleteHandler = action
+        return view
     }
 
-    static let replyScript = """
-    if (window.__crossmintOfframpDocumentId === documentId) {
-        window.onMessageFromRN(message);
+    /// Adds an action to perform when the user closes the flow. Without it, the Continue, Close and Cancel buttons
+    /// do nothing.
+    public func onCancel(_ action: @escaping () -> Void) -> Self {
+        var view = self
+        view.onCancelHandler = action
+        return view
     }
-    """
 
-    static let script = """
-    (() => {
-        const documentId = Array.from(crypto.getRandomValues(new Uint32Array(4))).join('-');
-        window.__crossmintOfframpDocumentId = documentId;
-        window.ReactNativeWebView = {
-            postMessage: function(message) {
-                window.webkit.messageHandlers.crossmintOfframp.postMessage(JSON.stringify({documentId, message}));
-            }
-        };
-        window.onMessageFromRN = function(message) {
-            window.dispatchEvent(new MessageEvent('message', {data: JSON.parse(message)}));
-        };
-    })();
-    """
+    /// Adds an action to perform when something goes wrong.
+    public func onError(_ action: @escaping (OfframpError) -> Void) -> Self {
+        var view = self
+        view.onErrorHandler = action
+        return view
+    }
 
-    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
-        let bridge: EmbeddedOfframpBridge
-        var documentId: String?
-
-        init(bridge: EmbeddedOfframpBridge) {
-            self.bridge = bridge
-        }
-
-        func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-            guard let text = message.body as? String,
-                  let data = text.data(using: .utf8),
-                  let envelope = try? JSONDecoder().decode(PageMessage.self, from: data),
-                  message.frameInfo.isMainFrame,
-                  bridge.configuration.trusts(message.frameInfo.request.url) else { return }
-            documentId = envelope.documentId
-            let source = message.frameInfo.request.url
-            let mainFrame = message.frameInfo.isMainFrame
-            Task { await bridge.receive(envelope.message, source: source, mainFrame: mainFrame) }
-        }
-
-        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            documentId = nil
-            bridge.beginNavigation()
-        }
-
-        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-            bridge.receiving = true
-        }
-
-        func webView(
-            _ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
-            decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
-        ) {
-            guard let frame = action.targetFrame else {
-                decisionHandler(.cancel)
-                return
-            }
-            let url = action.request.url
-            if frame.isMainFrame {
-                decisionHandler(bridge.configuration.trusts(url) ? .allow : .cancel)
-            } else {
-                // KYC providers embed HTTPS frames and create local media URLs.
-                let allowed = ["https", "about", "blob"].contains(url?.scheme ?? "")
-                decisionHandler(allowed ? .allow : .cancel)
+    public var body: some View {
+        if let page = pageURL(apiKey: CrossmintSDK.shared.apiKey) {
+            OfframpWebView(page: page, offramp: self, height: $height)
+                .frame(height: fill ? nil : height)
+                // A new page must never receive the reply to a wallet request of the previous one.
+                .id(page)
+        } else {
+            Color.clear.onAppear {
+                onErrorHandler?(OfframpError(
+                    reason: .invalidConfiguration, retriable: false, message: "The appearance cannot be encoded as JSON"
+                ))
             }
         }
+    }
 
-        func webView(
-            _ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,
-            decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void
-        ) {
-            if response.isForMainFrame, let http = response.response as? HTTPURLResponse, http.statusCode >= 400 {
-                reportFailure("The offramp page returned HTTP \(http.statusCode)")
-                decisionHandler(.cancel)
-                return
-            }
-            decisionHandler(.allow)
+    func pageURL(apiKey: ApiKey) -> URL? {
+        var query = [
+            URLQueryItem(name: "apiKey", value: apiKey.key),
+            URLQueryItem(name: "credentials", value: Self.json(credentials)),
+            URLQueryItem(name: "sdkMetadata", value: Self.json([
+                "name": "crossmint-swift-sdk",
+                "version": SDKVersion.version
+            ]))
+        ]
+        if let appearance {
+            guard let json = Self.json(appearance) else { return nil }
+            query.append(URLQueryItem(name: "appearance", value: json))
         }
+        if let locale {
+            query.append(URLQueryItem(name: "locale", value: locale.rawValue))
+        }
+        if fill {
+            query.append(URLQueryItem(name: "fill", value: "true"))
+        }
+        if payer.signMessage != nil {
+            query.append(URLQueryItem(name: "canSignMessage", value: "true"))
+        }
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "\(apiKey.apiEnvironmentPathComponent)crossmint.com"
+        components.path = "/sdk/unstable/embedded-offramp"
+        components.queryItems = query
+        // The page reads the query with URLSearchParams, which turns a literal + into a space.
+        components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        return components.url
+    }
 
-        func webView(
-            _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error
-        ) {
-            reportFailure("The offramp page could not load")
-        }
+    private static func json(_ value: some Encodable) -> String? {
+        let encoder = JSONEncoder()
+        // Stable key order keeps the page URL, and so the view identity, the same across updates.
+        encoder.outputFormatting = .sortedKeys
+        guard let data = try? encoder.encode(value) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+}
 
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            reportFailure("The offramp page could not load")
-        }
+struct OfframpWebView: UIViewRepresentable {
+    static let handlerName = "crossmintOfframp"
 
-        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-            reportFailure("The offramp page stopped unexpectedly")
-        }
+    let page: URL
+    let offramp: CrossmintEmbeddedOfframp
+    @Binding var height: CGFloat
 
-        private struct PageMessage: Decodable {
-            let documentId: String
-            let message: String
-        }
+    func makeCoordinator() -> EmbeddedOfframpBridge {
+        EmbeddedOfframpBridge(host: self)
+    }
 
-        private func reportFailure(_ message: String) {
-            guard bridge.active else { return }
-            bridge.beginNavigation()
-            bridge.callbacks.onError(.init(reason: "invalid-configuration", retriable: false, message: message))
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+        configuration.websiteDataStore = .nonPersistent()
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: CrossmintJavaScriptBridge.communicationScript(bundleID: nil, handlerName: Self.handlerName),
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
+        configuration.userContentController.add(context.coordinator, name: Self.handlerName)
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
+        #if DEBUG
+        if #available(iOS 16.4, *) {
+            webView.isInspectable = true
         }
+        #endif
+        context.coordinator.reply = { [weak webView] message in
+            webView?.callAsyncJavaScript(
+                "window.onMessageFromNative(message)", arguments: ["message": message], in: nil, in: .page
+            ) { _ in }
+        }
+        webView.load(URLRequest(url: page))
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        context.coordinator.host = self
+    }
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: EmbeddedOfframpBridge) {
+        coordinator.reply = nil
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: handlerName)
     }
 }
