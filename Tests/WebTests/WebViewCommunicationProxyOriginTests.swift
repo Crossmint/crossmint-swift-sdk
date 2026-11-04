@@ -31,40 +31,32 @@ struct WebViewCommunicationProxyOriginTests {
         try fixture.webView.load(URLRequest(url: #require(URL(string: SignerPageFixture.FOREIGN_URL))))
         await fixture.recorder.wait(for: "foreign.done")
 
-        fixture.webView.navigationDelegate = fixture.proxy
+        fixture.webView.navigationDelegate = fixture.navigation
         try fixture.webView.load(URLRequest(url: #require(URL(string: SignerPageFixture.SIGNER_SECOND_PAGE_URL))))
         await fixture.recorder.wait(for: "from.signer.second")
 
         #expect(fixture.recorder.types == ["from.signer", "foreign.done", "from.signer.second"])
     }
 
-    struct NavigationCase: Sendable, CustomTestStringConvertible {
-        let url: String
-        let mainFrame: Bool
-        let allowed: Bool
-
-        var testDescription: String { "\(url) in \(mainFrame ? "main frame" : "subframe")" }
-    }
-
     @Test(arguments: [
-        NavigationCase(url: "crossmint-test://signer/second", mainFrame: true, allowed: true),
-        NavigationCase(url: "crossmint-test://foreign/", mainFrame: true, allowed: false),
-        NavigationCase(url: "https://signer/", mainFrame: true, allowed: false),
-        NavigationCase(url: "crossmint-test://signer:8080/", mainFrame: true, allowed: false),
-        NavigationCase(url: "crossmint-test://foreign/", mainFrame: false, allowed: true)
+        "crossmint-test://foreign/",
+        "https://signer/",
+        "crossmint-test://signer:8080/"
     ])
-    func allowsMainFrameNavigationOnlyWithinLoadedOrigin(_ navigation: NavigationCase) async throws {
+    func cancelsSignerPageNavigationToAnotherOrigin(_ url: String) async throws {
         let fixture = SignerPageFixture()
         try await fixture.proxy.loadURL(#require(URL(string: SignerPageFixture.SIGNER_URL)))
-        let url = try #require(URL(string: navigation.url))
 
-        #expect(fixture.proxy.allowsNavigation(to: url, inMainFrame: navigation.mainFrame) == navigation.allowed)
+        _ = try await fixture.webView.evaluateJavaScript("location.href = \"\(url)\"; true")
+
+        #expect(await fixture.navigation.policy(for: url) == .cancel)
     }
 
-    @Test func blocksMainFrameNavigationBeforeAnyPageLoads() throws {
+    @Test func cancelsNavigationBeforeTheSignerPageLoads() async throws {
         let fixture = SignerPageFixture()
-        let url = try #require(URL(string: SignerPageFixture.SIGNER_URL))
 
-        #expect(!fixture.proxy.allowsNavigation(to: url, inMainFrame: true))
+        try fixture.webView.load(URLRequest(url: #require(URL(string: SignerPageFixture.SIGNER_URL))))
+
+        #expect(await fixture.navigation.policy(for: SignerPageFixture.SIGNER_URL) == .cancel)
     }
 }

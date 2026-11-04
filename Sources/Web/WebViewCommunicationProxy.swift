@@ -221,7 +221,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         return loadedContent != url
     }
 
-    func allowsNavigation(to url: URL?, inMainFrame mainFrame: Bool) -> Bool {
+    private func allowsNavigation(to url: URL?, inMainFrame mainFrame: Bool) -> Bool {
         !mainFrame || isLoadedOrigin(scheme: url?.scheme, host: url?.host, port: url?.port)
     }
 

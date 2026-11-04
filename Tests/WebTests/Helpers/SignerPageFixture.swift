@@ -38,6 +38,7 @@ final class SignerPageFixture {
     let proxy = DefaultWebViewCommunicationProxy()
     let webView: WKWebView
     let recorder = MessageRecorder()
+    let navigation: NavigationPolicyRecorder
     private let schemeHandler = PageSchemeHandler(pages: PAGES)
 
     init() {
@@ -51,7 +52,8 @@ final class SignerPageFixture {
         configuration.userContentController = userContentController
 
         webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.navigationDelegate = proxy
+        navigation = NavigationPolicyRecorder(proxy: proxy)
+        webView.navigationDelegate = navigation
         proxy.webView = webView
         proxy.onUnknownMessage = { [recorder] type, _ in recorder.record(type) }
     }
@@ -77,7 +79,11 @@ final class MessageRecorder: NSObject, WKScriptMessageHandler {
 
     func wait(for type: String) async {
         guard !types.contains(type) else { return }
-        await withCheckedContinuation { waiters[type] = $0 }
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { waiters[type] = $0 }
+        } onCancel: {
+            Task { @MainActor in self.waiters.removeValue(forKey: type)?.resume() }
+        }
     }
 
     func userContentController(
@@ -86,6 +92,55 @@ final class MessageRecorder: NSObject, WKScriptMessageHandler {
     ) {
         guard let type = message.body as? String else { return }
         record(type)
+    }
+}
+
+@MainActor
+final class NavigationPolicyRecorder: NSObject, WKNavigationDelegate {
+    private let proxy: DefaultWebViewCommunicationProxy
+    private var policies: [String: WKNavigationActionPolicy] = [:]
+    private var waiters: [String: CheckedContinuation<WKNavigationActionPolicy?, Never>] = [:]
+
+    init(proxy: DefaultWebViewCommunicationProxy) {
+        self.proxy = proxy
+    }
+
+    func policy(for url: String) async -> WKNavigationActionPolicy? {
+        if let policy = policies[url] { return policy }
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { waiters[url] = $0 }
+        } onCancel: {
+            Task { @MainActor in self.waiters.removeValue(forKey: url)?.resume(returning: nil) }
+        }
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+    ) {
+        let url = navigationAction.request.url?.absoluteString ?? ""
+        proxy.webView(webView, decidePolicyFor: navigationAction) { [self] policy in
+            policies[url] = policy
+            waiters.removeValue(forKey: url)?.resume(returning: policy)
+            decisionHandler(policy)
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        proxy.webView(webView, didFinish: navigation)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        proxy.webView(webView, didFail: navigation, withError: error)
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        didFailProvisionalNavigation navigation: WKNavigation!,
+        withError error: Error
+    ) {
+        proxy.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
     }
 }
 
