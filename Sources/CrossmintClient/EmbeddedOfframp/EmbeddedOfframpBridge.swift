@@ -6,7 +6,7 @@ import WebKit
 @MainActor
 final class EmbeddedOfframpBridge: NSObject {
     var host: OfframpWebView
-    var reply: ((String) -> Void)?
+    var reply: (@MainActor (String) async throws -> Void)?
     var openExternally: (URL) -> Void = { UIApplication.shared.open($0) }
     // The page has one request of each kind in flight and no request IDs, so a reply goes to the request in `pending`.
     private var pending: [String: UUID] = [:]
@@ -130,15 +130,22 @@ final class EmbeddedOfframpBridge: NSObject {
             }
             guard pending[event] == request else { return }
             pending[event] = nil
-            send(outcome.event, outcome.data)
+            await send(outcome.event, outcome.data)
         }
     }
 
-    private func send(_ event: String, _ data: some Encodable) {
-        guard let reply, let encoded = try? JSONEncoder().encode(Outgoing(event: event, data: data)),
+    private func send(_ event: String, _ data: some Encodable) async {
+        guard let encoded = try? JSONEncoder().encode(Outgoing(event: event, data: data)),
               let text = String(data: encoded, encoding: .utf8) else { return }
-        Logger.client.info(LogEvents.offrampPayerReplySent, attributes: attributes(["event": event]))
-        reply(text)
+        do {
+            guard let reply else { throw WKError(.webViewInvalidated) }
+            try await reply(text)
+            Logger.client.info(LogEvents.offrampPayerReplySent, attributes: attributes(["event": event]))
+        } catch {
+            Logger.client.error(LogEvents.offrampPayerReplyError, attributes: attributes([
+                "event": event, "error": error.localizedDescription
+            ]))
+        }
     }
 
     private func attributes(_ extra: [String: String]) -> [String: String] {

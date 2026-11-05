@@ -71,6 +71,20 @@ struct EmbeddedOfframpBridgeTests {
         #expect(replies.count == 1)
     }
 
+    @Test func answersTheNextRequestAfterThePageMissesAReply() async throws {
+        let bridge = try makeBridge(for: makeOfframp())
+        var attempts = 0
+        bridge.reply = { _ in
+            attempts += 1
+            if attempts == 1 { throw WKError(.webViewInvalidated) }
+        }
+
+        await bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
+        await bridge.receive(try makeSendTransactionRequest(), frameURL: bridge.host.page, mainFrame: true)?.value
+
+        #expect(attempts == 2)
+    }
+
     @Test func answersOnlyTheDocumentThatIsShownNow() async throws {
         var resumeOld: CheckedContinuation<String, Never>?
         let bridge = try makeBridge(for: makeOfframp(payer: EmbeddedOfframpPayer(signAndSendTransaction: { _ in

@@ -201,9 +201,10 @@ struct OfframpWebView: UIViewRepresentable {
         }
         #endif
         context.coordinator.reply = { [weak webView] message in
-            webView?.callAsyncJavaScript(
-                "window.onMessageFromNative(message)", arguments: ["message": message], in: nil, in: .page
-            ) { _ in }
+            guard let webView else { throw WKError(.webViewInvalidated) }
+            _ = try await webView.callAsyncJavaScript(
+                "window.onMessageFromNative(message)", arguments: ["message": message], contentWorld: .page
+            )
         }
         webView.load(URLRequest(url: page))
         return webView
