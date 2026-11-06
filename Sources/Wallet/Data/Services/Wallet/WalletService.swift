@@ -69,9 +69,23 @@ public protocol WalletService: Sendable {
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel
 
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel
+
     func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel
 }
@@ -124,11 +138,29 @@ public extension WalletService {
         throw .walletGeneric("This WalletService implementation does not implement addRecoveryMethod")
     }
 
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        try await addRecoveryMethod(recoveryMethod, chainType: chainType, approver: approver)
+    }
+
     func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
         throw .walletGeneric("This WalletService implementation does not implement removeRecoveryMethod")
+    }
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        chainName: String,
+        approver: SignerLocator
+    ) async throws(WalletError) -> any TransactionApiModel {
+        try await removeRecoveryMethod(locator, chainType: chainType, approver: approver)
     }
 }

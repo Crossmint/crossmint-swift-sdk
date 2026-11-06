@@ -143,7 +143,6 @@ struct SignersView: View {
     @ViewBuilder
     private func recoverySection() -> some View {
         let locators = appState.recoveryLocators
-        let editable = appState.selectedChain.supportsRecoveryList
         if !locators.isEmpty {
             Section {
                 ForEach(Array(locators.enumerated()), id: \.element) { index, locator in
@@ -154,23 +153,20 @@ struct SignersView: View {
                         name: appState.recoveryName(for: locator),
                         status: appState.approvingRecoveryLocator == locator ? "Approver" : nil,
                         isRemoving: removingSignerLocator == locator || selectingApproverLocator == locator,
-                        canRemove: editable,
+                        canRemove: true,
                         onSelect: {},
                         onRemove: { Task { await removeRecoveryMethod(locator: locator) } }
                     )
                     .contentShape(Rectangle())
-                    .accessibilityAddTraits(editable ? .isButton : [])
+                    .accessibilityAddTraits(.isButton)
                     .onTapGesture {
-                        guard editable else { return }
                         Task { await selectApprover(locator: locator) }
                     }
                 }
             } header: {
                 Text("Recovery")
             } footer: {
-                if editable {
-                    Text("Tap a recovery method to approve signer changes with it.")
-                }
+                Text("Tap a recovery method to approve signer changes with it.")
             }
         }
     }
