@@ -11,10 +11,15 @@ public enum EVMSigners: Sendable, SignerProvider {
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
     case passkey(name: String, host: String)
+    /// A quorum that approves only when `threshold` of its `members` approve.
+    /// A member cannot be a quorum or an API key signer.
+    indirect case quorum(threshold: Int, members: [EVMSigners])
 
     @MainActor
     public var signer: any Signer {
         switch self {
+        case let .quorum(threshold, members):
+            QuorumSigner(threshold: threshold, members: members.map(\.signer))
         case .apiKey:
             ApiKeySigner(adminSigner: ApiKeySignerData())
         case let .email(email):
@@ -35,10 +40,15 @@ public enum SolanaSigners: Sendable, SignerProvider {
     case email(String)
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
+    /// A quorum that approves only when `threshold` of its `members` approve.
+    /// A member cannot be a quorum or an API key signer.
+    indirect case quorum(threshold: Int, members: [SolanaSigners])
 
     @MainActor
     public var signer: any Signer {
         switch self {
+        case let .quorum(threshold, members):
+            QuorumSigner(threshold: threshold, members: members.map(\.signer))
         case .apiKey:
             ApiKeySigner(adminSigner: ApiKeySignerData())
         case let .email(email):
@@ -54,10 +64,15 @@ public enum StellarSigners: Sendable, SignerProvider {
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
     case passkey(name: String, host: String)
+    /// A quorum that approves only when `threshold` of its `members` approve.
+    /// A member cannot be a quorum or an API key signer.
+    indirect case quorum(threshold: Int, members: [StellarSigners])
 
     @MainActor
     public var signer: any Signer {
         switch self {
+        case let .quorum(threshold, members):
+            QuorumSigner(threshold: threshold, members: members.map(\.signer))
         case .apiKey:
             ApiKeySigner(adminSigner: ApiKeySignerData())
         case let .email(email):
