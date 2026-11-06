@@ -94,7 +94,7 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
             ),
             prepareOnly: prepareOnly
         ) else { throw .transactionGeneric("Unknown error") }
-        if prepareOnly || tx.awaitsQuorumMembers { return tx.pendingSummary }
+        if let pending = tx.pendingSummary { return pending }
 
         Logger.smartWallet.info(LogEvents.solanaSendTransactionPrepared, attributes: [
             "transactionId": tx.id

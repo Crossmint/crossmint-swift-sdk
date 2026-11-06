@@ -282,15 +282,14 @@ extension Wallet {
     ///
     ///   - signer: The signer that sends the transfer. Use it to name the quorum to act for
     ///     when the active signer is a member of more than one quorum.
-    ///   - prepareOnly: Pass `true` to create the transfer without approving it, also for the quorum members
-    ///     that this device has a signer for. Then approve it with ``approve(transactionId:)``.
+    ///   - prepareOnly: Pass `true` to create the transfer without approving it.
+    ///     Then approve it with ``approve(transactionId:)``.
     ///
-    /// If a quorum must approve the transfer, the SDK approves as each member that this device has a signer for.
-    /// When other members must still approve, the SDK returns the summary with the status
-    /// ``TransactionStatus/awaitingApproval``. The other members approve it with ``approve(transactionId:)``.
+    /// When a quorum sends the transfer, the SDK creates the transfer without approving it, as with `prepareOnly`.
+    /// Each member then approves it with ``approve(transactionId:)``, also the members that this device holds.
     ///
     /// - Returns: A ``TransactionSummary`` with the on-chain hash and explorer link once confirmed.
-    ///   While the status is ``TransactionStatus/awaitingApproval``, the summary has only the transaction ID.
+    ///   When the SDK does not approve the transfer, the summary has only the transaction ID.
     ///
     /// ## Example
     /// ```swift
@@ -323,9 +322,7 @@ extension Wallet {
             signer: signer,
             prepareOnly: prepareOnly
         )
-        if let polledTransaction, prepareOnly || polledTransaction.awaitsQuorumMembers {
-            return polledTransaction.pendingSummary
-        }
+        if let pending = polledTransaction?.pendingSummary { return pending }
         guard let transaction = polledTransaction?.toCompleted() else {
             Logger.smartWallet.error(LogEvents.walletSendError, attributes: [
                 "error": "Unknown error"
@@ -452,14 +449,14 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
             .toDomain()
 
-        if prepareOnly { return createdTransaction }
+        if prepareOnly || isQuorum(signerLocator) { return createdTransaction }
         let signedTransaction = try await signTransactionIfRequired(createdTransaction)
         return try await pollTransactionWhilePending(transaction: signedTransaction)
     }
 
     internal func transactionSignerLocator(explicit: SignerLocator? = nil) async throws(TransactionError) -> String? {
         let locator = try await actingSignerLocator(explicit: explicit)
-        if chain.chainType == .solana, let locator, case .quorum = try? SignerLocator(from: locator) {
+        if chain.chainType == .solana, isQuorum(locator) {
             throw .quorumUnsupported(chain: .solana)
         }
         return locator

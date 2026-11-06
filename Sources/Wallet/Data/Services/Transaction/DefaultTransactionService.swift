@@ -74,21 +74,13 @@ struct DefaultTransactionService: TransactionService {
             endpoint,
             errorType: TransactionError.self
         ) { networkError in
-            transactionError(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
+            TransactionError.fromAPI(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
         }
         do {
             return try jsonCoder.decode(T.APIModel.self, from: data)
         } catch {
             throw TransactionError.transactionGeneric("Failed to decode transaction response: \(error)")
         }
-    }
-
-    private func transactionError(code: String?, message: String?) -> TransactionError? {
-        let mapped: [TransactionError] = [
-            .transactionExpired(message ?? "The transaction expired"),
-            .signerIsQuorumMember(message ?? "The signer is a quorum member")
-        ]
-        return mapped.first { $0.code == code }
     }
 
     private func executeTransactionListRequest<T: WalletTypeTransactionMapping>(
