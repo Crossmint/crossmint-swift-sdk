@@ -202,6 +202,7 @@ extension Wallet {
             }
             if result.status == .success {
                 await forgetLocalDeviceKey(removedLocator: locator)
+                if isQuorum(locator) { await reloadRecoveryMethods() }
             }
             Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
                 "locator": locator
