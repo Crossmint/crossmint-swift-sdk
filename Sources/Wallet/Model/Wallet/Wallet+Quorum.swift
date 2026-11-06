@@ -15,10 +15,7 @@ extension Wallet {
     }
 
     internal func quorumRole(of locator: SignerLocator) async throws(TransactionError) -> SignerLocator? {
-        let quorums = config.recoveryMethods
-            .compactMap { $0 as? QuorumSignerData }
-            .filter { quorum in quorum.members.contains { (try? SignerLocator(from: $0.locator)) == locator } }
-            .map { SignerLocator.quorum(id: $0.id) }
+        let quorums = config.quorumLocators(withMember: locator)
         guard !quorums.isEmpty, !config.containsRecoveryMethod(locator) else { return nil }
         let registered: Bool
         do {

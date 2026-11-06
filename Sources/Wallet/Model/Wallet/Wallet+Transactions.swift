@@ -33,6 +33,12 @@ extension Wallet {
             guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
+            if signedTransaction.status == .success {
+                await forgetLocalDeviceKeyIfRemoved()
+            }
+            if signedTransaction.status == .success, pendingDeviceKey?.transactionId == signedTransaction.id {
+                _ = await activatePendingDeviceKey()
+            }
 
             Logger.smartWallet.info(LogEvents.walletApproveSuccessTransaction, attributes: [
                 "transactionId": signedTransaction.id
@@ -145,13 +151,31 @@ extension Wallet {
     ///
     /// Use ``removeRecoveryMethod(locator:)`` to remove a recovery method.
     ///
-    /// - Parameter locator: The locator that identifies the signer to remove.
+    /// When a quorum approves the removal, the SDK creates the removal without approving it, as with `prepareOnly`.
+    /// Each member then approves it with ``approve(transactionId:)``.
+    ///
+    /// - Parameters:
+    ///   - locator: The locator that identifies the signer to remove.
+    ///   - signer: The recovery method that approves the removal. Use it to name the quorum to approve for
+    ///     when the recovery method you selected is a member of more than one quorum.
+    ///   - prepareOnly: Pass `true` to create the removal without approving it.
+    ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
-    public func removeSigner(locator: SignerLocator) async throws(TransactionError) -> Transaction {
-        try await removeSignerByLocatorString(locator.value)
+    ///   With `prepareOnly`, or when a quorum approves, the transaction with the status
+    ///   ``TransactionStatus/awaitingApproval``.
+    public func removeSigner(
+        locator: SignerLocator,
+        signer: SignerLocator? = nil,
+        prepareOnly: Bool = false
+    ) async throws(TransactionError) -> Transaction {
+        try await removeSignerByLocatorString(locator.value, approver: signer, prepareOnly: prepareOnly)
     }
 
-    private func removeSignerByLocatorString(_ locator: String) async throws(TransactionError) -> Transaction {
+    private func removeSignerByLocatorString(
+        _ locator: String,
+        approver explicitApprover: SignerLocator? = nil,
+        prepareOnly: Bool = false
+    ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
             "locator": locator
         ])
@@ -159,7 +183,7 @@ extension Wallet {
         do {
             let approver: RecoveryApprover
             do {
-                approver = try await authorizingRecovery()
+                approver = try await authorizingRecovery(explicit: explicitApprover)
             } catch {
                 throw TransactionError.transactionGeneric(error.message)
             }
@@ -171,6 +195,7 @@ extension Wallet {
                 approver: approver.locator
             )
             let transaction = transactionModel.toDomain()
+            if prepareOnly || approver.isQuorum { return transaction }
             guard let result = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
@@ -188,6 +213,16 @@ extension Wallet {
             ])
             throw error as? TransactionError ?? .transactionGeneric("Unknown error")
         }
+    }
+
+    private func forgetLocalDeviceKeyIfRemoved() async {
+        guard let storage = deviceSignerKeyStorage,
+              let publicKey = await storage.getKey(address: address),
+              let model = try? await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        else { return }
+        let device = SignerLocator.device(publicKey: publicKey)
+        guard !(model.config.signers ?? []).contains(where: { $0.locator == device }) else { return }
+        await forgetLocalDeviceKey(removedLocator: device.value)
     }
 
     private func forgetLocalDeviceKey(removedLocator: String) async {
@@ -397,8 +432,11 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
         onTransactionStart?()
         if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported {
+            await restorePendingDeviceKey(storage: storage)
+        }
+        if let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported, pendingDeviceKey == nil {
             do {
-                try await deviceSignerService.ensureRegistered(
+                pendingDeviceKey = try await deviceSignerService.ensureRegistered(
                     storage: storage,
                     approver: try await authorizingRecovery()
                 )

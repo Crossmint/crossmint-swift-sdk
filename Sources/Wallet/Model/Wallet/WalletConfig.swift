@@ -37,6 +37,27 @@ public struct WalletConfig {
         return nil
     }
 
+    func quorumLocators(withMember locator: SignerLocator) -> [SignerLocator] {
+        recoveryMethods
+            .compactMap { $0 as? QuorumSignerData }
+            .filter { quorum in quorum.members.contains { (try? SignerLocator(from: $0.locator)) == locator } }
+            .map { SignerLocator.quorum(id: $0.id) }
+    }
+
+    func canApproveRecoveryChanges(_ locator: SignerLocator) -> Bool {
+        containsRecoveryMethod(locator) || !quorumLocators(withMember: locator).isEmpty
+    }
+
+    func recoveryRole(of locator: SignerLocator, explicit: SignerLocator?) throws(WalletError) -> SignerLocator? {
+        let quorums = quorumLocators(withMember: locator)
+        if let explicit {
+            return quorums.contains(explicit) ? explicit : nil
+        }
+        if containsRecoveryMethod(locator) { return locator }
+        guard quorums.count <= 1 else { throw .quorumSelectionAmbiguous(quorums: quorums) }
+        return quorums.first
+    }
+
     func recoveryLocator(actingFor locator: SignerLocator) -> SignerLocator? {
         if containsRecoveryMethod(locator) { return locator }
         guard let quorum = quorum(withMember: locator) else { return nil }
