@@ -157,7 +157,7 @@ struct TransferView: View {
         do {
             let quorum = appState.selectedSignerQuorum
             let result = try await wallet.send(trimmedAddress, locator, amountValue, signer: quorum)
-            if result.status == .awaitingApproval {
+            if result.hash == nil {
                 preparedID = result.transactionID
                 awaitingQuorum = await appState.transaction(id: result.transactionID)
             } else {
