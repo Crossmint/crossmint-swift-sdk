@@ -66,7 +66,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 value: "\(value ?? .zero)",
                 data: data ?? "0x",
                 chain: chain,
-                signer: try await selectedSignerLocatorForTransactions()?.value ?? self.config.recovery.locator
+                signer: try await evmSignerLocator(explicit: nil)
             )
         ) else {
             throw .transactionGeneric("Unknown error")
@@ -82,6 +82,10 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///   - value: Native token value in wei as a decimal string, e.g. `"1000000000000000"`. Pass `nil` or `"0"` for contract calls that transfer no ETH.
     ///   - data: ABI-encoded call data as a `0x`-prefixed hex string. Pass `nil` or `"0x"` for plain ETH transfers.
     ///   - chain: Target chain. Defaults to the chain the wallet was opened on.
+    ///   - prepareOnly: Pass `true` to create the transaction without approving it.
+    ///     Then approve it with ``Wallet/approve(transactionId:)``. The summary then has only the transaction ID.
+    ///
+    /// When a quorum sends the transaction, the SDK creates it without approving it, as with `prepareOnly`.
     ///
     /// ## Example
     /// ```swift
@@ -91,13 +95,15 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///     value: "1000000000000000",
     ///     data: nil
     /// )
-    /// print("Confirmed:", summary.explorerLink)
+    /// print("Confirmed:", summary.explorerLink?.absoluteString ?? "")
     /// ```
     public func sendTransaction(
         to address: String,
         value: String?,
         data: String?,
-        chain: EVMChain? = nil
+        chain: EVMChain? = nil,
+        signer: SignerLocator? = nil,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.evmSendTransactionStart)
 
@@ -105,17 +111,20 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             throw .transactionGeneric("Invalid address")
         }
 
+        let signerLocator = try await evmSignerLocator(explicit: signer)
         guard let transaction = try await super.sendTransaction(
             CreateEVMTransactionRequest(
                 contractAddress: evmAddress,
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: try await selectedSignerLocatorForTransactions()?.value ?? self.config.recovery.locator
-            )
+                signer: signerLocator
+            ),
+            prepareOnly: prepareOnly || isQuorum(signerLocator)
         ) else {
             throw .transactionGeneric("Unknown error")
         }
+        if let pending = transaction.pendingSummary { return pending }
 
         Logger.smartWallet.info(LogEvents.evmSendTransactionPrepared, attributes: [
             "transactionId": transaction.id
@@ -140,16 +149,25 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///   - signer: Override which signer produces the signature. Defaults to the wallet's recovery signer.
     ///   - isSmartWalletSignature: When `true` (default), produces an EIP-6492 smart-wallet-compatible
     ///     signature. Set to `false` to produce a standard EOA signature instead.
+    ///   - prepareOnly: Pass `true` to create the signature request without approving it.
+    ///     Then approve it with ``approve(signatureId:)``.
+    ///
+    /// When a quorum signs, the SDK creates the request without approving it, as with `prepareOnly`.
+    /// Each member then approves it with ``approve(signatureId:)``.
+    ///
+    /// - Returns: A ``Signature``. When the SDK does not approve the request, it has only the signature ID.
     ///
     /// ## Example
     /// ```swift
-    /// let signature = try await evmWallet.signMessage("Hello, Crossmint!")
+    /// let result = try await evmWallet.signMessage("Hello, Crossmint!")
+    /// print(result.signature ?? "")
     /// ```
     public func signMessage(
         _ message: String,
         signer: (any AdminSignerData)? = nil,
-        isSmartWalletSignature: Bool = true
-    ) async throws(SignatureError) -> String {
+        isSmartWalletSignature: Bool = true,
+        prepareOnly: Bool = false
+    ) async throws(SignatureError) -> Signature {
         Logger.smartWallet.info(LogEvents.evmSignMessageStart)
 
         do {
@@ -170,16 +188,16 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 )
             )
 
-            let response = try await createAndApproveSignature(
-                request: .init(
-                    signMessageRequest: signatureRequest,
-                    chainType: chain.chainType
-                )
+            let response = try await super.smartWalletService.createSignature(
+                .init(signMessageRequest: signatureRequest, chainType: chain.chainType)
             )
 
             Logger.smartWallet.info(LogEvents.evmSignMessagePrepared, attributes: [
                 "signatureId": response.id
             ])
+
+            if prepareOnly || isQuorum(signer.locator) { return Signature(id: response.id, signature: nil) }
+            try await approvePendingSignatures(of: response)
 
             let completedSignature = try await pollSignatureWhilePending(
                 signatureId: response.id,
@@ -194,7 +212,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 "signatureId": response.id
             ])
 
-            return signature
+            return Signature(id: response.id, signature: signature)
         } catch {
             Logger.smartWallet.error(LogEvents.evmSignMessageError, attributes: [
                 "error": "\(error)"
@@ -208,12 +226,20 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     /// - Parameters:
     ///   - typedData: The structured data to sign, conforming to EIP-712.
     ///   - signer: Override which signer produces the signature. Defaults to the wallet's recovery signer.
-    ///   - isSmartWalletSignature: See ``signMessage(_:signer:isSmartWalletSignature:)`` for semantics.
+    ///   - isSmartWalletSignature: See ``signMessage(_:signer:isSmartWalletSignature:prepareOnly:)`` for semantics.
+    ///   - prepareOnly: Pass `true` to create the signature request without approving it.
+    ///     Then approve it with ``approve(signatureId:)``.
+    ///
+    /// When a quorum signs, the SDK creates the request without approving it, as with `prepareOnly`.
+    /// Each member then approves it with ``approve(signatureId:)``.
+    ///
+    /// - Returns: A ``Signature``. When the SDK does not approve the request, it has only the signature ID.
     public func signTypedData(
         _ typedData: EIP712.TypedData,
         signer: (any AdminSignerData)? = nil,
-        isSmartWalletSignature: Bool = true
-    ) async throws(SignatureError) -> String {
+        isSmartWalletSignature: Bool = true,
+        prepareOnly: Bool = false
+    ) async throws(SignatureError) -> Signature {
         Logger.smartWallet.info(LogEvents.evmSignTypedDataStart)
 
         do {
@@ -231,16 +257,16 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 isSmartWalletSignature: isSmartWalletSignature
             )
 
-            let response = try await createAndApproveSignature(
-                request: .init(
-                    signTypedDataRequest: signatureRequest,
-                    chainType: chain.chainType
-                )
+            let response = try await super.smartWalletService.createSignature(
+                .init(signTypedDataRequest: signatureRequest, chainType: chain.chainType)
             )
 
             Logger.smartWallet.info(LogEvents.evmSignTypedDataPrepared, attributes: [
                 "signatureId": response.id
             ])
+
+            if prepareOnly || isQuorum(signer.locator) { return Signature(id: response.id, signature: nil) }
+            try await approvePendingSignatures(of: response)
 
             // Poll for completed signature
             let completedSignature = try await pollSignatureWhilePending(
@@ -257,7 +283,7 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 "signatureId": response.id
             ])
 
-            return signature
+            return Signature(id: response.id, signature: signature)
         } catch {
             Logger.smartWallet.error(LogEvents.evmSignTypedDataError, attributes: [
                 "error": "\(error)"
@@ -266,11 +292,39 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
         }
     }
 
-    private func createAndApproveSignature(
-        request: CreateSignatureRequest
-    ) async throws(SignatureError) -> any SignatureApiModel {
-        let response = try await super.smartWalletService.createSignature(request)
+    /// Approves a pending signature request on behalf of the signers on this device.
+    ///
+    /// If a quorum must approve the request, the SDK approves as each member that this device has a signer for.
+    ///
+    /// - Parameter id: The signature ID that ``signMessage(_:signer:isSmartWalletSignature:prepareOnly:)``
+    ///   or ``signTypedData(_:signer:isSmartWalletSignature:prepareOnly:)`` returned.
+    /// - Returns: A ``Signature``. While other quorum members must still approve, it has only the signature ID.
+    public func approve(signatureId id: String) async throws(SignatureError) -> Signature {
+        Logger.smartWallet.info(LogEvents.walletApproveStart, attributes: ["signatureId": id])
+        do {
+            try await preAuthIfNeeded()
+        } catch {
+            throw .signingFailed(underlyingError: error)
+        }
+        do {
+            let pending = try await super.smartWalletService.fetchSignature(id, chainType: chain.chainType)
+            try await approvePendingSignatures(of: pending)
+            try await approveSignatureAsQuorumMembers(pending)
+            let completed = try await pollSignatureWhilePending(signatureId: id, chainType: chain.chainType)
+            if completed.awaitsQuorumMembers { return Signature(id: id, signature: nil) }
+            guard let output = completed.outputSignature else { throw SignatureError.approvalFailed }
+            Logger.smartWallet.info(LogEvents.walletApproveSuccessSignature, attributes: ["signatureId": id])
+            return Signature(id: id, signature: output)
+        } catch {
+            Logger.smartWallet.error(LogEvents.walletApproveError, attributes: [
+                "signatureId": id,
+                "error": "\(error)"
+            ])
+            throw error as? SignatureError ?? .unknown
+        }
+    }
 
+    private func approvePendingSignatures(of response: any SignatureApiModel) async throws(SignatureError) {
         for pendingApproval in response.approvals.pending
         where !SignerLocator(orUnknown: pendingApproval.signer.locator).isApiKey {
             try await approveSignature(
@@ -279,8 +333,24 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 message: pendingApproval.message
             )
         }
+    }
 
-        return response
+    private func approveSignatureAsQuorumMembers(_ response: any SignatureApiModel) async throws(SignatureError) {
+        let memberApprovals: [SignRequestApi.Approval]
+        do {
+            memberApprovals = try await heldMemberApprovals(of: response.approvals.quorums.map(\.toDomain))
+        } catch {
+            if case .userCancelled = error { throw .userCancelled }
+            throw .signingFailed(underlyingError: error)
+        }
+        guard !memberApprovals.isEmpty else { return }
+        try await smartWalletService.approveSignature(
+            .init(
+                transactionId: response.id,
+                apiRequest: SignRequestApi(approvals: memberApprovals),
+                chainType: chain.chainType
+            )
+        )
     }
 
     private func pollSignatureWhilePending(
@@ -289,7 +359,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(SignatureError) -> any SignatureApiModel {
         var signature = try await super.smartWalletService.fetchSignature(signatureId, chainType: chainType)
 
-        while [.awaitingApproval, .pending].contains(SignerStatus.from(signature.status)) {
+        while [.awaitingApproval, .pending].contains(SignerStatus.from(signature.status)),
+              !signature.awaitsQuorumMembers {
             do {
                 try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
             } catch {
@@ -352,5 +423,9 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
                 .notStarted:
             return .signingFailed(underlyingError: error)
         }
+    }
+
+    private func evmSignerLocator(explicit: SignerLocator?) async throws(TransactionError) -> String {
+        try await transactionSignerLocator(explicit: explicit) ?? config.recovery.locator
     }
 }

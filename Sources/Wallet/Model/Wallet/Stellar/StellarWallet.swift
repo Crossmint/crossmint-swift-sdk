@@ -60,15 +60,20 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
 
     // Primary transaction method - serialized transaction
     public func sendTransaction(
-        transaction: String
+        transaction: String,
+        signer: SignerLocator? = nil,
+        prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.stellarSendTransactionStart)
 
+        let signerLocator = try await transactionSignerLocator(explicit: signer)
         guard let tx = try await super.sendTransaction(
-            CreateStellarTransactionRequest(transaction: transaction, signer: try await transactionSignerLocator())
+            CreateStellarTransactionRequest(transaction: transaction, signer: signerLocator),
+            prepareOnly: prepareOnly || isQuorum(signerLocator)
         ) else {
             throw .transactionGeneric("Unknown error")
         }
+        if let pending = tx.pendingSummary { return pending }
 
         Logger.smartWallet.info(LogEvents.stellarSendTransactionPrepared, attributes: [
             "transactionId": tx.id

@@ -111,9 +111,9 @@ struct SigningView: View {
         do {
             switch mode {
             case .message:
-                signature = try await wallet.signMessage(messageText)
+                signature = try await wallet.signMessage(messageText).signature
             case .typedData:
-                signature = try await wallet.signTypedData(try exampleTypedData())
+                signature = try await wallet.signTypedData(try exampleTypedData()).signature
             }
         } catch {
             errorMessage = error.userMessage

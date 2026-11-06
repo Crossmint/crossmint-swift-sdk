@@ -357,6 +357,9 @@ public enum LogEvents {
     /// Starting transaction/signature approval
     public static let walletApproveStart = "wallet.approve.start"
 
+    /// This device does not have the signer of a quorum member. The SDK does not approve as that member.
+    public static let walletApproveQuorumMemberSkipped = "wallet.approve.quorumMemberSkipped"
+
     /// Transaction approval successful
     public static let walletApproveSuccessTransaction = "wallet.approve.success (transaction)"
 

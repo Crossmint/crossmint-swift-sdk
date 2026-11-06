@@ -1,0 +1,56 @@
+{
+  "type": "smart",
+  "chainType": "solana",
+  "config": {
+    "adminSigner": {
+      "type": "quorum",
+      "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+      "threshold": 2,
+      "members": [
+        {
+          "type": "email",
+          "email": "alice@example.com",
+          "locator": "email:alice@example.com"
+        },
+        {
+          "type": "email",
+          "email": "bob@example.com",
+          "locator": "email:bob@example.com"
+        },
+        {
+          "type": "phone",
+          "phone": "+14155552671",
+          "locator": "phone:+14155552671"
+        }
+      ]
+    },
+    "recoveryMethods": [
+      {
+        "type": "quorum",
+        "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+        "threshold": 2,
+        "status": "active",
+        "members": [
+          {
+            "type": "email",
+            "email": "alice@example.com",
+            "locator": "email:alice@example.com"
+          },
+          {
+            "type": "email",
+            "email": "bob@example.com",
+            "locator": "email:bob@example.com"
+          },
+          {
+            "type": "phone",
+            "phone": "+14155552671",
+            "locator": "phone:+14155552671"
+          }
+        ]
+      }
+    ]
+  },
+  "address": "7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",
+  "linkedUser": "email:alice@example.com",
+  "createdAt": "2026-10-16T10:00:00.000Z"
+}

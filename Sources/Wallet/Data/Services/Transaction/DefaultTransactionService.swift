@@ -73,7 +73,9 @@ struct DefaultTransactionService: TransactionService {
         let data = try await crossmintService.executeRequestForRawData(
             endpoint,
             errorType: TransactionError.self
-        )
+        ) { networkError in
+            TransactionError.fromAPI(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
+        }
         do {
             return try jsonCoder.decode(T.APIModel.self, from: data)
         } catch {

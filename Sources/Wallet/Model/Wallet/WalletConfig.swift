@@ -28,4 +28,18 @@ public struct WalletConfig {
     func containsRecoveryMethod(_ locator: SignerLocator) -> Bool {
         recoveryMethods.contains { (try? SignerLocator(from: $0.locator)) == locator }
     }
+
+    func quorum(withMember locator: SignerLocator) -> QuorumSignerData? {
+        for case let quorum as QuorumSignerData in recoveryMethods
+        where quorum.members.contains(where: { (try? SignerLocator(from: $0.locator)) == locator }) {
+            return quorum
+        }
+        return nil
+    }
+
+    func recoveryLocator(actingFor locator: SignerLocator) -> SignerLocator? {
+        if containsRecoveryMethod(locator) { return locator }
+        guard let quorum = quorum(withMember: locator) else { return nil }
+        return .quorum(id: quorum.id)
+    }
 }
