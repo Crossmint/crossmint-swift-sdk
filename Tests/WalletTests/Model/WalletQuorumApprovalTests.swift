@@ -304,7 +304,8 @@ struct WalletQuorumApprovalTests {
         #expect(await wallet.needsRecovery())
     }
 
-    @Test func createsASignerAdditionForTheQuorumWithoutApprovingIt() async throws {
+    @Test(arguments: [QUORUM, nil])
+    func createsASignerAdditionForTheQuorumWithoutApprovingIt(signer: SignerLocator?) async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeWallet(walletService: walletService)
         let member = MockSigner(email: "bob@example.com")
@@ -315,25 +316,7 @@ struct WalletQuorumApprovalTests {
         )
         walletService.fetchTransactionResult = try awaitingQuorum()
 
-        let pending = try await wallet.addSigner(.email("dave@example.com"), signer: QUORUM)
-
-        #expect(pending?.id == "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
-        #expect(member.signedMessages.isEmpty)
-        #expect(walletService.signTransactionCallCount == 0)
-    }
-
-    @Test func createsASignerAdditionForTheOnlyRecoveryQuorumWithoutApprovingIt() async throws {
-        let walletService = MockSmartWalletService()
-        let wallet = try makeWallet(walletService: walletService)
-        let member = MockSigner(email: "bob@example.com")
-        wallet.selectedSigner = member
-        walletService.addSignerResult = AddDelegatedSignerResponse(
-            chains: nil,
-            transaction: RegistrationTransaction(id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
-        )
-        walletService.fetchTransactionResult = try awaitingQuorum()
-
-        let pending = try await wallet.addSigner(.email("dave@example.com"))
+        let pending = try await wallet.addSigner(.email("dave@example.com"), signer: signer)
 
         #expect(pending?.id == "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
         #expect(member.signedMessages.isEmpty)
