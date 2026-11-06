@@ -9,7 +9,7 @@ public typealias Secp256k1PrivateKey = P256K.Signing.PrivateKey
 public typealias Secp256k1PublicKey = P256K.Signing.PublicKey
 
 // swiftlint:disable:next large_tuple
-private typealias Signature = (r: [UInt8], s: [UInt8], v: UInt)
+private typealias RecoverableSignature = (r: [UInt8], s: [UInt8], v: UInt)
 
 extension Secp256k1PrivateKey: @unchecked @retroactive Sendable {}
 extension Secp256k1PublicKey: @unchecked @retroactive Sendable {}
@@ -175,7 +175,7 @@ public final class EVMKeyPairSigner: Signer {
         return "\(rPart)\(sPart)\(vHex)".withHexPrefix
     }
 
-    private func rawSign(digest: [UInt8]) async throws(SignerError) -> Signature {
+    private func rawSign(digest: [UInt8]) async throws(SignerError) -> RecoverableSignature {
         let privateKey = await state.getPrivateKey()
 
         var hash = digest
@@ -211,6 +211,6 @@ public final class EVMKeyPairSigner: Signer {
 
         secp256k1_ecdsa_recoverable_signature_serialize_compact(context, &signature, &recid, signaturePointer)
 
-        return Signature(r: Array(signature[0..<32]), s: Array(signature[32..<64]), v: UInt(recid))
+        return RecoverableSignature(r: Array(signature[0..<32]), s: Array(signature[32..<64]), v: UInt(recid))
     }
 }

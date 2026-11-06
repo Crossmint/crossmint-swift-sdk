@@ -1,0 +1,22 @@
+{
+  "id": "5d1e0c84-2f6b-4b8e-9a7d-3c2e1f0a9b86",
+  "type": "message",
+  "chainType": "evm",
+  "walletType": "smart",
+  "status": "success",
+  "outputSignature": "0xwallet-signature",
+  "params": {
+    "message": "Hello, Crossmint!",
+    "chain": "base-sepolia",
+    "signer": {
+      "type": "quorum",
+      "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"
+    },
+    "isSmartWalletSignature": true
+  },
+  "approvals": {
+    "pending": [],
+    "submitted": []
+  },
+  "createdAt": "2026-11-06T10:00:00.000Z"
+}

@@ -68,7 +68,12 @@ struct DefaultTransferService: TransferService {
         endpoint: Endpoint,
         chainType: ChainType
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let data = try await crossmintService.executeRequestForRawData(endpoint, errorType: TransactionError.self)
+        let data = try await crossmintService.executeRequestForRawData(
+            endpoint,
+            errorType: TransactionError.self
+        ) { networkError in
+            TransactionError.fromAPI(code: networkError.serviceErrorCode, message: networkError.serviceErrorMessage)
+        }
         return try decodeTransaction(from: data, mapping: chainType.mappingType)
     }
 

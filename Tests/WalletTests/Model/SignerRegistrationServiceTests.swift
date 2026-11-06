@@ -198,43 +198,22 @@ struct SignerRegistrationTransactionApprovalTests {
     }
 
     @Test
-    func approvesTheRegistrationAsTheQuorumMemberThatTheSignerIs() async throws {
+    func returnsThePendingRegistrationWithoutApprovingItWhenAQuorumApproves() async throws {
         let walletService = MockSmartWalletService()
-        let registrationTransaction: StellarTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "StellarTransactionAwaitingQuorum",
-            bundle: Bundle.module
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
         )
-        walletService.fetchTransactionResult = registrationTransaction
         let member = MockSigner(email: "bob@example.com")
         let service = makeSolanaService(walletService: walletService)
 
-        let registration = AddDelegatedSignerResponse(
-            chains: nil,
-            transaction: RegistrationTransaction(id: "registration-tx-1")
+        let pendingId = try await service.register(
+            locator: .email("dave@example.com"),
+            approver: RecoveryApprover(signer: member, locator: .quorum(id: "9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"))
         )
-        try await service.approveIfNeeded(registration: registration, signer: member)
 
-        #expect(member.signedMessages == ["bob-message"])
-        #expect(walletService.signTransactionCallCount == 1)
-    }
-
-    @Test
-    func reportsThatOtherQuorumMembersMustApproveTheRegistration() async throws {
-        let walletService = MockSmartWalletService()
-        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
-            fileName: "StellarTransactionAwaitingQuorum",
-            bundle: Bundle.module
-        ) as StellarTransactionApiModel
-        let outsider = MockSigner(email: "carol@example.com")
-        let service = makeSolanaService(walletService: walletService)
-
-        let registration = AddDelegatedSignerResponse(
-            chains: nil,
-            transaction: RegistrationTransaction(id: "registration-tx-1")
-        )
-        let awaitsOtherMembers = try await service.approveIfNeeded(registration: registration, signer: outsider)
-
-        #expect(awaitsOtherMembers)
+        #expect(pendingId == "registration-tx-1")
+        #expect(member.signedMessages.isEmpty)
         #expect(walletService.signTransactionCallCount == 0)
     }
 

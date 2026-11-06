@@ -6,6 +6,7 @@ public struct MessageSignatureResponse: SignatureApiModel {
     public let chainType: String?
     public let walletType: String?
     public let status: String
+    public let outputSignature: String?
     public let params: MessageParams
     public let approvals: Approvals
     public let createdAt: Date
