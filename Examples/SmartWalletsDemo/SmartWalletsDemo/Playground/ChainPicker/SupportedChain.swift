@@ -75,10 +75,6 @@ enum SupportedChain: Equatable, Identifiable {
         self == .evm
     }
 
-    var supportsRecoveryList: Bool {
-        self != .evm
-    }
-
     var testId: String {
         switch self {
         case .evm: "base-sepolia"
