@@ -311,8 +311,10 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             try await approvePendingSignatures(of: pending)
             try await approveSignatureAsQuorumMembers(pending)
             let completed = try await pollSignatureWhilePending(signatureId: id, chainType: chain.chainType)
+            if completed.awaitsQuorumMembers { return Signature(id: id, signature: nil) }
+            guard let output = completed.outputSignature else { throw SignatureError.approvalFailed }
             Logger.smartWallet.info(LogEvents.walletApproveSuccessSignature, attributes: ["signatureId": id])
-            return Signature(id: id, signature: completed.outputSignature)
+            return Signature(id: id, signature: output)
         } catch {
             Logger.smartWallet.error(LogEvents.walletApproveError, attributes: [
                 "signatureId": id,
