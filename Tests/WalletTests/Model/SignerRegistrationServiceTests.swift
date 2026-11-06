@@ -208,7 +208,7 @@ struct SignerRegistrationTransactionApprovalTests {
         let service = makeSolanaService(walletService: walletService)
 
         let pendingId = try await service.register(
-            locator: .email("dave@example.com"),
+            .locator(.email("dave@example.com")),
             approver: RecoveryApprover(signer: member, locator: .quorum(id: "9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"))
         )
 
