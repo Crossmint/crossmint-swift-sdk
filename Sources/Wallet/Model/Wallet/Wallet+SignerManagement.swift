@@ -267,7 +267,8 @@ extension Wallet {
             return RecoveryApprover(signer: selectedRecoveryMethod.signer, locator: role)
         }
         guard config.recoveryMethods.count > 1 else {
-            return RecoveryApprover(signer: try await recoverySigner(), locator: explicit)
+            let soleQuorum = (config.recovery as? QuorumSignerData).map { SignerLocator.quorum(id: $0.id) }
+            return RecoveryApprover(signer: try await recoverySigner(), locator: explicit ?? soleQuorum)
         }
         let activeSigner: (any ApprovalSigner)?
         if let selectedSigner {

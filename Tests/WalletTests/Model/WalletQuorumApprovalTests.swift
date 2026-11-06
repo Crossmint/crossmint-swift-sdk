@@ -322,6 +322,24 @@ struct WalletQuorumApprovalTests {
         #expect(walletService.signTransactionCallCount == 0)
     }
 
+    @Test func createsASignerAdditionForTheOnlyRecoveryQuorumWithoutApprovingIt() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeWallet(walletService: walletService)
+        let member = MockSigner(email: "bob@example.com")
+        wallet.selectedSigner = member
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+        )
+        walletService.fetchTransactionResult = try awaitingQuorum()
+
+        let pending = try await wallet.addSigner(.email("dave@example.com"))
+
+        #expect(pending?.id == "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
+    }
+
     @Test func createsASignerRemovalForTheQuorumWithoutApprovingIt() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeWallet(walletService: walletService)
@@ -334,6 +352,36 @@ struct WalletQuorumApprovalTests {
         #expect(pending.status == .awaitingApproval)
         #expect(member.signedMessages.isEmpty)
         #expect(walletService.signTransactionCallCount == 0)
+    }
+
+    @Test func forgetsTheKeyOfThisDeviceOnceTheQuorumApprovesItsRemoval() async throws {
+        let walletService = MockSmartWalletService()
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorumPendingDevice",
+            bundle: Bundle.module
+        )
+        let storage = MockDeviceSignerKeyStorage()
+        _ = try await storage.generateKey(address: baseModel.address)
+        let wallet = try StellarWallet(
+            smartWalletService: walletService,
+            signer: nil,
+            baseModel: baseModel,
+            stellarChain: .stellar,
+            deviceSignerKeyStorage: storage
+        )
+        walletService.getWalletResult = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorum",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResults = [try transaction("StellarTransactionQuorumApproved")]
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        ) as SolanaTransactionApiModel
+
+        _ = try await wallet.approve(transactionId: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+
+        #expect(await storage.getKey(address: wallet.address) == nil)
     }
 
     @Test func activatesThePendingDeviceSignerOnceTheQuorumApproves() async throws {

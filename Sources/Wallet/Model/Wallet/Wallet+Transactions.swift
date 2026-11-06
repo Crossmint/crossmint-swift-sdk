@@ -33,6 +33,9 @@ extension Wallet {
             guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
+            if signedTransaction.status == .success {
+                await forgetLocalDeviceKeyIfRemoved()
+            }
             if signedTransaction.status == .success, pendingDeviceKey?.transactionId == signedTransaction.id {
                 _ = await activatePendingDeviceKey()
             }
@@ -210,6 +213,16 @@ extension Wallet {
             ])
             throw error as? TransactionError ?? .transactionGeneric("Unknown error")
         }
+    }
+
+    private func forgetLocalDeviceKeyIfRemoved() async {
+        guard let storage = deviceSignerKeyStorage,
+              let publicKey = await storage.getKey(address: address),
+              let model = try? await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
+        else { return }
+        let device = SignerLocator.device(publicKey: publicKey)
+        guard !(model.config.signers ?? []).contains(where: { $0.locator == device }) else { return }
+        await forgetLocalDeviceKey(removedLocator: device.value)
     }
 
     private func forgetLocalDeviceKey(removedLocator: String) async {
