@@ -66,16 +66,14 @@ public final class StellarWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.stellarSendTransactionStart)
 
+        let signerLocator = try await transactionSignerLocator(explicit: signer)
         guard let tx = try await super.sendTransaction(
-            CreateStellarTransactionRequest(
-                transaction: transaction,
-                signer: try await transactionSignerLocator(explicit: signer)
-            ),
-            prepareOnly: prepareOnly
+            CreateStellarTransactionRequest(transaction: transaction, signer: signerLocator),
+            prepareOnly: prepareOnly || isQuorum(signerLocator)
         ) else {
             throw .transactionGeneric("Unknown error")
         }
-        if prepareOnly || tx.awaitsQuorumMembers { return tx.pendingSummary }
+        if let pending = tx.pendingSummary { return pending }
 
         Logger.smartWallet.info(LogEvents.stellarSendTransactionPrepared, attributes: [
             "transactionId": tx.id

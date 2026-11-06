@@ -477,17 +477,22 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         return transferTokenResult
     }
 
+    var createSignatureResult: (any SignatureApiModel)?
+    var fetchSignatureResults: [any SignatureApiModel] = []
+
     func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel {
-        throw SignatureError.unknown
+        guard let createSignatureResult else { throw SignatureError.unknown }
+        return createSignatureResult
     }
 
     func fetchSignature(
         _ signatureId: String,
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
-        throw SignatureError.unknown
+        guard !fetchSignatureResults.isEmpty else { throw SignatureError.unknown }
+        return fetchSignatureResults.removeFirst()
     }
 
     func listTransfers(_ params: ListTransfersQueryParams) async throws(WalletError) -> TransferListResult {

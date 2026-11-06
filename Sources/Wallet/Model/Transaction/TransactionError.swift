@@ -123,3 +123,13 @@ extension TransactionError: CrossmintMappableError {
         }
     }
 }
+
+extension TransactionError {
+    static func fromAPI(code: String?, message: String?) -> TransactionError? {
+        let mapped: [TransactionError] = [
+            .transactionExpired(message ?? "The transaction expired"),
+            .signerIsQuorumMember(message ?? "The signer is a quorum member")
+        ]
+        return mapped.first { $0.code == code }
+    }
+}
