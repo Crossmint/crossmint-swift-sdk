@@ -53,6 +53,7 @@ struct WalletQuorumApprovalTests {
         let walletService = MockSmartWalletService()
         let wallet = try makeWallet(walletService: walletService)
         let member = MockSigner(email: "bob@example.com")
+        member.approvalsResult = [.keypair(signer: "email:bob@example.com", signature: "bob-signature")]
         wallet.selectedSigner = member
         walletService.fetchTransactionResult = try awaitingQuorum()
 
@@ -108,8 +109,10 @@ struct WalletQuorumApprovalTests {
     @Test func signsEveryHeldMemberInOneRequest() async throws {
         let walletService = MockSmartWalletService()
         let carol = MockSigner(email: "carol@example.com")
+        carol.approvalsResult = [.keypair(signer: "email:carol@example.com", signature: "carol-signature")]
         let wallet = try makeWallet(walletService: walletService, signer: carol)
         let bob = MockSigner(email: "bob@example.com")
+        bob.approvalsResult = [.keypair(signer: "email:bob@example.com", signature: "bob-signature")]
         wallet.selectedSigner = bob
         walletService.fetchTransactionResult = try transaction("StellarTransactionAwaitingOneOfTwoMembers")
 

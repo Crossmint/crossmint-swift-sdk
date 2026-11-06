@@ -187,6 +187,8 @@ let package = Package(
                 .process("Resources/Transaction/AddRecoveryMethodResponse.json"),
                 .process("Resources/Transaction/EVMAddRecoveryMethodResponse.json"),
                 .process("Resources/Signature/CreateSignatureAwaitingApproval.json"),
+                .process("Resources/Signature/SignatureAwaitingQuorum.json"),
+                .process("Resources/Signature/SignatureQuorumApproved.json"),
                 .process("Resources/WalletEVMApiKey.json"),
                 .process("Resources/WalletEVMApiKeyWithDelegatedSigners.json"),
                 .process("Resources/WalletEVMEmail.json"),

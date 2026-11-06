@@ -35,8 +35,21 @@ extension Wallet {
         of quorums: [Transaction.Approvals.QuorumProgress],
         transactionId: String
     ) async throws(TransactionError) {
+        let memberApprovals = try await heldMemberApprovals(of: quorums)
+        guard !memberApprovals.isEmpty else { return }
+        _ = try await smartWalletService.signTransaction(
+            .init(
+                transactionId: transactionId,
+                apiRequest: SignRequestApi(approvals: memberApprovals),
+                chainType: chain.chainType
+            )
+        )
+    }
+
+    internal func heldMemberApprovals(
+        of quorums: [Transaction.Approvals.QuorumProgress]
+    ) async throws(TransactionError) -> [SignRequestApi.Approval] {
         var memberApprovals: [SignRequestApi.Approval] = []
-        var signedMembers = 0
         for quorum in quorums where quorum.remaining > 0 {
             for member in quorum.pending {
                 guard (try? await approvalSigner(for: member.signer)) != nil else {
@@ -47,16 +60,8 @@ extension Wallet {
                     continue
                 }
                 memberApprovals += try await signRequest(for: member.signer, message: member.message).approvals
-                signedMembers += 1
             }
         }
-        guard signedMembers > 0 else { return }
-        _ = try await smartWalletService.signTransaction(
-            .init(
-                transactionId: transactionId,
-                apiRequest: SignRequestApi(approvals: memberApprovals),
-                chainType: chain.chainType
-            )
-        )
+        return memberApprovals
     }
 }
