@@ -45,7 +45,7 @@ struct WalletQuorumChainTests {
         (walletService.createTransactionLastRequest?.request as? CreateEVMTransactionRequest)?.signer
     }
 
-    @Test func sendsAnEVMTransactionForTheQuorumWhenTheSignerIsOnlyAMember() async throws {
+    @Test func createsAnEVMTransactionForTheQuorumWhenTheSignerIsOnlyAMember() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeEVMWallet(walletService: walletService)
         walletService.createTransactionResult = try GetFromFile.getModelFrom(
@@ -54,14 +54,15 @@ struct WalletQuorumChainTests {
         ) as EVMTransactionApiModel
         try await wallet.useSigner(.phone("+14155552671"))
 
-        _ = try await wallet.sendTransaction(
+        let summary = try await wallet.sendTransaction(
             to: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
             value: nil,
-            data: nil,
-            prepareOnly: true
+            data: nil
         )
 
         #expect(sentEVMSigner(walletService) == QUORUM.value)
+        #expect(summary.hash == nil)
+        #expect(walletService.signTransactionCallCount == 0)
     }
 
     @Test func rejectsASolanaTransferForAQuorumBeforeItIsCreated() async throws {

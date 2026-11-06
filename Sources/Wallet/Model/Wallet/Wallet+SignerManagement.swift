@@ -22,10 +22,8 @@ extension Wallet {
 
     /// Registers a new signer on this wallet.
     ///
-    /// If a quorum must approve the new signer, the SDK approves as the member that you selected
-    /// with ``useRecoveryMethod(_:)``. When other members must still approve, the SDK returns the transaction
-    /// with the status ``TransactionStatus/awaitingApproval``. The other members approve it with
-    /// ``approve(transactionId:)``.
+    /// When a quorum approves the new signer, the SDK creates the registration without approving it,
+    /// as with `prepareOnly`. Each member then approves it with ``approve(transactionId:)``.
     ///
     /// - Parameters:
     ///   - config: The signer configuration to register.
@@ -33,8 +31,8 @@ extension Wallet {
     ///     when the recovery method you selected is a member of more than one quorum.
     ///   - prepareOnly: Pass `true` to create the registration without approving it.
     ///     Then approve it with ``approve(transactionId:)``. Solana and Stellar wallets only.
-    /// - Returns: With `prepareOnly`, or while other quorum members must still approve, the transaction
-    ///   that adds the signer. Otherwise `nil`.
+    /// - Returns: With `prepareOnly`, or when a quorum approves, the transaction that adds the signer.
+    ///   Otherwise `nil`.
     /// - Throws: ``WalletError`` if registration fails.
     @discardableResult
     public func addSigner(
@@ -51,17 +49,15 @@ extension Wallet {
     /// registered but the private key is missing on the current device. This generates a new key,
     /// registers it with Crossmint, and awaits approval from the existing admin signer.
     ///
-    /// If a quorum must approve the device signer and other members must still approve, the SDK returns
-    /// the transaction with the status ``TransactionStatus/awaitingApproval``. The other members approve it
-    /// with ``approve(transactionId:)``. Until then, ``needsRecovery()`` stays `true`, and a later call
-    /// returns the same transaction.
+    /// When a quorum approves the device signer, the SDK creates the registration without approving it
+    /// and returns the transaction. Each member then approves it with ``approve(transactionId:)``.
+    /// Until then, ``needsRecovery()`` stays `true`, and a later call returns the same transaction.
     ///
     /// If the wallet's provider does not support device signers, this returns without error
     /// and signing stays on the recovery signer; the rejection is remembered so registration
     /// is not retried for this wallet instance.
     ///
-    /// - Returns: The transaction that adds the device signer while other quorum members must still approve.
-    ///   Otherwise `nil`.
+    /// - Returns: The transaction that adds the device signer when a quorum approves it. Otherwise `nil`.
     /// - Throws: ``WalletError`` if recovery fails or there is no device signer configured.
     @discardableResult
     public func recover() async throws(WalletError) -> Transaction? {
@@ -524,7 +520,7 @@ extension Wallet {
             pendingDeviceKey = pending
             return pending.transactionId
         }
-        guard !prepareOnly else { return nil }
+        guard !prepareOnly, !approver.isQuorum else { return nil }
         deviceKeyIsUsable()
         return nil
     }

@@ -25,8 +25,9 @@ extension Wallet {
     ///     when the recovery method you selected is a member of more than one quorum.
     ///   - prepareOnly: Pass `true` to create the change without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
-    /// - Returns: The completed ``Transaction``. With `prepareOnly`, or while other quorum members must still
-    ///   approve, the transaction with the status ``TransactionStatus/awaitingApproval``.
+    /// - Returns: The completed ``Transaction``. With `prepareOnly`, or when a quorum approves, the transaction
+    ///   with the status ``TransactionStatus/awaitingApproval``. Each member then approves it with
+    ///   ``approve(transactionId:)``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
     ///   ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey and the wallet is a
     ///   Solana wallet.
@@ -57,7 +58,7 @@ extension Wallet {
                 chainName: chain.name,
                 approver: approver
             )
-            if prepareOnly { return created.toDomain() }
+            if prepareOnly || isQuorum(approver.value) { return created.toDomain() }
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
             if transaction.status == .success, recoveryMethod is QuorumSignerInput {
                 await reloadRecoveryMethods()
@@ -89,8 +90,9 @@ extension Wallet {
     ///     when the recovery method you selected is a member of more than one quorum.
     ///   - prepareOnly: Pass `true` to create the change without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
-    /// - Returns: The completed ``Transaction``. With `prepareOnly`, or while other quorum members must still
-    ///   approve, the transaction with the status ``TransactionStatus/awaitingApproval``.
+    /// - Returns: The completed ``Transaction``. With `prepareOnly`, or when a quorum approves, the transaction
+    ///   with the status ``TransactionStatus/awaitingApproval``. Each member then approves it with
+    ///   ``approve(transactionId:)``.
     /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
     ///   ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
     ///
@@ -116,7 +118,7 @@ extension Wallet {
                 chainName: chain.name,
                 approver: approver
             )
-            if prepareOnly { return created.toDomain() }
+            if prepareOnly || isQuorum(approver.value) { return created.toDomain() }
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
             if transaction.status == .success {
                 recordRemovedRecoveryMethod(locator)
@@ -286,7 +288,7 @@ extension Wallet {
             }
             throw .walletGeneric(error.message)
         }
-        guard let completed, completed.status == .success || completed.awaitsQuorumMembers else {
+        guard let completed, completed.status == .success else {
             throw .walletGeneric("The recovery method transaction \(transaction.id) did not succeed.")
         }
         return completed

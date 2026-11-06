@@ -45,14 +45,13 @@ final class DeviceSignerService: Sendable {
         let pending = registrationService.pendingTransactionId(in: registration).map {
             PendingDeviceKey(transactionId: $0, publicKeyBase64: publicKeyBase64, storage: storage)
         }
-        guard !prepareOnly else { return pending }
-        let awaitsOtherMembers = try await approveRegistration(
+        guard !prepareOnly, !approver.isQuorum else { return pending }
+        try await approveRegistration(
             registration,
             signer: approver.signer,
             publicKeyBase64: publicKeyBase64,
             storage: storage
         )
-        if awaitsOtherMembers { return pending }
         try await persistKey(publicKeyBase64, in: storage)
         Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerSuccess)
         return nil
@@ -106,7 +105,7 @@ final class DeviceSignerService: Sendable {
         signer: any Signer,
         publicKeyBase64: String,
         storage: any DeviceSignerKeyStorage
-    ) async throws(WalletError) -> Bool {
+    ) async throws(WalletError) {
         let chainEntry = registration.chains?[chainName]
         let pendingApprovalId = chainEntry?.awaitsApproval == true ? chainEntry?.id : registration.transaction?.id
         if let pendingApprovalId {
@@ -115,16 +114,12 @@ final class DeviceSignerService: Sendable {
             ])
         }
         do {
-            let awaitsOtherMembers = try await registrationService.approveIfNeeded(
-                registration: registration,
-                signer: signer
-            )
+            try await registrationService.approveIfNeeded(registration: registration, signer: signer)
             if let pendingApprovalId {
                 Logger.smartWallet.info(LogEvents.walletRegisterDeviceSignerApproved, attributes: [
                     "approvalId": pendingApprovalId
                 ])
             }
-            return awaitsOtherMembers
         } catch {
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)
             Logger.smartWallet.error(LogEvents.walletRegisterDeviceSignerError, attributes: ["error": "\(error)"])

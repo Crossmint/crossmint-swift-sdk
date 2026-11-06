@@ -158,16 +158,31 @@ struct WalletQuorumRecoveryMethodChangesTests {
         #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value])
     }
 
-    @Test func returnsThePendingRecoveryMethodWhenOtherQuorumMembersMustApprove() async throws {
+    @Test func createsARecoveryMethodAdditionForTheQuorumWithoutApprovingIt() async throws {
         let wallet = try makeWallet(fileName: "WalletStellarQuorum", signer: nil)
-        wallet.selectedSigner = MockSigner(email: "bob@example.com")
+        let member = MockSigner(email: "bob@example.com")
+        wallet.selectedSigner = member
         walletService.addRecoveryMethodResult = try transaction("StellarTransactionAwaitingQuorum")
-        walletService.fetchTransactionResult = try transaction("StellarTransactionAwaitingQuorum")
 
         let pending = try await wallet.addRecoveryMethod(.email("dave@example.com"))
 
         #expect(pending.status == .awaitingApproval)
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
         #expect(wallet.recoveryMethods.map(\.signer.locator) == [QUORUM.value])
+    }
+
+    @Test func createsARecoveryMethodRemovalForTheQuorumWithoutApprovingIt() async throws {
+        let wallet = try makeWallet(fileName: "WalletStellarQuorumThenEmail", signer: nil)
+        let member = MockSigner(email: "bob@example.com")
+        wallet.selectedSigner = member
+        walletService.removeRecoveryMethodResult = try transaction("StellarTransactionAwaitingQuorum")
+
+        let pending = try await wallet.removeRecoveryMethod(locator: .email("carol@example.com"))
+
+        #expect(pending.status == .awaitingApproval)
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
     }
 
     @Test func returnsTheAddedQuorumWhenTheWalletCannotBeReadAgain() async throws {
