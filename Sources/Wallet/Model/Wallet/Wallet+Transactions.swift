@@ -148,6 +148,9 @@ extension Wallet {
     ///
     /// Use ``removeRecoveryMethod(locator:)`` to remove a recovery method.
     ///
+    /// When a quorum approves the removal, the SDK creates the removal without approving it, as with `prepareOnly`.
+    /// Each member then approves it with ``approve(transactionId:)``.
+    ///
     /// - Parameters:
     ///   - locator: The locator that identifies the signer to remove.
     ///   - signer: The recovery method that approves the removal. Use it to name the quorum to approve for
@@ -155,7 +158,7 @@ extension Wallet {
     ///   - prepareOnly: Pass `true` to create the removal without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
-    ///   With `prepareOnly`, or while other quorum members must still approve, the transaction with the status
+    ///   With `prepareOnly`, or when a quorum approves, the transaction with the status
     ///   ``TransactionStatus/awaitingApproval``.
     public func removeSigner(
         locator: SignerLocator,
@@ -189,7 +192,7 @@ extension Wallet {
                 approver: approver.locator
             )
             let transaction = transactionModel.toDomain()
-            if prepareOnly { return transaction }
+            if prepareOnly || approver.isQuorum { return transaction }
             guard let result = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }

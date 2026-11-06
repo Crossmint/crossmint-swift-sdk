@@ -275,7 +275,7 @@ struct WalletQuorumApprovalTests {
         #expect(walletService.addSignerCallCount == 0)
     }
 
-    @Test func returnsThePendingDeviceSignerWhenOtherQuorumMembersMustApprove() async throws {
+    @Test func returnsThePendingDeviceSignerWithoutApprovingItForTheQuorum() async throws {
         let walletService = MockSmartWalletService()
         let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
             fileName: "WalletStellarQuorumThenEmail",
@@ -287,9 +287,10 @@ struct WalletQuorumApprovalTests {
             transaction: RegistrationTransaction(id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
         )
         walletService.fetchTransactionResult = try awaitingQuorum()
+        let member = MockSigner(email: "alice@example.com")
         let wallet = try StellarWallet(
             smartWalletService: walletService,
-            signer: MockSigner(email: "alice@example.com"),
+            signer: member,
             baseModel: baseModel,
             stellarChain: .stellar,
             deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
@@ -298,7 +299,41 @@ struct WalletQuorumApprovalTests {
         let pending = try await wallet.recover()
 
         #expect(pending?.status == .awaitingApproval)
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
         #expect(await wallet.needsRecovery())
+    }
+
+    @Test func createsASignerAdditionForTheQuorumWithoutApprovingIt() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeWallet(walletService: walletService)
+        let member = MockSigner(email: "bob@example.com")
+        wallet.selectedSigner = member
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+        )
+        walletService.fetchTransactionResult = try awaitingQuorum()
+
+        let pending = try await wallet.addSigner(.email("dave@example.com"), signer: QUORUM)
+
+        #expect(pending?.id == "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
+    }
+
+    @Test func createsASignerRemovalForTheQuorumWithoutApprovingIt() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeWallet(walletService: walletService)
+        let member = MockSigner(email: "bob@example.com")
+        wallet.selectedSigner = member
+        walletService.removeSignerResult = try awaitingQuorum()
+
+        let pending = try await wallet.removeSigner(locator: .email("dave@example.com"), signer: QUORUM)
+
+        #expect(pending.status == .awaitingApproval)
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
     }
 
     @Test func activatesThePendingDeviceSignerOnceTheQuorumApproves() async throws {
