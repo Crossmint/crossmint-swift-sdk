@@ -76,12 +76,10 @@ extension Wallet {
               ),
               let transaction = registration.transaction
         else { return }
-        let otherKeys = deviceKeys.filter { $0 != heldKey }
         pendingDeviceKey = PendingDeviceKey(
             transactionId: transaction.id,
             publicKeyBase64: heldKey,
-            storage: storage,
-            replacedSigner: otherKeys.count == 1 ? .device(publicKey: otherKeys[0]) : nil
+            storage: storage
         )
         Logger.smartWallet.info(LogEvents.walletRecoverPendingKeyRestored, attributes: [
             "transactionId": transaction.id

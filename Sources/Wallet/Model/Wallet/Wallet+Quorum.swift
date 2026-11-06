@@ -51,8 +51,7 @@ extension Wallet {
             for member in quorum.pending {
                 guard (try? await approvalSigner(for: member.signer)) != nil else {
                     Logger.smartWallet.info(LogEvents.walletApproveQuorumMemberSkipped, attributes: [
-                        "quorum": quorum.signer.value,
-                        "member": member.signer
+                        "quorum": quorum.signer.value
                     ])
                     continue
                 }
