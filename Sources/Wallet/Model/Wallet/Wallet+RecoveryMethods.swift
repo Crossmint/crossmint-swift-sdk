@@ -294,17 +294,20 @@ extension Wallet {
         return completed
     }
 
-    func reloadRecoveryMethods() async {
+    @discardableResult
+    func reloadRecoveryMethods() async -> WalletApiModel? {
         do {
             let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
             config = model.config.toDomain(on: chain)
             if let selected = selectedRecoveryMethod?.locator, !config.canApproveRecoveryChanges(selected) {
                 selectedRecoveryMethod = nil
             }
+            return model
         } catch {
             Logger.smartWallet.warning(LogEvents.walletRecoveryMethodsReloadError, attributes: [
                 "error": "\(error)"
             ])
+            return nil
         }
     }
 

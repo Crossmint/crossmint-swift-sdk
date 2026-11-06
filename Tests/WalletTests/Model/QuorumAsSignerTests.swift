@@ -128,6 +128,32 @@ struct QuorumAsSignerTests {
         #expect(walletService.transferTokenLastRequest?.signer == SIGNER_QUORUM.value)
     }
 
+    @Test func sendsForTheRemainingQuorumAfterAPreparedRemovalOfAnotherQuorumIsApproved() async throws {
+        let wallet = try makeWallet(
+            fileName: "WalletStellarTwoSignerQuorums",
+            signer: MockSigner(email: "alice@example.com")
+        )
+        let success: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResult = success
+        walletService.getWalletResult = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarQuorum",
+            bundle: Bundle.module
+        )
+        walletService.transferTokenResult = try GetFromFile.getModelFrom(
+            fileName: "StellarTransactionAwaitingQuorum",
+            bundle: Bundle.module
+        ) as StellarTransactionApiModel
+
+        _ = try await wallet.approve(transactionId: success.id)
+        try await wallet.useSigner(.email("carol@example.com"))
+        _ = try await wallet.send(RECIPIENT, "stellar:usdc", 1, prepareOnly: true)
+
+        #expect(walletService.transferTokenLastRequest?.signer == SIGNER_QUORUM.value)
+    }
+
     @Test func acceptsAMemberOfAQuorumSignerAddedSinceTheWalletLoaded() async throws {
         let wallet = try makeWallet(fileName: "WalletStellarRecoveryMethods", signer: nil)
         walletService.getWalletResult = try GetFromFile.getModelFrom(
