@@ -102,7 +102,7 @@ struct QuorumAsSignerTests {
         #expect(walletService.transferTokenLastRequest?.signer == SIGNER_QUORUM.value)
     }
 
-    @Test func sendsForTheRemainingQuorumAfterAnotherQuorumWithTheSameMemberIsRemoved() async throws {
+    @Test func namesTheRemainingQuorumOnATransferAfterAnotherQuorumWithTheSameMemberIsRemoved() async throws {
         let wallet = try makeWallet(
             fileName: "WalletStellarTwoSignerQuorums",
             signer: MockSigner(email: "alice@example.com")
@@ -128,7 +128,7 @@ struct QuorumAsSignerTests {
         #expect(walletService.transferTokenLastRequest?.signer == SIGNER_QUORUM.value)
     }
 
-    @Test func sendsForTheRemainingQuorumAfterAPreparedRemovalOfAnotherQuorumIsApproved() async throws {
+    @Test func namesTheRemainingQuorumOnATransferAfterAnApprovedChangeRemovesAnotherQuorum() async throws {
         let wallet = try makeWallet(
             fileName: "WalletStellarTwoSignerQuorums",
             signer: MockSigner(email: "alice@example.com")
