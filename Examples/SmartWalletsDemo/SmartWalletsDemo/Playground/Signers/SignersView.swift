@@ -175,11 +175,10 @@ struct SignersView: View {
     @ViewBuilder
     private func recoverySection() -> some View {
         let locators = appState.recoveryLocators
-        let editable = appState.selectedChain.supportsRecoveryList
         if !locators.isEmpty {
             Section {
                 ForEach(Array(locators.enumerated()), id: \.element) { index, locator in
-                    recoveryRow(index: index, locator: locator, editable: editable)
+                    recoveryRow(index: index, locator: locator)
                     if let quorum = appState.quorum(for: locator) {
                         ForEach(quorum.members.map(\.locator), id: \.self) { member in
                             quorumMemberRow(SignerChoice(locator: member, quorum: locator))
@@ -209,7 +208,7 @@ struct SignersView: View {
         }
     }
 
-    private func recoveryRow(index: Int, locator: String, editable: Bool) -> some View {
+    private func recoveryRow(index: Int, locator: String) -> some View {
         SignerRow(
             index: index,
             idPrefix: "recovery",
@@ -217,14 +216,14 @@ struct SignersView: View {
             name: appState.recoveryName(for: locator),
             status: appState.approvingRecoveryMethod?.id == locator ? "Approver" : nil,
             isRemoving: removingSignerLocator == locator || selectingApproverLocator == locator,
-            canRemove: editable,
+            canRemove: true,
             onSelect: {},
             onRemove: { Task { await removeRecoveryMethod(locator: locator) } }
         )
         .contentShape(Rectangle())
-        .accessibilityAddTraits(editable ? .isButton : [])
+        .accessibilityAddTraits(.isButton)
         .onTapGesture {
-            guard editable, appState.quorum(for: locator) == nil else { return }
+            guard appState.quorum(for: locator) == nil else { return }
             Task { await selectApprover(SignerChoice(locator: locator, quorum: nil)) }
         }
     }

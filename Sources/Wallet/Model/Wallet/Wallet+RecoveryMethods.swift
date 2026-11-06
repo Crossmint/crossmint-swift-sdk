@@ -13,8 +13,7 @@ extension Wallet {
 
     /// Adds a recovery method to the wallet.
     ///
-    /// Solana and Stellar wallets only. A recovery method of the wallet approves the change.
-    /// To select it, see ``useRecoveryMethod(_:)``.
+    /// A recovery method of the wallet approves the change. To select it, see ``useRecoveryMethod(_:)``.
     ///
     /// To change the members or the threshold of a quorum, add a new quorum and then remove the old one.
     ///
@@ -28,10 +27,9 @@ extension Wallet {
     ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction``. With `prepareOnly`, or while other quorum members must still
     ///   approve, the transaction with the status ``TransactionStatus/awaitingApproval``.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
-    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` if the wallet is an EVM wallet.
-    ///   - ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey
-    ///     and the wallet is a Solana wallet.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
+    ///   ``WalletError/RecoveryConfigCode/signerNotAllowed`` if `method` is a passkey and the wallet is a
+    ///   Solana wallet.
     ///
     /// ## Example
     /// ```swift
@@ -49,7 +47,6 @@ extension Wallet {
     ) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
-            try assertRecoveryMethodChangesSupported()
             try assertChainAccepts(method)
             let approver = try await recoveryMethodApprover(explicit: signer)
             let recoveryMethod = try await recoveryMethodData(for: method)
@@ -57,6 +54,7 @@ extension Wallet {
             let created = try await smartWalletService.addRecoveryMethod(
                 recoveryMethod,
                 chainType: chain.chainType,
+                chainName: chain.name,
                 approver: approver
             )
             if prepareOnly { return created.toDomain() }
@@ -80,9 +78,8 @@ extension Wallet {
 
     /// Removes a recovery method from the wallet.
     ///
-    /// Solana and Stellar wallets only. A different recovery method of the wallet approves the change.
-    /// To select it, see ``useRecoveryMethod(_:)``. If you selected the removed recovery method, the SDK
-    /// clears the selection.
+    /// A different recovery method of the wallet approves the change. To select it, see
+    /// ``useRecoveryMethod(_:)``. If you selected the removed recovery method, the SDK clears the selection.
     ///
     /// To remove a signer that you added with ``addSigner(_:)``, use ``removeSigner(locator:)``.
     ///
@@ -94,9 +91,8 @@ extension Wallet {
     ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction``. With `prepareOnly`, or while other quorum members must still
     ///   approve, the transaction with the status ``TransactionStatus/awaitingApproval``.
-    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with one of these codes:
-    ///   - ``WalletError/RecoveryConfigCode/notSupportedOnChain`` on an EVM wallet.
-    ///   - ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
+    /// - Throws: ``WalletError/recoveryConfigRejected(code:message:)`` with
+    ///   ``WalletError/RecoveryConfigCode/lastSigner`` if the wallet has no other recovery method.
     ///
     /// ## Example
     /// ```swift
@@ -112,12 +108,12 @@ extension Wallet {
             "locator": locator.value
         ])
         do {
-            try assertRecoveryMethodChangesSupported()
             let approver = try await recoveryMethodApprover(explicit: signer)
             onTransactionStart?()
             let created = try await smartWalletService.removeRecoveryMethod(
                 locator,
                 chainType: chain.chainType,
+                chainName: chain.name,
                 approver: approver
             )
             if prepareOnly { return created.toDomain() }
@@ -242,16 +238,6 @@ extension Wallet {
         return await SignerFactory.passkey(passkey, host: host)
     }
 
-    private func assertRecoveryMethodChangesSupported() throws(WalletError) {
-        guard chain.chainType == .solana || chain.chainType == .stellar else {
-            throw .recoveryConfigRejected(
-                code: .notSupportedOnChain,
-                message: "Adding and removing recovery methods is not supported on \(chain.name) yet. "
-                    + "It is available on Solana and Stellar."
-            )
-        }
-    }
-
     private func assertChainAccepts(_ method: SignerConfig) throws(WalletError) {
         guard case .passkey = method, chain.chainType == .solana else { return }
         throw .passkeyRecoveryNotAllowedOnSolana
@@ -309,7 +295,7 @@ extension Wallet {
     func reloadRecoveryMethods() async {
         do {
             let model = try await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-            config = model.config.toDomain
+            config = model.config.toDomain(on: chain)
             if let selected = selectedRecoveryMethod?.locator, !config.canApproveRecoveryChanges(selected) {
                 selectedRecoveryMethod = nil
             }

@@ -1,0 +1,30 @@
+{
+  "type": "smart",
+  "chainType": "evm",
+  "config": {
+    "adminSigner": {
+      "type": "email",
+      "email": "user@example.com",
+      "locator": "email:user@example.com"
+    },
+    "recoveryMethods": [
+      {
+        "type": "email",
+        "email": "user@example.com",
+        "locator": "email:user@example.com"
+      },
+      {
+        "type": "phone",
+        "phone": "+14155552671",
+        "locator": "phone:+14155552671",
+        "chains": {
+          "base-sepolia": { "status": "awaiting-approval" },
+          "polygon-amoy": { "status": "active" }
+        }
+      }
+    ]
+  },
+  "address": "0x1234567890ABCDEF1234567890ABCDEF12345678",
+  "linkedUser": "email:user@example.com",
+  "createdAt": "2026-09-29T11:00:00.000Z"
+}
