@@ -282,7 +282,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
             case .device:
                 continue
             case .quorum:
-                throw .walletGeneric("Adding a quorum as a signer is not supported yet.")
+                entries.append(DelegatedSignerEntry(signer: try .quorum(from: config)))
             case .passkey(let name, let host, _):
                 let passkeySigner = PasskeySigner(name: name, host: host)
                 try await initializeSigner(passkeySigner)

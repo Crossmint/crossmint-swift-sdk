@@ -5,6 +5,23 @@ import Logger
 struct WalletSignerConfigApiModel: Decodable, Sendable {
     let locator: SignerLocator
     let name: String?
+    let quorum: QuorumSignerData?
+
+    private enum CodingKeys: String, CodingKey {
+        case locator, name, type
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        locator = try container.decode(SignerLocator.self, forKey: .locator)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        let type = try container.decodeIfPresent(String.self, forKey: .type)
+        if type == AdminSignerDataType.quorum.rawValue {
+            quorum = try QuorumSignerApiModel(from: decoder).toDomain as? QuorumSignerData
+        } else {
+            quorum = nil
+        }
+    }
 }
 
 struct RecoveryMethodApiModel {
@@ -131,10 +148,11 @@ public struct WalletConfigApiModel: Decodable {
     }
 
     func toDomain(on chain: Chain) -> WalletConfig {
+        let signerQuorums = (signers ?? []).compactMap(\.quorum)
         let methods = (recoveryMethods ?? []).compactMap { $0.toDomain(on: chain) }
         guard let first = methods.first else {
-            return WalletConfig(recovery: adminSigner.toDomain)
+            return WalletConfig(recovery: RecoveryMethod(signer: adminSigner.toDomain), signerQuorums: signerQuorums)
         }
-        return WalletConfig(recovery: first, others: Array(methods.dropFirst()))
+        return WalletConfig(recovery: first, others: Array(methods.dropFirst()), signerQuorums: signerQuorums)
     }
 }

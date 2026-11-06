@@ -24,6 +24,9 @@ struct SignerPicker: View {
             let name = appState.recoveryName(for: recovery.locator)
             result.append(Option(choice: recovery, name: name, isRecovery: true))
         }
+        for member in appState.signerQuorumMembers where isSelectable(member.locator) {
+            result.append(Option(choice: member, name: nil, isRecovery: false))
+        }
         for signer in appState.signers {
             let locator = signer.locator
             guard isSelectable(locator) else { continue }
@@ -56,13 +59,16 @@ struct SignerPicker: View {
     }
 
     private func title(for option: Option) -> String {
-        guard option.isRecovery, option.name == nil else {
+        guard option.isRecovery || option.choice.quorum != nil, option.name == nil else {
             return SignerRow.title(for: option.locator, name: option.name)
         }
         return SignerRow.shortValue(for: option.locator)
     }
 
     private func subtitle(for option: Option) -> String {
+        if !option.isRecovery, option.choice.quorum != nil {
+            return "\(SignerRow.typeLabel(for: option.locator)) (Quorum member)"
+        }
         guard option.isRecovery else { return SignerRow.subtitle(for: option.locator, name: option.name) }
         guard option.name == nil else {
             return "\(SignerRow.subtitle(for: option.locator, name: option.name)) (Recovery)"

@@ -33,12 +33,8 @@ extension Wallet {
             guard let signedTransaction = try await signAndPollWhilePending(transaction) else {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
-            let quorumApproved = !(transaction.approvals?.quorums.isEmpty ?? true)
-            if quorumApproved, signedTransaction.status == .success {
-                await reloadRecoveryMethods()
-            }
-            if signedTransaction.status == .success {
-                await forgetLocalDeviceKeyIfRemoved()
+            if signedTransaction.status == .success, let model = await reloadRecoveryMethods() {
+                await forgetLocalDeviceKeyIfRemoved(from: model.config.signers ?? [])
             }
             if signedTransaction.status == .success, pendingDeviceKey?.transactionId == signedTransaction.id {
                 _ = await activatePendingDeviceKey()
@@ -205,6 +201,7 @@ extension Wallet {
             }
             if result.status == .success {
                 await forgetLocalDeviceKey(removedLocator: locator)
+                if isQuorum(locator) { await reloadRecoveryMethods() }
             }
             Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
                 "locator": locator
@@ -219,13 +216,11 @@ extension Wallet {
         }
     }
 
-    private func forgetLocalDeviceKeyIfRemoved() async {
+    private func forgetLocalDeviceKeyIfRemoved(from signers: [WalletSignerConfigApiModel]) async {
         guard let storage = deviceSignerKeyStorage,
-              let publicKey = await storage.getKey(address: address),
-              let model = try? await smartWalletService.getWallet(GetMeWalletRequest(chainType: chain.chainType))
-        else { return }
+              let publicKey = await storage.getKey(address: address) else { return }
         let device = SignerLocator.device(publicKey: publicKey)
-        guard !(model.config.signers ?? []).contains(where: { $0.locator == device }) else { return }
+        guard !signers.contains(where: { $0.locator == device }) else { return }
         await forgetLocalDeviceKey(removedLocator: device.value)
     }
 

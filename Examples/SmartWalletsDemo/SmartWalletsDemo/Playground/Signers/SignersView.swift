@@ -157,6 +157,17 @@ struct SignersView: View {
                         onSelect: {},
                         onRemove: { Task { await removeSigner(locator: item.locator) } }
                     )
+                    ForEach(item.quorum?.members ?? [], id: \.value) { member in
+                        SignerRow(
+                            idPrefix: "signer-quorum-member",
+                            locator: member.value,
+                            status: "Member",
+                            isRemoving: false,
+                            canRemove: false,
+                            onSelect: {}
+                        )
+                        .padding(.leading, 24)
+                    }
                 }
             }
         }
