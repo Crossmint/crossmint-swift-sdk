@@ -85,6 +85,8 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///   - prepareOnly: Pass `true` to create the transaction without approving it.
     ///     Then approve it with ``Wallet/approve(transactionId:)``. The summary then has only the transaction ID.
     ///
+    /// When a quorum sends the transaction, the SDK creates it without approving it, as with `prepareOnly`.
+    ///
     /// ## Example
     /// ```swift
     /// // Transfer 0.001 ETH
@@ -109,19 +111,20 @@ open class EVMWallet: Wallet, WalletOnChain, @unchecked Sendable {
             throw .transactionGeneric("Invalid address")
         }
 
+        let signerLocator = try await evmSignerLocator(explicit: signer)
         guard let transaction = try await super.sendTransaction(
             CreateEVMTransactionRequest(
                 contractAddress: evmAddress,
                 value: value ?? "0",
                 data: data ?? "0x",
                 chain: chain ?? self.evmChain,
-                signer: try await evmSignerLocator(explicit: signer)
+                signer: signerLocator
             ),
-            prepareOnly: prepareOnly
+            prepareOnly: prepareOnly || isQuorum(signerLocator)
         ) else {
             throw .transactionGeneric("Unknown error")
         }
-        if prepareOnly || transaction.awaitsQuorumMembers { return transaction.pendingSummary }
+        if let pending = transaction.pendingSummary { return pending }
 
         Logger.smartWallet.info(LogEvents.evmSendTransactionPrepared, attributes: [
             "transactionId": transaction.id

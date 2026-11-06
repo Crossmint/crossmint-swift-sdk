@@ -9,6 +9,11 @@ import CrossmintCommonTypes
 import Logger
 
 extension Wallet {
+    internal func isQuorum(_ locator: String?) -> Bool {
+        guard let locator, case .quorum = try? SignerLocator(from: locator) else { return false }
+        return true
+    }
+
     internal func quorumRole(of locator: SignerLocator) async throws(TransactionError) -> SignerLocator? {
         let quorums = config.recoveryMethods
             .compactMap { $0 as? QuorumSignerData }

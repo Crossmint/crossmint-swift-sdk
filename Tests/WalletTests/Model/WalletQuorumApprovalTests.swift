@@ -129,7 +129,7 @@ struct WalletQuorumApprovalTests {
         let summary = try await wallet.send(RECIPIENT, "stellar:usdc", 1, prepareOnly: true)
 
         #expect(summary.transactionID == "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
-        #expect(summary.status == .awaitingApproval)
+        #expect(summary.hash == nil)
         #expect(walletService.transferTokenLastRequest?.signer == QUORUM.value)
         #expect(walletService.signTransactionCallCount == 0)
     }
@@ -147,19 +147,33 @@ struct WalletQuorumApprovalTests {
         #expect(walletService.signTransactionCallCount == 0)
     }
 
-    @Test func returnsAPendingSummaryWhenOtherMembersMustApprove() async throws {
+    @Test func createsATransferForTheQuorumWithoutSigningForTheHeldMember() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeWallet(walletService: walletService)
         let member = MockSigner(email: "bob@example.com")
         wallet.selectedSigner = member
         walletService.transferTokenResult = try awaitingQuorum()
-        walletService.fetchTransactionResult = try awaitingQuorum()
 
         let summary = try await wallet.send(RECIPIENT, "stellar:usdc", 1)
 
-        #expect(summary.status == .awaitingApproval)
+        #expect(summary.transactionID == "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
         #expect(summary.hash == nil)
-        #expect(member.signedMessages == ["bob-message"])
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
+    }
+
+    @Test func createsARawTransactionForTheQuorumWithoutSigningForTheHeldMember() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeWallet(walletService: walletService)
+        let member = MockSigner(email: "bob@example.com")
+        wallet.selectedSigner = member
+        walletService.createTransactionResult = try awaitingQuorum()
+
+        let summary = try await wallet.sendTransaction(transaction: "AAAA")
+
+        #expect(summary.hash == nil)
+        #expect(member.signedMessages.isEmpty)
+        #expect(walletService.signTransactionCallCount == 0)
     }
 
     @Test func actsForTheQuorumWhenTheSignerIsOnlyAMember() async throws {
@@ -239,6 +253,17 @@ struct QuorumTransactionErrorTests {
         return DefaultTransactionService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
     }
 
+    private func makeTransferService(errorBody: Data) throws -> DefaultTransferService {
+        let crossmintService = DefaultCrossmintService(
+            apiKey: try ApiKey(key: "ck_staging_test123"),
+            appIdentifier: "com.crossmint.tests",
+            httpClient: HTTPClient(fetch: { _ throws(NetworkError) in
+                throw NetworkError.invalidStatusCode(422, errorBody)
+            })
+        )
+        return DefaultTransferService(crossmintService: crossmintService, jsonCoder: DefaultJSONCoder())
+    }
+
     private func signRequest() -> SignRequest {
         SignRequest(transactionId: "tx", apiRequest: SignRequestApi(approvals: []), chainType: .stellar)
     }
@@ -261,6 +286,26 @@ struct QuorumTransactionErrorTests {
 
         await #expect {
             _ = try await service.signTransaction(signRequest())
+        } throws: { error in
+            guard case .signerIsQuorumMember = error as? TransactionError else { return false }
+            return true
+        }
+    }
+
+    @Test func throwsSignerIsQuorumMemberWhenAMemberCreatesATransfer() async throws {
+        let body = Data(#"{"message": "Signer is a quorum member.", "code": "SIGNER_IS_QUORUM_MEMBER"}"#.utf8)
+        let service = try makeTransferService(errorBody: body)
+        let request = TransferTokenRequest(
+            chainType: .stellar,
+            tokenLocator: "stellar:usdc",
+            recipient: RECIPIENT,
+            amount: "1",
+            signer: "email:bob@example.com",
+            idempotencyKey: nil
+        )
+
+        await #expect {
+            _ = try await service.transferToken(request)
         } throws: { error in
             guard case .signerIsQuorumMember = error as? TransactionError else { return false }
             return true
