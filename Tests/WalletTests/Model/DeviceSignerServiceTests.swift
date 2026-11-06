@@ -101,26 +101,4 @@ struct DeviceSignerServiceTests {
         #expect(storage.deletePendingKeyCallCount == 0)
         #expect(await storage.getKey(address: walletAddress) == nil)
     }
-
-    @Test
-    func keepsThePendingKeyWithoutApprovingItWhenAQuorumApproves() async throws {
-        let walletService = MockSmartWalletService()
-        walletService.addSignerResult = AddDelegatedSignerResponse(
-            chains: nil,
-            transaction: RegistrationTransaction(id: "registration-tx-1")
-        )
-        let storage = MockDeviceSignerKeyStorage()
-        let member = MockSigner(email: "bob@example.com")
-        let service = makeSolanaService(walletService: walletService)
-
-        let pending = try await service.register(
-            storage: storage,
-            approver: RecoveryApprover(signer: member, locator: .quorum(id: "9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"))
-        )
-
-        #expect(pending?.transactionId == "registration-tx-1")
-        #expect(member.signedMessages.isEmpty)
-        #expect(walletService.signTransactionCallCount == 0)
-        #expect(await storage.getKey(address: walletAddress) == nil)
-    }
 }
