@@ -435,7 +435,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         }
         let signerLocator: String?
         if let signer {
-            signerLocator = signer.value
+            signerLocator = try await transactionSignerLocator(explicit: signer)
         } else if selectedSigner == nil, let deviceLocator = await localDeviceSigner() {
             signerLocator = deviceLocator.value
         } else {

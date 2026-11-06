@@ -82,6 +82,25 @@ struct WalletQuorumSignatureTests {
         #expect(result.signature == "0xwallet-signature")
     }
 
+    @Test func throwsWhenTheApprovedSignatureFails() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeWallet(walletService: walletService)
+        let member = MockSigner(email: "bob@example.com")
+        member.approvalsResult = [.keypair(signer: "email:bob@example.com", signature: "bob-signature")]
+        wallet.selectedSigner = member
+        walletService.fetchSignatureResults = [
+            try signature("SignatureAwaitingQuorum"),
+            try signature("SignatureFailed")
+        ]
+
+        await #expect {
+            _ = try await wallet.approve(signatureId: SIGNATURE_ID)
+        } throws: { error in
+            guard case .approvalFailed = error as? SignatureError else { return false }
+            return true
+        }
+    }
+
     @Test func returnsWithoutASignatureWhileOtherMembersMustApprove() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeWallet(walletService: walletService)
