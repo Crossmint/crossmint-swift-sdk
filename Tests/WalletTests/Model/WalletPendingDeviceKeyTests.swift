@@ -84,4 +84,31 @@ struct WalletPendingDeviceKeyTests {
         #expect(walletService.addSignerCallCount == 0)
         #expect(await wallet.needsRecovery())
     }
+
+    @Test func resumesThePendingKeyAfterARelaunchWhileTheOldDeviceIsStillListed() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let publicKey = try await storage.generateKey(address: nil)
+        let wallet = try makeWallet(
+            fixture: "WalletStellarQuorumReplacedDevice",
+            walletService: walletService,
+            storage: storage
+        )
+        walletService.getSignerResponses = [
+            SignerLocator.device(publicKey: publicKey).value: AddDelegatedSignerResponse(
+                chains: nil,
+                transaction: RegistrationTransaction(id: PENDING_TRANSACTION_ID, status: "awaiting-approval")
+            )
+        ]
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "StellarTransactionAwaitingQuorum",
+            bundle: Bundle.module
+        ) as StellarTransactionApiModel
+
+        #expect(await wallet.needsRecovery())
+        let pending = try await wallet.recover()
+
+        #expect(pending?.id == PENDING_TRANSACTION_ID)
+        #expect(walletService.addSignerCallCount == 0)
+    }
 }
