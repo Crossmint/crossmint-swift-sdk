@@ -393,7 +393,17 @@ extension Wallet {
             }
         default:
             // Multiple delegated signers — user must call useSigner to select one
-            break
+            if await holdsUnapprovedDeviceKey(among: delegatedSigners) {
+                _needsRecovery = true
+            }
+        }
+    }
+
+    private func holdsUnapprovedDeviceKey(among signers: [WalletSignerConfigApiModel]) async -> Bool {
+        guard let storage = deviceSignerKeyStorage, await storage.getKey(address: address) == nil else { return false }
+        return signers.contains { entry in
+            guard case .device(let publicKey) = entry.locator else { return false }
+            return storage.hasKey(publicKeyBase64: publicKey)
         }
     }
 
