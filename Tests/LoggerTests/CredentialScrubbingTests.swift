@@ -83,7 +83,7 @@ struct CredentialScrubbingTests {
     }
 
     @Test func compilesEveryPattern() {
-        #expect(CredentialScrubber.patterns.count == 4)
+        #expect(CredentialScrubber.patterns.count == 7)
     }
 
     @Test func leavesNonStringAttributesUntouched() {
