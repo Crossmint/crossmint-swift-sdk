@@ -65,6 +65,26 @@ struct WalletQuorumChainTests {
         #expect(walletService.signTransactionCallCount == 0)
     }
 
+    @Test func returnsTheEVMSignerAdditionThatTheQuorumMustApprove() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeEVMWallet(walletService: walletService)
+        let member = MockSigner(email: "bob@example.com")
+        wallet.selectedSigner = member
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "da17e29a-c0b3-4506-9e87-f5d343ea0d2e")
+        )
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "CreateTransactionAwaitingApproval",
+            bundle: Bundle.module
+        ) as EVMTransactionApiModel
+
+        let pending = try await wallet.addSigner(.email("dave@example.com"), deployImmediately: true)
+
+        #expect(pending?.id == "da17e29a-c0b3-4506-9e87-f5d343ea0d2e")
+        #expect(member.signedMessages.isEmpty)
+    }
+
     @Test func rejectsASolanaTransferForAQuorumBeforeItIsCreated() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeSolanaWallet(walletService: walletService)
