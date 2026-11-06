@@ -399,6 +399,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     func addRecoveryMethod(
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
+        chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
         addRecoveryMethodCallCount += 1
@@ -422,6 +423,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
+        chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
         removeRecoveryMethodCallCount += 1

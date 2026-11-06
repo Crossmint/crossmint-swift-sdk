@@ -11,8 +11,6 @@ enum RecoveryInput {
     case single(any Signer)
     case list([any Signer])
 
-    private var chainTypesAcceptingSeveralMethods: Set<ChainType> { [.solana, .stellar] }
-
     var signers: [any Signer] {
         switch self {
         case .single(let signer): [signer]
@@ -54,21 +52,10 @@ enum RecoveryInput {
         if signers.contains(where: { ($0 as? QuorumSigner)?.members.isEmpty == true }) {
             throw .recoveryConfigRejected(code: .invalidConfig, message: "The quorum has no members")
         }
-        guard case .list(let signers) = self else { return self }
-        guard let first = signers.first else {
-            throw .recoveryConfigRejected(
-                code: .invalidConfig,
-                message: "At least one recovery method is required"
-            )
-        }
-        guard !chainTypesAcceptingSeveralMethods.contains(chain.chainType) else { return self }
-        guard signers.count == 1 else {
-            throw .recoveryConfigRejected(
-                code: .notSupportedOnChain,
-                message: "Multiple recovery methods are not supported on \(chain.name) yet. "
-                    + "Pass a single recovery method."
-            )
-        }
-        return .single(first)
+        guard case .list(let signers) = self, signers.isEmpty else { return self }
+        throw .recoveryConfigRejected(
+            code: .invalidConfig,
+            message: "At least one recovery method is required"
+        )
     }
 }

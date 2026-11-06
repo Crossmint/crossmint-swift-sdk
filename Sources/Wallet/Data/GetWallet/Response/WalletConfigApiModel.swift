@@ -27,10 +27,22 @@ struct WalletSignerConfigApiModel: Decodable, Sendable {
 struct RecoveryMethodApiModel {
     let signer: AdminSignerApiModel
     let status: SignerStatus
+    let chains: [String: SignerStatus]?
 
-    var toDomain: RecoveryMethod {
-        RecoveryMethod(signer: signer.toDomain, status: status)
+    func toDomain(on chain: Chain) -> RecoveryMethod? {
+        guard chain.chainType == .evm else {
+            return RecoveryMethod(signer: signer.toDomain, status: status)
+        }
+        guard let chains else {
+            return RecoveryMethod(signer: signer.toDomain, status: .active)
+        }
+        guard let chainStatus = chains[chain.name] else { return nil }
+        return RecoveryMethod(signer: signer.toDomain, status: chainStatus)
     }
+}
+
+private struct RecoveryMethodChainApiModel: Decodable {
+    let status: SignerStatus
 }
 
 public struct WalletConfigApiModel: Decodable {
@@ -70,6 +82,7 @@ public struct WalletConfigApiModel: Decodable {
 
     private enum RecoveryMethodCodingKeys: String, CodingKey {
         case status
+        case chains
     }
 
     private static func decodeRecoveryMethods(
@@ -87,10 +100,15 @@ public struct WalletConfigApiModel: Decodable {
                 ])
                 continue
             }
-            let status = try entry.container(keyedBy: RecoveryMethodCodingKeys.self)
-                .decodeIfPresent(SignerStatus.self, forKey: .status)
+            let container = try entry.container(keyedBy: RecoveryMethodCodingKeys.self)
+            let status = try container.decodeIfPresent(SignerStatus.self, forKey: .status)
+            let chains = try container.decodeIfPresent([String: RecoveryMethodChainApiModel].self, forKey: .chains)
             let signer = try decodeSigner(from: entry)
-            methods.append(RecoveryMethodApiModel(signer: signer, status: status ?? .unknown))
+            methods.append(RecoveryMethodApiModel(
+                signer: signer,
+                status: status ?? .unknown,
+                chains: chains?.mapValues(\.status)
+            ))
         }
         return methods
     }
@@ -129,15 +147,12 @@ public struct WalletConfigApiModel: Decodable {
         }
     }
 
-    var toDomain: WalletConfig {
+    func toDomain(on chain: Chain) -> WalletConfig {
         let signerQuorums = (signers ?? []).compactMap(\.quorum)
-        guard let recoveryMethods, let first = recoveryMethods.first else {
+        let methods = (recoveryMethods ?? []).compactMap { $0.toDomain(on: chain) }
+        guard let first = methods.first else {
             return WalletConfig(recovery: RecoveryMethod(signer: adminSigner.toDomain), signerQuorums: signerQuorums)
         }
-        return WalletConfig(
-            recovery: first.toDomain,
-            others: recoveryMethods.dropFirst().map(\.toDomain),
-            signerQuorums: signerQuorums
-        )
+        return WalletConfig(recovery: first, others: Array(methods.dropFirst()), signerQuorums: signerQuorums)
     }
 }
