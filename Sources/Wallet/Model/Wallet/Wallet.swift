@@ -12,9 +12,11 @@ open class Wallet: @unchecked Sendable {
     /// ``addRecoveryMethod(_:)`` and ``removeRecoveryMethod(locator:)`` update it after a successful change.
     ///
     /// Each active one can approve changes on its own. To select the one that approves signer and
-    /// recovery method changes, use ``useRecoveryMethod(_:)``. EVM wallets always have exactly one.
-    /// Before you use a recovery method, make sure that its ``RecoveryMethod/status`` is
-    /// ``SignerStatus/active``.
+    /// recovery method changes, use ``useRecoveryMethod(_:)``. Before you use a recovery method, make
+    /// sure that its ``RecoveryMethod/status`` is ``SignerStatus/active``.
+    ///
+    /// On EVM, the list contains only the recovery methods on the chain of this wallet. Each status
+    /// applies to that chain.
     public var recoveryMethods: [RecoveryMethod] {
         config.recoveryMethodsWithStatus
     }
@@ -71,7 +73,7 @@ open class Wallet: @unchecked Sendable {
         self.owner = baseModel.owner
         self.blockchainAddress = address
         self.createdAt = baseModel.createdAt
-        self.config = baseModel.config.toDomain
+        self.config = baseModel.config.toDomain(on: chain)
         self.signer = signer
         self.chain = chain
         self.onTransactionStart = onTransactionStart
@@ -127,7 +129,7 @@ open class Wallet: @unchecked Sendable {
             .map(\.locator)
             .contains(locator) ?? false
         if delegatedMatch { return true }
-        return walletModel.config.toDomain.containsRecoveryMethod(locator)
+        return walletModel.config.toDomain(on: chain).containsRecoveryMethod(locator)
     }
 
     /// Returns the locator of the device signer whose private key is on this device.
