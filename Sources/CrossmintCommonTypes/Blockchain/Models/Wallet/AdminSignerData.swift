@@ -13,6 +13,7 @@ public enum AdminSignerDataType: String, Sendable, Codable {
     case externalWallet = "external-wallet"
     case phone
     case server
+    case quorum
 }
 
 public extension AdminSignerData {
@@ -105,5 +106,25 @@ public struct ServerSignerData: AdminSignerData {
 
     public init(address: String) {
         self.address = address
+    }
+}
+
+/// A signer that approves only when `threshold` of its `members` approve.
+public struct QuorumSignerData: AdminSignerData {
+    /// The identifier of the quorum on the wallet.
+    public let id: String
+    public let threshold: Int
+    /// The signers of the quorum.
+    ///
+    /// If this SDK version does not support the type of a member, the list does not show that member.
+    public let members: [any AdminSignerData]
+
+    public var type: AdminSignerDataType { .quorum }
+    public var locatorId: String { id }
+
+    public init(id: String, threshold: Int, members: [any AdminSignerData]) {
+        self.id = id
+        self.threshold = threshold
+        self.members = members
     }
 }

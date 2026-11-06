@@ -1,0 +1,44 @@
+{
+  "type": "smart",
+  "chainType": "stellar",
+  "config": {
+    "adminSigner": {
+      "type": "quorum",
+      "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+      "threshold": 2,
+      "members": [
+        { "type": "email", "email": "alice@example.com", "locator": "email:alice@example.com" },
+        { "type": "email", "email": "bob@example.com", "locator": "email:bob@example.com" },
+        { "type": "phone", "phone": "+14155552671", "locator": "phone:+14155552671" }
+      ]
+    },
+    "recoveryMethods": [
+      {
+        "type": "quorum",
+        "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+        "threshold": 2,
+        "status": "active",
+        "members": [
+          { "type": "email", "email": "alice@example.com", "locator": "email:alice@example.com" },
+          { "type": "email", "email": "bob@example.com", "locator": "email:bob@example.com" },
+          { "type": "totp", "locator": "totp:x" },
+          { "type": "phone", "phone": "+14155552671", "locator": "phone:+14155552671" }
+        ]
+      }
+    ],
+    "delegatedSigners": [
+      {
+        "type": "quorum",
+        "locator": "quorum:0b8e7d6c-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+        "threshold": 2,
+        "members": [
+          { "type": "email", "email": "carol@example.com", "locator": "email:carol@example.com" },
+          { "type": "email", "email": "dave@example.com", "locator": "email:dave@example.com" }
+        ]
+      }
+    ]
+  },
+  "address": "CA3SGE76PWYAM4OVKETY47GASUGYDF3Y3QFFSPIWFCNKQLUOO4SOIT2W",
+  "linkedUser": "email:alice@example.com",
+  "createdAt": "2026-10-16T10:00:00.000Z"
+}
