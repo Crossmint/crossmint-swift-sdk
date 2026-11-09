@@ -5,6 +5,7 @@
 //  Created by Tomas Martins on 06/11/26.
 //
 
+import Foundation
 @testable import Logger
 import Testing
 
@@ -34,6 +35,13 @@ struct PersonalDataScrubbingTests {
     ])
     func masksEmailsAndPhoneNumbers(logLine: String, expected: String) {
         #expect(CredentialScrubber.scrub(logLine) == expected)
+    }
+
+    @Test func masksEmailsWithSlashesEscapedByJSONEncoder() throws {
+        let message = try JSONEncoder().encode(["authId": "email:alice/smith@example.com"])
+        let scrubbed = CredentialScrubber.scrub(try #require(String(bytes: message, encoding: .utf8)))
+
+        #expect(scrubbed == #"{"authId":"email:a***@example.com"}"#)
     }
 
     @Test(arguments: [

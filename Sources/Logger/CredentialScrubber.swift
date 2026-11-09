@@ -46,7 +46,7 @@ enum CredentialScrubber {
 
     private static let personalData = [
         Pattern(
-            #"(^|[^\#(emailLocalPart).-])([\#(emailLocalPart)-])[\#(emailLocalPart).-]*@(\#(emailDomain))"#,
+            #"(^|[^\#(emailLocalPart).-])([\#(emailLocalPart)-])(?:[\#(emailLocalPart).-]|\\/)*@(\#(emailDomain))"#,
             replacedWith: "$1$2***@$3"
         ),
         Pattern(
