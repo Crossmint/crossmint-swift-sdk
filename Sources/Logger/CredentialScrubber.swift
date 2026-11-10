@@ -41,7 +41,25 @@ enum CredentialScrubber {
         )
     ]
 
-    static let patterns = (credentialValues + credentialKeys).compactMap { $0 }
+    private static let emailLocalPart = #"A-Za-z0-9!#$%&'*+/=?^_`{|}~"#
+    private static let emailDomain = #"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"#
+
+    private static let personalData = [
+        Pattern(
+            #"(^|[^\#(emailLocalPart).-])([\#(emailLocalPart)-])(?:[\#(emailLocalPart).-]|\\/)*@(\#(emailDomain))"#,
+            replacedWith: "$1$2***@$3"
+        ),
+        Pattern(
+            #"(^|[^A-Za-z0-9])(phone(?:Number)?:)(\+?\d)\d*(\d{4})"#,
+            replacedWith: "$1$2$3***$4"
+        ),
+        Pattern(
+            #"("phone(?:Number)?"\s*:\s*")(\+?\d)\d*(\d{4})""#,
+            replacedWith: #"$1$2***$3""#
+        )
+    ]
+
+    static let patterns = (credentialValues + credentialKeys + personalData).compactMap { $0 }
 
     static func scrub(_ message: String) -> String {
         let buffer = NSMutableString(string: message)
