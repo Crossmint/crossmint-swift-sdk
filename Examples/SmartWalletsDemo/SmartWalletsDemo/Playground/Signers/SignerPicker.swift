@@ -63,6 +63,9 @@ struct SignerPicker: View {
     }
 
     private func subtitle(for option: Option) -> String {
+        if let quorum = option.choice.quorum {
+            return "\(SignerRow.typeLabel(for: option.locator)) (Quorum \(SignerRow.shortValue(for: quorum)))"
+        }
         guard option.isRecovery else { return SignerRow.subtitle(for: option.locator, name: option.name) }
         guard option.name == nil else {
             return "\(SignerRow.subtitle(for: option.locator, name: option.name)) (Recovery)"
