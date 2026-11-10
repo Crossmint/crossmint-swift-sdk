@@ -261,6 +261,31 @@ struct WalletQuorumApprovalTests {
         #expect(walletService.lastAddSignerApprover == second)
     }
 
+    @Test func selectsAPasskeyThatTwoQuorumsShareWithoutItsId() async throws {
+        let walletService = MockSmartWalletService()
+        let baseModel: WalletApiModel = try GetFromFile.getModelFrom(
+            fileName: "WalletStellarTwoQuorumsSharedPasskey",
+            bundle: Bundle.module
+        )
+        let wallet = try StellarWallet(
+            smartWalletService: walletService,
+            signer: nil,
+            baseModel: baseModel,
+            stellarChain: .stellar
+        )
+        let second = SignerLocator.quorum(id: "2b7d1c0e-6a5f-4b3c-9d8e-7f6a5b4c3d2e")
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+        )
+        walletService.fetchTransactionResult = try awaitingQuorum()
+
+        try await wallet.useRecoveryMethod(.passkey(name: "alice", host: "example.com"))
+        try await wallet.addSigner(.email("dave@example.com"), signer: second, prepareOnly: true)
+
+        #expect(walletService.lastAddSignerApprover == second)
+    }
+
     @Test func rejectsAChangeByAMemberOfSeveralQuorumsWhenTheChangeNamesNoSigner() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeTwoQuorumWallet(walletService: walletService)
