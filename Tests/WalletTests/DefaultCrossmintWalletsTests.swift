@@ -74,7 +74,10 @@ struct DefaultCrossmintWalletsTests {
         walletService.getSignerResponses = [
             deviceLocator: AddDelegatedSignerResponse(
                 chains: nil,
-                transaction: RegistrationTransaction(id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27", status: "awaiting-approval")
+                transaction: RegistrationTransaction(
+                    id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27",
+                    status: "awaiting-approval"
+                )
             )
         ]
 

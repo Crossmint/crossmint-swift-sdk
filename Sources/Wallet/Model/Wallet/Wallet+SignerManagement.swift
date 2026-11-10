@@ -214,8 +214,13 @@ extension Wallet {
             "deployImmediately": "\(deployImmediately)"
         ])
         await signerInitializationTask?.value
-        do {
+        do throws(WalletError) {
             let approver = try await authorizingRecovery(explicit: explicitApprover)
+            guard deployImmediately || !approver.isQuorum else {
+                throw WalletError.walletGeneric(
+                    "A quorum can approve a new signer only when deployImmediately is true."
+                )
+            }
             let pendingTransactionId: String?
             switch config {
             case .device:
