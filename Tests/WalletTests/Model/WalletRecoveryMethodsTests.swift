@@ -58,6 +58,22 @@ struct WalletRecoveryMethodsTests {
         }
     }
 
+    @Test func listsTheRecoveryMethodsOfTheWalletOnceAPreparedChangeIsApproved() async throws {
+        let (wallet, walletService) = try makeSolanaWallet(fileName: "WalletSolanaEmail")
+        walletService.getWalletResult = try GetFromFile.getModelFrom(
+            fileName: "WalletSolanaRecoveryMethods",
+            bundle: Bundle.module
+        )
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        ) as SolanaTransactionApiModel
+
+        _ = try await wallet.approve(transactionId: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27")
+
+        #expect(wallet.recoveryMethods.map(\.signer.locator).contains(PHONE))
+    }
+
     @Suite("transaction signer")
     struct TransactionSignerTests {
         private let parent = WalletRecoveryMethodsTests()
