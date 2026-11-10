@@ -85,6 +85,17 @@ struct WalletQuorumChainTests {
         #expect(member.signedMessages.isEmpty)
     }
 
+    @Test func rejectsAnEVMSignerAdditionThatAQuorumWouldApproveLater() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeEVMWallet(walletService: walletService)
+        wallet.selectedSigner = MockSigner(email: "bob@example.com")
+
+        await #expect(throws: WalletError.self) {
+            try await wallet.addSigner(.email("dave@example.com"), deployImmediately: false)
+        }
+        #expect(walletService.addSignerCallCount == 0)
+    }
+
     @Test func rejectsASolanaTransferForAQuorumBeforeItIsCreated() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeSolanaWallet(walletService: walletService)

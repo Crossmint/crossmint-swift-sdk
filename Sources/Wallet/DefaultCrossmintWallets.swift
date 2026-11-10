@@ -90,7 +90,7 @@ public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
         ])
 
         if let storage = deviceSignerStorage {
-            await assignPendingDeviceSignerKey(storage: storage, walletApiModel: walletApiModel)
+            await assignPendingDeviceSignerKey(storage: storage, walletApiModel: walletApiModel, chain: chain)
         }
 
         let delegatedLocators = walletApiModel.config.signers?.map(\.locator) ?? []
@@ -380,14 +380,15 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
 
     private func assignPendingDeviceSignerKey(
         storage: any DeviceSignerKeyStorage,
-        walletApiModel: WalletApiModel
+        walletApiModel: WalletApiModel,
+        chain: Chain
     ) async {
         let existingPublicKeyBase64 = await storage.getKey(address: walletApiModel.address)
         guard !isDeviceSignerRegistered(existingPublicKeyBase64, in: walletApiModel) else { return }
         guard let deviceSignerPendingAssignment = findMatchingDeviceSignerKey(
             in: walletApiModel,
             storage: storage
-        ) else { return }
+        ), await isApproved(deviceKey: deviceSignerPendingAssignment, on: chain) else { return }
 
         do {
             try await storage.mapAddressToKey(
@@ -402,6 +403,13 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
                 "error": "\(error)"
             ])
         }
+    }
+
+    private func isApproved(deviceKey publicKeyBase64: String, on chain: Chain) async -> Bool {
+        let locator = SignerLocator.device(publicKey: publicKeyBase64).value
+        guard let registration = try? await smartWalletService.getSigner(locator, chainType: chain.chainType)
+        else { return false }
+        return registration.registrationStatus(chainType: chain.chainType, chainName: chain.name) == .active
     }
 
     /// Searches the wallet's delegated signers for a pending device key stored on this device.
