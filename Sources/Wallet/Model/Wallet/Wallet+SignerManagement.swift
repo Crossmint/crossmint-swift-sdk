@@ -206,6 +206,15 @@ extension Wallet {
 
     // MARK: - Internal
 
+    private func assertQuorumCanApprove(
+        _ approver: RecoveryApprover,
+        deployImmediately: Bool
+    ) throws(WalletError) {
+        guard deployImmediately || !approver.isQuorum else {
+            throw .walletGeneric("A quorum can approve a new signer only when deployImmediately is true.")
+        }
+    }
+
     internal func registerSigner(
         _ config: SignerConfig,
         deployImmediately: Bool,
@@ -216,8 +225,9 @@ extension Wallet {
             "deployImmediately": "\(deployImmediately)"
         ])
         await signerInitializationTask?.value
-        do {
+        do throws(WalletError) {
             let approver = try await authorizingRecovery(explicit: explicitApprover)
+            try assertQuorumCanApprove(approver, deployImmediately: deployImmediately)
             let pendingTransactionId: String?
             switch config {
             case .device:
