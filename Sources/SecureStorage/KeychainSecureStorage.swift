@@ -67,12 +67,15 @@ public final class KeychainSecureStorage: SecureStorage {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: dataType.rawValue,
-            kSecValueData as String: secretData
+            kSecAttrAccount as String: dataType.rawValue
         ]
 
         SecItemDelete(query as CFDictionary) // Remove old item if it exists
-        let status = SecItemAdd(query as CFDictionary, nil)
+
+        var addQuery = query
+        addQuery[kSecValueData as String] = secretData
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
 
         if status != errSecSuccess {
             throw SecureStorageError.storageUnavailable
