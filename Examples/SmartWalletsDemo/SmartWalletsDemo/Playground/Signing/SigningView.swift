@@ -13,7 +13,7 @@ struct SigningView: View {
     private var wallet: EVMWallet? { appState.wallet as? EVMWallet }
     @State private var mode: SigningMode = .message
     @State private var messageText = ""
-    @State private var signature: String?
+    @State private var result: Signature?
     @State private var isSigning = false
     @State private var errorMessage: String?
     @FocusState private var isMessageFocused: Bool
@@ -54,13 +54,19 @@ struct SigningView: View {
                     SignerPicker()
                 }
 
-                if let sig = signature {
+                if let result {
                     Section("Signature") {
                         VStack(alignment: .leading, spacing: 8) {
-                            Label("Signed successfully", systemImage: "checkmark.seal.fill")
-                                .foregroundStyle(.green)
-                                .fontWeight(.medium)
-                            CopyButton(value: sig, lineLimit: 4)
+                            if let sig = result.signature {
+                                Label("Signed successfully", systemImage: "checkmark.seal.fill")
+                                    .foregroundStyle(.green)
+                                    .fontWeight(.medium)
+                                CopyButton(value: sig, lineLimit: 4)
+                            } else {
+                                Label("Waiting for the quorum", systemImage: "person.3")
+                                    .fontWeight(.medium)
+                                CopyButton(value: result.id, lineLimit: 2)
+                            }
                         }
                     }
                 }
@@ -106,14 +112,14 @@ struct SigningView: View {
         guard let wallet else { return }
         isMessageFocused = false
         isSigning = true
-        signature = nil
+        result = nil
         errorMessage = nil
         do {
             switch mode {
             case .message:
-                signature = try await wallet.signMessage(messageText).signature
+                result = try await wallet.signMessage(messageText)
             case .typedData:
-                signature = try await wallet.signTypedData(try exampleTypedData()).signature
+                result = try await wallet.signTypedData(try exampleTypedData())
             }
         } catch {
             errorMessage = error.userMessage
