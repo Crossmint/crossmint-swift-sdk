@@ -34,6 +34,7 @@ extension Wallet {
                 throw TransactionError.transactionGeneric("Unknown error")
             }
             if signedTransaction.status == .success {
+                await reloadRecoveryMethods()
                 await forgetLocalDeviceKeyIfRemoved()
             }
             if signedTransaction.status == .success, pendingDeviceKey?.transactionId == signedTransaction.id {

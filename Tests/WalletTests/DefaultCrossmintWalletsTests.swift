@@ -6,7 +6,7 @@ import TestsUtils
 
 @testable import Wallet
 
-private final class StubSecureWalletStorage: SecureWalletStorage, @unchecked Sendable {
+final class StubSecureWalletStorage: SecureWalletStorage, @unchecked Sendable {
     func savePrivateKey(_ privateKey: String, forEmail email: String) {}
     func getPrivateKey(forEmail email: String) -> String? { nil }
 }
