@@ -137,4 +137,33 @@ struct WalletPendingDeviceKeyTests {
         #expect(await storage.getKey(address: wallet.address) == publicKey)
         #expect(walletService.removeSignerCallCount == 0)
     }
+
+    @Test func leavesTheOldDeviceSignerAloneOnceTheQuorumApprovesTheNewKey() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeWallet(
+            fixture: "WalletStellarQuorumPendingDevice",
+            walletService: walletService,
+            storage: storage
+        )
+        try await wallet.useRecoveryMethod(.email("alice@example.com"))
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: PENDING_TRANSACTION_ID, status: "awaiting-approval")
+        )
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "StellarTransactionAwaitingQuorum",
+            bundle: Bundle.module
+        ) as StellarTransactionApiModel
+        let pending = try await wallet.recover()
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "RemoveSignerTransactionSuccess",
+            bundle: Bundle.module
+        ) as SolanaTransactionApiModel
+
+        _ = try await wallet.approve(transactionId: try #require(pending).id)
+
+        #expect(await !wallet.needsRecovery())
+        #expect(walletService.removeSignerCallCount == 0)
+    }
 }
