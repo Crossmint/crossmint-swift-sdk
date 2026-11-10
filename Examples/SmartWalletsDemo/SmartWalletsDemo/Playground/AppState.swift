@@ -73,6 +73,12 @@ final class AppState {
         return (signer as? PasskeySignerData)?.name
     }
 
+    var signerQuorumMembers: [SignerChoice] {
+        signers.flatMap { signer in
+            (signer.quorum?.members ?? []).map { SignerChoice(locator: $0.value, quorum: signer.locator.value) }
+        }
+    }
+
     func quorum(for locator: String) -> QuorumSignerData? {
         wallet?.recoveryMethods.first { $0.signer.locator == locator }?.signer as? QuorumSignerData
     }
@@ -235,6 +241,13 @@ final class AppState {
         }
     }
 
+    func addSigner(_ config: SignerConfig) async throws -> Transaction? {
+        guard let wallet else { return nil }
+        let transaction = try await wallet.addSigner(config, signer: approvingRecovery[selectedChain]?.quorumLocator)
+        await loadSigners()
+        return transaction
+    }
+
     func addRecoveryMethod(_ config: SignerConfig) async throws -> Transaction? {
         guard let wallet else { return nil }
         let approver = approvingRecovery[selectedChain]?.quorumLocator
@@ -323,7 +336,7 @@ final class AppState {
     }
 
     private var selectableChoiceIDs: Set<String> {
-        Set(selectableRecoveryMethods.map(\.id) + signers.map(\.locator.value))
+        Set((selectableRecoveryMethods + signerQuorumMembers).map(\.id) + signers.map(\.locator.value))
     }
 
     private func firstSelectableChoice() -> SignerChoice? {
@@ -436,7 +449,7 @@ final class AppState {
         )
     }
 
-    private func memberConfig(_ value: String) -> SignerConfig {
+    func memberConfig(_ value: String) -> SignerConfig {
         value.hasPrefix("+") ? .phone(value, channel: phoneChannels["phone:\(value)"]) : .email(value)
     }
 

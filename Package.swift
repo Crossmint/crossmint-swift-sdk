@@ -215,6 +215,7 @@ let package = Package(
                 .process("Resources/WalletStellarTwoQuorums.json"),
                 .process("Resources/WalletStellarQuorumThenEmail.json"),
                 .process("Resources/WalletStellarQuorumPendingDevice.json"),
+                .process("Resources/WalletStellarTwoSignerQuorums.json"),
                 .process("Resources/WalletStellarQuorumReplacedDevice.json"),
                 .process("Resources/WalletSolanaUnsupportedSigners.json"),
                 .process("Resources/WalletSolanaOnlyUnsupportedSigner.json"),

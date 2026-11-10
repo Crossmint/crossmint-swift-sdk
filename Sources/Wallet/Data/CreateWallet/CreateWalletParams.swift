@@ -6,9 +6,22 @@ public struct DelegatedSignerEntry: Encodable {
         case locator(SignerLocator)
         case device(publicKey: DevicePublicKey, name: String)
         case passkey(PasskeySignerData)
+        indirect case quorum(threshold: Int, members: [Signer])
 
         public func encode(to encoder: Encoder) throws {
             switch self {
+            case let .quorum(threshold, members):
+                var container = encoder.container(keyedBy: QuorumCodingKeys.self)
+                try container.encode("quorum", forKey: .type)
+                try container.encode(threshold, forKey: .threshold)
+                var list = container.nestedUnkeyedContainer(forKey: .members)
+                for member in members {
+                    if case let .locator(locator) = member, let data = locator.memberData {
+                        try list.encode(AdminSignerRequestApiModel(data))
+                    } else {
+                        try list.encode(member)
+                    }
+                }
             case let .locator(locator):
                 var container = encoder.singleValueContainer()
                 try container.encode(locator)
@@ -21,6 +34,12 @@ public struct DelegatedSignerEntry: Encodable {
                 try container.encode(publicKey, forKey: .publicKey)
                 try container.encode(name, forKey: .name)
             }
+        }
+
+        private enum QuorumCodingKeys: String, CodingKey {
+            case type
+            case threshold
+            case members
         }
 
         private enum DeviceCodingKeys: String, CodingKey {
@@ -86,4 +105,42 @@ public struct CreateWalletParams: Encodable {
     let chainType: ChainType
     let type: WalletType
     let config: InputConfig
+}
+
+private extension SignerLocator {
+    var memberData: (any AdminSignerData)? {
+        switch self {
+        case .email(let email): EmailSignerData(email: email)
+        case .phone(let phone): PhoneSignerData(phone: phone)
+        case .externalWallet(let address): ExternalWalletSignerData(address: address)
+        default: nil
+        }
+    }
+}
+
+extension DelegatedSignerEntry.Signer {
+    static func registration(of config: SignerConfig) throws(WalletError) -> Self? {
+        guard case .quorum = config else { return config.locator.map { .locator($0) } }
+        return try quorum(from: config)
+    }
+
+    static func quorum(from config: SignerConfig) throws(WalletError) -> Self {
+        guard case let .quorum(threshold, members) = config else {
+            throw .walletGeneric("The signer is not a quorum.")
+        }
+        guard !members.isEmpty else {
+            throw .walletGeneric("The quorum has no members.")
+        }
+        var memberSigners: [Self] = []
+        for member in members {
+            switch member {
+            case .email, .phone, .externalWallet:
+                guard let locator = member.locator else { continue }
+                memberSigners.append(.locator(locator))
+            case .passkey, .apiKey, .device, .quorum:
+                throw .walletGeneric("The members of a quorum signer must be email, phone or external wallet signers.")
+            }
+        }
+        return .quorum(threshold: threshold, members: memberSigners)
+    }
 }
