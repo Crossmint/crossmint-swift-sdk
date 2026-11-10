@@ -8,4 +8,9 @@
 struct RecoveryApprover {
     let signer: any Signer
     let locator: SignerLocator?
+
+    var isQuorum: Bool {
+        guard case .quorum = locator else { return false }
+        return true
+    }
 }

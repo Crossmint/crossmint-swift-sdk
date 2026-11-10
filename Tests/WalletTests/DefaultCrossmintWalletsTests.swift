@@ -66,6 +66,30 @@ struct DefaultCrossmintWalletsTests {
     }
 
     @Test
+    func keepsAPendingDeviceKeyUnassignedOnGetWalletUntilItsRegistrationIsApproved() async throws {
+        let pendingKeyBase64 = try await keyStorage.generateKey(address: nil)
+        let deviceLocator = "device:\(pendingKeyBase64)"
+        walletService.getWalletFixture = try loadSolanaWalletFixture()
+        walletService.getWalletSignerLocators = [deviceLocator]
+        walletService.getSignerResponses = [
+            deviceLocator: AddDelegatedSignerResponse(
+                chains: nil,
+                transaction: RegistrationTransaction(
+                    id: "cb99f2e5-e859-4cf3-88d8-f3c89f602d27",
+                    status: "awaiting-approval"
+                )
+            )
+        ]
+
+        let wallet = try #require(
+            try await makeWallets().getWallet(chain: Chain("solana"), options: WalletOptions(deviceSigner: true))
+        )
+
+        #expect(await keyStorage.getKey(address: wallet.address) == nil)
+        #expect(await wallet.needsRecovery())
+    }
+
+    @Test
     func retriesOnceWithoutDeviceSignerWhenProviderRejectsIt() async throws {
         walletService.createWalletFixture = try loadSolanaWalletFixture()
         walletService.createWalletErrors = [.deviceSignerNotSupported("not supported")]

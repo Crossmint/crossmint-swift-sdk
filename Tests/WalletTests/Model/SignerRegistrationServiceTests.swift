@@ -198,6 +198,25 @@ struct SignerRegistrationTransactionApprovalTests {
     }
 
     @Test
+    func returnsThePendingRegistrationWithoutApprovingItWhenPreparing() async throws {
+        let walletService = MockSmartWalletService()
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: "registration-tx-1")
+        )
+        let service = makeSolanaService(walletService: walletService)
+
+        let pendingId = try await service.register(
+            locator: .email("dave@example.com"),
+            approver: RecoveryApprover(signer: MockSigner(), locator: nil),
+            prepareOnly: true
+        )
+
+        #expect(pendingId == "registration-tx-1")
+        #expect(walletService.signTransactionCallCount == 0)
+    }
+
+    @Test
     func throwsWalletErrorWhenTheTransactionFetchFails() async throws {
         let walletService = MockSmartWalletService()
         let signer = MockSigner()
