@@ -209,6 +209,7 @@ let package = Package(
                 .process("Resources/WalletStellarPasskey.json"),
                 .process("Resources/WalletStellarQuorum.json"),
                 .process("Resources/WalletStellarQuorumWithPasskey.json"),
+                .process("Resources/WalletStellarTwoQuorumsSharedPasskey.json"),
                 .process("Resources/WalletEVMQuorum.json"),
                 .process("Resources/WalletSolanaQuorum.json"),
                 .process("Resources/WalletStellarTwoQuorums.json"),

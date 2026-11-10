@@ -218,10 +218,11 @@ extension Wallet {
     }
 
     private func recoveryPasskey(id: String?) throws(WalletError) -> PasskeySignerData? {
+        var seenIds = Set<String>()
         let passkeys = config.recoveryMethods.flatMap { method -> [PasskeySignerData] in
             let quorumMembers = (method as? QuorumSignerData)?.members ?? [method]
             return quorumMembers.compactMap { $0 as? PasskeySignerData }
-        }
+        }.filter { seenIds.insert($0.id).inserted }
         if let id {
             return passkeys.first { $0.id == id }
         }

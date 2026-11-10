@@ -11,5 +11,4 @@ struct PendingDeviceKey: Sendable {
     let transactionId: String
     let publicKeyBase64: String
     let storage: any DeviceSignerKeyStorage
-    var replacedSigner: SignerLocator?
 }

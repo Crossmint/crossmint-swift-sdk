@@ -112,7 +112,6 @@ extension Wallet {
         do {
             let approver = try await authorizingRecovery()
             if let pendingTransactionId = try await registerDeviceSigner(storage: storage, approver: approver) {
-                pendingDeviceKey?.replacedSigner = staleDeviceSignerLocator
                 return try await preparedTransaction(withId: pendingTransactionId)
             }
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
@@ -140,7 +139,7 @@ extension Wallet {
         return deviceLocators[0]
     }
 
-    func removeStaleDeviceSigner(_ locator: SignerLocator) async {
+    private func removeStaleDeviceSigner(_ locator: SignerLocator) async {
         do {
             _ = try await removeSigner(locator: locator)
             Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [

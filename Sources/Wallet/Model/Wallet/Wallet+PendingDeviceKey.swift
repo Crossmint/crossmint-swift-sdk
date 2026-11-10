@@ -55,9 +55,6 @@ extension Wallet {
         }
         pendingDeviceKey = nil
         deviceKeyIsUsable()
-        if let replacedSigner = pending.replacedSigner {
-            await removeStaleDeviceSigner(replacedSigner)
-        }
         return true
     }
 

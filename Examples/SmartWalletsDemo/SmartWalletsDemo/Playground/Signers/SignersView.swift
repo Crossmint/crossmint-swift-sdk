@@ -16,6 +16,7 @@ struct SignersView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var showAlert = false
+    @State private var preparedRemoval: WalletTransaction?
 
     private var isRemovingSigner: Bool { removingSignerLocator != nil }
 
@@ -106,6 +107,10 @@ struct SignersView: View {
         }
     }
 
+    private var hasApiKeyDraft: Bool {
+        appState.pendingRecovery.contains { $0.kind == .apiKey }
+    }
+
     private var quorumNeedsMoreMembers: Bool {
         appState.pendingQuorumThreshold != nil && appState.pendingRecovery.isEmpty
     }
@@ -118,7 +123,7 @@ struct SignersView: View {
                 get: { appState.pendingQuorumThreshold != nil },
                 set: { appState.pendingQuorumThreshold = $0 ? min(2, memberCount) : nil }
             ))
-            .disabled(memberCount < 2 && appState.pendingQuorumThreshold == nil)
+            .disabled(appState.pendingQuorumThreshold == nil && (memberCount < 2 || hasApiKeyDraft))
             .accessibilityIdentifier("recovery-quorum-toggle")
             if let threshold = appState.pendingQuorumThreshold.map({ min($0, memberCount) }) {
                 Stepper(
@@ -137,6 +142,14 @@ struct SignersView: View {
     @ViewBuilder
     private func walletSections() -> some View {
         recoverySection()
+
+        if let preparedRemoval {
+            PreparedQuorumSection(
+                transactionID: preparedRemoval.id,
+                transaction: preparedRemoval,
+                labelIdentifier: "remove-recovery-prepared-label"
+            )
+        }
 
         Section("Signers") {
             if appState.signers.isEmpty && !isLoadingSigners {
@@ -262,10 +275,11 @@ struct SignersView: View {
 
     private func removeRecoveryMethod(locator: String) async {
         removingSignerLocator = locator
+        preparedRemoval = nil
         do {
             let transaction = try await appState.removeRecoveryMethod(locator: locator)
             if let transaction, transaction.status == .awaitingApproval {
-                show(title: "Prepared for the quorum", message: transaction.id)
+                preparedRemoval = transaction
             } else {
                 show(title: "Removed", message: "Recovery method removed.")
             }
