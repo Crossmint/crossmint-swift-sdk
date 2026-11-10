@@ -161,6 +161,10 @@ final class AppState {
         if let approving = approvingRecovery[selectedChain], !selectableRecoveryMethods.contains(approving) {
             approvingRecovery[selectedChain] = nil
         }
+        if let selected = selectedSignerID, !selectableChoiceIDs.contains(selected) {
+            selectedSignerID = nil
+            selectedSignerQuorum = nil
+        }
         guard selectedSignerID == nil, let choice = firstSelectableChoice() else { return }
         await selectSigner(choice)
     }
@@ -316,6 +320,10 @@ final class AppState {
                 loadingChains.remove(chain)
             }
         }
+    }
+
+    private var selectableChoiceIDs: Set<String> {
+        Set(selectableRecoveryMethods.map(\.id) + signers.map(\.locator.value))
     }
 
     private func firstSelectableChoice() -> SignerChoice? {
