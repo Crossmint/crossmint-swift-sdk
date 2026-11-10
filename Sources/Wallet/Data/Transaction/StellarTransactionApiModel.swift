@@ -10,37 +10,9 @@ import Foundation
 import Utils
 
 public struct StellarTransactionApiModel: TransactionApiModel {
-    public struct StellarApprovalEntry: Decodable {
-        let signer: SignerApiModel
-        let message: String
-    }
-
-    public struct StellarSubmittedApprovalEntry: Decodable {
-        let signature: String
-        let submittedAt: Date
-        let signer: SignerApiModel
-        let message: String
-    }
-
-    public struct StellarApprovals: Decodable {
-        let required: Int?
-        let pending: [StellarApprovalEntry]
-        let submitted: [StellarSubmittedApprovalEntry]
-
-        var toDomain: Transaction.Approvals {
-            Transaction.Approvals(
-                pending: pending.map { Transaction.Approvals.Pending(signer: $0.signer.locator, message: $0.message) },
-                submitted: submitted.map {
-                    Transaction.Approvals.Submitted(
-                        signature: $0.signature,
-                        submittedAt: $0.submittedAt,
-                        signer: $0.signer.locator,
-                        message: $0.message
-                    )
-                }
-            )
-        }
-    }
+    public typealias StellarApprovalEntry = ApprovalEntry
+    public typealias StellarSubmittedApprovalEntry = SubmittedApprovalEntry
+    public typealias StellarApprovals = Approvals
 
     public struct StellarOnChainTransaction: Decodable {
         public let method: String
