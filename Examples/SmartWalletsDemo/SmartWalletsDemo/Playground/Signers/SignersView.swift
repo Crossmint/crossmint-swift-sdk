@@ -262,11 +262,16 @@ struct SignersView: View {
     private func removeSigner(locator: SignerLocator) async {
         guard let wallet = appState.wallet else { return }
         removingSignerLocator = locator.value
+        preparedRemoval = nil
         do {
-            _ = try await wallet.removeSigner(locator: locator)
+            let transaction = try await wallet.removeSigner(locator: locator)
             removingSignerLocator = nil
             await loadSigners()
-            show(title: "Removed", message: "Signer removed.")
+            if transaction.status == .awaitingApproval {
+                preparedRemoval = transaction
+            } else {
+                show(title: "Removed", message: "Signer removed.")
+            }
         } catch {
             show(title: "Error", message: error.userMessage)
             removingSignerLocator = nil

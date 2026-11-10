@@ -336,7 +336,7 @@ final class AppState {
     }
 
     private var selectableChoiceIDs: Set<String> {
-        Set(selectableRecoveryMethods.map(\.id) + signers.map(\.locator.value))
+        Set((selectableRecoveryMethods + signerQuorumMembers).map(\.id) + signers.map(\.locator.value))
     }
 
     private func firstSelectableChoice() -> SignerChoice? {
