@@ -447,36 +447,52 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         throw WalletError.walletGeneric("not implemented")
     }
 
+    var createTransactionResult: (any TransactionApiModel)?
+    var createTransactionLastRequest: CreateTransactionRequest?
+
     func createTransaction(
         _ request: CreateTransactionRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        throw TransactionError.transactionGeneric("not implemented")
+        createTransactionLastRequest = request
+        guard let createTransactionResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return createTransactionResult
     }
 
     func fund(_ request: FundWalletRequest) async throws(WalletError) {}
 
     var transferTokenCallCount = 0
     var transferTokenLastRequest: TransferTokenRequest?
+    var transferTokenResult: (any TransactionApiModel)?
 
     func transferToken(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
         transferTokenCallCount += 1
         transferTokenLastRequest = request
-        throw TransactionError.transactionGeneric("not implemented")
+        guard let transferTokenResult else {
+            throw TransactionError.transactionGeneric("not implemented")
+        }
+        return transferTokenResult
     }
+
+    var createSignatureResult: (any SignatureApiModel)?
+    var fetchSignatureResults: [any SignatureApiModel] = []
 
     func createSignature(
         _ request: CreateSignatureRequest
     ) async throws(SignatureError) -> any SignatureApiModel {
-        throw SignatureError.unknown
+        guard let createSignatureResult else { throw SignatureError.unknown }
+        return createSignatureResult
     }
 
     func fetchSignature(
         _ signatureId: String,
         chainType: ChainType
     ) async throws(SignatureError) -> any SignatureApiModel {
-        throw SignatureError.unknown
+        guard !fetchSignatureResults.isEmpty else { throw SignatureError.unknown }
+        return fetchSignatureResults.removeFirst()
     }
 
     func listTransfers(_ params: ListTransfersQueryParams) async throws(WalletError) -> TransferListResult {

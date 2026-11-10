@@ -10,6 +10,7 @@ final class MockSigner: Signer, @unchecked Sendable {
     private let email: String
     var initializeCallCount = 0
     var signLastMessage: String?
+    var signedMessages: [String] = []
     var signResult: String = "mock-signature"
     var approvalsResult: [SignRequestApi.Approval] = []
 
@@ -24,6 +25,7 @@ final class MockSigner: Signer, @unchecked Sendable {
 
     func sign(message: String) async throws(SignerError) -> String {
         signLastMessage = message
+        signedMessages.append(message)
         return signResult
     }
 
