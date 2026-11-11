@@ -18,7 +18,6 @@ struct WalletEmailSignerFrameTests {
     private func makeWallets() -> DefaultCrossmintWallets {
         DefaultCrossmintWallets(
             service: walletService,
-            secureWalletStorage: MockSecureWalletStorage(),
             deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
         )
     }

@@ -42,7 +42,6 @@ struct QuorumWalletCreationTests {
     private func makeWallets() -> DefaultCrossmintWallets {
         DefaultCrossmintWallets(
             service: walletService,
-            secureWalletStorage: StubSecureWalletStorage(),
             deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
         )
     }
