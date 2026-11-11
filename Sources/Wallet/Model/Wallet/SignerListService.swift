@@ -61,7 +61,7 @@ final class SignerListService: Sendable {
                         return (index, WalletSigner(locator: locator, status: status, name: name, quorum: quorum))
                     } catch {
                         Logger.smartWallet.warning(LogEvents.walletSignersStateLookupFailed, attributes: [
-                            "locator": LogMask.locator(locator.value),
+                            "locator": locator.value,
                             "error": "\(error)"
                         ])
                         return (index, WalletSigner(locator: locator, status: .unknown, name: name, quorum: quorum))

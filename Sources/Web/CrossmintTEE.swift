@@ -481,7 +481,7 @@ public final class CrossmintTEE: ObservableObject {
         identity: SignerIdentity
     ) async throws(Error) -> StartOnboardingResponse {
         Logger.tee.debug(LogEvents.onboardingStart, attributes: [
-            "onboarding.authId": LogMask.locator(identity.authId),
+            "onboarding.authId": identity.authId,
             "onboarding.channel": identity.channel?.rawValue ?? "default"
         ])
 

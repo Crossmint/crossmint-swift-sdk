@@ -107,7 +107,7 @@ extension Wallet {
         prepareOnly: Bool = false
     ) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodStart, attributes: [
-            "locator": LogMask.locator(locator.value)
+            "locator": locator.value
         ])
         do {
             let approver = try await recoveryMethodApprover(explicit: signer)
@@ -124,13 +124,13 @@ extension Wallet {
                 recordRemovedRecoveryMethod(locator)
             }
             Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodSuccess, attributes: [
-                "locator": LogMask.locator(locator.value),
+                "locator": locator.value,
                 "transactionId": transaction.id
             ])
             return transaction
         } catch {
             Logger.smartWallet.error(LogEvents.walletRemoveRecoveryMethodError, attributes: [
-                "locator": LogMask.locator(locator.value),
+                "locator": locator.value,
                 "error": "\(error)"
             ])
             throw error
@@ -170,7 +170,7 @@ extension Wallet {
             let signer = try await recoveryMethodSigner(for: method)
             selectedRecoveryMethod = RecoveryApprover(signer: signer, locator: locator)
             Logger.smartWallet.info(LogEvents.walletUseRecoveryMethodSuccess, attributes: [
-                "locator": LogMask.locator(locator.value)
+                "locator": locator.value
             ])
         } catch {
             Logger.smartWallet.error(LogEvents.walletUseRecoveryMethodError, attributes: [

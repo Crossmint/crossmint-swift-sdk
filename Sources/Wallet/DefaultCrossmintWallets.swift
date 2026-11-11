@@ -254,7 +254,7 @@ Review if the .crossmintNonCustodialSigner() modifier is used as expected.
                 )
             }
 
-            let createSigners = creation.model.config.signers?.map { LogMask.locator($0.locator.value) } ?? []
+            let createSigners = creation.model.config.signers?.map(\.locator.value) ?? []
             let delegatedSignerLocators = createSigners.isEmpty ? "none" : createSigners.joined(separator: ", ")
             Logger.smartWallet.debug(LogEvents.walletCreateSuccess, attributes: [
                 "chainType": chainType.rawValue,

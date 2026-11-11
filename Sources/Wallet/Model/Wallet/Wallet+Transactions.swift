@@ -177,7 +177,7 @@ extension Wallet {
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
-            "locator": LogMask.locator(locator)
+            "locator": locator
         ])
 
         do {
@@ -204,12 +204,12 @@ extension Wallet {
                 if isQuorum(locator) { await reloadRecoveryMethods() }
             }
             Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
-                "locator": LogMask.locator(locator)
+                "locator": locator
             ])
             return result
         } catch {
             Logger.smartWallet.error(LogEvents.walletRemoveSignerError, attributes: [
-                "locator": LogMask.locator(locator),
+                "locator": locator,
                 "error": "\(error)"
             ])
             throw error as? TransactionError ?? .transactionGeneric("Unknown error")
@@ -251,7 +251,7 @@ extension Wallet {
     ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
             "token": token.name,
-            "recipient": LogMask.locator(recipient.description),
+            "recipient": recipient.description,
             "amount": amount
         ])
 
@@ -324,7 +324,7 @@ extension Wallet {
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
-            "recipient": LogMask.locator(walletLocator),
+            "recipient": walletLocator,
             "tokenLocator": tokenLocator,
             "amount": "\(amount)"
         ])
@@ -605,7 +605,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         if let transaction, let approvals = transaction.approvals, !approvals.pending.isEmpty {
             Logger.smartWallet.debug("wallet.signTransaction.pendingApprovals", attributes: [
                 "count": "\(approvals.pending.count)",
-                "signers": approvals.pending.map { LogMask.locator($0.signer) }.joined(separator: ", ")
+                "signers": approvals.pending.map(\.signer).joined(separator: ", ")
             ])
             for pendingApproval in approvals.pending
             where !SignerLocator(orUnknown: pendingApproval.signer).isApiKey {

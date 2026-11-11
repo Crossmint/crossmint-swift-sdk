@@ -75,7 +75,7 @@ public enum SignerLocator: Codable, Sendable, Hashable {
             self = try SignerLocator(from: rawLocator)
         } catch {
             Logger.smartWallet.warning(LogEvents.signerLocatorUnknown, attributes: [
-                "locator": LogMask.locator(rawLocator)
+                "locator": rawLocator
             ])
             self = .unknown(rawLocator)
         }
