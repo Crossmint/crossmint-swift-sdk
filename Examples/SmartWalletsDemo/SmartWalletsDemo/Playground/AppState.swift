@@ -141,8 +141,13 @@ final class AppState {
 
         do {
             let w: Wallet
-            if chain == .stellar, let threshold = pendingQuorumThreshold {
-                w = try await makeQuorumWallet(email: email, otherMembers: pendingRecovery, threshold: threshold)
+            if chain.supportsQuorum, let threshold = pendingQuorumThreshold {
+                w = try await makeQuorumWallet(
+                    chain: chain,
+                    email: email,
+                    otherMembers: pendingRecovery,
+                    threshold: threshold
+                )
             } else {
                 w = try await makeWallet(chain: chain, email: email, extraRecovery: pendingRecovery)
             }
@@ -435,22 +440,38 @@ final class AppState {
         }
     }
 
+    func memberConfig(_ value: String) -> SignerConfig {
+        value.hasPrefix("+") ? .phone(value, channel: phoneChannels["phone:\(value)"]) : .email(value)
+    }
+}
+
+extension AppState {
     private func makeQuorumWallet(
+        chain: SupportedChain,
         email: String,
         otherMembers: [RecoverySignerDraft],
         threshold: Int
     ) async throws -> Wallet {
         let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
-        let members = [StellarSigners.email(email)] + otherMembers.map(stellarSigner)
-        return try await sdk.crossmintWallets.createWallet(
-            chain: StellarChain.stellar,
-            recoveryMethods: [.quorum(threshold: min(threshold, members.count), members: members)],
-            options: options
-        )
-    }
-
-    func memberConfig(_ value: String) -> SignerConfig {
-        value.hasPrefix("+") ? .phone(value, channel: phoneChannels["phone:\(value)"]) : .email(value)
+        let size = otherMembers.count + 1
+        switch chain {
+        case .evm:
+            let members = [EVMSigners.email(email)] + otherMembers.map(evmSigner)
+            return try await sdk.crossmintWallets.createWallet(
+                chain: EVMChain.baseSepolia,
+                recoveryMethods: [.quorum(threshold: min(threshold, size), members: members)],
+                options: options
+            )
+        case .stellar:
+            let members = [StellarSigners.email(email)] + otherMembers.map(stellarSigner)
+            return try await sdk.crossmintWallets.createWallet(
+                chain: StellarChain.stellar,
+                recoveryMethods: [.quorum(threshold: min(threshold, size), members: members)],
+                options: options
+            )
+        case .solana:
+            preconditionFailure("A Solana wallet does not accept a quorum")
+        }
     }
 
     private func evmSigner(for draft: RecoverySignerDraft) -> EVMSigners {
