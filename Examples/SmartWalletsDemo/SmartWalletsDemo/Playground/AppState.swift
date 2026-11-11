@@ -459,7 +459,7 @@ extension AppState {
             let members = [EVMSigners.email(email)] + otherMembers.map(evmSigner)
             return try await sdk.crossmintWallets.createWallet(
                 chain: EVMChain.baseSepolia,
-                recoveryMethods: [.quorum(threshold: min(threshold, size), members: members)],
+                recoveryMethods: [.email(email), .quorum(threshold: min(threshold, size), members: members)],
                 options: options
             )
         case .stellar:
