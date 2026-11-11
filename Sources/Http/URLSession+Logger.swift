@@ -5,7 +5,8 @@ import Utils
 extension URLSession {
     static func log(data: Data, response: URLResponse) {
 #if DEBUG
-        guard getBoolEnvironment("CROSSMINT_SDK_HTTP_LOGS") || isRunningInPlayground() else {
+        guard getBoolEnvironment("CROSSMINT_SDK_HTTP_LOGS") || isRunningInPlayground(),
+              Logger.level.rawValue <= LogLevel.info.rawValue else {
             return
         }
         var message: String = ""
@@ -35,7 +36,7 @@ extension URLSession {
 
         message.append("\n=== End Response ===\n")
 
-        Logger.http.info(message)
+        os_log(.info, log: OSLog(subsystem: "CrossmintSDK", category: "http"), "%{public}@", message)
 #endif
     }
 }
