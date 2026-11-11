@@ -17,6 +17,10 @@ public struct Logger: Sendable {
         ]
     }
 
+    package init(consoleOnlyCategory category: String) {
+        providers = [OSLoggerProvider(category: category)]
+    }
+
     init(testProviders: [LoggerProvider]) {
         self.providers = testProviders
     }

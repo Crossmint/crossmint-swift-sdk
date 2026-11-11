@@ -36,7 +36,7 @@ extension URLSession {
 
         message.append("\n=== End Response ===\n")
 
-        os_log(.info, log: OSLog(subsystem: "CrossmintSDK", category: "http"), "%{public}@", message)
+        Logger.http.info(message)
 #endif
     }
 }
