@@ -100,11 +100,13 @@ struct AddSignerSheet: View {
 
     private var availableTypes: [SignerTypeOption] {
         switch mode {
-        case .recovery where appState.wallet == nil && appState.selectedChain == .stellar:
-            guard appState.pendingQuorumThreshold == nil else { return [.email, .phone, .passkey] }
-            return [.email, .phone, .apiKey, .passkey]
         case .recovery where appState.wallet == nil:
-            return [.email, .phone, .apiKey]
+            let types: [SignerTypeOption] = switch appState.selectedChain {
+            case .stellar: [.email, .phone, .apiKey, .passkey]
+            case .evm, .solana: [.email, .phone, .apiKey]
+            }
+            guard appState.pendingQuorumThreshold == nil else { return types.filter { $0 != .apiKey } }
+            return types
         case .recovery where appState.selectedChain == .stellar:
             return [.email, .phone, .externalWallet, .passkey, .quorum]
         case .recovery:

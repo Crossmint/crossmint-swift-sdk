@@ -72,7 +72,7 @@ struct SignersView: View {
             Text("Recovery")
         }
 
-        if appState.selectedChain == .stellar {
+        if appState.selectedChain.supportsQuorum {
             quorumDraftSection()
         }
 

@@ -13,6 +13,8 @@ enum SupportedChain: Equatable, Identifiable {
 
     var id: Self { self }
 
+    var supportsQuorum: Bool { self != .solana }
+
     @ViewBuilder
     var icon: some View {
         switch self {
