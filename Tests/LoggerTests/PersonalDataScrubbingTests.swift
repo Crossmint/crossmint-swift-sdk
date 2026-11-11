@@ -59,6 +59,10 @@ struct PersonalDataScrubbingTests {
         (
             "phone:+1 555 123 45 67 approved",
             "phone:+1*** approved"
+        ),
+        (
+            #"{"onboarding.authId":"email:"john doe"@example.com"}"#,
+            #"{"onboarding.authId":"email:"***@example.com"}"#
         )
     ])
     func masksEmailsAndPhoneNumbers(logLine: String, expected: String) {

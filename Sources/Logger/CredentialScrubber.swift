@@ -51,6 +51,10 @@ enum CredentialScrubber {
             replacedWith: "$1$2***@$3"
         ),
         Pattern(
+            #"(\\?")(?:[^"\\\n]|\\[^"])*\\?"@(\#(emailDomain))"#,
+            replacedWith: "$1***@$2"
+        ),
+        Pattern(
             #"(^|[^A-Za-z0-9])(phone(?:Number)?:)\#(phoneNumber)"#,
             replacedWith: "$1$2$3***$4"
         ),
