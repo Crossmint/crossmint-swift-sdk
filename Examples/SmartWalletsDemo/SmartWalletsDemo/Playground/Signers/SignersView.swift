@@ -72,9 +72,7 @@ struct SignersView: View {
             Text("Recovery")
         }
 
-        if appState.selectedChain == .stellar {
-            quorumDraftSection()
-        }
+        quorumDraftSection()
 
         Section {
             Button {
