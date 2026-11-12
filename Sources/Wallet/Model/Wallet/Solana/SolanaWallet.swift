@@ -72,16 +72,16 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///
     /// - Parameters:
     ///   - transaction: A base64-encoded, serialized Solana transaction.
-    ///   - signer: The signer that sends the transaction. Use it to name the quorum to act for
-    ///     when the active signer is a member of more than one quorum.
+    ///   - signer: The signer that sends the transaction. Give a quorum here when the active signer
+    ///     is a member of more than one quorum.
     ///   - approvingMembers: The quorum members that approve, when a quorum sends the transaction.
-    ///     Name exactly as many members as the threshold. When you omit it, the SDK names the active member first,
-    ///     then the other members in the order of the quorum.
+    ///     Give exactly as many members as the threshold of the quorum. If you do not give members,
+    ///     the SDK uses the active member first. Then it adds the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the transaction without approving it.
     ///     Then approve it with ``Wallet/approve(transactionId:)``. The summary then has only the transaction ID.
     ///
-    /// When a quorum sends the transaction, the SDK creates it without approving it, as with `prepareOnly`.
-    /// Each designated member then approves it with ``Wallet/approve(transactionId:)``.
+    /// When a quorum sends the transaction, the SDK creates the transaction but does not approve it,
+    /// as with `prepareOnly`. Each approving member then approves it with ``Wallet/approve(transactionId:)``.
     ///
     /// ## Example
     /// ```swift

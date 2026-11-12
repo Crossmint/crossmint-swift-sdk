@@ -163,8 +163,8 @@ public struct Transaction: Sendable, CustomStringConvertible {
     public let createdAt: Date
     public let approvals: Approvals?
     public let error: Error?
-    /// When Crossmint cancels the transaction if it still waits for approvals.
-    /// Only a Solana transaction that a quorum with a threshold of two or more approves has this date.
+    /// The date when Crossmint cancels the transaction if the transaction does not have all its approvals.
+    /// Only a Solana quorum transaction with a threshold of two or more has this date.
     public let validUntil: Date?
 
     public init(

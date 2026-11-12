@@ -16,7 +16,7 @@ public enum TransactionError: CrossmintError {
     case transactionGeneric(String)
     /// The transaction expired before it got all the approvals. Create a new transaction.
     case transactionExpired(String)
-    /// Crossmint cancelled the transaction before it got all the approvals. Create a new transaction.
+    /// Crossmint cancelled the transaction before it got all its approvals. Send the transaction again.
     case transactionCancelled(String)
     /// The signer is a member of a quorum. A member can approve a transaction.
     /// A member cannot create a transaction.
