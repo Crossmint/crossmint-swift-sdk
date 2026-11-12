@@ -157,8 +157,6 @@ struct WalletQuorumChainTests {
         let transaction = try await wallet.getTransaction(id: "5b1d3e0c-7a42-4c8e-9f16-2e7d8a9b0c31")
 
         #expect(transaction.status == .cancelled)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        #expect(transaction.validUntil == formatter.date(from: "2026-11-19T14:29:34.133Z"))
+        #expect(transaction.validUntil == Date(timeIntervalSince1970: 1_795_098_574.133))
     }
 }
