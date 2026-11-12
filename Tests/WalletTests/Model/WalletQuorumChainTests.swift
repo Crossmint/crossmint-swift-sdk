@@ -97,39 +97,6 @@ struct WalletQuorumChainTests {
         #expect(walletService.addSignerCallCount == 0)
     }
 
-    @Test func rejectsASolanaTransferForAQuorumBeforeItIsCreated() async throws {
-        let walletService = MockSmartWalletService()
-        let wallet = try makeSolanaWallet(walletService: walletService)
-        try await wallet.useSigner(.phone("+14155552671"))
-
-        await #expect {
-            _ = try await wallet.send("7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y", "solana:usdc", 1)
-        } throws: { error in
-            guard case .quorumUnsupported(.solana) = error as? TransactionError else { return false }
-            return true
-        }
-        #expect(walletService.transferTokenCallCount == 0)
-    }
-
-    @Test func rejectsASolanaTransferThatNamesAQuorum() async throws {
-        let walletService = MockSmartWalletService()
-        let wallet = try makeSolanaWallet(walletService: walletService)
-        try await wallet.useSigner(.phone("+14155552671"))
-
-        await #expect {
-            _ = try await wallet.send(
-                "7ZN9rAofFVVP1WKqfKozsVWQYcDj2u9juYyRkrKUVR8Y",
-                "solana:usdc",
-                1,
-                signer: QUORUM
-            )
-        } throws: { error in
-            guard case .quorumUnsupported(.solana) = error as? TransactionError else { return false }
-            return true
-        }
-        #expect(walletService.transferTokenCallCount == 0)
-    }
-
     private func sentSolanaRequest(_ walletService: MockSmartWalletService) -> CreateSolanaTransactionRequest? {
         walletService.createTransactionLastRequest?.request as? CreateSolanaTransactionRequest
     }

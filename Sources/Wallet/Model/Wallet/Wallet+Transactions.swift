@@ -315,7 +315,6 @@ extension Wallet {
     ///
     /// - Returns: A ``TransactionSummary`` with the on-chain hash and explorer link once confirmed.
     ///   When the SDK does not approve the transfer, the summary has only the transaction ID.
-    /// - Throws: ``TransactionError/quorumUnsupported(chain:)`` if a quorum sends the transfer on a Solana wallet.
     ///
     /// ## Example
     /// ```swift
@@ -463,9 +462,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             signerLocator = deviceLocator.value
         } else {
             signerLocator = try await transactionSignerLocator()
-        }
-        if chain.chainType == .solana, isQuorum(signerLocator) {
-            throw .quorumUnsupported(chain: .solana)
         }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,
