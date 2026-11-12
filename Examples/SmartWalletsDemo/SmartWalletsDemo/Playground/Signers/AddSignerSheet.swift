@@ -110,7 +110,7 @@ struct AddSignerSheet: View {
         case .recovery where appState.selectedChain == .stellar:
             return [.email, .phone, .externalWallet, .passkey, .quorum]
         case .recovery:
-            return [.email, .phone, .externalWallet]
+            return [.email, .phone, .externalWallet, .quorum]
         case .signer where appState.selectedChain == .stellar:
             return [.device, .passkey, .externalWallet, .phone, .quorum]
         case .signer:
