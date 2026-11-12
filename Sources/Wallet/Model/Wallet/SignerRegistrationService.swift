@@ -26,7 +26,7 @@ final class SignerRegistrationService: Sendable {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: approver.locator
+            approval: approver.approval
         )
         guard !prepareOnly, !approver.isQuorum else { return pendingTransactionId(in: registration) }
         try await approveIfNeeded(registration: registration, signer: approver.signer)
@@ -47,7 +47,7 @@ final class SignerRegistrationService: Sendable {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: approver.locator
+            approval: approver.approval
         )
         guard !prepareOnly, !approver.isQuorum else { return pendingTransactionId(in: registration) }
         try await approveIfNeeded(registration: registration, signer: approver.signer)

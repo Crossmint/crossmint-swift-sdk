@@ -23,6 +23,9 @@ extension Wallet {
     ///     A Solana wallet does not accept a passkey as a recovery method.
     ///   - signer: The recovery method that approves the change. Use it to name the quorum to approve for
     ///     when the recovery method you selected is a member of more than one quorum.
+    ///   - approvingMembers: The quorum members that approve, when a quorum approves on a Solana wallet.
+    ///     Give exactly as many members as the threshold of the quorum. If you do not give members,
+    ///     the SDK uses the active member first. Then it adds the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the change without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction``. With `prepareOnly`, or when a quorum approves, the transaction
@@ -44,21 +47,22 @@ extension Wallet {
     public func addRecoveryMethod(
         _ method: SignerConfig,
         signer: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletAddRecoveryMethodStart)
         do {
             try assertChainAccepts(method)
-            let approver = try await recoveryMethodApprover(explicit: signer)
+            let approver = try await recoveryMethodApprover(explicit: signer, approvingMembers: approvingMembers)
             let recoveryMethod = try await recoveryMethodData(for: method)
             onTransactionStart?()
             let created = try await smartWalletService.addRecoveryMethod(
                 recoveryMethod,
                 chainType: chain.chainType,
                 chainName: chain.name,
-                approver: approver
+                approval: approver
             )
-            if prepareOnly || isQuorum(approver.value) { return created.toDomain() }
+            if prepareOnly || isQuorum(approver.approver.value) { return created.toDomain() }
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
             if transaction.status == .success, recoveryMethod is QuorumSignerInput {
                 await reloadRecoveryMethods()
@@ -88,6 +92,9 @@ extension Wallet {
     ///   - locator: The recovery method to remove. To remove a quorum, use ``SignerLocator/quorum(id:)``.
     ///   - signer: The recovery method that approves the change. Use it to name the quorum to approve for
     ///     when the recovery method you selected is a member of more than one quorum.
+    ///   - approvingMembers: The quorum members that approve, when a quorum approves on a Solana wallet.
+    ///     Give exactly as many members as the threshold of the quorum. If you do not give members,
+    ///     the SDK uses the active member first. Then it adds the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the change without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction``. With `prepareOnly`, or when a quorum approves, the transaction
@@ -104,21 +111,22 @@ extension Wallet {
     public func removeRecoveryMethod(
         locator: SignerLocator,
         signer: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodStart, attributes: [
             "locator": locator.value
         ])
         do {
-            let approver = try await recoveryMethodApprover(explicit: signer)
+            let approver = try await recoveryMethodApprover(explicit: signer, approvingMembers: approvingMembers)
             onTransactionStart?()
             let created = try await smartWalletService.removeRecoveryMethod(
                 locator,
                 chainType: chain.chainType,
                 chainName: chain.name,
-                approver: approver
+                approval: approver
             )
-            if prepareOnly || isQuorum(approver.value) { return created.toDomain() }
+            if prepareOnly || isQuorum(approver.approver.value) { return created.toDomain() }
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
             if transaction.status == .success {
                 recordRemovedRecoveryMethod(locator)
@@ -272,11 +280,15 @@ extension Wallet {
         }
     }
 
-    private func recoveryMethodApprover(explicit: SignerLocator?) async throws(WalletError) -> SignerLocator {
-        if let selected = try await authorizingRecovery(explicit: explicit).locator {
-            return selected
+    private func recoveryMethodApprover(
+        explicit: SignerLocator?,
+        approvingMembers: [SignerLocator]?
+    ) async throws(WalletError) -> SignerChangeApproval {
+        let approver = try await authorizingRecovery(explicit: explicit, approvingMembers: approvingMembers)
+        if let approval = approver.approval {
+            return approval
         }
-        return try SignerLocator(from: config.recovery.locator)
+        return SignerChangeApproval(approver: try SignerLocator(from: config.recovery.locator))
     }
 
     private func approveRecoveryMethodChange(_ transaction: Transaction) async throws(WalletError) -> Transaction {

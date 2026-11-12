@@ -201,17 +201,20 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         )
     }
 
+    var lastAddSignerApprovingMembers: [SignerLocator]?
+
     func addSigner(
         _ entry: DelegatedSignerEntry,
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        lastAddSignerApprovingMembers = approval?.approvingMembers
         addSignerCallCount += 1
         lastAddSignerEntry = entry
         lastAddSignerDeployImmediately = deployImmediately
-        lastAddSignerApprover = approver
+        lastAddSignerApprover = approval?.approver
         if let addSignerError {
             throw addSignerError
         }
@@ -245,11 +248,11 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         registerTypedSignerCallCount += 1
         lastRegisterTypedSignerDeployImmediately = deployImmediately
-        lastRegisterTypedSignerApprover = approver
+        lastRegisterTypedSignerApprover = approval?.approver
         return registerTypedSignerResult
     }
 
@@ -370,15 +373,18 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         try await removeSigner(signerLocator, chainType: chainType, chainName: chainName, approver: nil)
     }
 
+    var removeSignerLastApprovingMembers: [SignerLocator]?
+
     func removeSigner(
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(TransactionError) -> any TransactionApiModel {
+        removeSignerLastApprovingMembers = approval?.approvingMembers
         removeSignerCallCount += 1
         removeSignerLastLocator = signerLocator
-        removeSignerLastApprover = approver
+        removeSignerLastApprover = approval?.approver
         if let removeSignerError {
             throw removeSignerError
         }
@@ -400,11 +406,11 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
         addRecoveryMethodCallCount += 1
         lastAddRecoveryMethod = recoveryMethod
-        lastAddRecoveryMethodApprover = approver
+        lastAddRecoveryMethodApprover = approval.approver
         if let addRecoveryMethodError {
             throw addRecoveryMethodError
         }
@@ -424,11 +430,11 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         _ locator: SignerLocator,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
         removeRecoveryMethodCallCount += 1
         lastRemoveRecoveryMethodLocator = locator
-        lastRemoveRecoveryMethodApprover = approver
+        lastRemoveRecoveryMethodApprover = approval.approver
         if let removeRecoveryMethodError {
             throw removeRecoveryMethodError
         }

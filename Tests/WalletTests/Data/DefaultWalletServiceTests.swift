@@ -133,7 +133,12 @@ struct DefaultWalletServiceTests {
         "QUORUM_THRESHOLD_EXCEEDS_MEMBERS",
         "QUORUM_MEMBER_DUPLICATED",
         "QUORUM_MEMBER_TYPE_NOT_ALLOWED",
-        "QUORUM_MEMBER_TYPE_UNSUPPORTED"
+        "QUORUM_MEMBER_TYPE_UNSUPPORTED",
+        "QUORUM_THRESHOLD_UNSUPPORTED",
+        "QUORUM_THRESHOLD_TOO_HIGH_FOR_CHAIN",
+        "SIGNER_KEY_IN_USE",
+        "QUORUM_APPROVING_MEMBERS_COUNT_MISMATCH",
+        "QUORUM_APPROVING_MEMBER_INVALID"
     ])
     func throwsTypedErrorWhenCreateWalletRejectsTheRecoveryList(apiCode: String) async throws {
         let body = Data(#"{"error": true, "message": "rejected: \#(apiCode)", "code": "\#(apiCode)"}"#.utf8)
@@ -234,6 +239,26 @@ struct DefaultWalletServiceDeployImmediatelyTests {
     }
 
     @Test
+    func sendsTheApprovingMembersWithTheApprover() async throws {
+        let router = HTTPFixtureRouter()
+        let service = try makeService(recording: router)
+
+        _ = try await service.addSigner(
+            entry,
+            chainType: .solana,
+            chainName: "solana",
+            deployImmediately: nil,
+            approval: SignerChangeApproval(
+                approver: .quorum(id: "9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"),
+                approvingMembers: [.email("alice@example.com"), .email("bob@example.com")]
+            )
+        )
+
+        let json = try decodedBody(router.lastRequest?.httpBody)
+        #expect(json["approvingMembers"] as? [String] == ["email:alice@example.com", "email:bob@example.com"])
+    }
+
+    @Test
     func omitsTheApproverWhenAbsent() async throws {
         let router = HTTPFixtureRouter()
         let service = try makeService(recording: router)
@@ -242,6 +267,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
 
         let json = try decodedBody(router.lastRequest?.httpBody)
         #expect(json["approver"] == nil)
+        #expect(json["approvingMembers"] == nil)
     }
 
     @Test

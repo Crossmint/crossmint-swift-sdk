@@ -58,6 +58,31 @@ struct WalletPendingDeviceKeyTests {
         #expect(await !wallet.needsRecovery())
     }
 
+    @Test func dropsThePendingKeyOnceCrossmintCancelledItsRegistration() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeWallet(
+            fixture: "WalletStellarQuorumThenEmail",
+            walletService: walletService,
+            storage: storage
+        )
+        let publicKey = try await storage.generateKey(address: nil)
+        wallet.pendingDeviceKey = PendingDeviceKey(
+            transactionId: PENDING_TRANSACTION_ID,
+            publicKeyBase64: publicKey,
+            storage: storage
+        )
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "SolanaQuorumTransactionCancelled",
+            bundle: Bundle.module
+        ) as SolanaTransactionApiModel
+
+        _ = try? await wallet.recover()
+
+        #expect(storage.deletePendingKeyCallCount == 1)
+        #expect(wallet.pendingDeviceKey?.publicKeyBase64 != publicKey)
+    }
+
     @Test func resumesThePendingKeyAfterARelaunch() async throws {
         let walletService = MockSmartWalletService()
         let storage = MockDeviceSignerKeyStorage()

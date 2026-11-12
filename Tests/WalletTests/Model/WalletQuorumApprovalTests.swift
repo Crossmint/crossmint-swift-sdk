@@ -516,6 +516,18 @@ struct QuorumTransactionErrorTests {
         }
     }
 
+    @Test func throwsTransactionCancelledWhenCrossmintCancelledTheTransaction() async throws {
+        let body = Data(#"{"message": "The transaction was cancelled.", "code": "TRANSACTION_CANCELLED"}"#.utf8)
+        let service = try makeService(errorBody: body)
+
+        await #expect {
+            _ = try await service.signTransaction(signRequest())
+        } throws: { error in
+            guard case .transactionCancelled(let message) = error as? TransactionError else { return false }
+            return message == "The transaction was cancelled."
+        }
+    }
+
     @Test func throwsSignerIsQuorumMemberWhenAMemberCreatesATransaction() async throws {
         let body = Data(#"{"message": "Signer is a quorum member.", "code": "SIGNER_IS_QUORUM_MEMBER"}"#.utf8)
         let service = try makeService(errorBody: body)

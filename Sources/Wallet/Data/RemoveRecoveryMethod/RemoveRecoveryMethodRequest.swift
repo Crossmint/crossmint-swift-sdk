@@ -13,10 +13,11 @@ extension Endpoint {
     static func removeRecoveryMethod(
         chainType: ChainType,
         encodedLocator: String,
-        approver: SignerLocator,
+        approval: SignerChangeApproval,
         chain: String?
     ) -> Endpoint {
-        var queryItems = [URLQueryItem(name: "approver", value: approver.value)]
+        var queryItems = [URLQueryItem(name: "approver", value: approval.approver.value)]
+        queryItems += (approval.approvingMembers ?? []).map { URLQueryItem(name: "approvingMembers", value: $0.value) }
         if let chain {
             queryItems.append(URLQueryItem(name: "chain", value: chain))
         }

@@ -158,6 +158,9 @@ extension Wallet {
     ///   - locator: The locator that identifies the signer to remove.
     ///   - signer: The recovery method that approves the removal. Use it to name the quorum to approve for
     ///     when the recovery method you selected is a member of more than one quorum.
+    ///   - approvingMembers: The quorum members that approve, when a quorum approves on a Solana wallet.
+    ///     Give exactly as many members as the threshold of the quorum. If you do not give members,
+    ///     the SDK uses the active member first. Then it adds the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the removal without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
@@ -166,14 +169,21 @@ extension Wallet {
     public func removeSigner(
         locator: SignerLocator,
         signer: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> Transaction {
-        try await removeSignerByLocatorString(locator.value, approver: signer, prepareOnly: prepareOnly)
+        try await removeSignerByLocatorString(
+            locator.value,
+            approver: signer,
+            approvingMembers: approvingMembers,
+            prepareOnly: prepareOnly
+        )
     }
 
     private func removeSignerByLocatorString(
         _ locator: String,
         approver explicitApprover: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
@@ -183,7 +193,7 @@ extension Wallet {
         do {
             let approver: RecoveryApprover
             do {
-                approver = try await authorizingRecovery(explicit: explicitApprover)
+                approver = try await authorizingRecovery(explicit: explicitApprover, approvingMembers: approvingMembers)
             } catch {
                 throw TransactionError.transactionGeneric(error.message)
             }
@@ -192,7 +202,7 @@ extension Wallet {
                 locator,
                 chainType: chain.chainType,
                 chainName: chain.name,
-                approver: approver.locator
+                approval: approver.approval
             )
             let transaction = transactionModel.toDomain()
             if prepareOnly || approver.isQuorum { return transaction }
@@ -470,11 +480,16 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
     }
 
     internal func transactionSignerLocator(explicit: SignerLocator? = nil) async throws(TransactionError) -> String? {
-        let locator = try await actingSignerLocator(explicit: explicit)
-        if chain.chainType == .solana, isQuorum(locator) {
-            throw .quorumUnsupported(chain: .solana)
-        }
-        return locator
+        try await actingSignerLocator(explicit: explicit)
+    }
+
+    internal func transactionApprovingMembers(
+        signer: String?,
+        explicit: [SignerLocator]?
+    ) async -> [String]? {
+        let actingMember = try? await selectedSignerLocator()
+        let approver = signer.flatMap { try? SignerLocator(from: $0) }
+        return approvingMembers(for: approver, actingMember: actingMember, explicit: explicit)?.map(\.value)
     }
 
     private func actingSignerLocator(explicit: SignerLocator?) async throws(TransactionError) -> String? {
