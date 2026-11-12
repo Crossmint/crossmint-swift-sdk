@@ -96,6 +96,68 @@ struct RecoveryMethodRequestTests {
         #expect(error?.message == "Cannot remove the last recovery signer")
     }
 
+    @Test func postsTheApprovingMembersOfTheQuorum() async throws {
+        let service = try makeService(fixture: "AddRecoveryMethodResponse")
+
+        _ = try await service.addRecoveryMethod(
+            PhoneSignerData(phone: "+14155552671"),
+            chainType: .solana,
+            chainName: "solana",
+            approval: SignerChangeApproval(
+                approver: .quorum(id: "9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"),
+                approvingMembers: [.email("alice@example.com"), .email("bob@example.com")]
+            )
+        )
+
+        let body = try #require(router.lastRequest?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["approvingMembers"] as? [String] == ["email:alice@example.com", "email:bob@example.com"])
+    }
+
+    @Test func repeatsEachApprovingMemberInTheQueryOfARemoval() async throws {
+        let service = try makeService(fixture: "RemoveSignerTransactionSuccess")
+
+        _ = try await service.removeRecoveryMethod(
+            .phone("+14155552671"),
+            chainType: .solana,
+            chainName: "solana",
+            approval: SignerChangeApproval(
+                approver: .quorum(id: "9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"),
+                approvingMembers: [.email("alice@example.com"), .email("bob@example.com")]
+            )
+        )
+
+        let url = try #require(router.lastRequest?.url)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        #expect(components.queryItems == [
+            URLQueryItem(name: "approver", value: "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"),
+            URLQueryItem(name: "approvingMembers", value: "email:alice@example.com"),
+            URLQueryItem(name: "approvingMembers", value: "email:bob@example.com")
+        ])
+    }
+
+    @Test func repeatsEachApprovingMemberInTheQueryOfASignerRemoval() async throws {
+        let service = try makeService(fixture: "RemoveSignerTransactionSuccess")
+
+        _ = try await service.removeSigner(
+            "email:dave@example.com",
+            chainType: .solana,
+            chainName: "solana",
+            approval: SignerChangeApproval(
+                approver: .quorum(id: "9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"),
+                approvingMembers: [.email("alice@example.com"), .email("bob@example.com")]
+            )
+        )
+
+        let url = try #require(router.lastRequest?.url)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        #expect(components.queryItems == [
+            URLQueryItem(name: "approver", value: "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"),
+            URLQueryItem(name: "approvingMembers", value: "email:alice@example.com"),
+            URLQueryItem(name: "approvingMembers", value: "email:bob@example.com")
+        ])
+    }
+
     @Test func namesTheChainWhenAddingOnEVM() async throws {
         let service = try makeService(fixture: "EVMAddRecoveryMethodResponse")
 

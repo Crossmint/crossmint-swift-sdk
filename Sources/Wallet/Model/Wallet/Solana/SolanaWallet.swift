@@ -72,8 +72,16 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
     ///
     /// - Parameters:
     ///   - transaction: A base64-encoded, serialized Solana transaction.
+    ///   - signer: The signer that sends the transaction. Use it to name the quorum to act for
+    ///     when the active signer is a member of more than one quorum.
+    ///   - approvingMembers: The quorum members that approve, when a quorum sends the transaction.
+    ///     Name exactly as many members as the threshold. When you omit it, the SDK names the active member first,
+    ///     then the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the transaction without approving it.
     ///     Then approve it with ``Wallet/approve(transactionId:)``. The summary then has only the transaction ID.
+    ///
+    /// When a quorum sends the transaction, the SDK creates it without approving it, as with `prepareOnly`.
+    /// Each designated member then approves it with ``Wallet/approve(transactionId:)``.
     ///
     /// ## Example
     /// ```swift
@@ -83,16 +91,20 @@ public final class SolanaWallet: Wallet, WalletOnChain, @unchecked Sendable {
     public func sendTransaction(
         transaction: String,
         signer: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.info(LogEvents.solanaSendTransactionStart)
 
+        let signerLocator = try await transactionSignerLocator(explicit: signer)
+        let request = CreateSolanaTransactionRequest(
+            transaction: transaction,
+            signer: signerLocator,
+            approvingMembers: await transactionApprovingMembers(signer: signerLocator, explicit: approvingMembers)
+        )
         guard let tx = try await super.sendTransaction(
-            CreateSolanaTransactionRequest(
-                transaction: transaction,
-                signer: try await transactionSignerLocator(explicit: signer)
-            ),
-            prepareOnly: prepareOnly
+            request,
+            prepareOnly: prepareOnly || isQuorum(signerLocator)
         ) else { throw .transactionGeneric("Unknown error") }
         if let pending = tx.pendingSummary { return pending }
 

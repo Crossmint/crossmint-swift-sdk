@@ -41,7 +41,9 @@ public enum SolanaSigners: Sendable, SignerProvider {
     case phone(String, channel: OTPDeliveryChannel? = nil)
     case apiKey
     /// A quorum that approves only when `threshold` of its `members` approve.
-    /// A member cannot be a quorum or an API key signer.
+    /// A member cannot be a quorum or an API key signer. The threshold is six or less.
+    ///
+    /// A Solana wallet holds each key once, so a member cannot also be another recovery signer of the wallet.
     indirect case quorum(threshold: Int, members: [SolanaSigners])
 
     @MainActor

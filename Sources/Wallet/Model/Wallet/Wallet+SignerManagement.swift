@@ -29,6 +29,9 @@ extension Wallet {
     ///   - config: The signer configuration to register.
     ///   - signer: The recovery method that approves the new signer. Use it to name the quorum to approve for
     ///     when the recovery method you selected is a member of more than one quorum.
+    ///   - approvingMembers: The quorum members that approve, when a quorum approves on a Solana wallet.
+    ///     Name exactly as many members as the threshold. When you omit it, the SDK names the selected member first,
+    ///     then the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the registration without approving it.
     ///     Then approve it with ``approve(transactionId:)``. Solana and Stellar wallets only.
     /// - Returns: With `prepareOnly`, or when a quorum approves, the transaction that adds the signer.
@@ -38,9 +41,16 @@ extension Wallet {
     public func addSigner(
         _ config: SignerConfig,
         signer: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(WalletError) -> Transaction? {
-        try await registerSigner(config, deployImmediately: true, approver: signer, prepareOnly: prepareOnly)
+        try await registerSigner(
+            config,
+            deployImmediately: true,
+            approver: signer,
+            approvingMembers: approvingMembers,
+            prepareOnly: prepareOnly
+        )
     }
 
     /// Re-registers the device signer on this device.
@@ -219,6 +229,7 @@ extension Wallet {
         _ config: SignerConfig,
         deployImmediately: Bool,
         approver explicitApprover: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(WalletError) -> Transaction? {
         Logger.smartWallet.info(LogEvents.walletAddSignerStart, attributes: [
@@ -226,7 +237,7 @@ extension Wallet {
         ])
         await signerInitializationTask?.value
         do throws(WalletError) {
-            let approver = try await authorizingRecovery(explicit: explicitApprover)
+            let approver = try await authorizingRecovery(explicit: explicitApprover, approvingMembers: approvingMembers)
             try assertQuorumCanApprove(approver, deployImmediately: deployImmediately)
             let pendingTransactionId: String?
             switch config {
@@ -272,7 +283,21 @@ extension Wallet {
         }
     }
 
-    internal func authorizingRecovery(explicit: SignerLocator? = nil) async throws(WalletError) -> RecoveryApprover {
+    internal func authorizingRecovery(
+        explicit: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil
+    ) async throws(WalletError) -> RecoveryApprover {
+        var approver = try await actingRecovery(explicit: explicit)
+        let actingMember = await approver.signer.locator
+        approver.approvingMembers = self.approvingMembers(
+            for: approver.locator,
+            actingMember: actingMember,
+            explicit: approvingMembers
+        )
+        return approver
+    }
+
+    private func actingRecovery(explicit: SignerLocator?) async throws(WalletError) -> RecoveryApprover {
         if let selectedRecoveryMethod, let memberLocator = selectedRecoveryMethod.locator {
             if let explicit {
                 return RecoveryApprover(signer: selectedRecoveryMethod.signer, locator: explicit)

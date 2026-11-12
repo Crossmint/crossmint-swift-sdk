@@ -188,6 +188,80 @@ public final class DefaultSmartWalletService: SmartWalletService {
         )
     }
 
+    public func addSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approval: SignerChangeApproval?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await walletService.addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approval: approval
+        )
+    }
+
+    public func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approval: SignerChangeApproval?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await walletService.registerTypedSigner(
+            signer,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approval: approval
+        )
+    }
+
+    public func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String,
+        approval: SignerChangeApproval?
+    ) async throws(TransactionError) -> any TransactionApiModel {
+        try await walletService.removeSigner(
+            signerLocator,
+            chainType: chainType,
+            chainName: chainName,
+            approval: approval
+        )
+    }
+
+    public func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        approval: SignerChangeApproval
+    ) async throws(WalletError) -> any TransactionApiModel {
+        try await walletService.addRecoveryMethod(
+            recoveryMethod,
+            chainType: chainType,
+            chainName: chainName,
+            approval: approval
+        )
+    }
+
+    public func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        chainName: String,
+        approval: SignerChangeApproval
+    ) async throws(WalletError) -> any TransactionApiModel {
+        try await walletService.removeRecoveryMethod(
+            locator,
+            chainType: chainType,
+            chainName: chainName,
+            approval: approval
+        )
+    }
+
     // MARK: - TransactionService
 
     public func createTransaction(

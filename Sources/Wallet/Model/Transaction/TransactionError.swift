@@ -16,12 +16,14 @@ public enum TransactionError: CrossmintError {
     case transactionGeneric(String)
     /// The transaction expired before it got all the approvals. Create a new transaction.
     case transactionExpired(String)
+    /// Crossmint cancelled the transaction before it got all the approvals. Create a new transaction.
+    case transactionCancelled(String)
     /// The signer is a member of a quorum. A member can approve a transaction.
     /// A member cannot create a transaction.
     case signerIsQuorumMember(String)
     /// The active signer is a member of more than one quorum. Name the quorum with the `signer` parameter.
     case quorumSelectionAmbiguous(quorums: [SignerLocator])
-    /// A quorum cannot act on this chain yet. Only Stellar wallets act as a quorum.
+    /// A quorum cannot do this on this chain yet. On a Solana wallet, a quorum cannot send a token transfer.
     case quorumUnsupported(chain: ChainType)
 
     public var code: String {
@@ -38,6 +40,7 @@ public enum TransactionError: CrossmintError {
         case .transactionSigningFailed: "TRANSACTION_SIGNING_FAILED"
         case .transactionGeneric: "TRANSACTION_ERROR"
         case .transactionExpired: "TRANSACTION_EXPIRED"
+        case .transactionCancelled: "TRANSACTION_CANCELLED"
         case .signerIsQuorumMember: "SIGNER_IS_QUORUM_MEMBER"
         case .quorumSelectionAmbiguous: "QUORUM_SELECTION_AMBIGUOUS"
         case .quorumUnsupported: "QUORUM_SIGNER_UNSUPPORTED"
@@ -56,7 +59,10 @@ public enum TransactionError: CrossmintError {
             "Transaction creation failed"
         case .transactionCreationFailedNoSigner:
             "Transaction creation failed: no signer"
-        case .transactionGeneric(let detail), .transactionExpired(let detail), .signerIsQuorumMember(let detail):
+        case .transactionGeneric(let detail),
+             .transactionExpired(let detail),
+             .transactionCancelled(let detail),
+             .signerIsQuorumMember(let detail):
             detail
         case .transactionSigningFailed:
             "Transaction signing failed"
@@ -71,7 +77,7 @@ public enum TransactionError: CrossmintError {
         case .quorumSelectionAmbiguous(let quorums):
             "The signer is a member of these quorums: \(quorums.map(\.value).joined(separator: ", "))"
         case .quorumUnsupported(let chain):
-            "A quorum cannot act on \(chain.rawValue) wallets yet."
+            "A quorum cannot send a token transfer on \(chain.rawValue) wallets yet."
         }
     }
 
@@ -84,7 +90,7 @@ public enum TransactionError: CrossmintError {
             "Ensure a signer is configured before initiating a transaction."
         case .transactionSigningFailedInvalidKey:
             "Verify that the signing key is valid and has not been revoked."
-        case .transactionExpired:
+        case .transactionExpired, .transactionCancelled:
             "Send the transaction again."
         case .signerIsQuorumMember:
             "Name the quorum as the signer."
@@ -128,6 +134,7 @@ extension TransactionError {
     static func fromAPI(code: String?, message: String?) -> TransactionError? {
         let mapped: [TransactionError] = [
             .transactionExpired(message ?? "The transaction expired"),
+            .transactionCancelled(message ?? "The transaction was cancelled"),
             .signerIsQuorumMember(message ?? "The signer is a quorum member")
         ]
         return mapped.first { $0.code == code }

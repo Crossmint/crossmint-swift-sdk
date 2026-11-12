@@ -51,8 +51,19 @@ public enum WalletError: CrossmintError {
         case signerNotAllowed = "RECOVERY_SIGNER_NOT_ALLOWED"
         /// The wallet has no other recovery method, so you cannot remove this one.
         case lastSigner = "LAST_RECOVERY_SIGNER"
-        /// The chain does not accept a quorum yet. Only Stellar wallets accept a quorum.
+        /// The wallet does not accept a quorum here. For example, a Solana wallet does not accept a quorum
+        /// as a signer that you add with ``Wallet/addSigner(_:signer:approvingMembers:prepareOnly:)``.
         case quorumUnsupported = "QUORUM_SIGNER_UNSUPPORTED"
+        /// Quorums are not turned on for this chain in your Crossmint project.
+        case quorumThresholdUnsupported = "QUORUM_THRESHOLD_UNSUPPORTED"
+        /// The threshold is higher than the chain allows. A Solana quorum has a threshold of six or less.
+        case quorumThresholdTooHighForChain = "QUORUM_THRESHOLD_TOO_HIGH_FOR_CHAIN"
+        /// A Solana wallet holds each key once. The key is already a signer of the wallet or a member of a quorum.
+        case signerKeyInUse = "SIGNER_KEY_IN_USE"
+        /// The approving members are not as many as the threshold of the quorum.
+        case quorumApprovingMembersCountMismatch = "QUORUM_APPROVING_MEMBERS_COUNT_MISMATCH"
+        /// An approving member is not a member of the quorum, or is named twice.
+        case quorumApprovingMemberInvalid = "QUORUM_APPROVING_MEMBER_INVALID"
         /// The quorum has fewer than two members.
         case quorumTooFewMembers = "QUORUM_TOO_FEW_MEMBERS"
         /// The quorum has fewer than two members or more than ten members.
@@ -178,7 +189,17 @@ extension WalletError.RecoveryConfigCode {
         case .lastSigner:
             "Add another recovery method before you remove this one."
         case .quorumUnsupported:
-            "Use a Stellar wallet, or use recovery methods that each authorize on their own."
+            "Use recovery methods that each authorize on their own."
+        case .quorumThresholdUnsupported:
+            "Ask Crossmint to turn on quorums for this chain in your project."
+        case .quorumThresholdTooHighForChain:
+            "Use a threshold of six or less on Solana."
+        case .signerKeyInUse:
+            "Use a key that is not already a signer or a quorum member of this wallet."
+        case .quorumApprovingMembersCountMismatch:
+            "Name as many approving members as the threshold of the quorum."
+        case .quorumApprovingMemberInvalid:
+            "Name each approving member once, and only members of the quorum."
         case .quorumTooFewMembers, .quorumSizeInvalid:
             "Give the quorum between 2 and 10 members."
         case .quorumThresholdExceedsMembers:

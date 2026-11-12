@@ -70,12 +70,29 @@ struct DefaultWalletService: WalletService {
         deployImmediately: Bool?,
         approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await addSigner(
+            entry,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approval: approver.map { SignerChangeApproval(approver: $0) }
+        )
+    }
+
+    func addSigner(
+        _ entry: DelegatedSignerEntry,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approval: SignerChangeApproval?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterSignerBody(
             signer: entry.signer,
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
             deployImmediately: deploy,
-            approver: approver?.value
+            approver: approval?.approver.value,
+            approvingMembers: approval?.approvingMembers?.map(\.value)
         )
         return try await sendRegistration(body, chainType: chainType)
     }
@@ -102,12 +119,29 @@ struct DefaultWalletService: WalletService {
         deployImmediately: Bool?,
         approver: SignerLocator?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
+        try await registerTypedSigner(
+            signer,
+            chainType: chainType,
+            chainName: chainName,
+            deployImmediately: deployImmediately,
+            approval: approver.map { SignerChangeApproval(approver: $0) }
+        )
+    }
+
+    func registerTypedSigner(
+        _ signer: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        deployImmediately: Bool?,
+        approval: SignerChangeApproval?
+    ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deploy = signerRegistrationDeployImmediately(chainType, deployImmediately)
         let body = RegisterTypedSignerBody(
             signer: AdminSignerRequestApiModel(signer),
             chain: signerRegistrationChain(chainType: chainType, chainName: chainName),
             deployImmediately: deploy,
-            approver: approver?.value
+            approver: approval?.approver.value,
+            approvingMembers: approval?.approvingMembers?.map(\.value)
         )
         return try await sendRegistration(body, chainType: chainType)
     }
@@ -126,13 +160,30 @@ struct DefaultWalletService: WalletService {
         chainName: String,
         approver: SignerLocator?
     ) async throws(TransactionError) -> any TransactionApiModel {
+        try await removeSigner(
+            signerLocator,
+            chainType: chainType,
+            chainName: chainName,
+            approval: approver.map { SignerChangeApproval(approver: $0) }
+        )
+    }
+
+    func removeSigner(
+        _ signerLocator: String,
+        chainType: ChainType,
+        chainName: String,
+        approval: SignerChangeApproval?
+    ) async throws(TransactionError) -> any TransactionApiModel {
         let encodedLocator = encodedSignerLocator(signerLocator)
         var queryItems: [URLQueryItem] = []
         if let chain = signerRegistrationChain(chainType: chainType, chainName: chainName) {
             queryItems.append(URLQueryItem(name: "chain", value: chain))
         }
-        if let approver {
-            queryItems.append(URLQueryItem(name: "approver", value: approver.value))
+        if let approval {
+            queryItems.append(URLQueryItem(name: "approver", value: approval.approver.value))
+            queryItems += (approval.approvingMembers ?? []).map {
+                URLQueryItem(name: "approvingMembers", value: $0.value)
+            }
         }
         let endpoint = Endpoint.removeSigner(
             chainType: chainType,
@@ -171,7 +222,12 @@ struct DefaultWalletService: WalletService {
         chainType: ChainType,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
-        try await addRecoveryMethod(recoveryMethod, chainType: chainType, chain: nil, approver: approver)
+        try await addRecoveryMethod(
+            recoveryMethod,
+            chainType: chainType,
+            chain: nil,
+            approval: SignerChangeApproval(approver: approver)
+        )
     }
 
     func addRecoveryMethod(
@@ -180,19 +236,34 @@ struct DefaultWalletService: WalletService {
         chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
+        try await addRecoveryMethod(
+            recoveryMethod,
+            chainType: chainType,
+            chainName: chainName,
+            approval: SignerChangeApproval(approver: approver)
+        )
+    }
+
+    func addRecoveryMethod(
+        _ recoveryMethod: any AdminSignerData,
+        chainType: ChainType,
+        chainName: String,
+        approval: SignerChangeApproval
+    ) async throws(WalletError) -> any TransactionApiModel {
         let chain = signerRegistrationChain(chainType: chainType, chainName: chainName)
-        return try await addRecoveryMethod(recoveryMethod, chainType: chainType, chain: chain, approver: approver)
+        return try await addRecoveryMethod(recoveryMethod, chainType: chainType, chain: chain, approval: approval)
     }
 
     private func addRecoveryMethod(
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
         chain: String?,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
         let body = AddRecoveryMethodBody(
             recoveryMethods: AdminSignerRequestApiModel(recoveryMethod),
-            approver: approver.value,
+            approver: approval.approver.value,
+            approvingMembers: approval.approvingMembers?.map(\.value),
             chain: chain
         )
         let bodyData = try jsonCoder.encodeRequest(body, errorType: WalletError.self)
@@ -210,7 +281,12 @@ struct DefaultWalletService: WalletService {
         chainType: ChainType,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
-        try await removeRecoveryMethod(locator, chainType: chainType, chain: nil, approver: approver)
+        try await removeRecoveryMethod(
+            locator,
+            chainType: chainType,
+            chain: nil,
+            approval: SignerChangeApproval(approver: approver)
+        )
     }
 
     func removeRecoveryMethod(
@@ -219,20 +295,34 @@ struct DefaultWalletService: WalletService {
         chainName: String,
         approver: SignerLocator
     ) async throws(WalletError) -> any TransactionApiModel {
+        try await removeRecoveryMethod(
+            locator,
+            chainType: chainType,
+            chainName: chainName,
+            approval: SignerChangeApproval(approver: approver)
+        )
+    }
+
+    func removeRecoveryMethod(
+        _ locator: SignerLocator,
+        chainType: ChainType,
+        chainName: String,
+        approval: SignerChangeApproval
+    ) async throws(WalletError) -> any TransactionApiModel {
         let chain = signerRegistrationChain(chainType: chainType, chainName: chainName)
-        return try await removeRecoveryMethod(locator, chainType: chainType, chain: chain, approver: approver)
+        return try await removeRecoveryMethod(locator, chainType: chainType, chain: chain, approval: approval)
     }
 
     private func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
         chain: String?,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
         let endpoint = Endpoint.removeRecoveryMethod(
             chainType: chainType,
             encodedLocator: encodedSignerLocator(locator.value),
-            approver: approver,
+            approval: approval,
             chain: chain
         )
         let data = try await crossmintService.executeRequestForRawData(
@@ -310,7 +400,9 @@ struct DefaultWalletService: WalletService {
             return nil
         case .signerLimitExceeded, .delegatedSignerConflict, .adminSignerConflict, .signerNotAllowed, .lastSigner,
              .quorumUnsupported, .quorumTooFewMembers, .quorumSizeInvalid, .quorumThresholdExceedsMembers,
-             .quorumMemberDuplicated, .quorumMemberTypeNotAllowed, .quorumMemberTypeUnsupported:
+             .quorumMemberDuplicated, .quorumMemberTypeNotAllowed, .quorumMemberTypeUnsupported,
+             .quorumThresholdUnsupported, .quorumThresholdTooHighForChain, .signerKeyInUse,
+             .quorumApprovingMembersCountMismatch, .quorumApprovingMemberInvalid:
             return .recoveryConfigRejected(
                 code: recoveryCode,
                 message: message ?? "The recovery signer configuration was rejected"

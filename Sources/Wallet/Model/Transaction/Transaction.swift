@@ -163,6 +163,9 @@ public struct Transaction: Sendable, CustomStringConvertible {
     public let createdAt: Date
     public let approvals: Approvals?
     public let error: Error?
+    /// When Crossmint cancels the transaction if it still waits for approvals.
+    /// Only a Solana transaction that a quorum with a threshold of two or more approves has this date.
+    public let validUntil: Date?
 
     public init(
         id: String,
@@ -172,7 +175,8 @@ public struct Transaction: Sendable, CustomStringConvertible {
         walletType: WalletType,
         createdAt: Date,
         approvals: Approvals?,
-        error: Error?
+        error: Error?,
+        validUntil: Date? = nil
     ) {
         self.id = id
         self.status = status
@@ -182,6 +186,7 @@ public struct Transaction: Sendable, CustomStringConvertible {
         self.createdAt = createdAt
         self.approvals = approvals
         self.error = error
+        self.validUntil = validUntil
     }
 
     public var description: String {

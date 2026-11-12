@@ -36,7 +36,7 @@ extension Wallet {
                 throw .walletGeneric("Could not save the approved device key. Call recover() again.")
             }
             return .activated
-        case .failed:
+        case .failed, .cancelled:
             try? await pendingDeviceKey.storage.deletePendingKey(publicKeyBase64: pendingDeviceKey.publicKeyBase64)
             self.pendingDeviceKey = nil
             return .none

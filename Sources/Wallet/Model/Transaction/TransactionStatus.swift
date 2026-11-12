@@ -8,4 +8,7 @@ public enum TransactionStatus: String, Sendable {
     case success
     /// Rejected or reverted on-chain.
     case failed
+    /// Crossmint cancelled the transaction before it got all its approvals, so it will not run.
+    /// Only a Solana transaction that a quorum approves can get this status. See ``Transaction/validUntil``.
+    case cancelled
 }
