@@ -141,7 +141,7 @@ final class AppState {
 
         do {
             let w: Wallet
-            if chain.supportsQuorum, let threshold = pendingQuorumThreshold {
+            if let threshold = pendingQuorumThreshold {
                 w = try await makeQuorumWallet(
                     chain: chain,
                     email: email,
@@ -470,7 +470,12 @@ extension AppState {
                 options: options
             )
         case .solana:
-            preconditionFailure("A Solana wallet does not accept a quorum")
+            let members = [SolanaSigners.email(email)] + otherMembers.map(solanaSigner)
+            return try await sdk.crossmintWallets.createWallet(
+                chain: SolanaChain.solana,
+                recoveryMethods: [.quorum(threshold: min(threshold, size), members: members)],
+                options: options
+            )
         }
     }
 
