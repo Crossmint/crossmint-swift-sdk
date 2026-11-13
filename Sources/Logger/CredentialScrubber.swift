@@ -41,8 +41,9 @@ enum CredentialScrubber {
         )
     ]
 
-    private static let emailLocalPart = #"A-Za-z0-9!#$%&'*+/=?^_`{|}~"#
-    private static let emailDomain = #"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"#
+    private static let emailLocalPart = #"\p{L}\p{M}\p{N}!#$%&'*+/=?^_`{|}~"#
+    private static let emailDomain = #"[\p{L}\p{M}\p{N}-]+(?:\.[\p{L}\p{M}\p{N}-]+)*\.[\p{L}\p{M}]{2,}"#
+    private static let phoneNumber = #"(\+?\(?\d)(?:[\d ().-]*(\d{4})(?![ ().-]*\d)|[\d ().-]*\d)"#
 
     private static let personalData = [
         Pattern(
@@ -50,11 +51,15 @@ enum CredentialScrubber {
             replacedWith: "$1$2***@$3"
         ),
         Pattern(
-            #"(^|[^A-Za-z0-9])(phone(?:Number)?:)(\+?\d)\d*(\d{4})"#,
+            #"(\\?")(?:[^"\\\n]|\\[^"])*\\?"@(\#(emailDomain))"#,
+            replacedWith: "$1***@$2"
+        ),
+        Pattern(
+            #"(^|[^A-Za-z0-9])(phone(?:Number)?:)\#(phoneNumber)"#,
             replacedWith: "$1$2$3***$4"
         ),
         Pattern(
-            #"("phone(?:Number)?"\s*:\s*")(\+?\d)\d*(\d{4})""#,
+            #"("phone(?:Number)?"\s*:\s*")\#(phoneNumber)""#,
             replacedWith: #"$1$2***$3""#
         )
     ]

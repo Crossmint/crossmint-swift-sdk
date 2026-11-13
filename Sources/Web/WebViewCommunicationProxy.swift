@@ -135,6 +135,7 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
             Logger.web.error("Error sending message to frame: failed to encode message \(error)")
             throw WebViewError.encodingError
         }
+        Logger.web.debug("Native >> Web: \(T.messageType)")
 
         // If page is not loaded yet, queue the message
         if messageHandler.queueMessage(messageData) {
@@ -178,8 +179,6 @@ public class DefaultWebViewCommunicationProxy: NSObject, ObservableObject, WKScr
         }
 
         let script = "window.onMessageFromNative(\(jsonString));"
-        Logger.web.debug("Native >> Web: \(jsonString)")
-
         return try await webView.evaluateJavaScript(script)
     }
 

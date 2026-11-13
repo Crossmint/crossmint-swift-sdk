@@ -31,6 +31,38 @@ struct PersonalDataScrubbingTests {
         (
             "{\n  \"phoneNumber\" : \"+15551234567\",\n  \"phone\" : \"5551234567\"\n}",
             "{\n  \"phoneNumber\" : \"+1***4567\",\n  \"phone\" : \"5***4567\"\n}"
+        ),
+        (
+            #"{"authId":"email:josé@exämple.com"}"#,
+            #"{"authId":"email:j***@exämple.com"}"#
+        ),
+        (
+            "Console[log]: onboarding élodie.dupont@société.fr",
+            "Console[log]: onboarding é***@société.fr"
+        ),
+        (
+            "Console[log]: onboarding 用户@例子.广告",
+            "Console[log]: onboarding 用***@例子.广告"
+        ),
+        (
+            #"{"authId":"phone:+1 (555) 123-4567"}"#,
+            #"{"authId":"phone:+1***4567"}"#
+        ),
+        (
+            "recipient phoneNumber:555.123.4567:base signed",
+            "recipient phoneNumber:5***4567:base signed"
+        ),
+        (
+            #"{"phone" : "+44 7700 900123"}"#,
+            #"{"phone" : "+4***0123"}"#
+        ),
+        (
+            "phone:+1 555 123 45 67 approved",
+            "phone:+1*** approved"
+        ),
+        (
+            #"{"onboarding.authId":"email:"john doe"@example.com"}"#,
+            #"{"onboarding.authId":"email:"***@example.com"}"#
         )
     ])
     func masksEmailsAndPhoneNumbers(logLine: String, expected: String) {
