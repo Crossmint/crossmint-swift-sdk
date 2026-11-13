@@ -72,10 +72,3 @@ final class InMemorySecureStorage: SecureStorage, @unchecked Sendable {
     func storeEmail(_ email: String) async throws(SecureStorageError) { values["email"] = email }
     func clear() { values.removeAll() }
 }
-
-final class InMemorySecureWalletStorage: SecureWalletStorage, @unchecked Sendable {
-    private var keys: [String: String] = [:]
-
-    func savePrivateKey(_ privateKey: String, forEmail email: String) { keys[email] = privateKey }
-    func getPrivateKey(forEmail email: String) -> String? { keys[email] }
-}

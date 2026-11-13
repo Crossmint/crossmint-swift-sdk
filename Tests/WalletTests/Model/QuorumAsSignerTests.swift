@@ -54,7 +54,6 @@ struct QuorumAsSignerTests {
         walletService.createWalletFixture = try Data(contentsOf: url)
         let wallets = DefaultCrossmintWallets(
             service: walletService,
-            secureWalletStorage: StubSecureWalletStorage(),
             deviceSignerKeyStorage: MockDeviceSignerKeyStorage()
         )
 
