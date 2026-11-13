@@ -58,7 +58,6 @@ struct CryptoWalletSession {
     func wallets() -> DefaultCrossmintWallets {
         DefaultCrossmintWallets(
             service: smartWalletService(),
-            secureWalletStorage: InMemorySecureWalletStorage(),
             deviceSignerKeyStorage: KeychainKeyStorage()
         )
     }

@@ -10,7 +10,6 @@ import Wallet
 final class CrossmintClientSDK: ClientSDK, Sendable {
     private let apiKey: ApiKey
     private let secureStorage: SecureStorage
-    private let secureWalletStorage: SecureWalletStorage
     let crossmintService: CrossmintService
     let authManager: CrossmintAuthManager
     let authClient: any AuthClient
@@ -32,7 +31,6 @@ final class CrossmintClientSDK: ClientSDK, Sendable {
         }
 
         secureStorage = KeychainSecureStorage(bundleId: bundleId)
-        secureWalletStorage = KeychainSecureWalletStorage(bundleId: bundleId)
         crossmintService = DefaultCrossmintService(apiKey: apiKey, appIdentifier: bundleId, httpClient: httpClient)
 
         let authService = DefaultAuthService(crossmintService: crossmintService)
@@ -48,7 +46,6 @@ final class CrossmintClientSDK: ClientSDK, Sendable {
                 crossmintService: crossmintService,
                 authManager: authManager
             ),
-            secureWalletStorage: secureWalletStorage,
             deviceSignerKeyStorage: deviceSignerKeyStorage
         )
     }

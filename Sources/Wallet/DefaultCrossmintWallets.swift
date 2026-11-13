@@ -2,20 +2,16 @@ import CrossmintCommonTypes
 import CryptoKit
 import DeviceSigner
 import Logger
-import SecureStorage
 
 public final class DefaultCrossmintWallets: CrossmintWallets, Sendable {
     private let smartWalletService: SmartWalletService
-    private let secureWalletStorage: SecureWalletStorage
     private let deviceSignerKeyStorage: DeviceSignerKeyStorage
 
     public init(
         service: SmartWalletService,
-        secureWalletStorage: SecureWalletStorage,
         deviceSignerKeyStorage: DeviceSignerKeyStorage
     ) {
         self.smartWalletService = service
-        self.secureWalletStorage = secureWalletStorage
         self.deviceSignerKeyStorage = deviceSignerKeyStorage
 
         Logger.smartWallet.info(LogEvents.sdkInitialized)

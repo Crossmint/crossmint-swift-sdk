@@ -88,7 +88,6 @@ let package = Package(
                 "CrossmintService",
                 "CrossmintAuth",
                 "CrossmintCommonTypes",
-                "SecureStorage",
                 "Passkeys",
                 "DeviceSigner",
                 .product(name: "P256K", package: "swift-secp256k1"),
