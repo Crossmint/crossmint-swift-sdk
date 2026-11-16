@@ -92,6 +92,22 @@ struct WalletDeviceSignerFixtureTests {
         ))
     }
 
+    @Test(arguments: [
+        ["device:BAAA", "device:BBBB"],
+        ["device:BAAA", "device:BBBB", "device:BCCC"]
+    ])
+    func recoversOnADeviceWithNoKeyWhenOtherDevicesAreRegistered(otherDevices: [String]) async throws {
+        let wallet = try makeSolanaWallet(signerLocators: otherDevices)
+        #expect(await wallet.needsRecovery())
+
+        try await wallet.recover()
+
+        #expect(await wallet.localDeviceSigner() != nil)
+        #expect(await wallet.needsRecovery() == false)
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(walletService.removeSignerCallCount == 0)
+    }
+
     @Test func marksTheWalletForRecoveryWhenTheTrustedKeyDies() async throws {
         let wallet = try makeSolanaWallet()
         try await wallet.recover()

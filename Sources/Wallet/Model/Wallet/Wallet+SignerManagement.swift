@@ -388,33 +388,24 @@ extension Wallet {
     }
 
     internal func initDefaultSigner(delegatedSigners: [WalletSignerConfigApiModel]) async {
-        guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
+        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return }
 
         switch delegatedSigners.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard case .device = delegatedSigners[0].locator,
-                  let storage = deviceSignerKeyStorage else { return }
+            guard case .device = delegatedSigners[0].locator else { return }
             if await storage.getKey(address: address) != nil {
                 _deviceSignerApproved = true
             } else {
                 _needsRecovery = true
             }
         default:
-            // Multiple delegated signers — user must call useSigner to select one
-            if await holdsUnapprovedDeviceKey(among: delegatedSigners) {
+            let registersADevice = delegatedSigners.contains { $0.locator.isDevice }
+            if registersADevice, await storage.getKey(address: address) == nil {
                 _needsRecovery = true
             }
-        }
-    }
-
-    private func holdsUnapprovedDeviceKey(among signers: [WalletSignerConfigApiModel]) async -> Bool {
-        guard let storage = deviceSignerKeyStorage, await storage.getKey(address: address) == nil else { return false }
-        return signers.contains { entry in
-            guard case .device(let publicKey) = entry.locator else { return false }
-            return storage.hasKey(publicKeyBase64: publicKey)
         }
     }
 
