@@ -320,4 +320,27 @@ struct TransferTokenRecipientTest {
         let set: Set<TransferTokenRecipient> = [email1, email2, email3]
         #expect(set.count == 2)
     }
+
+    @Test(.tags(.unit))
+    func logsOnlyTheKindOfAPersonalRecipient() {
+        let recipients: [(TransferTokenRecipient, String)] = [
+            (.email(.just("alice@example.com")), "email"),
+            (.email(.withChain("alice@example.com", chain: .solana)), "email"),
+            (.phoneNumber(.just("+15551234567")), "phoneNumber"),
+            (.twitter(.just("alice_example")), "twitter"),
+            (.x(.just("alice_example")), "x"),
+            (.userId(.withChain("user-8f3a1c2b", chain: .solana)), "userId")
+        ]
+
+        for (recipient, kind) in recipients {
+            #expect(recipient.logValue == kind)
+        }
+    }
+
+    @Test(.tags(.unit))
+    func logsTheChainAndAddressOfAnAddressRecipient() {
+        let recipient = TransferTokenRecipient.address(.evm(.ethereum, someEVMAddress))
+
+        #expect(recipient.logValue == "ethereum:\(someEVMAddress.address)")
+    }
 }
