@@ -108,6 +108,25 @@ struct WalletDeviceSignerFixtureTests {
         #expect(walletService.removeSignerCallCount == 0)
     }
 
+    @Test(arguments: [[], ["device:BBBB"]])
+    func keepsTheKeyThatWasUnreadableWhenTheWalletLoaded(otherDevices: [String]) async throws {
+        let onboarded = try makeSolanaWallet()
+        try await onboarded.recover()
+        let locator = try #require(await onboarded.localDeviceSigner())
+
+        store.locked = true
+        let reloaded = try makeSolanaWallet(signerLocators: [locator.value] + otherDevices)
+        #expect(await reloaded.needsRecovery())
+        store.locked = false
+
+        try await reloaded.recover()
+
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(walletService.removeSignerCallCount == 0)
+        #expect(await reloaded.needsRecovery() == false)
+        #expect(await reloaded.localDeviceSigner() == locator)
+    }
+
     @Test func marksTheWalletForRecoveryWhenTheTrustedKeyDies() async throws {
         let wallet = try makeSolanaWallet()
         try await wallet.recover()

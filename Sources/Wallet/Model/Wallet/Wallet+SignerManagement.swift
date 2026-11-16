@@ -400,11 +400,13 @@ extension Wallet {
                 _deviceSignerApproved = true
             } else {
                 _needsRecovery = true
+                _deviceKeyLost = true
             }
         default:
             let registersADevice = delegatedSigners.contains { $0.locator.isDevice }
             if registersADevice, await storage.getKey(address: address) == nil {
                 _needsRecovery = true
+                _deviceKeyLost = true
             }
         }
     }
