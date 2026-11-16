@@ -77,6 +77,42 @@ struct PersonalDataScrubbingTests {
     }
 
     @Test(arguments: [
+        (
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/email:alice%40example.com",
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/email:***"
+        ),
+        (
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/phone:%2B14155552671?chain=base",
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/phone:***?chain=base"
+        ),
+        (
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/phone:%2B1%20%28415%29%20555-2671/approve",
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/phone:***/approve"
+        ),
+        (
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/email:jos%C3%A9%40ex%C3%A4mple.com",
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/email:***"
+        ),
+        (
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/phoneNumber%3A%2B14155552671%3Abase",
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/phoneNumber%3A***%3Abase"
+        ),
+        (
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/userId%3Auser-8f3a1c2b%3Abase",
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/userId%3A***%3Abase"
+        ),
+        (
+            "Console[log]: onboarding alice%2Btest%40example.com done",
+            "Console[log]: onboarding *** done"
+        )
+    ])
+    func masksIdentifiersEncodedInURLs(logLine: String, expected: String) {
+        #expect(CredentialScrubber.scrub(logLine) == expected)
+    }
+
+    @Test(arguments: [
+        "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/device:04a1b2c3d4e5f607",
+        "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/external-wallet:0x8f3a1c2b?chain=base",
         "Loaded crossmint-sdk@1.2.3 in the signer frame",
         #"Web >> Native: {"event":"response:sign","data":{"signature":{"bytes":"0x1234abcd"}}}"#,
         "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/0x8f3a1c2b4d5e6f708192a3b4c5d6e7f8"
