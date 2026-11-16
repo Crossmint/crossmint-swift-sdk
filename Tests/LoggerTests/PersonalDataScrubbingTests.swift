@@ -14,55 +14,55 @@ struct PersonalDataScrubbingTests {
     @Test(arguments: [
         (
             #"Native >> Web: {"data":{"data":{"authId":"email:alice@example.com"}},"event":"request:get-status"}"#,
-            #"Native >> Web: {"data":{"data":{"authId":"email:a***@example.com"}},"event":"request:get-status"}"#
+            #"Native >> Web: {"data":{"data":{"authId":"email:***"}},"event":"request:get-status"}"#
         ),
         (
             #"Native >> Web: {"data":{"data":{"authId":"phone:+15551234567"}},"event":"request:sign"}"#,
-            #"Native >> Web: {"data":{"data":{"authId":"phone:+1***4567"}},"event":"request:sign"}"#
+            #"Native >> Web: {"data":{"data":{"authId":"phone:***"}},"event":"request:sign"}"#
         ),
         (
             "Console[log]: onboarding email:bob.smith+test@mail.example.co.uk",
-            "Console[log]: onboarding email:b***@mail.example.co.uk"
+            "Console[log]: onboarding email:***"
         ),
         (
             "{\n  \"owner\" : \"phoneNumber:+447700900123\",\n  \"email\" : \"carol@example.org\"\n}",
-            "{\n  \"owner\" : \"phoneNumber:+4***0123\",\n  \"email\" : \"c***@example.org\"\n}"
+            "{\n  \"owner\" : \"phoneNumber:***\",\n  \"email\" : \"***\"\n}"
         ),
         (
             "{\n  \"phoneNumber\" : \"+15551234567\",\n  \"phone\" : \"5551234567\"\n}",
-            "{\n  \"phoneNumber\" : \"+1***4567\",\n  \"phone\" : \"5***4567\"\n}"
+            "{\n  \"phoneNumber\" : \"***\",\n  \"phone\" : \"***\"\n}"
         ),
         (
             #"{"authId":"email:josé@exämple.com"}"#,
-            #"{"authId":"email:j***@exämple.com"}"#
+            #"{"authId":"email:***"}"#
         ),
         (
             "Console[log]: onboarding élodie.dupont@société.fr",
-            "Console[log]: onboarding é***@société.fr"
+            "Console[log]: onboarding ***"
         ),
         (
             "Console[log]: onboarding 用户@例子.广告",
-            "Console[log]: onboarding 用***@例子.广告"
+            "Console[log]: onboarding ***"
         ),
         (
             #"{"authId":"phone:+1 (555) 123-4567"}"#,
-            #"{"authId":"phone:+1***4567"}"#
+            #"{"authId":"phone:***"}"#
         ),
         (
             "recipient phoneNumber:555.123.4567:base signed",
-            "recipient phoneNumber:5***4567:base signed"
+            "recipient phoneNumber:***:base signed"
         ),
         (
             #"{"phone" : "+44 7700 900123"}"#,
-            #"{"phone" : "+4***0123"}"#
+            #"{"phone" : "***"}"#
         ),
         (
             "phone:+1 555 123 45 67 approved",
-            "phone:+1*** approved"
+            "phone:*** approved"
         ),
         (
             #"{"onboarding.authId":"email:"john doe"@example.com"}"#,
-            #"{"onboarding.authId":"email:"***@example.com"}"#
+            #"{"onboarding.authId":"email:***"}"#
         )
     ])
     func masksEmailsAndPhoneNumbers(logLine: String, expected: String) {
@@ -73,7 +73,7 @@ struct PersonalDataScrubbingTests {
         let message = try JSONEncoder().encode(["authId": "email:alice/smith@example.com"])
         let scrubbed = CredentialScrubber.scrub(try #require(String(bytes: message, encoding: .utf8)))
 
-        #expect(scrubbed == #"{"authId":"email:a***@example.com"}"#)
+        #expect(scrubbed == #"{"authId":"email:***"}"#)
     }
 
     @Test(arguments: [
