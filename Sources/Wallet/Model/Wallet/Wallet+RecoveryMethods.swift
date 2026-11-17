@@ -74,7 +74,7 @@ extension Wallet {
     @discardableResult
     public func removeRecoveryMethod(locator: SignerLocator) async throws(WalletError) -> Transaction {
         Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodStart, attributes: [
-            "locator": locator.value
+            "locator": locator.logValue
         ])
         do {
             let approver = try await recoveryMethodApprover()
@@ -88,13 +88,13 @@ extension Wallet {
             let transaction = try await approveRecoveryMethodChange(created.toDomain())
             recordRemovedRecoveryMethod(locator)
             Logger.smartWallet.info(LogEvents.walletRemoveRecoveryMethodSuccess, attributes: [
-                "locator": locator.value,
+                "locator": locator.logValue,
                 "transactionId": transaction.id
             ])
             return transaction
         } catch {
             Logger.smartWallet.error(LogEvents.walletRemoveRecoveryMethodError, attributes: [
-                "locator": locator.value,
+                "locator": locator.logValue,
                 "error": "\(error)"
             ])
             throw error
@@ -132,7 +132,7 @@ extension Wallet {
             let signer = try await recoveryMethodSigner(for: method)
             selectedRecoveryMethod = RecoveryApprover(signer: signer, locator: locator)
             Logger.smartWallet.info(LogEvents.walletUseRecoveryMethodSuccess, attributes: [
-                "locator": locator.value
+                "locator": locator.logValue
             ])
         } catch {
             Logger.smartWallet.error(LogEvents.walletUseRecoveryMethodError, attributes: [

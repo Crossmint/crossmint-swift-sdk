@@ -54,6 +54,15 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         }
     }
 
+    var logValue: String {
+        switch self {
+        case .email: "email"
+        case .phone: "phone"
+        case .unknown: "unknown"
+        case .device, .externalWallet, .passkey, .apiKey, .server: value
+        }
+    }
+
     public static func == (lhs: SignerLocator, rhs: SignerLocator) -> Bool {
         lhs.value == rhs.value
     }
@@ -71,9 +80,7 @@ public enum SignerLocator: Codable, Sendable, Hashable {
         do {
             self = try SignerLocator(from: rawLocator)
         } catch {
-            Logger.smartWallet.warning(LogEvents.signerLocatorUnknown, attributes: [
-                "locator": rawLocator
-            ])
+            Logger.smartWallet.warning(LogEvents.signerLocatorUnknown)
             self = .unknown(rawLocator)
         }
     }
