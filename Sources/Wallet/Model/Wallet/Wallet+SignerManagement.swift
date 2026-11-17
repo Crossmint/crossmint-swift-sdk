@@ -95,7 +95,11 @@ extension Wallet {
         }
         switch try await pendingDeviceRegistration(storage: storage) {
         case .awaitingApproval(let transaction):
-            return transaction
+            guard transaction.status == .awaitingApproval, await oneRecoveryMethodApprovesAlone() else {
+                return transaction
+            }
+            await discardPendingDeviceKey()
+            return try await registerReplacementDeviceKey(storage: storage)
         case .activated:
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
             return nil
@@ -107,8 +111,6 @@ extension Wallet {
     private func registerReplacementDeviceKey(
         storage: any DeviceSignerKeyStorage
     ) async throws(WalletError) -> Transaction? {
-        let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
-
         do {
             let approver = try await authorizingRecovery()
             if let pendingTransactionId = try await registerDeviceSigner(storage: storage, approver: approver) {
@@ -123,34 +125,12 @@ extension Wallet {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
-
-        if let staleDeviceSignerLocator {
-            await removeStaleDeviceSigner(staleDeviceSignerLocator)
-        }
         return nil
     }
 
-    private func findStaleDeviceSignerLocator() async -> SignerLocator? {
-        let currentSigners = (try? await signers()) ?? []
-        let deviceLocators = currentSigners
-            .map(\.locator)
-            .filter(\.isDevice)
-        guard deviceLocators.count == 1 else { return nil }
-        return deviceLocators[0]
-    }
-
-    private func removeStaleDeviceSigner(_ locator: SignerLocator) async {
-        do {
-            _ = try await removeSigner(locator: locator)
-            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [
-                "signerLocator": locator.value
-            ])
-        } catch {
-            Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
-                "signerLocator": locator.value,
-                "error": "\(error)"
-            ])
-        }
+    private func oneRecoveryMethodApprovesAlone() async -> Bool {
+        guard let approver = try? await authorizingRecovery() else { return false }
+        return !approver.isQuorum
     }
 
     private func fallBackToRecoverySigner(storage: any DeviceSignerKeyStorage) async {

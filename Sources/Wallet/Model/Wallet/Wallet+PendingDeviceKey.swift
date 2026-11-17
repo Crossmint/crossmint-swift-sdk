@@ -37,12 +37,17 @@ extension Wallet {
             }
             return .activated
         case .failed:
-            try? await pendingDeviceKey.storage.deletePendingKey(publicKeyBase64: pendingDeviceKey.publicKeyBase64)
-            self.pendingDeviceKey = nil
+            await discardPendingDeviceKey()
             return .none
         case .pending, .awaitingApproval:
             return .awaitingApproval(transaction)
         }
+    }
+
+    func discardPendingDeviceKey() async {
+        guard let pending = pendingDeviceKey else { return }
+        try? await pending.storage.deletePendingKey(publicKeyBase64: pending.publicKeyBase64)
+        pendingDeviceKey = nil
     }
 
     func activatePendingDeviceKey() async -> Bool {
