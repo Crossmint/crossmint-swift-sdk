@@ -66,8 +66,6 @@ extension Wallet {
             return
         }
 
-        let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
-
         do {
             try await registerDeviceSigner(storage: storage, approver: try await authorizingRecovery())
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
@@ -78,33 +76,6 @@ extension Wallet {
             }
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
-        }
-
-        if let staleDeviceSignerLocator {
-            await removeStaleDeviceSigner(staleDeviceSignerLocator)
-        }
-    }
-
-    private func findStaleDeviceSignerLocator() async -> SignerLocator? {
-        let currentSigners = (try? await signers()) ?? []
-        let deviceLocators = currentSigners
-            .map(\.locator)
-            .filter(\.isDevice)
-        guard deviceLocators.count == 1 else { return nil }
-        return deviceLocators[0]
-    }
-
-    private func removeStaleDeviceSigner(_ locator: SignerLocator) async {
-        do {
-            _ = try await removeSigner(locator: locator)
-            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [
-                "signerLocator": locator.logValue
-            ])
-        } catch {
-            Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
-                "signerLocator": locator.logValue,
-                "error": "\(error)"
-            ])
         }
     }
 
@@ -300,23 +271,26 @@ extension Wallet {
     }
 
     internal func initDefaultSigner(delegatedSigners: [WalletSignerConfigApiModel]) async {
-        guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
+        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return }
 
         switch delegatedSigners.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard case .device = delegatedSigners[0].locator,
-                  let storage = deviceSignerKeyStorage else { return }
+            guard case .device = delegatedSigners[0].locator else { return }
             if await storage.getKey(address: address) != nil {
                 _deviceSignerApproved = true
             } else {
                 _needsRecovery = true
+                _deviceKeyLost = true
             }
         default:
-            // Multiple delegated signers — user must call useSigner to select one
-            break
+            let registersADevice = delegatedSigners.contains { $0.locator.isDevice }
+            if registersADevice, await storage.getKey(address: address) == nil {
+                _needsRecovery = true
+                _deviceKeyLost = true
+            }
         }
     }
 
