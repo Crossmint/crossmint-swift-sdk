@@ -51,18 +51,18 @@ public enum WalletError: CrossmintError {
         case signerNotAllowed = "RECOVERY_SIGNER_NOT_ALLOWED"
         /// The wallet has no other recovery method, so you cannot remove this one.
         case lastSigner = "LAST_RECOVERY_SIGNER"
-        /// The wallet does not accept a quorum here. For example, a Solana wallet does not accept a quorum
-        /// as a signer that you add with ``Wallet/addSigner(_:signer:approvingMembers:prepareOnly:)``.
+        /// The wallet does not accept a quorum for this operation. For example, you cannot add a quorum to a Solana
+        /// wallet with ``Wallet/addSigner(_:signer:approvingMembers:prepareOnly:)``.
         case quorumUnsupported = "QUORUM_SIGNER_UNSUPPORTED"
-        /// Quorums are not turned on for this chain in your Crossmint project.
+        /// Your Crossmint project does not have quorums on this chain.
         case quorumThresholdUnsupported = "QUORUM_THRESHOLD_UNSUPPORTED"
-        /// The threshold is higher than the chain allows. A Solana quorum has a threshold of six or less.
+        /// The threshold is higher than the chain allows. The threshold of a Solana quorum must be six or less.
         case quorumThresholdTooHighForChain = "QUORUM_THRESHOLD_TOO_HIGH_FOR_CHAIN"
-        /// A Solana wallet holds each key once. The key is already a signer of the wallet or a member of a quorum.
+        /// A Solana wallet holds each key one time. The key is already a signer or a quorum member of the wallet.
         case signerKeyInUse = "SIGNER_KEY_IN_USE"
-        /// The approving members are not as many as the threshold of the quorum.
+        /// The number of approving members is not equal to the threshold of the quorum.
         case quorumApprovingMembersCountMismatch = "QUORUM_APPROVING_MEMBERS_COUNT_MISMATCH"
-        /// An approving member is not a member of the quorum, or is named twice.
+        /// An approving member is not in the quorum, or the list has the same member two times.
         case quorumApprovingMemberInvalid = "QUORUM_APPROVING_MEMBER_INVALID"
         /// The quorum has fewer than two members.
         case quorumTooFewMembers = "QUORUM_TOO_FEW_MEMBERS"

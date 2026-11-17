@@ -159,8 +159,8 @@ extension Wallet {
     ///   - signer: The recovery method that approves the removal. Use it to name the quorum to approve for
     ///     when the recovery method you selected is a member of more than one quorum.
     ///   - approvingMembers: The quorum members that approve, when a quorum approves on a Solana wallet.
-    ///     Name exactly as many members as the threshold. When you omit it, the SDK names the selected member first,
-    ///     then the other members in the order of the quorum.
+    ///     Give exactly as many members as the threshold of the quorum. If you do not give members,
+    ///     the SDK uses the active member first. Then it adds the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the removal without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
     /// - Returns: The completed ``Transaction`` once the signer has been removed on-chain.
@@ -315,7 +315,6 @@ extension Wallet {
     ///
     /// - Returns: A ``TransactionSummary`` with the on-chain hash and explorer link once confirmed.
     ///   When the SDK does not approve the transfer, the summary has only the transaction ID.
-    /// - Throws: ``TransactionError/quorumUnsupported(chain:)`` if a quorum sends the transfer on a Solana wallet.
     ///
     /// ## Example
     /// ```swift
@@ -463,9 +462,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             signerLocator = deviceLocator.value
         } else {
             signerLocator = try await transactionSignerLocator()
-        }
-        if chain.chainType == .solana, isQuorum(signerLocator) {
-            throw .quorumUnsupported(chain: .solana)
         }
         let transferRequest = TransferTokenRequest(
             chainType: chain.chainType,

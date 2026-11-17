@@ -30,8 +30,8 @@ extension Wallet {
     ///   - signer: The recovery method that approves the new signer. Use it to name the quorum to approve for
     ///     when the recovery method you selected is a member of more than one quorum.
     ///   - approvingMembers: The quorum members that approve, when a quorum approves on a Solana wallet.
-    ///     Name exactly as many members as the threshold. When you omit it, the SDK names the selected member first,
-    ///     then the other members in the order of the quorum.
+    ///     Give exactly as many members as the threshold of the quorum. If you do not give members,
+    ///     the SDK uses the active member first. Then it adds the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the registration without approving it.
     ///     Then approve it with ``approve(transactionId:)``. Solana and Stellar wallets only.
     /// - Returns: With `prepareOnly`, or when a quorum approves, the transaction that adds the signer.

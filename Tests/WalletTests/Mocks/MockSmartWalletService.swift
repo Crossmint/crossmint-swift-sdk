@@ -243,8 +243,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         )
     }
 
-    var lastRegisterTypedSignerApprovingMembers: [SignerLocator]?
-
     func registerTypedSigner(
         _ signer: any AdminSignerData,
         chainType: ChainType,
@@ -252,7 +250,6 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         deployImmediately: Bool?,
         approval: SignerChangeApproval?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        lastRegisterTypedSignerApprovingMembers = approval?.approvingMembers
         registerTypedSignerCallCount += 1
         lastRegisterTypedSignerDeployImmediately = deployImmediately
         lastRegisterTypedSignerApprover = approval?.approver
@@ -405,15 +402,12 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var lastAddRecoveryMethod: (any AdminSignerData)?
     var lastAddRecoveryMethodApprover: SignerLocator?
 
-    var lastAddRecoveryMethodApprovingMembers: [SignerLocator]?
-
     func addRecoveryMethod(
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
         approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
-        lastAddRecoveryMethodApprovingMembers = approval.approvingMembers
         addRecoveryMethodCallCount += 1
         lastAddRecoveryMethod = recoveryMethod
         lastAddRecoveryMethodApprover = approval.approver
@@ -432,15 +426,12 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
     var lastRemoveRecoveryMethodLocator: SignerLocator?
     var lastRemoveRecoveryMethodApprover: SignerLocator?
 
-    var lastRemoveRecoveryMethodApprovingMembers: [SignerLocator]?
-
     func removeRecoveryMethod(
         _ locator: SignerLocator,
         chainType: ChainType,
         chainName: String,
         approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
-        lastRemoveRecoveryMethodApprovingMembers = approval.approvingMembers
         removeRecoveryMethodCallCount += 1
         lastRemoveRecoveryMethodLocator = locator
         lastRemoveRecoveryMethodApprover = approval.approver

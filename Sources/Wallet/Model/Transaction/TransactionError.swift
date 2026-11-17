@@ -16,15 +16,13 @@ public enum TransactionError: CrossmintError {
     case transactionGeneric(String)
     /// The transaction expired before it got all the approvals. Create a new transaction.
     case transactionExpired(String)
-    /// Crossmint cancelled the transaction before it got all the approvals. Create a new transaction.
+    /// Crossmint cancelled the transaction before it got all its approvals. Send the transaction again.
     case transactionCancelled(String)
     /// The signer is a member of a quorum. A member can approve a transaction.
     /// A member cannot create a transaction.
     case signerIsQuorumMember(String)
     /// The active signer is a member of more than one quorum. Name the quorum with the `signer` parameter.
     case quorumSelectionAmbiguous(quorums: [SignerLocator])
-    /// A quorum cannot do this on this chain yet. On a Solana wallet, a quorum cannot send a token transfer.
-    case quorumUnsupported(chain: ChainType)
 
     public var code: String {
         switch self {
@@ -43,7 +41,6 @@ public enum TransactionError: CrossmintError {
         case .transactionCancelled: "TRANSACTION_CANCELLED"
         case .signerIsQuorumMember: "SIGNER_IS_QUORUM_MEMBER"
         case .quorumSelectionAmbiguous: "QUORUM_SELECTION_AMBIGUOUS"
-        case .quorumUnsupported: "QUORUM_SIGNER_UNSUPPORTED"
         }
     }
 
@@ -76,8 +73,6 @@ public enum TransactionError: CrossmintError {
             "The user cancelled the signing"
         case .quorumSelectionAmbiguous(let quorums):
             "The signer is a member of these quorums: \(quorums.map(\.value).joined(separator: ", "))"
-        case .quorumUnsupported(let chain):
-            "A quorum cannot send a token transfer on \(chain.rawValue) wallets yet."
         }
     }
 
@@ -96,8 +91,6 @@ public enum TransactionError: CrossmintError {
             "Name the quorum as the signer."
         case .quorumSelectionAmbiguous:
             "Pass the quorum to act for as signer."
-        case .quorumUnsupported:
-            "Use a signer that authorizes on its own."
         default:
             nil
         }
