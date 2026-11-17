@@ -143,11 +143,11 @@ extension Wallet {
         do {
             _ = try await removeSigner(locator: locator)
             Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [
-                "signerLocator": locator.value
+                "signerLocator": locator.logValue
             ])
         } catch {
             Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
-                "signerLocator": locator.value,
+                "signerLocator": locator.logValue,
                 "error": "\(error)"
             ])
         }

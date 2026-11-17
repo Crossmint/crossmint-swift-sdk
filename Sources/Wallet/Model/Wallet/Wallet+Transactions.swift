@@ -176,8 +176,9 @@ extension Wallet {
         approver explicitApprover: SignerLocator? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> Transaction {
+        let logValue = (try? SignerLocator(from: locator))?.logValue ?? "unknown"
         Logger.smartWallet.info(LogEvents.walletRemoveSignerStart, attributes: [
-            "locator": locator
+            "locator": logValue
         ])
 
         do {
@@ -204,12 +205,12 @@ extension Wallet {
                 if isQuorum(locator) { await reloadRecoveryMethods() }
             }
             Logger.smartWallet.info(LogEvents.walletRemoveSignerSuccess, attributes: [
-                "locator": locator
+                "locator": logValue
             ])
             return result
         } catch {
             Logger.smartWallet.error(LogEvents.walletRemoveSignerError, attributes: [
-                "locator": locator,
+                "locator": logValue,
                 "error": "\(error)"
             ])
             throw error as? TransactionError ?? .transactionGeneric("Unknown error")
@@ -251,7 +252,7 @@ extension Wallet {
     ) async throws(TransactionError) -> Transaction {
         Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
             "token": token.name,
-            "recipient": recipient.description,
+            "recipient": recipient.logValue,
             "amount": amount
         ])
 
@@ -605,7 +606,9 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         if let transaction, let approvals = transaction.approvals, !approvals.pending.isEmpty {
             Logger.smartWallet.debug("wallet.signTransaction.pendingApprovals", attributes: [
                 "count": "\(approvals.pending.count)",
-                "signers": approvals.pending.map(\.signer).joined(separator: ", ")
+                "signers": approvals.pending
+                    .map { (try? SignerLocator(from: $0.signer))?.logValue ?? "unknown" }
+                    .joined(separator: ", ")
             ])
             for pendingApproval in approvals.pending
             where !SignerLocator(orUnknown: pendingApproval.signer).isApiKey {
