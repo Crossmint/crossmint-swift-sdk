@@ -95,7 +95,9 @@ extension Wallet {
         }
         switch try await pendingDeviceRegistration(storage: storage) {
         case .awaitingApproval(let transaction):
-            return transaction
+            guard await pendingDeviceKeyWasAbandoned(before: transaction) else { return transaction }
+            await discardPendingDeviceKey()
+            return try await registerReplacementDeviceKey(storage: storage)
         case .activated:
             Logger.smartWallet.info(LogEvents.walletRecoverSuccess)
             return nil
@@ -107,8 +109,6 @@ extension Wallet {
     private func registerReplacementDeviceKey(
         storage: any DeviceSignerKeyStorage
     ) async throws(WalletError) -> Transaction? {
-        let staleDeviceSignerLocator = await findStaleDeviceSignerLocator()
-
         do {
             let approver = try await authorizingRecovery()
             if let pendingTransactionId = try await registerDeviceSigner(storage: storage, approver: approver) {
@@ -123,34 +123,14 @@ extension Wallet {
             Logger.smartWallet.error(LogEvents.walletRecoverError, attributes: ["error": "\(error)"])
             throw error
         }
-
-        if let staleDeviceSignerLocator {
-            await removeStaleDeviceSigner(staleDeviceSignerLocator)
-        }
         return nil
     }
 
-    private func findStaleDeviceSignerLocator() async -> SignerLocator? {
-        let currentSigners = (try? await signers()) ?? []
-        let deviceLocators = currentSigners
-            .map(\.locator)
-            .filter(\.isDevice)
-        guard deviceLocators.count == 1 else { return nil }
-        return deviceLocators[0]
-    }
-
-    private func removeStaleDeviceSigner(_ locator: SignerLocator) async {
-        do {
-            _ = try await removeSigner(locator: locator)
-            Logger.smartWallet.info(LogEvents.walletRecoverStaleSignerRemoved, attributes: [
-                "signerLocator": locator.logValue
-            ])
-        } catch {
-            Logger.smartWallet.warning(LogEvents.walletRecoverStaleSignerRemovalFailed, attributes: [
-                "signerLocator": locator.logValue,
-                "error": "\(error)"
-            ])
-        }
+    private func pendingDeviceKeyWasAbandoned(before transaction: Transaction) async -> Bool {
+        guard pendingDeviceKey?.isFromAnEarlierSession == true,
+              transaction.status == .awaitingApproval,
+              let approver = try? await authorizingRecovery() else { return false }
+        return !approver.isQuorum
     }
 
     private func fallBackToRecoverySigner(storage: any DeviceSignerKeyStorage) async {
@@ -388,33 +368,26 @@ extension Wallet {
     }
 
     internal func initDefaultSigner(delegatedSigners: [WalletSignerConfigApiModel]) async {
-        guard deviceSignerKeyStorage != nil, !_deviceSignerUnsupported else { return }
+        guard let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return }
 
         switch delegatedSigners.count {
         case 0:
             // Device signer was configured but none was registered — recovery needed
             _needsRecovery = true
         case 1:
-            guard case .device = delegatedSigners[0].locator,
-                  let storage = deviceSignerKeyStorage else { return }
+            guard case .device = delegatedSigners[0].locator else { return }
             if await storage.getKey(address: address) != nil {
                 _deviceSignerApproved = true
             } else {
                 _needsRecovery = true
+                _deviceKeyLost = true
             }
         default:
-            // Multiple delegated signers — user must call useSigner to select one
-            if await holdsUnapprovedDeviceKey(among: delegatedSigners) {
+            let registersADevice = delegatedSigners.contains { $0.locator.isDevice }
+            if registersADevice, await storage.getKey(address: address) == nil {
                 _needsRecovery = true
+                _deviceKeyLost = true
             }
-        }
-    }
-
-    private func holdsUnapprovedDeviceKey(among signers: [WalletSignerConfigApiModel]) async -> Bool {
-        guard let storage = deviceSignerKeyStorage, await storage.getKey(address: address) == nil else { return false }
-        return signers.contains { entry in
-            guard case .device(let publicKey) = entry.locator else { return false }
-            return storage.hasKey(publicKeyBase64: publicKey)
         }
     }
 

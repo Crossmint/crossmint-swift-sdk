@@ -23,7 +23,9 @@ extension Wallet {
         ])
 
         do {
-            try await preAuthIfNeeded()
+            if await !holdsThePendingDeviceKey(ofTransaction: id) {
+                try await preAuthIfNeeded()
+            }
         } catch {
             throw .transactionGeneric(error.message)
         }
@@ -36,7 +38,7 @@ extension Wallet {
             if signedTransaction.status == .success, let model = await reloadRecoveryMethods() {
                 await forgetLocalDeviceKeyIfRemoved(from: model.config.signers ?? [])
             }
-            if signedTransaction.status == .success, pendingDeviceKey?.transactionId == signedTransaction.id {
+            if signedTransaction.status == .success, pendingDeviceKey?.transactionId == id {
                 _ = await activatePendingDeviceKey()
             }
 

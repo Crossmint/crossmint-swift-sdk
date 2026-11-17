@@ -37,12 +37,24 @@ extension Wallet {
             }
             return .activated
         case .failed:
-            try? await pendingDeviceKey.storage.deletePendingKey(publicKeyBase64: pendingDeviceKey.publicKeyBase64)
-            self.pendingDeviceKey = nil
+            await discardPendingDeviceKey()
             return .none
         case .pending, .awaitingApproval:
             return .awaitingApproval(transaction)
         }
+    }
+
+    func holdsThePendingDeviceKey(ofTransaction id: String) async -> Bool {
+        await signerInitializationTask?.value
+        guard _needsRecovery, let storage = deviceSignerKeyStorage, !_deviceSignerUnsupported else { return false }
+        await restorePendingDeviceKey(storage: storage)
+        return pendingDeviceKey?.transactionId == id
+    }
+
+    func discardPendingDeviceKey() async {
+        guard let pending = pendingDeviceKey else { return }
+        try? await pending.storage.deletePendingKey(publicKeyBase64: pending.publicKeyBase64)
+        pendingDeviceKey = nil
     }
 
     func activatePendingDeviceKey() async -> Bool {
@@ -76,7 +88,8 @@ extension Wallet {
         pendingDeviceKey = PendingDeviceKey(
             transactionId: transaction.id,
             publicKeyBase64: heldKey,
-            storage: storage
+            storage: storage,
+            isFromAnEarlierSession: true
         )
         Logger.smartWallet.info(LogEvents.walletRecoverPendingKeyRestored, attributes: [
             "transactionId": transaction.id
