@@ -17,8 +17,7 @@ struct IdentifierLoggingTests {
         ("phoneNumber:+15551234567:base", "phoneNumber:***:base"),
         ("twitter:alice_example", "twitter:***"),
         ("twitter:alice_example:base", "twitter:***:base"),
-        ("x:alice_example", "x:***"),
-        ("userId:user-8f3a1c2b", "userId:***")
+        ("x:alice_example", "x:***")
     ])
     func emitsNoPartOfAPersonalIdentifier(identifier: String, expected: String) throws {
         let provider = MockLoggerProvider()
@@ -33,7 +32,8 @@ struct IdentifierLoggingTests {
         "device:04a1b2c3d4e5f60718293a4b5c6d7e8f",
         "external-wallet:0x8f3a1c2b4d5e6f708192a3b4c5d6e7f8a9b0c1d2",
         "base:0x8f3a1c2b4d5e6f708192a3b4c5d6e7f8a9b0c1d2",
-        "me:evm"
+        "me:evm",
+        "userId:user-8f3a1c2b"
     ])
     func keepsIdentifiersThatAreNotPersonal(identifier: String) throws {
         let provider = MockLoggerProvider()

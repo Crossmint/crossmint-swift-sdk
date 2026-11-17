@@ -65,7 +65,7 @@ enum CredentialScrubber {
             replacedWith: #"$1***""#
         ),
         Pattern(
-            #"(^|[^A-Za-z0-9])((?:twitter|x|userId)\#(locatorSeparator))(?:(?!%3[Aa])[^:\s"\\])+"#,
+            #"(^|[^A-Za-z0-9])((?:twitter|x)\#(locatorSeparator))(?:(?!%3[Aa])[^:\s"\\])+"#,
             replacedWith: "$1$2***"
         ),
         Pattern(

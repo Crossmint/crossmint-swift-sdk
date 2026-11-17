@@ -329,7 +329,7 @@ struct TransferTokenRecipientTest {
             (.phoneNumber(.just("+15551234567")), "phoneNumber"),
             (.twitter(.just("alice_example")), "twitter"),
             (.x(.just("alice_example")), "x"),
-            (.userId(.withChain("user-8f3a1c2b", chain: .solana)), "userId")
+            (.userId(.withChain("user-8f3a1c2b", chain: .solana)), "userId:user-8f3a1c2b:solana")
         ]
 
         for (recipient, kind) in recipients {

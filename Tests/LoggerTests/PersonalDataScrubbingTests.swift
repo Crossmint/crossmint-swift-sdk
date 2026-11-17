@@ -98,8 +98,8 @@ struct PersonalDataScrubbingTests {
             "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/phoneNumber%3A***%3Abase"
         ),
         (
-            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/userId%3Auser-8f3a1c2b%3Abase",
-            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/userId%3A***%3Abase"
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/twitter%3Aalice_example%3Abase",
+            "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/twitter%3A***%3Abase"
         ),
         (
             "Console[log]: onboarding alice%2Btest%40example.com done",
@@ -111,6 +111,7 @@ struct PersonalDataScrubbingTests {
     }
 
     @Test(arguments: [
+        "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/userId%3Auser-8f3a1c2b%3Abase",
         "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/device:04a1b2c3d4e5f607",
         "📍 URL: https://staging.crossmint.com/api/2025-06-09/wallets/me:evm/signers/external-wallet:0x8f3a1c2b?chain=base",
         "Loaded crossmint-sdk@1.2.3 in the signer frame",
