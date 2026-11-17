@@ -95,9 +95,7 @@ extension Wallet {
         }
         switch try await pendingDeviceRegistration(storage: storage) {
         case .awaitingApproval(let transaction):
-            guard transaction.status == .awaitingApproval, await oneRecoveryMethodApprovesAlone() else {
-                return transaction
-            }
+            guard await pendingDeviceKeyWasAbandoned(before: transaction) else { return transaction }
             await discardPendingDeviceKey()
             return try await registerReplacementDeviceKey(storage: storage)
         case .activated:
@@ -128,8 +126,10 @@ extension Wallet {
         return nil
     }
 
-    private func oneRecoveryMethodApprovesAlone() async -> Bool {
-        guard let approver = try? await authorizingRecovery() else { return false }
+    private func pendingDeviceKeyWasAbandoned(before transaction: Transaction) async -> Bool {
+        guard pendingDeviceKey?.isFromAnEarlierSession == true,
+              transaction.status == .awaitingApproval,
+              let approver = try? await authorizingRecovery() else { return false }
         return !approver.isQuorum
     }
 

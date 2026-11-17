@@ -151,6 +151,44 @@ struct WalletDeviceSignerFixtureTests {
         #expect(store.tags.count == 1)
     }
 
+    @Test func keepsTheKeyOfARegistrationTheAppPrepared() async throws {
+        let wallet = try makeSolanaWallet(signerLocators: ["device:BAAA"])
+        let awaitingApproval = try removalTransaction(status: "awaiting-approval")
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: awaitingApproval.id, status: "awaiting-approval")
+        )
+        walletService.fetchTransactionResult = awaitingApproval
+        let prepared = try #require(try await wallet.addSigner(.device, prepareOnly: true))
+
+        let pending = try await wallet.recover()
+
+        #expect(pending?.id == prepared.id)
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(store.tags.count == 1)
+    }
+
+    @Test func approvesAPreparedRegistrationWithTheKeyItWasPreparedWith() async throws {
+        let preparedKey = try await KeychainKeyStorage.inMemory(store).generateKey(address: nil)
+        let prepared = SignerLocator.device(publicKey: preparedKey)
+        let approved = try removalTransaction()
+        let wallet = try makeSolanaWallet(signerLocators: ["device:BAAA", prepared.value])
+        walletService.getSignerResponses = [
+            prepared.value: AddDelegatedSignerResponse(
+                chains: nil,
+                transaction: RegistrationTransaction(id: approved.id, status: "awaiting-approval")
+            )
+        ]
+        walletService.fetchTransactionResults = [try removalTransaction(status: "awaiting-approval")]
+        walletService.fetchTransactionResult = approved
+
+        _ = try await wallet.approve(transactionId: approved.id)
+
+        #expect(walletService.addSignerCallCount == 0)
+        #expect(await wallet.localDeviceSigner() == prepared)
+        #expect(await wallet.needsRecovery() == false)
+    }
+
     @Test func waitsForARegistrationThatIsAlreadyApproved() async throws {
         let approvedKey = try await KeychainKeyStorage.inMemory(store).generateKey(address: nil)
         let approved = SignerLocator.device(publicKey: approvedKey)
