@@ -108,7 +108,7 @@ struct WalletQuorumChainTests {
     @Test func namesTheActiveMemberFirstWhenAQuorumSendsASolanaTransaction() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeSolanaWallet(walletService: walletService)
-        walletService.createTransactionResult = try solanaTransaction("CreateSolanaTransactionResponse")
+        walletService.createTransactionResult = try solanaTransaction("SolanaQuorumTransferAwaitingApproval")
         try await wallet.useSigner(.phone("+14155552671"))
 
         let summary = try await wallet.sendTransaction(transaction: "AAAA", prepareOnly: false)
@@ -123,7 +123,7 @@ struct WalletQuorumChainTests {
     @Test func namesTheActiveMemberFirstWhenAQuorumSendsASolanaTransfer() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeSolanaWallet(walletService: walletService)
-        walletService.transferTokenResult = try solanaTransaction("CreateSolanaTransactionResponse")
+        walletService.transferTokenResult = try solanaTransaction("SolanaQuorumTransferAwaitingApproval")
         try await wallet.useSigner(.phone("+14155552671"))
 
         _ = try await wallet.send(wallet.address, "solana:usdc", 1)
@@ -136,7 +136,7 @@ struct WalletQuorumChainTests {
     @Test func sendsTheApprovingMembersThatTheCallerNamesForASolanaTransaction() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeSolanaWallet(walletService: walletService)
-        walletService.createTransactionResult = try solanaTransaction("CreateSolanaTransactionResponse")
+        walletService.createTransactionResult = try solanaTransaction("SolanaQuorumTransferAwaitingApproval")
         try await wallet.useSigner(.phone("+14155552671"))
 
         _ = try await wallet.sendTransaction(
