@@ -89,6 +89,28 @@ struct SignerLocatorTests {
         #expect(parsed == original)
     }
 
+    @Test(.tags(.unit), arguments: [
+        (SignerLocator.email("alice@example.com"), "email"),
+        (SignerLocator.phone("+15551234567"), "phone"),
+        (SignerLocator.unknown("twitter:alice_example"), "unknown")
+    ])
+    func logsOnlyTheKindOfAPersonalOrUnknownLocator(locatorAndExpected: (SignerLocator, String)) {
+        #expect(locatorAndExpected.0.logValue == locatorAndExpected.1)
+    }
+
+    @Test(.tags(.unit), arguments: [
+        SignerLocator.device(publicKey: "abc123"),
+        SignerLocator.externalWallet(address: "0xabc"),
+        SignerLocator.passkey(credentialId: "cred-1"),
+        SignerLocator.apiKey(address: "0xdef"),
+        SignerLocator.apiKey(),
+        SignerLocator.server(address: "0x999"),
+        SignerLocator.quorum(id: "9f2c6a1e")
+    ])
+    func logsTheValueOfALocatorThatIsNotPersonal(locator: SignerLocator) {
+        #expect(locator.logValue == locator.value)
+    }
+
     @Test(
         "isDevice matches only device locators",
         arguments: [

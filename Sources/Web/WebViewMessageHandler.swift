@@ -54,12 +54,12 @@ public class WebViewMessageHandler {
 
     public func processIncomingMessage(_ messageBody: Any) {
         guard let messageData = extractMessageData(from: messageBody) else {
-            Logger.web.warning("Failed to extract message data from: \(messageBody)")
+            Logger.web.warning("Failed to extract message data from a \(type(of: messageBody)) message body")
             return
         }
 
         guard let messageTypeInfo = extractMessageType(from: messageData) else {
-            Logger.web.warning("Failed to extract message type from message data: \(messageBody)")
+            Logger.web.warning("Failed to extract message type from message data")
             return
         }
 
@@ -69,7 +69,7 @@ public class WebViewMessageHandler {
         }
 
         if let decodedMessage = WebViewMessageRegistry.decode(messageType: messageTypeInfo, data: messageData) {
-            Logger.web.debug("Web >> Native: \(String(data: messageData, encoding: .utf8) ?? "Unknown")")
+            Logger.web.debug("Web >> Native: \(messageTypeInfo)")
 
             // Deliver to waiting listeners first; only buffer unclaimed messages.
             // Buffering a listener-consumed message leaves a stale copy behind,
@@ -94,10 +94,7 @@ public class WebViewMessageHandler {
             delegate?.handleWebViewMessage(decodedMessage)
         } else {
             // Log unknown message before delegating
-            Logger.web.warning(
-                "Unknown message type: \(messageTypeInfo), " +
-                "data: \(String(data: messageData, encoding: .utf8) ?? "nil")"
-            )
+            Logger.web.warning("Unknown message type: \(messageTypeInfo)")
             delegate?.handleUnknownMessage(messageTypeInfo, data: messageData)
         }
     }

@@ -26,13 +26,6 @@ public struct NoOpSecureStorage: SecureStorage {
     public func storeEmail(_ email: String) async throws(SecureStorageError) {
     }
 
-    public func savePrivateKey(_ privateKey: String, forEmail email: String) {
-    }
-
-    public func getPrivateKey(forEmail email: String) -> String? {
-        nil
-    }
-
     public func clear() {
     }
 }

@@ -120,6 +120,19 @@ struct WalletQuorumChainTests {
         #expect(walletService.signTransactionCallCount == 0)
     }
 
+    @Test func namesTheActiveMemberFirstWhenAQuorumSendsASolanaTransfer() async throws {
+        let walletService = MockSmartWalletService()
+        let wallet = try makeSolanaWallet(walletService: walletService)
+        walletService.transferTokenResult = try solanaTransaction("CreateSolanaTransactionResponse")
+        try await wallet.useSigner(.phone("+14155552671"))
+
+        _ = try await wallet.send(wallet.address, "solana:usdc", 1)
+
+        let request = try #require(walletService.transferTokenLastRequest)
+        #expect(request.signer == QUORUM.value)
+        #expect(request.approvingMembers == ["phone:+14155552671", "email:alice@example.com"])
+    }
+
     @Test func sendsTheApprovingMembersThatTheCallerNamesForASolanaTransaction() async throws {
         let walletService = MockSmartWalletService()
         let wallet = try makeSolanaWallet(walletService: walletService)
