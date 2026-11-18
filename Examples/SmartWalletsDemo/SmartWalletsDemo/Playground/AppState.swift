@@ -453,27 +453,27 @@ extension AppState {
         threshold: Int
     ) async throws -> Wallet {
         let options = WalletOptions(deviceSigner: true, passkeyHost: passkeyHost)
-        let size = otherMembers.count + 1
+        let required = min(threshold, chain.maxQuorumThreshold(members: otherMembers.count + 1))
         switch chain {
         case .evm:
             let members = [EVMSigners.email(email)] + otherMembers.map(evmSigner)
             return try await sdk.crossmintWallets.createWallet(
                 chain: EVMChain.baseSepolia,
-                recoveryMethods: [.email(email), .quorum(threshold: min(threshold, size), members: members)],
+                recoveryMethods: [.email(email), .quorum(threshold: required, members: members)],
                 options: options
             )
         case .stellar:
             let members = [StellarSigners.email(email)] + otherMembers.map(stellarSigner)
             return try await sdk.crossmintWallets.createWallet(
                 chain: StellarChain.stellar,
-                recoveryMethods: [.quorum(threshold: min(threshold, size), members: members)],
+                recoveryMethods: [.quorum(threshold: required, members: members)],
                 options: options
             )
         case .solana:
             let members = [SolanaSigners.email(email)] + otherMembers.map(solanaSigner)
             return try await sdk.crossmintWallets.createWallet(
                 chain: SolanaChain.solana,
-                recoveryMethods: [.quorum(threshold: min(threshold, size), members: members)],
+                recoveryMethods: [.quorum(threshold: required, members: members)],
                 options: options
             )
         }
