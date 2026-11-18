@@ -116,6 +116,7 @@ struct SignersView: View {
     @ViewBuilder
     private func quorumDraftSection() -> some View {
         let memberCount = appState.pendingRecovery.count + 1
+        let maxThreshold = appState.selectedChain.maxQuorumThreshold(members: memberCount)
         Section {
             Toggle("Quorum", isOn: Binding(
                 get: { appState.pendingQuorumThreshold != nil },
@@ -123,14 +124,14 @@ struct SignersView: View {
             ))
             .disabled(appState.pendingQuorumThreshold == nil && (memberCount < 2 || hasApiKeyDraft))
             .accessibilityIdentifier("recovery-quorum-toggle")
-            if let threshold = appState.pendingQuorumThreshold.map({ min($0, memberCount) }) {
+            if let threshold = appState.pendingQuorumThreshold.map({ min($0, maxThreshold) }) {
                 Stepper(
                     "\(threshold) of \(memberCount) must approve",
                     value: Binding(
                         get: { threshold },
                         set: { appState.pendingQuorumThreshold = $0 }
                     ),
-                    in: 1...memberCount
+                    in: 1...maxThreshold
                 )
                 .accessibilityIdentifier("recovery-quorum-threshold")
             }

@@ -179,7 +179,7 @@ struct AddSignerSheet: View {
                                     get: { effectiveQuorumThreshold },
                                     set: { quorumThreshold = $0 }
                                 ),
-                                in: 1...quorumMembers.count
+                                in: 1...appState.selectedChain.maxQuorumThreshold(members: quorumMembers.count)
                             )
                             .accessibilityIdentifier("add-quorum-threshold")
                         }
@@ -258,7 +258,7 @@ struct AddSignerSheet: View {
     }
 
     private var effectiveQuorumThreshold: Int {
-        min(quorumThreshold, max(quorumMembers.count, 1))
+        min(quorumThreshold, max(appState.selectedChain.maxQuorumThreshold(members: quorumMembers.count), 1))
     }
 
     private var passkeyHost: String {
