@@ -21,23 +21,35 @@
     "pending": [
       {
         "signer": {
-          "type": "email",
-          "email": "alice@example.com",
-          "locator": "email:alice@example.com"
+          "type": "quorum",
+          "locator": "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14"
         },
-        "message": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL"
-      },
-      {
-        "signer": {
-          "type": "email",
-          "email": "bob@example.com",
-          "locator": "email:bob@example.com"
-        },
-        "message": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL"
+        "quorumApprovals": {
+          "threshold": 2,
+          "remaining": 2,
+          "pending": [
+            {
+              "member": {
+                "type": "email",
+                "email": "alice@example.com",
+                "locator": "email:alice@example.com"
+              },
+              "message": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL"
+            },
+            {
+              "member": {
+                "type": "email",
+                "email": "bob@example.com",
+                "locator": "email:bob@example.com"
+              },
+              "message": "ezQaZ2VQ3KixhCSkSoYB6hNNeQtHQe3hKMz7iDPUZjgeYgFug4ZKumULiuH9KSXCyYZH7wjm8v1gjhgoVuG4u2uL"
+            }
+          ],
+          "submitted": []
+        }
       }
     ],
-    "submitted": [],
-    "required": 2
+    "submitted": []
   },
   "createdAt": "2026-11-12T14:29:34.133Z",
   "sendParams": {
