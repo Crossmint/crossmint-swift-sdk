@@ -17,7 +17,7 @@ import TestsUtils
 struct DefaultTransferServiceTests {
     @Test
     func sendsTheApprovingMembersOfASolanaTransfer() async throws {
-        let router = try router(respondingWith: "CreateSolanaTransactionResponse")
+        let router = try router(respondingWith: "SolanaQuorumTransferAwaitingApproval")
 
         _ = try await transferService(router).transferToken(quorumTransfer)
 

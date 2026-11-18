@@ -7,6 +7,7 @@ public struct TransferTokenRequest {
     public let amount: String
     public let signer: String?
     public let idempotencyKey: String?
+    /// Locators of the quorum members that approve, when `signer` is a quorum.
     public let approvingMembers: [String]?
 
     public init(
