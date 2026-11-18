@@ -7,6 +7,7 @@ private struct TransferBody: Encodable {
     let recipient: String
     let amount: String
     let signer: String?
+    let approvingMembers: [String]?
 }
 
 struct DefaultTransferService: TransferService {
@@ -38,7 +39,12 @@ struct DefaultTransferService: TransferService {
     private func executeTransfer(
         _ request: TransferTokenRequest
     ) async throws(TransactionError) -> any TransactionApiModel {
-        let body = TransferBody(recipient: request.recipient, amount: request.amount, signer: request.signer)
+        let body = TransferBody(
+            recipient: request.recipient,
+            amount: request.amount,
+            signer: request.signer,
+            approvingMembers: request.approvingMembers
+        )
         let bodyData = try jsonCoder.encodeRequest(body, errorType: TransactionError.self)
         let headers = ["x-idempotency-key": request.idempotencyKey ?? UUID().uuidString]
         let endpoint = Endpoint.meWalletTokenTransfer(

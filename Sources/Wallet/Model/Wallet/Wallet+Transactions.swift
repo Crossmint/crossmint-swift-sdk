@@ -307,6 +307,9 @@ extension Wallet {
     ///
     ///   - signer: The signer that sends the transfer. Use it to name the quorum to act for
     ///     when the active signer is a member of more than one quorum.
+    ///   - approvingMembers: The quorum members that approve, when a quorum sends on a Solana wallet.
+    ///     Give exactly as many members as the threshold of the quorum. If you do not give members,
+    ///     the SDK uses the active member first. Then it adds the other members in the order of the quorum.
     ///   - prepareOnly: Pass `true` to create the transfer without approving it.
     ///     Then approve it with ``approve(transactionId:)``.
     ///
@@ -331,6 +334,7 @@ extension Wallet {
         _ amount: Double,
         idempotencyKey: String? = nil,
         signer: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> TransactionSummary {
         Logger.smartWallet.debug(LogEvents.walletSendStart, attributes: [
@@ -345,6 +349,7 @@ extension Wallet {
             amount: String(amount),
             idempotencyKey: idempotencyKey,
             signer: signer,
+            approvingMembers: approvingMembers,
             prepareOnly: prepareOnly
         )
         if let pending = polledTransaction?.pendingSummary { return pending }
@@ -434,6 +439,7 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
         amount: String,
         idempotencyKey: String? = nil,
         signer: SignerLocator? = nil,
+        approvingMembers: [SignerLocator]? = nil,
         prepareOnly: Bool = false
     ) async throws(TransactionError) -> Transaction? {
         do { try await preAuthIfNeeded() } catch {
@@ -469,7 +475,8 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
             recipient: recipient,
             amount: amount,
             signer: signerLocator,
-            idempotencyKey: idempotencyKey
+            idempotencyKey: idempotencyKey,
+            approvingMembers: await transactionApprovingMembers(signer: signerLocator, explicit: approvingMembers)
         )
         let createdTransaction = try await smartWalletService.transferToken(transferRequest)
             .toDomain()
@@ -481,15 +488,6 @@ Transaction ID: \(createdTransaction?.id ?? "unknown")
 
     internal func transactionSignerLocator(explicit: SignerLocator? = nil) async throws(TransactionError) -> String? {
         try await actingSignerLocator(explicit: explicit)
-    }
-
-    internal func transactionApprovingMembers(
-        signer: String?,
-        explicit: [SignerLocator]?
-    ) async -> [String]? {
-        let actingMember = try? await selectedSignerLocator()
-        let approver = signer.flatMap { try? SignerLocator(from: $0) }
-        return approvingMembers(for: approver, actingMember: actingMember, explicit: explicit)?.map(\.value)
     }
 
     private func actingSignerLocator(explicit: SignerLocator?) async throws(TransactionError) -> String? {
