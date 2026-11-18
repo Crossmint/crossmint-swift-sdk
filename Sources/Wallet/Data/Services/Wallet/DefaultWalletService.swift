@@ -198,7 +198,8 @@ struct DefaultWalletService: WalletService {
         _ signerLocator: String,
         chainType: ChainType
     ) async throws(WalletError) -> AddDelegatedSignerResponse? {
-        Logger.smartWallet.info(LogEvents.apiGetSignerStart, attributes: ["locator": signerLocator])
+        let logValue = (try? SignerLocator(from: signerLocator))?.logValue ?? "unknown"
+        Logger.smartWallet.info(LogEvents.apiGetSignerStart, attributes: ["locator": logValue])
         let endpoint = Endpoint.getSigner(
             chainType: chainType,
             encodedLocator: encodedSignerLocator(signerLocator)
@@ -213,7 +214,7 @@ struct DefaultWalletService: WalletService {
         guard let result = try? jsonCoder.decode(AddDelegatedSignerResponse.self, from: data) else {
             throw WalletError.walletGeneric("Failed to decode signer response")
         }
-        Logger.smartWallet.info(LogEvents.apiGetSignerSuccess, attributes: ["locator": signerLocator])
+        Logger.smartWallet.info(LogEvents.apiGetSignerSuccess, attributes: ["locator": logValue])
         return result
     }
 

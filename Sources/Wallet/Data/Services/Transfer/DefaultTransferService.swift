@@ -19,7 +19,6 @@ struct DefaultTransferService: TransferService {
     ) async throws(TransactionError) -> any TransactionApiModel {
         Logger.smartWallet.info(LogEvents.apiSendStart, attributes: [
             "walletLocator": "me:\(request.chainType.rawValue)",
-            "recipient": request.recipient,
             "token": request.tokenLocator,
             "amount": request.amount
         ])

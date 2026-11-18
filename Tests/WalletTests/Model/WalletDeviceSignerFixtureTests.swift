@@ -72,7 +72,6 @@ struct WalletDeviceSignerFixtureTests {
         let onboarded = try makeSolanaWallet()
         try await onboarded.recover()
         let oldLocator = try #require(await onboarded.localDeviceSigner())
-        walletService.removeSignerResult = try removalTransaction()
 
         store.corrupt(tag: InMemoryKeychainItemStore.walletTag(address: onboarded.address))
         #expect(await onboarded.localDeviceSigner() == nil)
@@ -85,11 +84,129 @@ struct WalletDeviceSignerFixtureTests {
         let newLocator = try #require(await restored.localDeviceSigner())
         guard case .device(let newPublicKey) = newLocator else { Issue.record("expected a device locator"); return }
         #expect(newLocator != oldLocator)
-        #expect(walletService.removeSignerLastLocator == oldLocator.value)
+        #expect(walletService.removeSignerCallCount == 0)
         let (_, signature) = try await deviceApproval(of: restored, locator: newLocator)
         #expect(P256SignatureCheck.verifies(
             r: signature.r, s: signature.s, publicKeyBase64: newPublicKey, messageBase64: message
         ))
+    }
+
+    @Test(arguments: [
+        ["device:BAAA"],
+        ["device:BAAA", "email:other.user@example.com"],
+        ["device:BAAA", "device:BBBB"],
+        ["device:BAAA", "device:BBBB", "device:BCCC"]
+    ])
+    func recoversOnADeviceWithNoKeyAndKeepsTheSignersOfOtherDevices(signers: [String]) async throws {
+        let wallet = try makeSolanaWallet(signerLocators: signers)
+        #expect(await wallet.needsRecovery())
+
+        try await wallet.recover()
+
+        #expect(await wallet.localDeviceSigner() != nil)
+        #expect(await wallet.needsRecovery() == false)
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(walletService.removeSignerCallCount == 0)
+    }
+
+    @Test(arguments: [[], ["device:BBBB"]])
+    func keepsTheKeyThatWasUnreadableWhenTheWalletLoaded(otherDevices: [String]) async throws {
+        let onboarded = try makeSolanaWallet()
+        try await onboarded.recover()
+        let locator = try #require(await onboarded.localDeviceSigner())
+
+        store.locked = true
+        let reloaded = try makeSolanaWallet(signerLocators: [locator.value] + otherDevices)
+        #expect(await reloaded.needsRecovery())
+        store.locked = false
+
+        try await reloaded.recover()
+
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(walletService.removeSignerCallCount == 0)
+        #expect(await reloaded.needsRecovery() == false)
+        #expect(await reloaded.localDeviceSigner() == locator)
+    }
+
+    @Test func replacesTheKeyOfARecoveryThatStoppedBeforeApproval() async throws {
+        let abandonedKey = try await KeychainKeyStorage.inMemory(store).generateKey(address: nil)
+        let abandoned = SignerLocator.device(publicKey: abandonedKey)
+        let wallet = try makeSolanaWallet(signerLocators: ["device:BAAA", abandoned.value])
+        walletService.getSignerResponses = [
+            abandoned.value: AddDelegatedSignerResponse(
+                chains: nil,
+                transaction: RegistrationTransaction(id: "abandoned-transaction", status: "awaiting-approval")
+            )
+        ]
+        walletService.fetchTransactionResult = try removalTransaction(status: "awaiting-approval")
+        #expect(await wallet.needsRecovery())
+
+        let pending = try await wallet.recover()
+
+        let newLocator = try #require(await wallet.localDeviceSigner())
+        #expect(pending == nil)
+        #expect(newLocator != abandoned)
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(await wallet.needsRecovery() == false)
+        #expect(store.tags.count == 1)
+    }
+
+    @Test func keepsTheKeyOfARegistrationTheAppPrepared() async throws {
+        let wallet = try makeSolanaWallet(signerLocators: ["device:BAAA"])
+        let awaitingApproval = try removalTransaction(status: "awaiting-approval")
+        walletService.addSignerResult = AddDelegatedSignerResponse(
+            chains: nil,
+            transaction: RegistrationTransaction(id: awaitingApproval.id, status: "awaiting-approval")
+        )
+        walletService.fetchTransactionResult = awaitingApproval
+        let prepared = try #require(try await wallet.addSigner(.device, prepareOnly: true))
+
+        let pending = try await wallet.recover()
+
+        #expect(pending?.id == prepared.id)
+        #expect(walletService.addSignerCallCount == 1)
+        #expect(store.tags.count == 1)
+    }
+
+    @Test func approvesAPreparedRegistrationWithTheKeyItWasPreparedWith() async throws {
+        let preparedKey = try await KeychainKeyStorage.inMemory(store).generateKey(address: nil)
+        let prepared = SignerLocator.device(publicKey: preparedKey)
+        let approved = try removalTransaction()
+        let wallet = try makeSolanaWallet(signerLocators: ["device:BAAA", prepared.value])
+        walletService.getSignerResponses = [
+            prepared.value: AddDelegatedSignerResponse(
+                chains: nil,
+                transaction: RegistrationTransaction(id: approved.id, status: "awaiting-approval")
+            )
+        ]
+        walletService.fetchTransactionResults = [try removalTransaction(status: "awaiting-approval")]
+        walletService.fetchTransactionResult = approved
+
+        _ = try await wallet.approve(transactionId: approved.id)
+
+        #expect(walletService.addSignerCallCount == 0)
+        #expect(await wallet.localDeviceSigner() == prepared)
+        #expect(await wallet.needsRecovery() == false)
+    }
+
+    @Test func waitsForARegistrationThatIsAlreadyApproved() async throws {
+        let approvedKey = try await KeychainKeyStorage.inMemory(store).generateKey(address: nil)
+        let approved = SignerLocator.device(publicKey: approvedKey)
+        let wallet = try makeSolanaWallet(signerLocators: ["device:BAAA", approved.value])
+        walletService.getSignerResponses = [
+            approved.value: AddDelegatedSignerResponse(
+                chains: nil,
+                transaction: RegistrationTransaction(id: "approved-transaction", status: "pending")
+            )
+        ]
+        walletService.fetchTransactionResult = try removalTransaction(status: "pending")
+
+        let pending = try await wallet.recover()
+
+        #expect(pending != nil)
+        #expect(walletService.addSignerCallCount == 0)
+        #expect(await wallet.needsRecovery())
+        #expect(store.tags.count == 1)
     }
 
     @Test func marksTheWalletForRecoveryWhenTheTrustedKeyDies() async throws {
@@ -99,7 +216,6 @@ struct WalletDeviceSignerFixtureTests {
         let oldLocator = try #require(await wallet.localDeviceSigner())
         _ = try await deviceApproval(of: wallet, locator: oldLocator)
         walletService.getWalletSignerLocators = [oldLocator.value]
-        walletService.removeSignerResult = try removalTransaction()
 
         store.corrupt(tag: InMemoryKeychainItemStore.walletTag(address: wallet.address))
 
@@ -113,7 +229,7 @@ struct WalletDeviceSignerFixtureTests {
         let newLocator = try #require(await wallet.localDeviceSigner())
         guard case .device(let newPublicKey) = newLocator else { Issue.record("expected a device locator"); return }
         #expect(newLocator != oldLocator)
-        #expect(walletService.removeSignerLastLocator == oldLocator.value)
+        #expect(walletService.removeSignerCallCount == 0)
         #expect(await wallet.needsRecovery() == false)
         let (_, signature) = try await deviceApproval(of: wallet, locator: newLocator)
         #expect(P256SignatureCheck.verifies(

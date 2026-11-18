@@ -1,5 +1,5 @@
 import Logger
 
 extension Logger {
-    public static let http = Logger(category: "http")
+    public static let http = Logger(consoleOnlyCategory: "http")
 }

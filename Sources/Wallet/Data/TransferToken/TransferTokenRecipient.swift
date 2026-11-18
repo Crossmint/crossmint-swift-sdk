@@ -41,6 +41,16 @@ public enum TransferTokenRecipient: CustomStringConvertible, Equatable, Hashable
         }
     }
 
+    var logValue: String {
+        switch self {
+        case .address, .userId: description
+        case .email: "email"
+        case .phoneNumber: "phoneNumber"
+        case .twitter: "twitter"
+        case .x: "x"
+        }
+    }
+
     public func matches(_ string: String) -> Bool {
         return self.description == string
     }

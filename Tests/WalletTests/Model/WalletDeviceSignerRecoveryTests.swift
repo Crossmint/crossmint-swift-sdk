@@ -5,9 +5,6 @@ import TestsUtils
 
 @testable import Wallet
 
-private let STALE_DEVICE_SIGNER_LOCATOR =
-    "device:BC7k2LhzqCHurW97oXe/9YKI77h80kUwPy8pY2ot+7CWficNoWbwfHddNq4Itg304yMMpDCyHgZPxBJ0KH7Y9qc="
-
 private func makeSolanaWallet(
     walletService: MockSmartWalletService,
     storage: MockDeviceSignerKeyStorage,
@@ -45,13 +42,8 @@ struct WalletDeviceSignerRecoveryTests {
     }
 
     @Test
-    func removesTheStaleDeviceSignerAfterSuccessfulRecovery() async throws {
+    func keepsTheDeviceSignerThatWasAlreadyRegistered() async throws {
         let walletService = MockSmartWalletService()
-        let removedTransaction: SolanaTransactionApiModel = try GetFromFile.getModelFrom(
-            fileName: "RemoveSignerTransactionSuccess",
-            bundle: Bundle.module
-        )
-        walletService.removeSignerResult = removedTransaction
         let storage = MockDeviceSignerKeyStorage()
         let wallet = try makeSolanaWallet(
             walletService: walletService,
@@ -62,52 +54,7 @@ struct WalletDeviceSignerRecoveryTests {
         try await wallet.recover()
 
         #expect(await wallet.needsRecovery() == false)
-        #expect(walletService.removeSignerCallCount == 1)
-        #expect(walletService.removeSignerLastLocator == STALE_DEVICE_SIGNER_LOCATOR)
-    }
-
-    @Test
-    func completesRecoveryWhenStaleSignerRemovalFails() async throws {
-        let walletService = MockSmartWalletService()
-        walletService.removeSignerError = .transactionGeneric("backend unavailable")
-        let storage = MockDeviceSignerKeyStorage()
-        let wallet = try makeSolanaWallet(
-            walletService: walletService,
-            storage: storage,
-            fileName: "WalletSolanaEmailWithStaleDeviceSigner"
-        )
-
-        try await wallet.recover()
-
-        #expect(await wallet.needsRecovery() == false)
-        #expect(walletService.removeSignerCallCount == 1)
-    }
-
-    @Test
-    func keepsTheStaleDeviceSignerWhenRegistrationFails() async throws {
-        let walletService = MockSmartWalletService()
-        walletService.addSignerError = .walletGeneric("registration exploded")
-        let storage = MockDeviceSignerKeyStorage()
-        let wallet = try makeSolanaWallet(
-            walletService: walletService,
-            storage: storage,
-            fileName: "WalletSolanaEmailWithStaleDeviceSigner"
-        )
-
-        await #expect(throws: WalletError.self) {
-            try await wallet.recover()
-        }
-        #expect(walletService.removeSignerCallCount == 0)
-    }
-
-    @Test
-    func skipsRemovalWhenNoDeviceSignerWasPreviouslyRegistered() async throws {
-        let walletService = MockSmartWalletService()
-        let storage = MockDeviceSignerKeyStorage()
-        let wallet = try makeSolanaWallet(walletService: walletService, storage: storage)
-
-        try await wallet.recover()
-
+        #expect(walletService.addSignerCallCount == 1)
         #expect(walletService.removeSignerCallCount == 0)
     }
 

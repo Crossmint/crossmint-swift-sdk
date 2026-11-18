@@ -19,6 +19,13 @@ public enum SignerIdentity: Sendable, Equatable {
         }
     }
 
+    var logValue: String {
+        switch self {
+        case .email: "email"
+        case .phone: "phone"
+        }
+    }
+
     package var channel: OTPDeliveryChannel? {
         guard case .phone(_, let channel) = self else { return nil }
         return channel
