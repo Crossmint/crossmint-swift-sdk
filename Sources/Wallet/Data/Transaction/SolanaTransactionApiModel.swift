@@ -8,7 +8,7 @@ public struct SolanaTransactionApiModel: TransactionApiModel {
 
     public struct OnChainData: Decodable {
         public let transaction: String
-        public let lastValidBlockHeight: Int
+        public let lastValidBlockHeight: Int?
         public let txId: String?
         public let explorerLink: String?
 

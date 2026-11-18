@@ -17,12 +17,42 @@ import TestsUtils
 struct DefaultTransferServiceTests {
     @Test
     func sendsTheApprovingMembersOfASolanaTransfer() async throws {
-        let response = try #require(
-            Bundle.module.url(forResource: "CreateSolanaTransactionResponse", withExtension: "json")
-        )
+        let router = try router(respondingWith: "CreateSolanaTransactionResponse")
+
+        _ = try await transferService(router).transferToken(quorumTransfer)
+
+        let body = try #require(router.lastRequest?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["approvingMembers"] as? [String] == ["email:alice@example.com", "email:bob@example.com"])
+    }
+
+    @Test
+    func readsAQuorumTransferThatHasNoBlockHeight() async throws {
+        let router = try router(respondingWith: "SolanaQuorumTransferAwaitingApproval")
+
+        let transaction = try await transferService(router).transferToken(quorumTransfer)
+
+        #expect(transaction.toDomain().status == .awaitingApproval)
+    }
+
+    private let quorumTransfer = TransferTokenRequest(
+        chainType: .solana,
+        tokenLocator: "solana:usdc",
+        recipient: "J22yK97UmV7CBa1uPkjohLWHXugx6vsaS3hUaPUPbMfu",
+        amount: "1",
+        signer: "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
+        approvingMembers: ["email:alice@example.com", "email:bob@example.com"]
+    )
+
+    private func router(respondingWith fixture: String) throws -> HTTPFixtureRouter {
+        let response = try #require(Bundle.module.url(forResource: fixture, withExtension: "json"))
         let router = HTTPFixtureRouter()
         router.respond(body: try Data(contentsOf: response))
-        let service = DefaultTransferService(
+        return router
+    }
+
+    private func transferService(_ router: HTTPFixtureRouter) throws -> DefaultTransferService {
+        DefaultTransferService(
             crossmintService: DefaultCrossmintService(
                 apiKey: try ApiKey(key: "ck_staging_test123"),
                 appIdentifier: "com.crossmint.tests",
@@ -30,18 +60,5 @@ struct DefaultTransferServiceTests {
             ),
             jsonCoder: DefaultJSONCoder()
         )
-
-        _ = try await service.transferToken(TransferTokenRequest(
-            chainType: .solana,
-            tokenLocator: "solana:usdc",
-            recipient: "J22yK97UmV7CBa1uPkjohLWHXugx6vsaS3hUaPUPbMfu",
-            amount: "1",
-            signer: "quorum:9f2c6a1e-4b7d-4c3a-9e51-2d8f0b6c7a14",
-            approvingMembers: ["email:alice@example.com", "email:bob@example.com"]
-        ))
-
-        let body = try #require(router.lastRequest?.httpBody)
-        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
-        #expect(json["approvingMembers"] as? [String] == ["email:alice@example.com", "email:bob@example.com"])
     }
 }
