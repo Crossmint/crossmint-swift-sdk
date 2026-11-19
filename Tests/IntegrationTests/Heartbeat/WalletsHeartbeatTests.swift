@@ -12,7 +12,7 @@ struct WalletsHeartbeatTests {
         let session: CryptoWalletSession
         let wallet: Wallet
         let service: DefaultSmartWalletService
-        var approver: SignerLocator { .externalWallet(address: session.address) }
+        var approval: SignerChangeApproval { SignerChangeApproval(approver: .externalWallet(address: session.address)) }
         var adminLocator: String { session.signer.adminSigner.locator }
     }
 
@@ -187,7 +187,7 @@ struct WalletsHeartbeatTests {
             chainType: .evm,
             chainName: Self.EVM_CHAIN_NAME,
             deployImmediately: true,
-            approver: evm.approver
+            approval: evm.approval
         )
         let entry = try #require(registration.chains?[Self.EVM_CHAIN_NAME])
         #expect(entry.id != nil)
@@ -201,7 +201,7 @@ struct WalletsHeartbeatTests {
             chainType: .evm,
             chainName: Self.EVM_CHAIN_NAME,
             deployImmediately: true,
-            approver: evm.approver
+            approval: evm.approval
         )
         _ = try #require(try await evm.service.getSigner(delegate.adminSigner.locator, chainType: .evm))
     }
@@ -220,7 +220,7 @@ struct WalletsHeartbeatTests {
             registered.locator.value,
             chainType: .evm,
             chainName: Self.EVM_CHAIN_NAME,
-            approver: evm.approver
+            approval: evm.approval
         ).toDomain()
         #expect(!removal.id.isEmpty)
     }

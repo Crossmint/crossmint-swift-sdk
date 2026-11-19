@@ -44,7 +44,7 @@ struct RecoveryMethodRequestTests {
             PhoneSignerData(phone: "+14155552671"),
             chainType: .solana,
             chainName: "solana",
-            approver: .email("alice@example.com")
+            approval: SignerChangeApproval(approver: .email("alice@example.com"))
         )
 
         let request = try #require(router.lastRequest)
@@ -66,7 +66,7 @@ struct RecoveryMethodRequestTests {
             .phone("+14155552671"),
             chainType: .solana,
             chainName: "solana",
-            approver: .email("alice@example.com")
+            approval: SignerChangeApproval(approver: .email("alice@example.com"))
         )
 
         #expect(transaction.toDomain().status == .success)
@@ -81,7 +81,7 @@ struct RecoveryMethodRequestTests {
                 .phone("+14155552671"),
                 chainType: .solana,
                 chainName: "solana",
-                approver: .email("alice@example.com")
+                approval: SignerChangeApproval(approver: .email("alice@example.com"))
             )
         }
 
@@ -165,7 +165,7 @@ struct RecoveryMethodRequestTests {
             PhoneSignerData(phone: "+14155552671"),
             chainType: .evm,
             chainName: "base-sepolia",
-            approver: .email("alice@example.com")
+            approval: SignerChangeApproval(approver: .email("alice@example.com"))
         )
 
         let body = try #require(router.lastRequest?.httpBody)
@@ -181,7 +181,7 @@ struct RecoveryMethodRequestTests {
             .phone("+14155552671"),
             chainType: .evm,
             chainName: "base-sepolia",
-            approver: .email("alice@example.com")
+            approval: SignerChangeApproval(approver: .email("alice@example.com"))
         )
 
         let url = try #require(router.lastRequest?.url)

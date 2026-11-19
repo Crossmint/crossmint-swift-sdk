@@ -59,23 +59,7 @@ struct DefaultWalletService: WalletService {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: nil
-        )
-    }
-
-    func addSigner(
-        _ entry: DelegatedSignerEntry,
-        chainType: ChainType,
-        chainName: String,
-        deployImmediately: Bool?,
-        approver: SignerLocator?
-    ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        try await addSigner(
-            entry,
-            chainType: chainType,
-            chainName: chainName,
-            deployImmediately: deployImmediately,
-            approval: approver.map { SignerChangeApproval(approver: $0) }
+            approval: nil
         )
     }
 
@@ -108,23 +92,7 @@ struct DefaultWalletService: WalletService {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: nil
-        )
-    }
-
-    func registerTypedSigner(
-        _ signer: any AdminSignerData,
-        chainType: ChainType,
-        chainName: String,
-        deployImmediately: Bool?,
-        approver: SignerLocator?
-    ) async throws(WalletError) -> AddDelegatedSignerResponse {
-        try await registerTypedSigner(
-            signer,
-            chainType: chainType,
-            chainName: chainName,
-            deployImmediately: deployImmediately,
-            approval: approver.map { SignerChangeApproval(approver: $0) }
+            approval: nil
         )
     }
 
@@ -151,21 +119,7 @@ struct DefaultWalletService: WalletService {
         chainType: ChainType,
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await removeSigner(signerLocator, chainType: chainType, chainName: chainName, approver: nil)
-    }
-
-    func removeSigner(
-        _ signerLocator: String,
-        chainType: ChainType,
-        chainName: String,
-        approver: SignerLocator?
-    ) async throws(TransactionError) -> any TransactionApiModel {
-        try await removeSigner(
-            signerLocator,
-            chainType: chainType,
-            chainName: chainName,
-            approval: approver.map { SignerChangeApproval(approver: $0) }
-        )
+        try await removeSigner(signerLocator, chainType: chainType, chainName: chainName, approval: nil)
     }
 
     func removeSigner(
@@ -235,20 +189,6 @@ struct DefaultWalletService: WalletService {
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator
-    ) async throws(WalletError) -> any TransactionApiModel {
-        try await addRecoveryMethod(
-            recoveryMethod,
-            chainType: chainType,
-            chainName: chainName,
-            approval: SignerChangeApproval(approver: approver)
-        )
-    }
-
-    func addRecoveryMethod(
-        _ recoveryMethod: any AdminSignerData,
-        chainType: ChainType,
-        chainName: String,
         approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
         let chain = signerRegistrationChain(chainType: chainType, chainName: chainName)
@@ -286,20 +226,6 @@ struct DefaultWalletService: WalletService {
             locator,
             chainType: chainType,
             chain: nil,
-            approval: SignerChangeApproval(approver: approver)
-        )
-    }
-
-    func removeRecoveryMethod(
-        _ locator: SignerLocator,
-        chainType: ChainType,
-        chainName: String,
-        approver: SignerLocator
-    ) async throws(WalletError) -> any TransactionApiModel {
-        try await removeRecoveryMethod(
-            locator,
-            chainType: chainType,
-            chainName: chainName,
             approval: SignerChangeApproval(approver: approver)
         )
     }

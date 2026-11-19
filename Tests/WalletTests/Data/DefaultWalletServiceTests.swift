@@ -231,7 +231,7 @@ struct DefaultWalletServiceDeployImmediatelyTests {
             chainType: .solana,
             chainName: "solana",
             deployImmediately: nil,
-            approver: .email("alice@example.com")
+            approval: SignerChangeApproval(approver: .email("alice@example.com"))
         )
 
         let json = try decodedBody(router.lastRequest?.httpBody)

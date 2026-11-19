@@ -197,7 +197,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: nil
+            approval: nil
         )
     }
 
@@ -239,7 +239,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
             chainType: chainType,
             chainName: chainName,
             deployImmediately: deployImmediately,
-            approver: nil
+            approval: nil
         )
     }
 
@@ -370,7 +370,7 @@ final class MockSmartWalletService: SmartWalletService, @unchecked Sendable {
         chainType: ChainType,
         chainName: String
     ) async throws(TransactionError) -> any TransactionApiModel {
-        try await removeSigner(signerLocator, chainType: chainType, chainName: chainName, approver: nil)
+        try await removeSigner(signerLocator, chainType: chainType, chainName: chainName, approval: nil)
     }
 
     var removeSignerLastApprovingMembers: [SignerLocator]?
