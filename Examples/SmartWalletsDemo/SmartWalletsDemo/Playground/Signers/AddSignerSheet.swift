@@ -100,15 +100,17 @@ struct AddSignerSheet: View {
 
     private var availableTypes: [SignerTypeOption] {
         switch mode {
-        case .recovery where appState.wallet == nil && appState.selectedChain == .stellar:
-            guard appState.pendingQuorumThreshold == nil else { return [.email, .phone, .passkey] }
-            return [.email, .phone, .apiKey, .passkey]
         case .recovery where appState.wallet == nil:
-            return [.email, .phone, .apiKey]
+            let types: [SignerTypeOption] = switch appState.selectedChain {
+            case .stellar: [.email, .phone, .apiKey, .passkey]
+            case .evm, .solana: [.email, .phone, .apiKey]
+            }
+            guard appState.pendingQuorumThreshold == nil else { return types.filter { $0 != .apiKey } }
+            return types
         case .recovery where appState.selectedChain == .stellar:
             return [.email, .phone, .externalWallet, .passkey, .quorum]
         case .recovery:
-            return [.email, .phone, .externalWallet]
+            return [.email, .phone, .externalWallet, .quorum]
         case .signer where appState.selectedChain == .stellar:
             return [.device, .passkey, .externalWallet, .phone, .quorum]
         case .signer:
@@ -177,7 +179,7 @@ struct AddSignerSheet: View {
                                     get: { effectiveQuorumThreshold },
                                     set: { quorumThreshold = $0 }
                                 ),
-                                in: 1...quorumMembers.count
+                                in: 1...appState.selectedChain.maxQuorumThreshold(members: quorumMembers.count)
                             )
                             .accessibilityIdentifier("add-quorum-threshold")
                         }
@@ -256,7 +258,7 @@ struct AddSignerSheet: View {
     }
 
     private var effectiveQuorumThreshold: Int {
-        min(quorumThreshold, max(quorumMembers.count, 1))
+        min(quorumThreshold, max(appState.selectedChain.maxQuorumThreshold(members: quorumMembers.count), 1))
     }
 
     private var passkeyHost: String {
