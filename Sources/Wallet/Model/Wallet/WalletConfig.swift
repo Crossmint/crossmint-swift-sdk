@@ -54,6 +54,18 @@ public struct WalletConfig {
             .map { SignerLocator.quorum(id: $0.id) }
     }
 
+    func approvingMembers(
+        of quorumLocator: SignerLocator,
+        startingWith actingMember: SignerLocator?
+    ) -> [SignerLocator]? {
+        guard case .quorum(let id) = quorumLocator else { return nil }
+        let quorums = recoveryMethods.compactMap { $0 as? QuorumSignerData } + signerQuorums
+        guard let quorum = quorums.first(where: { $0.id == id }) else { return nil }
+        let members = quorum.members.compactMap { try? SignerLocator(from: $0.locator) }
+        let ordered = members.filter { $0 == actingMember } + members.filter { $0 != actingMember }
+        return Array(ordered.prefix(quorum.threshold))
+    }
+
     func canApproveRecoveryChanges(_ locator: SignerLocator) -> Bool {
         containsRecoveryMethod(locator) || !recoveryQuorumLocators(withMember: locator).isEmpty
     }

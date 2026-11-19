@@ -12,11 +12,13 @@ import Http
 struct AddRecoveryMethodBody: Encodable {
     let recoveryMethods: AdminSignerRequestApiModel
     let approver: String
+    let approvingMembers: [String]?
     let chain: String?
 
     enum CodingKeys: String, CodingKey {
         case recoveryMethods
         case approver
+        case approvingMembers
         case chain
     }
 
@@ -24,6 +26,7 @@ struct AddRecoveryMethodBody: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(recoveryMethods, forKey: .recoveryMethods)
         try container.encode(approver, forKey: .approver)
+        try container.encodeIfPresent(approvingMembers, forKey: .approvingMembers)
         try container.encodeIfPresent(chain, forKey: .chain)
     }
 }

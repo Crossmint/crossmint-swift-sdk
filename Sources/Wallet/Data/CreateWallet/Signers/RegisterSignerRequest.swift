@@ -7,6 +7,7 @@ struct RegisterSignerBody: Encodable {
     let chain: String?
     let deployImmediately: Bool?
     let approver: String?
+    let approvingMembers: [String]?
 }
 
 struct RegisterTypedSignerBody: Encodable {
@@ -14,6 +15,7 @@ struct RegisterTypedSignerBody: Encodable {
     let chain: String?
     let deployImmediately: Bool?
     let approver: String?
+    let approvingMembers: [String]?
 }
 
 extension Endpoint {

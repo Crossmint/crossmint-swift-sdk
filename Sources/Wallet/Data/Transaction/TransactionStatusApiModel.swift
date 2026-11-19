@@ -3,6 +3,7 @@ public enum TransactionStatusApiModel: String, Decodable, Sendable {
     case success
     case awaitingApproval = "awaiting-approval"
     case failed
+    case cancelled
 
     var toDomain: Transaction.Status {
         switch self {
@@ -14,6 +15,8 @@ public enum TransactionStatusApiModel: String, Decodable, Sendable {
             return .awaitingApproval
         case .failed:
             return .failed
+        case .cancelled:
+            return .cancelled
         }
     }
 }

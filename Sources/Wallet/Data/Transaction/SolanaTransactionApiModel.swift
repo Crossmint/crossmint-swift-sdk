@@ -8,7 +8,7 @@ public struct SolanaTransactionApiModel: TransactionApiModel {
 
     public struct OnChainData: Decodable {
         public let transaction: String
-        public let lastValidBlockHeight: Int
+        public let lastValidBlockHeight: Int?
         public let txId: String?
         public let explorerLink: String?
 
@@ -70,6 +70,7 @@ public struct SolanaTransactionApiModel: TransactionApiModel {
     public let approvals: SolanaApprovals?
     public let error: TransactionErrorApiModel?
     public let sendParams: SendParams?
+    public let validUntil: Date?
 
     public func toDomain() -> Transaction {
         Transaction(
@@ -80,7 +81,8 @@ public struct SolanaTransactionApiModel: TransactionApiModel {
             walletType: walletType,
             createdAt: createdAt,
             approvals: approvals?.toDomain,
-            error: error?.toDomain
+            error: error?.toDomain,
+            validUntil: validUntil
         )
     }
 }

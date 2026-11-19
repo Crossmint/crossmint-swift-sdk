@@ -14,6 +14,25 @@ extension Wallet {
         return true
     }
 
+    internal func approvingMembers(
+        for approver: SignerLocator?,
+        actingMember: SignerLocator?,
+        explicit: [SignerLocator]?
+    ) -> [SignerLocator]? {
+        if let explicit { return explicit }
+        guard chain.chainType == .solana, let approver else { return nil }
+        return config.approvingMembers(of: approver, startingWith: actingMember)
+    }
+
+    internal func transactionApprovingMembers(
+        signer: String?,
+        explicit: [SignerLocator]?
+    ) async -> [String]? {
+        let actingMember = try? await selectedSignerLocator()
+        let approver = signer.flatMap { try? SignerLocator(from: $0) }
+        return approvingMembers(for: approver, actingMember: actingMember, explicit: explicit)?.map(\.value)
+    }
+
     internal func quorumRole(of locator: SignerLocator) async throws(TransactionError) -> SignerLocator? {
         let quorums = config.quorumLocators(withMember: locator)
         guard !quorums.isEmpty, !config.containsRecoveryMethod(locator) else { return nil }

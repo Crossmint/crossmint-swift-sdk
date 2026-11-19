@@ -27,7 +27,7 @@ public protocol WalletService: Sendable {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func registerTypedSigner(
@@ -42,7 +42,7 @@ public protocol WalletService: Sendable {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(WalletError) -> AddDelegatedSignerResponse
 
     func removeSigner(
@@ -55,7 +55,7 @@ public protocol WalletService: Sendable {
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(TransactionError) -> any TransactionApiModel
 
     func getSigner(
@@ -73,7 +73,7 @@ public protocol WalletService: Sendable {
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel
 
     func removeRecoveryMethod(
@@ -86,7 +86,7 @@ public protocol WalletService: Sendable {
         _ locator: SignerLocator,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel
 }
 
@@ -96,7 +96,7 @@ public extension WalletService {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         try await addSigner(
             entry,
@@ -111,7 +111,7 @@ public extension WalletService {
         chainType: ChainType,
         chainName: String,
         deployImmediately: Bool?,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         try await registerTypedSigner(
             signer,
@@ -125,7 +125,7 @@ public extension WalletService {
         _ signerLocator: String,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator?
+        approval: SignerChangeApproval?
     ) async throws(TransactionError) -> any TransactionApiModel {
         try await removeSigner(signerLocator, chainType: chainType, chainName: chainName)
     }
@@ -142,9 +142,9 @@ public extension WalletService {
         _ recoveryMethod: any AdminSignerData,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
-        try await addRecoveryMethod(recoveryMethod, chainType: chainType, approver: approver)
+        try await addRecoveryMethod(recoveryMethod, chainType: chainType, approver: approval.approver)
     }
 
     func removeRecoveryMethod(
@@ -159,8 +159,8 @@ public extension WalletService {
         _ locator: SignerLocator,
         chainType: ChainType,
         chainName: String,
-        approver: SignerLocator
+        approval: SignerChangeApproval
     ) async throws(WalletError) -> any TransactionApiModel {
-        try await removeRecoveryMethod(locator, chainType: chainType, approver: approver)
+        try await removeRecoveryMethod(locator, chainType: chainType, approver: approval.approver)
     }
 }
