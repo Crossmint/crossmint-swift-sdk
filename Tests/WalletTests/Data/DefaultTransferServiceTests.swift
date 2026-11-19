@@ -16,23 +16,15 @@ import TestsUtils
 @Suite("Token transfer requests", .tags(.unit))
 struct DefaultTransferServiceTests {
     @Test
-    func sendsTheApprovingMembersOfASolanaTransfer() async throws {
-        let router = try router(respondingWith: "SolanaQuorumTransferAwaitingApproval")
-
-        _ = try await transferService(router).transferToken(quorumTransfer)
-
-        let body = try #require(router.lastRequest?.httpBody)
-        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
-        #expect(json["approvingMembers"] as? [String] == ["email:alice@example.com", "email:bob@example.com"])
-    }
-
-    @Test
-    func readsAQuorumTransferThatHasNoBlockHeight() async throws {
+    func sendsTheApprovingMembersOfASolanaTransferAndReadsTheReply() async throws {
         let router = try router(respondingWith: "SolanaQuorumTransferAwaitingApproval")
 
         let transaction = try await transferService(router).transferToken(quorumTransfer)
 
         #expect(transaction.toDomain().status == .awaitingApproval)
+        let body = try #require(router.lastRequest?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["approvingMembers"] as? [String] == ["email:alice@example.com", "email:bob@example.com"])
     }
 
     private let quorumTransfer = TransferTokenRequest(
