@@ -13,6 +13,10 @@ enum SupportedChain: Equatable, Identifiable {
 
     var id: Self { self }
 
+    func maxQuorumThreshold(members: Int) -> Int {
+        self == .solana ? min(members, 6) : members
+    }
+
     @ViewBuilder
     var icon: some View {
         switch self {
