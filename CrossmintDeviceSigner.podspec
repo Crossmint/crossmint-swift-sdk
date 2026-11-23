@@ -16,5 +16,7 @@ Pod::Spec.new do |s|
 
   s.swift_version    = '6.0'
 
+  s.pod_target_xcconfig = { 'OTHER_SWIFT_FLAGS' => '$(inherited) -package-name CrossmintDeviceSigner' }
+
   s.frameworks       = 'CryptoKit', 'LocalAuthentication', 'Security'
 end
