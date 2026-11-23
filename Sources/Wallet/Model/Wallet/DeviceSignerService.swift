@@ -40,7 +40,7 @@ final class DeviceSignerService: Sendable {
             of: publicKeyBase64,
             storage: storage,
             deployImmediately: deployImmediately,
-            approver: approver.locator
+            approver: approver
         )
         let pending = registrationService.pendingTransactionId(in: registration).map {
             PendingDeviceKey(transactionId: $0, publicKeyBase64: publicKeyBase64, storage: storage)
@@ -72,7 +72,7 @@ final class DeviceSignerService: Sendable {
         of publicKeyBase64: String,
         storage: any DeviceSignerKeyStorage,
         deployImmediately: Bool,
-        approver: SignerLocator?
+        approver: RecoveryApprover
     ) async throws(WalletError) -> AddDelegatedSignerResponse {
         let deviceName = await storage.deviceName
         guard let publicKey = DevicePublicKey(publicKeyBase64: publicKeyBase64) else {
@@ -88,7 +88,7 @@ final class DeviceSignerService: Sendable {
                 chainType: chainType,
                 chainName: chainName,
                 deployImmediately: deployImmediately,
-                approver: approver
+                approval: approver.approval
             )
         } catch {
             try? await storage.deletePendingKey(publicKeyBase64: publicKeyBase64)

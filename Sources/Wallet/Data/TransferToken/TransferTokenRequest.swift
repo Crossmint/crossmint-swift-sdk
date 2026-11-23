@@ -7,6 +7,8 @@ public struct TransferTokenRequest {
     public let amount: String
     public let signer: String?
     public let idempotencyKey: String?
+    /// Locators of the quorum members that approve, when `signer` is a quorum.
+    public let approvingMembers: [String]?
 
     public init(
         chainType: ChainType,
@@ -14,7 +16,8 @@ public struct TransferTokenRequest {
         recipient: String,
         amount: String,
         signer: String? = nil,
-        idempotencyKey: String? = nil
+        idempotencyKey: String? = nil,
+        approvingMembers: [String]? = nil
     ) {
         self.chainType = chainType
         self.tokenLocator = tokenLocator
@@ -22,5 +25,6 @@ public struct TransferTokenRequest {
         self.amount = amount
         self.signer = signer
         self.idempotencyKey = idempotencyKey
+        self.approvingMembers = approvingMembers
     }
 }

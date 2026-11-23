@@ -28,6 +28,26 @@ private func makeSolanaWallet(
 
 @Suite("Wallet Device Signer Recovery", .tags(.unit))
 struct WalletDeviceSignerRecoveryTests {
+    @Test func dropsThePendingKeyOnceCrossmintCancelledItsRegistration() async throws {
+        let walletService = MockSmartWalletService()
+        let storage = MockDeviceSignerKeyStorage()
+        let wallet = try makeSolanaWallet(walletService: walletService, storage: storage, fileName: "WalletSolanaQuorum")
+        let publicKey = try await storage.generateKey(address: nil)
+        wallet.pendingDeviceKey = PendingDeviceKey(
+            transactionId: "5b1d3e0c-7a42-4c8e-9f16-2e7d8a9b0c31",
+            publicKeyBase64: publicKey,
+            storage: storage
+        )
+        walletService.fetchTransactionResult = try GetFromFile.getModelFrom(
+            fileName: "SolanaQuorumTransactionCancelled",
+            bundle: Bundle.module
+        ) as SolanaTransactionApiModel
+
+        _ = try? await wallet.recover()
+
+        #expect(storage.deletePendingKeyCallCount == 1)
+        #expect(wallet.pendingDeviceKey?.publicKeyBase64 != publicKey)
+    }
 
     @Test
     func mapsKeyAndClearsRecoveryAfterSuccessfulRegistration() async throws {
