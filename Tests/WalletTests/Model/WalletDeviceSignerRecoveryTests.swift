@@ -49,7 +49,6 @@ struct WalletDeviceSignerRecoveryTests {
         #expect(wallet.pendingDeviceKey?.publicKeyBase64 != publicKey)
     }
 
-
     @Test
     func mapsKeyAndClearsRecoveryAfterSuccessfulRegistration() async throws {
         let walletService = MockSmartWalletService()
