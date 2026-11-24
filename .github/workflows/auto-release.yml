@@ -87,15 +87,3 @@ jobs:
           --title "Release $VERSION" \
           --generate-notes
         echo "Created GitHub release: $VERSION"
-
-    - name: Publish to CocoaPods
-      env:
-        COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
-      run: |
-        VERSION="${{ steps.extract_version.outputs.version }}"
-        if pod trunk info CrossmintDeviceSigner | grep -q -- "- $VERSION "; then
-          echo "CrossmintDeviceSigner $VERSION already on CocoaPods, skipping"
-          exit 0
-        fi
-        pod trunk push CrossmintDeviceSigner.podspec --allow-warnings
-        echo "Published CrossmintDeviceSigner to CocoaPods"
