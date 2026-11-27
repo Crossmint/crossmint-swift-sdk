@@ -31,6 +31,9 @@ final class MockAuthService: AuthService, @unchecked Sendable {
     var validateEmailError: AuthError?
     var validateTokenError: AuthError?
     var refreshJWTError: AuthError?
+    var logoutError: AuthError?
+    var refreshJWTGate: SuspensionGate?
+    var validateTokenGate: SuspensionGate?
 
     // MARK: - Protocol implementation
     func validateEmail(_ request: ValidateEmailRequest) async throws(AuthError) -> ValidateEmailResponse {
@@ -43,6 +46,7 @@ final class MockAuthService: AuthService, @unchecked Sendable {
     func validateToken(_ request: ValidateTokenRequest) async throws(AuthError) -> ValidateTokenResponse {
         validateTokenCallCount += 1
         validateTokenLastRequest = request
+        await validateTokenGate?.wait()
         if let error = validateTokenError { throw error }
         return validateTokenResponse
     }
@@ -50,6 +54,7 @@ final class MockAuthService: AuthService, @unchecked Sendable {
     func refreshJWT(_ request: RefreshJWTRequest) async throws(AuthError) -> RefreshJWTResponse {
         refreshJWTCallCount += 1
         refreshJWTLastRequest = request
+        await refreshJWTGate?.wait()
         if let error = refreshJWTError { throw error }
         return refreshJWTResponse
     }
@@ -57,5 +62,6 @@ final class MockAuthService: AuthService, @unchecked Sendable {
     func logout(_ request: LogoutRequest) async throws(AuthError) {
         logoutCallCount += 1
         logoutLastRequest = request
+        if let error = logoutError { throw error }
     }
 }
