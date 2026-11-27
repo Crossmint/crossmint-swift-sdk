@@ -18,15 +18,12 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
-        xcode-version: '27.0'
+        persist-credentials: false
 
     - name: Cache SPM packages
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: .build
         key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
@@ -53,5 +50,5 @@ jobs:
         SLACK_WEBHOOK: ${{ secrets.SLACK_QA_ALERTS_WEBHOOK }}
       run: |
         curl --fail-with-body -sS -X POST -H 'Content-type: application/json' \
-          --data "{\"text\": \":rotating_light: Swift SDK heartbeat failed twice in a row — the wallets API contract may have changed. <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>\"}" \
+          --data "{\"text\": \":rotating_light: Swift SDK heartbeat failed twice in a row — the wallets API contract may have changed. <https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|View run>\"}" \
           "$SLACK_WEBHOOK"

@@ -18,34 +18,31 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      VERSION: ${{ inputs.version }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: '27.0'
+        persist-credentials: true
 
     - name: Validate version format
       run: |
-        if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$'; then
+        if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$'; then
           echo "Error: Version must follow semantic versioning (e.g., 1.2.0 or 1.2.0-beta)"
           exit 1
         fi
 
     - name: Check if tag already exists
       run: |
-        if git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
-          echo "Error: Tag ${{ inputs.version }} already exists"
+        if git rev-parse "$VERSION" >/dev/null 2>&1; then
+          echo "Error: Tag $VERSION already exists"
           exit 1
         fi
 
     - name: Cache SPM packages
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: .build
         key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
@@ -63,7 +60,6 @@ jobs:
 
     - name: Update version in code
       run: |
-        VERSION="${{ inputs.version }}"
         sed -i '' "s/public static let version = \".*\"/public static let version = \"$VERSION\"/" Sources/Utils/SDKVersion.swift
         sed -i '' "s/s\.version *= *'.*'/s.version          = '$VERSION'/" CrossmintDeviceSigner.podspec
 
@@ -85,10 +81,10 @@ jobs:
 
     - name: Create branch and commit
       run: |
-        BRANCH_NAME="release-${{ inputs.version }}"
+        BRANCH_NAME="release-$VERSION"
         git checkout -b "$BRANCH_NAME"
         git add Sources/Utils/SDKVersion.swift CrossmintDeviceSigner.podspec
-        git commit -m "Bump version to ${{ inputs.version }}"
+        git commit -m "Bump version to $VERSION"
         git push origin "$BRANCH_NAME"
 
     - name: Generate changelog preview
@@ -102,9 +98,9 @@ jobs:
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
-            "/repos/${{ github.repository }}/releases/generate-notes" \
-            -f tag_name="${{ inputs.version }}" \
-            -f target_commitish="release-${{ inputs.version }}" \
+            "/repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$VERSION" \
+            -f target_commitish="release-$VERSION" \
             -f previous_tag_name="$LATEST_TAG" \
             --jq '.body' > /tmp/changelog.md
         fi
@@ -114,16 +110,16 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         {
-          printf 'This PR bumps the SDK version to %s. Merging it tags the release and publishes automatically.\n\n' "${{ inputs.version }}"
+          printf 'This PR bumps the SDK version to %s. Merging it tags the release and publishes automatically.\n\n' "$VERSION"
           printf '## Changes\n'
-          printf -- '- Updated `SDKVersion.swift` to %s\n' "${{ inputs.version }}"
-          printf -- '- Updated `CrossmintDeviceSigner.podspec` to %s\n\n' "${{ inputs.version }}"
+          printf -- '- Updated `SDKVersion.swift` to %s\n' "$VERSION"
+          printf -- '- Updated `CrossmintDeviceSigner.podspec` to %s\n\n' "$VERSION"
           printf '## Changelog preview\n'
           cat /tmp/changelog.md
         } > /tmp/pr-body.md
         gh pr create \
-          --title "Release ${{ inputs.version }}" \
+          --title "Release $VERSION" \
           --base main \
-          --head "release-${{ inputs.version }}" \
+          --head "release-$VERSION" \
           --label "release" \
           --body-file /tmp/pr-body.md
