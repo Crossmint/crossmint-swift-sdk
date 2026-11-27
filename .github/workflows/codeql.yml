@@ -11,6 +11,8 @@ jobs:
     name: Analyze (Swift)
     runs-on: macos-15
     timeout-minutes: 360
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.0.1.app/Contents/Developer
     permissions:
       security-events: write
       actions: read
@@ -18,15 +20,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
-        xcode-version: '26.0'
+        persist-credentials: false
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
       with:
         languages: swift
         build-mode: manual
@@ -41,6 +40,6 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
       with:
         category: "/language:swift"
