@@ -1,5 +1,5 @@
 import Foundation
-import SwiftKeccak
+import Utils
 
 public struct ERC20Encoder {
     public enum Error: Swift.Error, Equatable {

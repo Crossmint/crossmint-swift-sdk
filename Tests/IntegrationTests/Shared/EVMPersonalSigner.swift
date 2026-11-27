@@ -1,6 +1,6 @@
 import CrossmintCommonTypes
 import Foundation
-import SwiftKeccak
+import Utils
 @testable import Wallet
 
 /// An EVM external wallet that approves the way a wallet app does: EIP-191 `personal_sign` over the raw
