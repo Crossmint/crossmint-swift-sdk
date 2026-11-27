@@ -7,6 +7,11 @@ on:
         description: 'Version number (e.g., 1.2.0 or 1.2.0-beta)'
         required: true
         type: string
+      base:
+        description: 'Branch to release from: main, or release/X.Y for a hotfix on that version line'
+        required: true
+        default: main
+        type: string
 
 env:
   DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
@@ -22,6 +27,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
+        ref: ${{ inputs.base }}
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -34,6 +40,23 @@ jobs:
       run: |
         if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$'; then
           echo "Error: Version must follow semantic versioning (e.g., 1.2.0 or 1.2.0-beta)"
+          exit 1
+        fi
+
+    - name: Validate base branch
+      env:
+        VERSION: ${{ inputs.version }}
+        BASE: ${{ inputs.base }}
+      run: |
+        if [ "$BASE" = "main" ]; then
+          exit 0
+        fi
+        if ! [[ "$BASE" =~ ^release/([0-9]+\.[0-9]+)$ ]]; then
+          echo "Error: Base must be main or release/X.Y, got $BASE"
+          exit 1
+        fi
+        if [[ "$VERSION" != "${BASH_REMATCH[1]}".* ]]; then
+          echo "Error: $BASE only releases ${BASH_REMATCH[1]}.x versions, got $VERSION"
           exit 1
         fi
 
@@ -112,6 +135,7 @@ jobs:
     - name: Create Pull Request
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BASE: ${{ inputs.base }}
       run: |
         {
           printf 'This PR bumps the SDK version to %s. Merging it tags the release and publishes automatically.\n\n' "${{ inputs.version }}"
@@ -123,7 +147,7 @@ jobs:
         } > /tmp/pr-body.md
         gh pr create \
           --title "Release ${{ inputs.version }}" \
-          --base main \
+          --base "$BASE" \
           --head "release-${{ inputs.version }}" \
           --label "release" \
           --body-file /tmp/pr-body.md

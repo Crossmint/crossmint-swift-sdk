@@ -5,6 +5,7 @@ on:
     types: [closed]
     branches:
       - main
+      - 'release/*'
 
 env:
   DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
@@ -12,7 +13,7 @@ env:
 jobs:
   auto-release:
     name: Create Release
-    # Only run when a PR labelled "release" is merged into main.
+    # Only run when a PR labelled "release" is merged into main or a release/X.Y hotfix branch.
     if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release')
     runs-on: xcode-27
     permissions:
@@ -30,11 +31,17 @@ jobs:
 
     - name: Extract version from PR title
       id: extract_version
+      env:
+        BASE: ${{ github.event.pull_request.base.ref }}
       run: |
         PR_TITLE="${{ github.event.pull_request.title }}"
         VERSION=$(echo "$PR_TITLE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?' | head -n 1)
         if [ -z "$VERSION" ]; then
           echo "Error: Could not extract version from PR title: $PR_TITLE"
+          exit 1
+        fi
+        if [[ "$BASE" =~ ^release/([0-9]+\.[0-9]+)$ ]] && [[ "$VERSION" != "${BASH_REMATCH[1]}".* ]]; then
+          echo "Error: $BASE only releases ${BASH_REMATCH[1]}.x versions, got $VERSION"
           exit 1
         fi
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -83,9 +90,20 @@ jobs:
           echo "Release $VERSION already exists, skipping"
           exit 0
         fi
-        gh release create "$VERSION" \
-          --title "Release $VERSION" \
-          --generate-notes
+        # A hotfix on an older version line must not take "latest" from a newer
+        # release, and its notes start from the version just below it.
+        STABLE_TAGS=$(git ls-remote --tags --refs origin | sed 's#.*refs/tags/##' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
+        HIGHEST=$(tail -n 1 <<< "$STABLE_TAGS")
+        PREVIOUS=$(printf '%s\n%s\n' "$STABLE_TAGS" "$VERSION" | sort -Vu | grep -B 1 -Fx "$VERSION" | head -n 1)
+        LATEST=false
+        if [ "$VERSION" = "$HIGHEST" ]; then
+          LATEST=true
+        fi
+        ARGS=(--title "Release $VERSION" --generate-notes --latest="$LATEST")
+        if [ "$PREVIOUS" != "$VERSION" ]; then
+          ARGS+=(--notes-start-tag "$PREVIOUS")
+        fi
+        gh release create "$VERSION" "${ARGS[@]}"
         echo "Created GitHub release: $VERSION"
 
     - name: Publish to CocoaPods
