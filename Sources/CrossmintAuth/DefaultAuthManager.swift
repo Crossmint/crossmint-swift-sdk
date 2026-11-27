@@ -24,11 +24,14 @@ public actor CrossmintAuthManager: AuthManager {
         case noBundleIdFound
     }
 
+    private static let sessionReplacedError = AuthError.generic("The session ended or changed during the refresh")
+
     private let authService: AuthService
     private let secureStorage: SecureStorage
     private var otpAuthenticationStatus: OTPAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
     private var _authenticationStatus: AuthenticationStatus?
     private var jwtRefreshTimer: Timer?
+    private var sessionGeneration = 0
 
     public var jwt: String? {
         guard case let .authenticationStatus(.authenticated(_, jwt, _)) = otpAuthenticationStatus else {
@@ -47,8 +50,7 @@ public actor CrossmintAuthManager: AuthManager {
     public var authenticationStatus: AuthenticationStatus {
         get async throws(AuthError) {
             guard let authenticationStatus = _authenticationStatus else {
-                let secret = await getOneTimeSecret()
-                return try await performJWTRefresh(with: secret)
+                return try await restoreSession()
             }
             return authenticationStatus
         }
@@ -121,12 +123,15 @@ public actor CrossmintAuthManager: AuthManager {
               verifiedEmail == normalizedEmail else {
             throw AuthManagerError.noPendingOTP
         }
-        do {
-            try await refreshJWT(
-                try await authService.validateToken(
-                    ValidateTokenRequest(email: verifiedEmail, token: code, emailID: emailId)
-                ).oneTimeSecret
-            )
+        let generation = sessionGeneration
+        do throws(AuthError) {
+            let oneTimeSecret = try await authService.validateToken(
+                ValidateTokenRequest(email: verifiedEmail, token: code, emailID: emailId)
+            ).oneTimeSecret
+            guard generation == sessionGeneration else {
+                throw Self.sessionReplacedError
+            }
+            try await refreshJWT(oneTimeSecret)
             return otpAuthenticationStatus
         } catch {
             throw AuthManagerError.serviceError(error.message)
@@ -135,25 +140,26 @@ public actor CrossmintAuthManager: AuthManager {
 
     /// Invalidates the server-side refresh token and clears the local session.
     ///
-    /// Has no effect if the user is not currently authenticated.
+    /// If the server call fails, this method throws, but the user is still signed out on this device.
     public func logout() async throws(AuthManagerError) -> OTPAuthenticationStatus {
-        guard case let .authenticationStatus(.authenticated(_, _, secret)) = otpAuthenticationStatus else {
-            Logger.auth.debug("User is not authenticated. Nothing to logout")
-            return otpAuthenticationStatus
+        var oneTimeSecret = ""
+        if case let .authenticationStatus(.authenticated(_, _, secret)) = otpAuthenticationStatus {
+            oneTimeSecret = secret
         }
+        if oneTimeSecret.isEmpty {
+            oneTimeSecret = await getOneTimeSecret()
+        }
+        endLocalSession()
 
-        do {
-            if !secret.isEmpty {
-                try await authService.logout(LogoutRequest(refresh: secret))
+        if !oneTimeSecret.isEmpty {
+            do {
+                try await authService.logout(LogoutRequest(refresh: oneTimeSecret))
+            } catch {
+                Logger.auth.error("Error while logging out: \(error.localizedDescription)")
+                throw AuthManagerError.serviceError(error.message)
             }
-            secureStorage.clear()
-            otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
-            _authenticationStatus = .nonAuthenticated
-            return otpAuthenticationStatus
-        } catch {
-            Logger.auth.error("Error while logging out: \(error.localizedDescription)")
-            throw AuthManagerError.serviceError(error.message)
         }
+        return .authenticationStatus(.nonAuthenticated)
     }
 
     /// Clears the local session state without contacting the server.
@@ -162,11 +168,12 @@ public actor CrossmintAuthManager: AuthManager {
     /// revoked externally) and you just need to reset local state. Prefer ``logout()`` when the
     /// session is still valid and you want to revoke the server-side token as well.
     public func reset() async -> OTPAuthenticationStatus {
-        otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
+        endLocalSession()
         return otpAuthenticationStatus
     }
 
     public func setJWT(_ jwt: String) async {
+        sessionGeneration += 1
         jwtRefreshTimer?.invalidate()
         let authStatus = AuthenticationStatus.authenticated(
             email: "",
@@ -192,11 +199,24 @@ public actor CrossmintAuthManager: AuthManager {
         )
     }
 
+    private func endLocalSession() {
+        sessionGeneration += 1
+        jwtRefreshTimer?.invalidate()
+        jwtRefreshTimer = nil
+        secureStorage.clear()
+        otpAuthenticationStatus = .authenticationStatus(.nonAuthenticated)
+        _authenticationStatus = .nonAuthenticated
+    }
+
     @discardableResult
     private func refreshJWT(
         _ oneTimeSecret: String
     ) async throws(AuthError) -> AuthenticationStatus {
+        let generation = sessionGeneration
         let jwtResponse = try await authService.refreshJWT(RefreshJWTRequest(refresh: oneTimeSecret))
+        guard generation == sessionGeneration else {
+            throw Self.sessionReplacedError
+        }
 
         let jwtExpirationInSeconds = Date().distance(to: jwtResponse.refresh.expiresAt)
         let nextRefreshInSeconds = jwtExpirationInSeconds * 0.9
@@ -207,18 +227,7 @@ public actor CrossmintAuthManager: AuthManager {
             withTimeInterval: nextRefreshInSeconds,
             repeats: false
         ) { [weak self] _ in
-            Task {
-                // swiftlint:disable:next line_length
-                guard case let .authenticationStatus(.authenticated(_, _, oneTimeSecret)) = await self?.otpAuthenticationStatus else {
-                    Logger.auth.debug("Skipping JWT refresh because the user is not authenticated")
-                    return
-                }
-                do {
-                    _ = try await self?.refreshJWT(oneTimeSecret)
-                } catch {
-                    Logger.auth.error("JWT refresh failed: \(error.localizedDescription)")
-                }
-            }
+            Task { await self?.refreshFromTimer() }
         }
 
         let authStatus = AuthenticationStatus.authenticated(
@@ -227,9 +236,26 @@ public actor CrossmintAuthManager: AuthManager {
             secret: jwtResponse.refresh.secret
         )
         otpAuthenticationStatus = .authenticationStatus(authStatus)
+        _authenticationStatus = authStatus
 
         await store(authStatus)
+        guard generation == sessionGeneration else {
+            secureStorage.clear()
+            throw Self.sessionReplacedError
+        }
         return authStatus
+    }
+
+    private func refreshFromTimer() async {
+        guard case let .authenticationStatus(.authenticated(_, _, oneTimeSecret)) = otpAuthenticationStatus else {
+            Logger.auth.debug("Skipping JWT refresh because the user is not authenticated")
+            return
+        }
+        do {
+            try await refreshJWT(oneTimeSecret)
+        } catch {
+            Logger.auth.error("JWT refresh failed: \(error.localizedDescription)")
+        }
     }
 
     private func store(_ authenticationStatus: AuthenticationStatus) async {
@@ -256,7 +282,12 @@ public actor CrossmintAuthManager: AuthManager {
         }
     }
 
-    private func performJWTRefresh(with oneTimeSecret: String) async throws(AuthError) -> AuthenticationStatus {
+    private func restoreSession() async throws(AuthError) -> AuthenticationStatus {
+        let generation = sessionGeneration
+        let oneTimeSecret = await getOneTimeSecret()
+        guard generation == sessionGeneration else {
+            return _authenticationStatus ?? .nonAuthenticated
+        }
         guard !oneTimeSecret.isEmpty else {
             _authenticationStatus = .nonAuthenticated
             return .nonAuthenticated
@@ -264,10 +295,11 @@ public actor CrossmintAuthManager: AuthManager {
 
         _authenticationStatus = .authenticating
         do {
-            let authStatus = try await refreshJWT(oneTimeSecret)
-            _authenticationStatus = authStatus
-            return authStatus
+            return try await refreshJWT(oneTimeSecret)
         } catch {
+            guard generation == sessionGeneration else {
+                return _authenticationStatus ?? .nonAuthenticated
+            }
             _authenticationStatus = .nonAuthenticated
             throw AuthError.signInRequired
         }
