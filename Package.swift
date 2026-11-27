@@ -32,7 +32,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/21-DOT-DEV/swift-secp256k1", exact: "0.20.0"),
-        .package(url: "https://github.com/bitflying/SwiftKeccak", exact: "0.1.2"),
         .package(url: "https://github.com/attaswift/BigInt", from: "5.4.0"),
         .package(url: "https://github.com/ekscrypto/SwiftEmailValidator", exact: "1.0.4"),
         .package(url: "https://github.com/valpackett/SwiftCBOR", exact: "0.5.0"),
@@ -92,15 +91,18 @@ let package = Package(
                 "DeviceSigner",
                 .product(name: "P256K", package: "swift-secp256k1"),
                 .product(name: "libsecp256k1", package: "swift-secp256k1"),
-                .product(name: "SwiftKeccak", package: "SwiftKeccak"),
                 .product(name: "BigInt", package: "BigInt"),
                 "Web"
             ],
             plugins: basePlugins
         ),
         .target(
+            name: "KeccakTiny"
+        ),
+        .target(
             name: "Utils",
             dependencies: [
+                "KeccakTiny",
                 .product(name: "SwiftEmailValidator", package: "SwiftEmailValidator"),
                 .product(name: "BigInt", package: "BigInt")
             ],
@@ -259,8 +261,8 @@ let package = Package(
                 "DeviceSigner",
                 "Http",
                 "SecureStorage",
-                "Wallet",
-                .product(name: "SwiftKeccak", package: "SwiftKeccak")
+                "Utils",
+                "Wallet"
             ],
             plugins: basePlugins
         ),

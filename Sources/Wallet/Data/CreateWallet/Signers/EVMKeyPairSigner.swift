@@ -3,7 +3,7 @@ import Foundation
 import P256K
 import libsecp256k1
 import Security
-import SwiftKeccak
+import Utils
 
 public typealias Secp256k1PrivateKey = P256K.Signing.PrivateKey
 public typealias Secp256k1PublicKey = P256K.Signing.PublicKey
