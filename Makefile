@@ -82,7 +82,7 @@ heartbeat-test:
 # CI sanity check and test running
 ci-test:
 	@echo "Resolving dependencies..."
-	$(SWIFT) package resolve
+	$(SWIFT) package resolve --only-use-versions-from-resolved-file
 	@echo "Checking if lint-fix would produce changes..."
 	git diff --quiet || { echo "Working copy has uncommitted changes. Please commit or stash them first."; exit 1; }
 	$(SWIFT) package plugin --allow-writing-to-package-directory swiftlint --fix
@@ -94,7 +94,7 @@ ci-test:
 	fi
 	$(MAKE) lint
 	@echo "Running tests..."
-	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation)
+	$(call run-with-xcbeautify,$(XCODEBUILD) -scheme $(SDK_SCHEME) -destination "$(SIMULATOR_DEST)" test -skipPackagePluginValidation -onlyUsePackageVersionsFromResolvedFile)
 	@echo "Building demo apps..."
 	$(MAKE) build-evm-demo
 

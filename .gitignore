@@ -27,7 +27,6 @@ DerivedData/
 .build/
 Examples/Crossmint-Demo/build/*
 Packages/
-Package.resolved
 .swiftpm/xcode/xcuserdata/*
 
 # Other
